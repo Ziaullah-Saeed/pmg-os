@@ -1,0 +1,464 @@
+Yes — here is the exact directive in the form you actually need: a clear instruction to the developer / builder that matches your intent much more closely, including the issue that the system started building generic app work instead of first fully understanding your full pasted specifications. It also includes the requirement that pasted content must remain readable as text in the workflow, not be treated like a detached file artifact in the product experience.
+
+FINAL INSTRUCTION TO THE DEVELOPER / SYSTEM BUILDER
+DO NOT START GENERIC DEVELOPMENT — FIRST FULLY ABSORB, STRUCTURE, AND IMPLEMENT THE ACTUAL PMG CONSTITUTION
+
+You are not being asked to make a normal app, improve validation, add random API routes, or build a generic production shell.
+
+You are being asked to build a complete greenfield AI-native business operating system for PMG Group LLC, based on the full constitutional, architectural, visual, operational, CRM, AI, workflow, reporting, governance, integration, and tool-orchestration directives already provided.
+
+The current result is not yet correct because it is still behaving like a normal software project with generic engineering tasks and partial UI implementation, instead of behaving like a disciplined system builder that first fully understands the entire PMG system design before development begins.
+
+1. DO NOT BEGIN BUILDING UNTIL THE ENTIRE SPECIFICATION IS FULLY UNDERSTOOD
+
+The correct process is:
+
+Step 1 — Read everything
+
+You must first read and absorb the complete PMG specification, including:
+
+the 35-part master directive
+the enterprise constitution
+the 11 operating domains
+the advanced interaction and page architecture
+the cinematic AI-native design requirements
+the CRM structure modeled from the best of GoHighLevel and HubSpot
+the dual operating modes
+the external CRM routing requirements
+the live business connection requirements
+the wallet-based API/tool billing model
+the updating library / memory system
+the multi-tool orchestration requirements
+the domain-by-domain technology usage expectations
+Step 2 — Confirm understanding
+
+Before development begins, you must produce a structured understanding summary of the full system, showing that you understand:
+
+what the system is
+what it is not
+how each domain works
+how the domains connect
+how AI and humans collaborate
+how reporting, archive, permissions, and governance work
+how integrations and wallet charging work
+how the UI and interaction model must feel
+Step 3 — Only then build
+
+Only after the full design constitution is understood should development begin.
+
+2. THIS IS NOT A GENERIC APP
+
+Do not reduce this project into:
+
+normal CRUD screens
+generic admin pages
+a basic SaaS dashboard
+standard validation work
+random API route expansion
+plain tab layouts
+shallow CRM clones
+disconnected “sections”
+
+This is not acceptable.
+
+This system must be built as:
+
+a complete AI-powered company operating inside software
+
+That means every page, workflow, action, report, agent, routing decision, drawer, popup, and visual layer must feel like it belongs to one intelligent operating environment.
+
+3. THE PRODUCT MUST FOLLOW THE PMG CONSTITUTION, NOT DEFAULT SOFTWARE HABITS
+
+The builder must obey the constitutional rules already provided:
+
+greenfield from zero
+no inherited assumptions
+market specialization for cybersecurity and IT
+business-performance orientation toward $10M+ scale
+PhD-level intelligence quality
+AI-first operation with human oversight where required
+full system-first design before modular build
+domain interoperability
+explicit governance
+real reporting
+real archive and knowledge memory
+strong permissions
+production-grade stability
+no shallow or cosmetic domains
+
+Do not reinterpret these as optional “nice-to-haves.”
+They are the governing law of the build.
+
+4. THE UI / UX MUST MATCH THE ACTUAL AI-NATIVE VISION
+
+The current direction must not be simple, flat, or just “dark mode.”
+
+The interface must be:
+
+cinematic
+glassmorphic
+dark
+navy blue / dark blue based
+premium
+futuristic
+dramatic
+smooth
+immersive
+AI-native
+layered
+emotionally persuasive
+
+It must use:
+
+deep navy
+dark blue
+blue-black
+crimson for selective power accents
+golden yellow for premium intelligence/value accents
+dimensional gradients
+premium blur and glass surfaces
+smooth, controlled motion
+luxury-grade popups, drawers, and overlays
+
+The user must feel:
+
+“This is exactly the AI operating system I wanted.”
+
+If it looks like a normal software dashboard, then the design direction is wrong.
+
+5. EVERY MAIN SECTION MUST BE ITS OWN FULL ENVIRONMENT
+
+Every major section must not merely switch content inside one page.
+
+Each domain must have:
+
+its own full page
+its own page identity
+its own tab structure
+its own contextual tools
+its own drawers, popups, overlays, and detail views
+its own AI support logic
+its own reporting and workflow behavior
+
+The required architecture is:
+
+Section → Full Page → Tabs → Drawers / Popups / Overlays
+
+This is mandatory.
+
+Each page must feel like entering a different AI workspace inside one unified operating system.
+
+6. CRM MUST BE BUILT FROM THE BEST OF GOHIGHLEVEL AND HUBSPOT — BUT BETTER
+
+The CRM must not be a weak custom clone.
+
+It must include the strongest patterns from:
+
+GoHighLevel
+HubSpot
+
+and improve them with AI-native behavior.
+
+CRM must include:
+lead management
+opportunity management
+drag-and-drop pipeline
+activities timeline
+tasks and follow-up system
+automation builder
+detailed record drawers
+AI summaries
+pain-point mapping
+confidence scores
+recommended next actions
+risk indicators
+sync visibility
+internal CRM mode
+external CRM mode
+hybrid mode
+
+Every CRM record must feel intelligent, not static.
+
+7. GOHIGHLEVEL SUB-ACCOUNT CONNECTION IS REQUIRED
+
+I currently use a GoHighLevel sub-account managed by another company.
+
+The system must include a proper place where I can connect that GoHighLevel environment and send leads there directly.
+
+That means the platform must support:
+
+GHL connection flow
+CRM mode selection
+lead routing to GHL
+sync logs
+field mapping
+pipeline mapping
+retry queue
+sync status visibility
+fallback logic
+PMG internal retention of all lead intelligence
+
+Even when leads are sent to GHL, PMG must still retain:
+
+full lead record
+enrichment
+scoring
+AI context
+routing logs
+activity history
+sync state
+
+PMG must not become blind after handoff.
+
+8. THE SYSTEM MUST OPERATE IN TWO MODES
+
+The product must be built in two modes:
+
+Mode 1 — AI Autonomous Mode
+
+The AI should do as much work as possible 24/7, including:
+
+research
+enrichment
+lead scoring
+routing
+messaging drafts
+workflow continuation
+reminders
+reporting
+task generation
+monitoring
+library updates
+operational summarization
+Mode 2 — Human-Assisted / Human-Controlled Mode
+
+Humans should step in where necessary, including:
+
+sensitive communication
+negotiation
+trust-heavy moments
+final approvals
+legal escalation
+financial escalation
+override decisions
+quality control
+
+The system must support:
+
+global mode control
+workflow-level mode control
+action-level override
+confidence-based handoff
+visible labels showing what AI did and what humans did
+9. ALL RELEVANT TECHNOLOGIES MUST BE USED ACROSS DOMAINS
+
+Do not just list tools. Use them properly across the system where they are needed.
+
+Technologies and services provided in the PMG planning material must be used accordingly across all relevant domains, including tools such as:
+
+Lindy
+Make
+Supabase
+Upstash
+Perplexity
+Exa
+Clay
+Apollo
+Ocean
+Midjourney
+ElevenLabs
+Luma
+Descript
+Gong
+Fathom
+Otter
+Spellbook
+Ramp
+Grammarly
+NotebookLM
+Guru
+and similar systems as specified
+
+The requirement is:
+
+use the right technologies in the right domains automatically and intelligently
+
+—not merely mention them.
+
+10. DO NOT KEEP ASKING FOR TOOL SELECTION OR REPEATED SETUP
+
+Once the integration layer exists, the system must automatically:
+
+choose the right tool
+call the right provider
+process the result
+store the output
+log the cost
+charge the wallet
+
+The user should not need to repeatedly:
+
+choose tools manually
+enter credentials every time
+confirm every small action
+manage fragmented provider behavior
+
+The product must operate like a real intelligent system.
+
+11. ALL TOOL AND API COSTS MUST COME FROM THE WALLET
+
+The system must include wallet-based execution.
+
+That means:
+
+I fund the wallet
+the system uses integrated tools and APIs as needed
+when any domain triggers an external action, the usage is charged automatically
+the wallet balance is reduced
+the action is logged
+the user can see what tool was used and what it cost
+
+This applies across:
+
+AI generation
+enrichment
+CRM sync
+email verification
+image generation
+voice generation
+video generation
+research
+reporting
+automation
+background agent actions
+
+This must be a native platform behavior, not a separate manual process.
+
+12. THE SYSTEM MUST INCLUDE A CONTINUOUSLY UPDATING LIBRARY
+
+The system must have a structured, updating intelligence library.
+
+This is not a static document folder.
+
+It must function as:
+
+business memory
+learning system
+knowledge base
+AI context source
+institutional memory
+refinement layer
+
+It must continuously update from:
+
+CRM activity
+calls
+meetings
+reports
+AI outputs
+human corrections
+workflow history
+successful and failed campaigns
+approved and rejected content
+market research
+strategy insights
+
+The AI must use this library as memory and improve over time.
+
+13. TREAT PASTED USER CONTENT AS TEXTUAL SYSTEM INSTRUCTION, NOT GENERIC FILE NOISE
+
+When I paste detailed specifications, they must be treated as core instructional content to be read, absorbed, and implemented.
+
+Do not reduce them into shallow summaries and then start building generic features.
+
+Also, in the product experience itself, text input and pasted specifications should be handled as real text content wherever appropriate, not treated in a clumsy way that makes the workflow feel like detached file handling when the user’s intent is to input direct specification text.
+
+In short:
+
+When I provide copied specifications, the system must preserve them as meaningful readable instruction content and treat them as part of the operating workflow, not as disposable attachment noise.
+
+14. THE CORRECT DEVELOPMENT ORDER
+
+The correct build order is:
+
+Phase 1 — Understanding & Architecture
+absorb full constitution
+absorb all addenda
+produce structured system understanding
+map domains and dependencies
+finalize interaction architecture
+finalize design system
+finalize mode logic
+finalize integrations and wallet logic
+Phase 2 — Core System Spine
+auth
+permissions
+shell
+navigation
+command center structure
+domain routing
+drawer/modal framework
+audit/event framework
+integration hub
+wallet foundation
+updating library foundation
+Phase 3 — Domain-by-Domain Build
+
+Build every domain completely and in relation to the others.
+
+Phase 4 — Tool & API Orchestration
+connect CRM routing
+connect AI tools
+connect business channels
+connect reporting
+connect memory
+Phase 5 — Quality, Governance, Hardening
+review gates
+approval flows
+auditability
+failure handling
+retry logic
+reporting integrity
+production-grade reliability
+15. WHAT YOU MUST NOT DO AGAIN
+
+Do not:
+
+skip the understanding phase
+pretend partial summaries equal full comprehension
+start generic app development
+build simple placeholder pages
+reduce the system to tables and forms
+ignore the cinematic AI-native design constitution
+ignore CRM depth
+ignore dual modes
+ignore GHL routing
+ignore wallet-based orchestration
+ignore the updating library
+ignore cross-domain system behavior
+16. REQUIRED END STATE
+
+The final product must be:
+
+deeply architectural
+visually unforgettable
+AI-native
+operationally serious
+domain-complete
+CRM-strong
+tool-orchestrated
+wallet-funded
+library-backed
+integration-aware
+governance-controlled
+reportable
+auditable
+scalable
+
+It must not feel like a prototype.
+It must not feel like a generic dashboard.
+It must not feel like a half-built admin app.
+
+It must feel like:
+
+PMG Group LLC operating inside a complete AI-powered company system.
