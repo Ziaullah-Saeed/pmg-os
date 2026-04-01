@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
@@ -19,13 +20,14 @@ import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBa
 import {
   Briefcase, Plus, DollarSign, TrendingUp, Clock, AlertTriangle,
   ArrowRight, FileText, Phone, Calendar, ChevronRight, Bot, Target, Users,
-  GripVertical, Pencil, Save, X, Loader2, Building2, User
+  GripVertical, Pencil, Save, X, Loader2, Building2, User, MessageSquare,
+  CheckCircle2, Send
 } from "lucide-react";
 import { CreateLeadForm } from "@/components/forms/create-lead-form";
 import { CreateOpportunityForm } from "@/components/forms/create-opportunity-form";
 import { CreateCompanyForm } from "@/components/forms/create-company-form";
 import { CreateContactForm } from "@/components/forms/create-contact-form";
-import { useDeleteLead, useUpdateLead, useRouteLead, useLeadActivities, useUpdateOpportunityMut } from "@/hooks/use-api";
+import { useDeleteLead, useUpdateLead, useRouteLead, useLeadActivities, useUpdateOpportunityMut, useNotes, useCreateNote, useFollowUps, useCreateFollowUp, useUpdateFollowUp } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
@@ -72,6 +74,101 @@ function DroppableColumn({ stage, children }: { stage: string; children: React.R
   );
 }
 
+function DealNotesSection({ oppId, newNote, setNewNote, createNote, toast }: any) {
+  const { data: notes } = useNotes("opportunity", String(oppId));
+  const noteList = (notes ?? []) as any[];
+  return (
+    <div>
+      <h4 className="section-header mb-2 flex items-center gap-2"><MessageSquare className="h-4 w-4 text-crimson" />Notes ({noteList.length})</h4>
+      <div className="space-y-2 mb-3">
+        {noteList.map((n: any) => (
+          <div key={n.id} className="p-3 rounded-lg glass-surface">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-medium text-slate-400">{n.author ?? "Team"}</span>
+              <span className="text-[10px] text-muted-foreground">{new Date(n.createdAt ?? n.created_at).toLocaleString()}</span>
+            </div>
+            <p className="text-xs text-slate-300">{n.content}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <Textarea
+          placeholder="Add a note..."
+          value={newNote}
+          onChange={e => setNewNote(e.target.value)}
+          className="bg-white/5 border-white/10 text-white text-xs min-h-[60px] flex-1"
+        />
+        <Button
+          size="sm"
+          className="btn-premium text-white shrink-0 self-end"
+          disabled={!newNote.trim() || createNote.isPending}
+          onClick={() => {
+            createNote.mutate({ entityType: "opportunity", entityId: String(oppId), content: newNote, author: "SherShah K.", domain: "crm" }, {
+              onSuccess: () => { toast({ title: "Note added" }); setNewNote(""); },
+            });
+          }}
+        ><Send className="h-3 w-3" /></Button>
+      </div>
+    </div>
+  );
+}
+
+function DealFollowUpsSection({ oppId, newFollowUp, setNewFollowUp, createFollowUp, updateFollowUp, toast }: any) {
+  const { data: followUps } = useFollowUps("opportunity", String(oppId));
+  const fuList = (followUps ?? []) as any[];
+  return (
+    <div>
+      <h4 className="section-header mb-2 flex items-center gap-2"><Calendar className="h-4 w-4 text-crimson" />Follow-Ups ({fuList.length})</h4>
+      <div className="space-y-2 mb-3">
+        {fuList.map((fu: any) => {
+          const isOverdue = fu.status !== "completed" && new Date(fu.dueDate ?? fu.due_date) < new Date();
+          return (
+            <div key={fu.id} className={`p-3 rounded-lg glass-surface flex items-center justify-between ${isOverdue ? "border border-crimson/30" : ""}`}>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium">{fu.title}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className={`text-[10px] ${isOverdue ? "text-crimson" : "text-muted-foreground"}`}>Due: {new Date(fu.dueDate ?? fu.due_date).toLocaleDateString()}</span>
+                  {fu.assignedTo && <span className="text-[10px] text-muted-foreground">· {fu.assignedTo ?? fu.assigned_to}</span>}
+                </div>
+              </div>
+              <Button
+                size="sm" variant="ghost" className="h-6 px-2 text-[10px]"
+                disabled={fu.status === "completed" || updateFollowUp.isPending}
+                onClick={() => { updateFollowUp.mutate({ id: fu.id, status: "completed" }, { onSuccess: () => toast({ title: "Follow-up completed" }) }); }}
+              >
+                {fu.status === "completed" ? <CheckCircle2 className="h-3 w-3 text-green-400" /> : <CheckCircle2 className="h-3 w-3 text-slate-500" />}
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex gap-2">
+        <Input
+          placeholder="Follow-up title..."
+          value={newFollowUp.title}
+          onChange={e => setNewFollowUp((p: any) => ({ ...p, title: e.target.value }))}
+          className="bg-white/5 border-white/10 text-white text-xs h-8 flex-1"
+        />
+        <Input
+          type="date"
+          value={newFollowUp.dueDate}
+          onChange={e => setNewFollowUp((p: any) => ({ ...p, dueDate: e.target.value }))}
+          className="bg-white/5 border-white/10 text-white text-xs h-8 w-32"
+        />
+        <Button
+          size="sm" className="btn-premium text-white h-8 shrink-0"
+          disabled={!newFollowUp.title.trim() || !newFollowUp.dueDate || createFollowUp.isPending}
+          onClick={() => {
+            createFollowUp.mutate({ entityType: "opportunity", entityId: String(oppId), title: newFollowUp.title, dueDate: newFollowUp.dueDate, assignedTo: "SherShah K.", domain: "crm" }, {
+              onSuccess: () => { toast({ title: "Follow-up created" }); setNewFollowUp({ title: "", dueDate: "" }); },
+            });
+          }}
+        ><Plus className="h-3 w-3" /></Button>
+      </div>
+    </div>
+  );
+}
+
 export default function CRM() {
   const [activeTab, setActiveTab] = useState("leads");
   const [selectedOpp, setSelectedOpp] = useState<any>(null);
@@ -84,9 +181,14 @@ export default function CRM() {
   const [leadEditForm, setLeadEditForm] = useState<any>({});
   const [editingOpp, setEditingOpp] = useState(false);
   const [oppEditForm, setOppEditForm] = useState<any>({});
+  const [newNote, setNewNote] = useState("");
+  const [newFollowUp, setNewFollowUp] = useState({ title: "", dueDate: "" });
   const { toast } = useToast();
   const updateOpp = useUpdateOpportunityMut();
   const updateLead = useUpdateLead();
+  const createNote = useCreateNote();
+  const createFollowUp = useCreateFollowUp();
+  const updateFollowUp = useUpdateFollowUp();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const { data: opportunities, isLoading } = useListOpportunities();
   const { data: communications } = useListCommunications();
@@ -561,6 +663,9 @@ export default function CRM() {
                   }}
                 ><ArrowRight className="h-4 w-4 mr-2" />Advance Stage</Button>
               </div>
+
+              <DealNotesSection oppId={selectedOpp.id} newNote={newNote} setNewNote={setNewNote} createNote={createNote} toast={toast} />
+              <DealFollowUpsSection oppId={selectedOpp.id} newFollowUp={newFollowUp} setNewFollowUp={setNewFollowUp} createFollowUp={createFollowUp} updateFollowUp={updateFollowUp} toast={toast} />
             </div>
           );
         })()}

@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startAgentSimulation } from "./services/agent-simulator";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,7 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  startAgentSimulation(45000);
+  logger.info("Agent simulation engine started (45s interval)");
 });

@@ -11,10 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { ModeIndicatorBanner, ModeAwareWrapper, HumanWorkflowGuide } from "@/components/mode-aware-wrapper";
-import { useSops, useCreateSop } from "@/hooks/use-api";
+import { useSops, useCreateSop, useQualityIssues } from "@/hooks/use-api";
+import { Badge } from "@/components/ui/badge";
 import {
   BookOpen, FileText, AlertTriangle, Plus, Search, FolderOpen,
-  ClipboardList, Scale, ArrowUpCircle, Archive, CheckCircle2
+  ClipboardList, Scale, ArrowUpCircle, Archive, CheckCircle2, Loader2, Eye
 } from "lucide-react";
 
 const tabs = [
@@ -52,13 +53,16 @@ const escalationTemplates = [
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("sops");
   const [showCreate, setShowCreate] = useState(false);
-  const [newSop, setNewSop] = useState({ title: "", category: "operations", content: "" });
+  const [expandedSop, setExpandedSop] = useState<number | null>(null);
+  const [sopSearch, setSopSearch] = useState("");
+  const [newSop, setNewSop] = useState({ title: "", category: "operations", content: "", domain: "system" });
   const { isHuman } = useAiModeContext();
   const { toast } = useToast();
   const { data: sops } = useSops();
   const createSop = useCreateSop();
 
   const sopList = (sops ?? []) as any[];
+  const filteredSops = sopSearch ? sopList.filter((s: any) => s.title?.toLowerCase().includes(sopSearch.toLowerCase()) || s.category?.toLowerCase().includes(sopSearch.toLowerCase())) : sopList;
 
   const handleCreateSop = () => {
     if (!newSop.title || !newSop.content) return;
@@ -66,7 +70,7 @@ export default function Admin() {
       onSuccess: () => {
         toast({ title: "SOP created" });
         setShowCreate(false);
-        setNewSop({ title: "", category: "operations", content: "" });
+        setNewSop({ title: "", category: "operations", content: "", domain: "system" });
       },
     });
   };
@@ -111,46 +115,81 @@ export default function Admin() {
         <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           {activeTab === "sops" && (
             <div className="space-y-4">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input placeholder="Search SOPs..." value={sopSearch} onChange={e => setSopSearch(e.target.value)} className="pl-9 bg-white/5 border-white/10 h-9" />
+                </div>
+              </div>
+
               {showCreate && (
                 <GlassCard glow="crimson">
                   <h3 className="text-sm font-semibold mb-3">Create New SOP</h3>
                   <div className="space-y-3">
                     <Input placeholder="SOP Title" value={newSop.title} onChange={e => setNewSop(p => ({ ...p, title: e.target.value }))} className="bg-white/5 border-white/10" />
-                    <select
-                      value={newSop.category}
-                      onChange={e => setNewSop(p => ({ ...p, category: e.target.value }))}
-                      className="w-full h-9 rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white"
-                    >
-                      <option value="operations">Operations</option>
-                      <option value="security">Security</option>
-                      <option value="compliance">Compliance</option>
-                      <option value="finance">Finance</option>
-                      <option value="sales">Sales</option>
-                      <option value="marketing">Marketing</option>
-                    </select>
+                    <div className="grid grid-cols-2 gap-3">
+                      <select value={newSop.category} onChange={e => setNewSop(p => ({ ...p, category: e.target.value }))} className="h-9 rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white">
+                        <option value="operations">Operations</option>
+                        <option value="security">Security</option>
+                        <option value="compliance">Compliance</option>
+                        <option value="finance">Finance</option>
+                        <option value="sales">Sales</option>
+                        <option value="marketing">Marketing</option>
+                      </select>
+                      <select value={newSop.domain} onChange={e => setNewSop(p => ({ ...p, domain: e.target.value }))} className="h-9 rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white">
+                        <option value="system">System</option>
+                        <option value="crm">CRM</option>
+                        <option value="marketing">Marketing</option>
+                        <option value="production">Production</option>
+                        <option value="finance">Finance</option>
+                        <option value="outreach">Outreach</option>
+                        <option value="communications">Communications</option>
+                      </select>
+                    </div>
                     <Textarea placeholder="SOP Content / Procedure Steps" value={newSop.content} onChange={e => setNewSop(p => ({ ...p, content: e.target.value }))} className="bg-white/5 border-white/10 min-h-[100px]" />
                     <div className="flex gap-2">
-                      <Button className="btn-premium text-white text-sm" onClick={handleCreateSop} disabled={createSop.isPending}>Create SOP</Button>
+                      <Button className="btn-premium text-white text-sm" onClick={handleCreateSop} disabled={createSop.isPending}>
+                        {createSop.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}Create SOP
+                      </Button>
                       <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
                     </div>
                   </div>
                 </GlassCard>
               )}
-              {sopList.map((sop: any) => (
-                <GlassCard key={sop.id}>
+              {filteredSops.map((sop: any) => (
+                <GlassCard key={sop.id} className="cursor-pointer hover:border-white/10 transition-colors" onClick={() => setExpandedSop(expandedSop === sop.id ? null : sop.id)}>
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold">{sop.title}</h3>
-                      <p className="text-xs text-muted-foreground">{sop.category} · v{sop.version ?? "1.0"}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg glass-surface">
+                        <BookOpen className="h-4 w-4 text-crimson" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold">{sop.title}</h3>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="outline" className="text-[9px] capitalize">{sop.category}</Badge>
+                          {sop.domain && <Badge variant="outline" className="text-[9px] capitalize">{sop.domain}</Badge>}
+                          <span className="text-[10px] text-muted-foreground">v{sop.version ?? "1.0"}</span>
+                          {sop.createdBy && <span className="text-[10px] text-muted-foreground">by {sop.createdBy ?? sop.created_by}</span>}
+                        </div>
+                      </div>
                     </div>
-                    <StatusBadge variant={sop.status === "active" ? "active" : "draft"} label={sop.status} />
+                    <div className="flex items-center gap-2">
+                      <StatusBadge variant={sop.status === "active" ? "active" : "draft"} label={sop.status ?? "active"} />
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
                   </div>
-                  {sop.content && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{sop.content}</p>}
+                  {expandedSop === sop.id && sop.content && (
+                    <div className="mt-3 p-3 rounded-lg glass-surface border border-white/5">
+                      <p className="text-xs text-slate-300 whitespace-pre-wrap">{sop.content}</p>
+                      <p className="text-[10px] text-muted-foreground mt-2">Created: {new Date(sop.createdAt ?? sop.created_at).toLocaleDateString()}</p>
+                    </div>
+                  )}
                 </GlassCard>
               ))}
-              {sopList.length === 0 && (
-                <GlassCard>
-                  <p className="text-sm text-muted-foreground text-center py-4">No SOPs created yet. Click "New SOP" to start.</p>
+              {filteredSops.length === 0 && (
+                <GlassCard className="py-8 flex flex-col items-center gap-2">
+                  <BookOpen className="h-10 w-10 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">{sopSearch ? "No SOPs match your search" : "No SOPs created yet. Click \"New SOP\" to start."}</p>
                 </GlassCard>
               )}
             </div>

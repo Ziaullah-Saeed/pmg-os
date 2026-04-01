@@ -655,4 +655,54 @@ export function useCreateSop() {
   });
 }
 
+export function useAiRecommendations() {
+  return useQuery({
+    queryKey: ["dashboard", "ai-recommendations"],
+    queryFn: () => apiFetch<{ recommendations: any[] }>("/dashboard/ai-recommendations"),
+    refetchInterval: 60000,
+  });
+}
+
+export function useInterventionQueue() {
+  return useQuery({
+    queryKey: ["dashboard", "intervention-queue"],
+    queryFn: () => apiFetch<{ items: any[]; totalCount: number }>("/dashboard/intervention-queue"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useAgentActivity() {
+  return useQuery({
+    queryKey: ["dashboard", "agent-activity"],
+    queryFn: () => apiFetch<{ stats: any; domainActivity: Record<string, any>; recentRuns: any[]; agents: any[] }>("/dashboard/agent-activity"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useQualityIssues(params?: Record<string, string>) {
+  const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+  return useQuery({
+    queryKey: ["quality-issues", params],
+    queryFn: () => apiFetch<any[]>(`/quality-issues${qs}`),
+  });
+}
+
+export function useCreateQualityIssue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch<any>("/quality-issues", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["quality-issues"] }); },
+  });
+}
+
+export function useUpdateQualityIssue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      apiFetch<any>(`/quality-issues/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["quality-issues"] }); },
+  });
+}
+
 export { apiFetch };

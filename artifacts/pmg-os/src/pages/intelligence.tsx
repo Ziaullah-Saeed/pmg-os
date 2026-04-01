@@ -227,64 +227,114 @@ export default function Intelligence() {
           </div>
         )}
 
-        {activeTab === "icp" && (
-          <div className="space-y-6">
-            <GlassCard glow="crimson" className="p-0 overflow-hidden">
-              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-crimson" />
-                  <h3 className="text-sm font-semibold">Ideal Customer Profile — PMG Group</h3>
-                </div>
-                <StatusBadge variant="ai-executed" label="AI Analyzed" />
-              </div>
-              <div className="px-5 pb-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-crimson uppercase tracking-wider">Firmographics</h4>
-                  <IcpItem label="Industry" value="IT Services, Financial Services, Healthcare, SaaS" />
-                  <IcpItem label="Company Size" value="50-500 employees" />
-                  <IcpItem label="Revenue" value="$5M - $100M ARR" />
-                  <IcpItem label="Geography" value="United States, Canada" />
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-crimson uppercase tracking-wider">Pain Signals</h4>
-                  <IcpItem label="Primary" value="Cybersecurity compliance gaps" />
-                  <IcpItem label="Secondary" value="IT infrastructure scaling challenges" />
-                  <IcpItem label="Trigger" value="Recent breach, audit finding, growth phase" />
-                  <IcpItem label="Urgency" value="Regulatory deadline or board mandate" />
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-crimson uppercase tracking-wider">Decision Criteria</h4>
-                  <IcpItem label="Buyer" value="CTO, CISO, VP Engineering" />
-                  <IcpItem label="Budget" value="$50K - $500K annually" />
-                  <IcpItem label="Timeline" value="30-90 day decision cycle" />
-                  <IcpItem label="Competition" value="Accenture, Deloitte, boutique firms" />
-                </div>
-              </div>
-            </GlassCard>
+        {activeTab === "icp" && (() => {
+          const industries = [...new Set(companyList.map((c: any) => c.industry).filter(Boolean))];
+          const sizes = companyList.map((c: any) => c.size ?? 0).filter(Boolean);
+          const minSize = sizes.length ? Math.min(...sizes) : 50;
+          const maxSize = sizes.length ? Math.max(...sizes) : 500;
+          const locations = [...new Set(companyList.map((c: any) => c.location).filter(Boolean))];
+          const painPoints = companyList.map((c: any) => c.painPoints ?? c.pain_points).filter(Boolean);
+          const sources = [...new Set(leadList.map((l: any) => l.source).filter(Boolean))];
+          const highFitCompanies = companyList.filter((c: any) => (c.fitScore ?? c.fit_score ?? 0) >= 70);
+          const trustBarriers = [
+            { barrier: "No Local Case Studies", severity: painPoints.length > 0 ? 85 : 60, mitigation: "Build 3+ reference clients in target verticals" },
+            { barrier: "Brand Recognition Gap", severity: companyList.length < 5 ? 90 : 65, mitigation: "Authority content + speaking engagements" },
+            { barrier: "Compliance Certification Gaps", severity: 75, mitigation: "SOC2 Type II + CMMC certification timeline" },
+            { barrier: "Pricing Transparency", severity: 55, mitigation: "Published pricing tiers for SMB segment" },
+          ];
 
-            <GlassCard className="p-0 overflow-hidden">
-              <div className="px-5 pt-4 pb-3">
-                <h3 className="text-sm font-semibold">ICP Fit Analysis</h3>
-              </div>
-              <div className="px-5 pb-4 space-y-2">
-                {companyList.map((c: any) => {
-                  const fit = c.fitScore ?? c.fit_score ?? 0;
-                  return (
-                    <div key={c.id} className="flex items-center gap-4 p-3 rounded-lg glass-surface">
-                      <div className="w-8 h-8 rounded-lg bg-crimson/10 flex items-center justify-center text-crimson font-bold text-xs shrink-0">{c.name?.charAt(0)}</div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{c.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{c.industry} &bull; {c.size} employees</p>
+          return (
+            <div className="space-y-6">
+              <GlassCard glow="crimson" className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-crimson" />
+                    <h3 className="text-sm font-semibold">Dynamic ICP — Built from {companyList.length} Companies & {leadList.length} Leads</h3>
+                  </div>
+                  <StatusBadge variant="ai-executed" label="Live Analysis" />
+                </div>
+                <div className="px-5 pb-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-crimson uppercase tracking-wider">Firmographics</h4>
+                    <IcpItem label="Industries" value={industries.length > 0 ? industries.join(", ") : "IT Services, Cybersecurity"} />
+                    <IcpItem label="Company Size" value={sizes.length > 0 ? `${minSize}-${maxSize} employees` : "50-500 employees"} />
+                    <IcpItem label="Geographies" value={locations.length > 0 ? locations.slice(0, 4).join(", ") : "United States"} />
+                    <IcpItem label="Lead Sources" value={sources.length > 0 ? sources.join(", ").replace(/_/g, " ") : "Website, LinkedIn"} />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-crimson uppercase tracking-wider">Pain Signals (from data)</h4>
+                    {painPoints.length > 0 ? painPoints.slice(0, 4).map((p: string, i: number) => (
+                      <IcpItem key={i} label={`Signal ${i + 1}`} value={p} />
+                    )) : (
+                      <>
+                        <IcpItem label="Primary" value="Cybersecurity compliance gaps" />
+                        <IcpItem label="Secondary" value="IT infrastructure scaling" />
+                        <IcpItem label="Trigger" value="Recent breach, audit finding" />
+                      </>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-crimson uppercase tracking-wider">Fit Analysis</h4>
+                    <IcpItem label="High-Fit Companies" value={`${highFitCompanies.length} of ${companyList.length} (${companyList.length ? Math.round(highFitCompanies.length / companyList.length * 100) : 0}%)`} />
+                    <IcpItem label="Avg Fit Score" value={`${avgFitScore}%`} />
+                    <IcpItem label="Decision Makers" value={`${decisionMakers.length} identified`} />
+                    <IcpItem label="Contacts Mapped" value={`${contactList.length} total`} />
+                  </div>
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden" glow="blue">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-blue-400" />
+                    <h3 className="text-sm font-semibold">Trust Barrier Analysis</h3>
+                  </div>
+                  <StatusBadge variant="ai-recommended" label="AI Assessed" />
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {trustBarriers.map((tb, i) => (
+                    <div key={i} className={`p-3 rounded-lg border ${tb.severity >= 80 ? "border-crimson/30 bg-crimson/5" : tb.severity >= 60 ? "border-warning/20 bg-warning/5" : "border-white/5 bg-white/[0.02]"}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold">{tb.barrier}</p>
+                        <span className={`text-xs font-bold ${tb.severity >= 80 ? "text-crimson" : tb.severity >= 60 ? "text-warning" : "text-blue-400"}`}>{tb.severity}%</span>
                       </div>
-                      <ConfidenceMeter score={fit} className="w-28" />
-                      <StatusBadge variant={fit >= 80 ? "success" : fit >= 60 ? "warning" : "critical"} label={fit >= 80 ? "Strong Fit" : fit >= 60 ? "Moderate" : "Weak"} />
+                      <div className="h-1.5 rounded-full bg-white/5 mb-2 overflow-hidden">
+                        <div className={`h-full rounded-full ${tb.severity >= 80 ? "bg-crimson" : tb.severity >= 60 ? "bg-warning" : "bg-blue-400"}`} style={{ width: `${tb.severity}%` }} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{tb.mitigation}</p>
                     </div>
-                  );
-                })}
-              </div>
-            </GlassCard>
-          </div>
-        )}
+                  ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3">
+                  <h3 className="text-sm font-semibold">ICP Fit Analysis — All Companies</h3>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {companyList.length === 0 ? (
+                    <div className="py-6 text-center text-sm text-muted-foreground">No companies to analyze yet</div>
+                  ) : (
+                    [...companyList].sort((a: any, b: any) => (b.fitScore ?? b.fit_score ?? 0) - (a.fitScore ?? a.fit_score ?? 0)).map((c: any) => {
+                      const fit = c.fitScore ?? c.fit_score ?? 0;
+                      return (
+                        <div key={c.id} className="flex items-center gap-4 p-3 rounded-lg glass-surface cursor-pointer hover:border-white/10 transition-colors" onClick={() => setSelectedCompany(c)}>
+                          <div className="w-8 h-8 rounded-lg bg-crimson/10 flex items-center justify-center text-crimson font-bold text-xs shrink-0">{c.name?.charAt(0)}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{c.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{c.industry} · {c.size} employees · {c.location}</p>
+                          </div>
+                          <ConfidenceMeter score={fit} className="w-28" />
+                          <StatusBadge variant={fit >= 80 ? "success" : fit >= 60 ? "warning" : "critical"} label={fit >= 80 ? "Strong Fit" : fit >= 60 ? "Moderate" : "Weak"} />
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </GlassCard>
+            </div>
+          );
+        })()}
 
         {activeTab === "competitors" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

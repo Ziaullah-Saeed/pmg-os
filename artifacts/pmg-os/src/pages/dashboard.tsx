@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
-import { useAgentStats } from "@/hooks/use-api";
+import { useAgentStats, useAiRecommendations, useInterventionQueue, useAgentActivity } from "@/hooks/use-api";
 import { Button } from "@/components/ui/button";
 
 const stagger = {
@@ -130,6 +130,9 @@ export default function Dashboard() {
 
   const { isHuman, isHybrid, isAuto } = useAiModeContext();
   const { data: agentStats } = useAgentStats();
+  const { data: aiRecs } = useAiRecommendations();
+  const { data: interventionData } = useInterventionQueue();
+  const { data: agentActivityData } = useAgentActivity();
 
   if (isHuman) {
     return (
@@ -428,6 +431,36 @@ export default function Dashboard() {
                 </div>
               </GlassCard>
             </div>
+
+            {aiRecs?.recommendations && aiRecs.recommendations.length > 0 && (
+              <GlassCard className="p-0 overflow-hidden" glow="crimson">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-crimson" />
+                    <h3 className="text-sm font-semibold">AI Recommendations — What Should PMG Do Next?</h3>
+                  </div>
+                  <StatusBadge variant="ai-recommended" label="AI Generated" />
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {aiRecs.recommendations.map((rec: any) => (
+                    <div key={rec.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${rec.priority === "critical" ? "border-crimson/30 bg-crimson/5" : rec.priority === "high" ? "border-warning/20 bg-warning/5" : "border-white/5 bg-white/[0.02]"}`}>
+                      <div className={`mt-0.5 p-1.5 rounded ${rec.priority === "critical" ? "bg-crimson/20 text-crimson" : rec.priority === "high" ? "bg-warning/20 text-warning" : "bg-blue-500/20 text-blue-400"}`}>
+                        {rec.category === "revenue" ? <DollarSign className="h-3.5 w-3.5" /> : rec.category === "operations" ? <Zap className="h-3.5 w-3.5" /> : rec.category === "pipeline" ? <Target className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{rec.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{rec.description}</p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className="text-[10px] text-crimson-400 font-medium">{rec.action}</span>
+                          <span className="text-[10px] text-muted-foreground">Impact: {rec.impact}</span>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={`text-[9px] shrink-0 capitalize ${rec.priority === "critical" ? "border-crimson/30 text-crimson" : rec.priority === "high" ? "border-warning/30 text-warning" : "border-blue-500/30 text-blue-400"}`}>{rec.priority}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
           </div>
         )}
 
@@ -549,91 +582,144 @@ export default function Dashboard() {
           </div>
         )}
 
-        {activeView === "exceptions" && (
-          <div className="space-y-4">
-            {attentionItems.length === 0 ? (
-              <GlassCard className="py-12 flex flex-col items-center gap-3">
-                <CheckCircle2 className="h-12 w-12 text-success/50" />
-                <p className="text-lg font-semibold">No Exceptions</p>
-                <p className="text-sm text-muted-foreground">All systems operating within normal parameters.</p>
-              </GlassCard>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="h-5 w-5 text-crimson" />
-                  <h2 className="text-lg font-semibold">Items Requiring Human Attention</h2>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-crimson/20 text-crimson font-bold">{attentionItems.length}</span>
-                </div>
-                {attentionItems.map((item, i) => (
-                  <GlassCard
-                    key={i}
-                    variant={item.severity === "critical" ? "alert-critical" : "alert-warning"}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {item.severity === "critical" ? (
-                        <AlertCircle className="h-5 w-5 text-crimson shrink-0" />
-                      ) : (
-                        <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold">{item.text}</p>
-                        <p className="text-xs text-muted-foreground">{item.detail}</p>
+        {activeView === "exceptions" && (() => {
+          const interventionItems = interventionData?.items ?? [];
+          const allItems = [
+            ...interventionItems.map((item: any) => ({
+              type: item.type,
+              severity: item.severity as "critical" | "warning" | "high",
+              text: item.title,
+              detail: item.description,
+              domain: item.domain,
+            })),
+            ...attentionItems.filter(a => !interventionItems.some((ii: any) => ii.title === a.text)),
+          ];
+          return (
+            <div className="space-y-4">
+              {allItems.length === 0 ? (
+                <GlassCard className="py-12 flex flex-col items-center gap-3">
+                  <CheckCircle2 className="h-12 w-12 text-success/50" />
+                  <p className="text-lg font-semibold">No Exceptions</p>
+                  <p className="text-sm text-muted-foreground">All systems operating within normal parameters.</p>
+                </GlassCard>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="h-5 w-5 text-crimson" />
+                    <h2 className="text-lg font-semibold">Intervention Queue — Items Requiring Human Attention</h2>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-crimson/20 text-crimson font-bold">{allItems.length}</span>
+                  </div>
+                  {allItems.map((item, i) => (
+                    <GlassCard
+                      key={i}
+                      variant={item.severity === "critical" ? "alert-critical" : "alert-warning"}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {item.severity === "critical" ? (
+                          <AlertCircle className="h-5 w-5 text-crimson shrink-0" />
+                        ) : (
+                          <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">{item.text}</p>
+                          <p className="text-xs text-muted-foreground">{item.detail}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                      <Badge variant="outline" className="capitalize text-[10px]">{item.domain}</Badge>
-                      <StatusBadge variant={item.severity === "critical" ? "critical" : "warning"} />
-                    </div>
-                  </GlassCard>
-                ))}
-              </>
-            )}
-          </div>
-        )}
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <Badge variant="outline" className="capitalize text-[10px]">{item.domain}</Badge>
+                        <StatusBadge variant={item.severity === "critical" ? "critical" : "warning"} />
+                      </div>
+                    </GlassCard>
+                  ))}
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {activeView === "ai-activity" && (() => {
-          const aiRuns = (cmdCenter?.recentAiRuns ?? []) as any[];
-          const totalTokens = aiRuns.reduce((s: number, r: any) => s + (r.tokensUsed ?? 0), 0);
-          const avgConf = aiRuns.length ? Math.round(aiRuns.reduce((s: number, r: any) => s + (r.confidenceScore ?? 0), 0) / aiRuns.length * 100) : 0;
+          const aa = agentActivityData;
+          const recentRuns = aa?.recentRuns ?? (cmdCenter?.recentAiRuns ?? []) as any[];
+          const totalTokens = recentRuns.reduce((s: number, r: any) => s + (r.tokensUsed ?? r.tokens_used ?? 0), 0);
+          const avgConf = recentRuns.length ? Math.round(recentRuns.reduce((s: number, r: any) => s + (r.confidenceScore ?? r.confidence_score ?? 0), 0) / recentRuns.length * 100) : 0;
+          const domainActivity = aa?.domainActivity ?? {};
+          const domainKeys = Object.keys(domainActivity);
+
           return (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <KpiCard label="AI Runs Today" value={cmdCenter?.aiRunsToday ?? 0} icon={<Bot className="h-4 w-4" />} accent="blue" />
-                <KpiCard label="Tokens Used" value={totalTokens.toLocaleString()} icon={<Zap className="h-4 w-4" />} accent="gold" />
-                <KpiCard label="Avg Confidence" value={avgConf > 0 ? `${avgConf}%` : "—"} icon={<Target className="h-4 w-4" />} />
-                <KpiCard label="Wallet Balance" value={`$${(wallet?.balance ?? 0).toFixed(2)}`} icon={<DollarSign className="h-4 w-4" />} accent="success" />
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <KpiCard label="Total Agents" value={aa?.stats?.total ?? 112} icon={<Bot className="h-4 w-4" />} accent="blue" />
+                <KpiCard label="Total AI Runs" value={aa?.stats?.totalRuns ?? cmdCenter?.aiRunsToday ?? 0} icon={<Zap className="h-4 w-4" />} accent="crimson" />
+                <KpiCard label="Tokens Used" value={totalTokens.toLocaleString()} icon={<Activity className="h-4 w-4" />} accent="gold" />
+                <KpiCard label="Avg Success" value={`${aa?.stats?.avgSuccessRate ?? 0}%`} icon={<Target className="h-4 w-4" />} accent="success" />
+                <KpiCard label="Wallet Balance" value={`$${(wallet?.balance ?? 0).toFixed(2)}`} icon={<DollarSign className="h-4 w-4" />} />
               </div>
 
-              <GlassCard className="p-0 overflow-hidden">
+              <GlassCard className="p-0 overflow-hidden" glow="blue">
                 <div className="px-5 pt-4 pb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">Recent AI Runs</h3>
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-blue-400" />
+                    <h3 className="text-sm font-semibold">Agent Supervisor — Domain Activity</h3>
+                  </div>
                   <StatusBadge
                     variant={cmdCenter?.aiMode === "ai_autonomous" ? "ai-executed" : cmdCenter?.aiMode === "human_controlled" ? "human-required" : "human-assisted"}
                     label={cmdCenter?.aiMode === "ai_autonomous" ? "Autonomous" : cmdCenter?.aiMode === "human_controlled" ? "Human" : "Hybrid"}
                   />
                 </div>
+                <div className="px-5 pb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {domainKeys.length > 0 ? domainKeys.map((domain) => {
+                    const d = domainActivity[domain];
+                    return (
+                      <div key={domain} className="p-3 rounded-lg glass-surface flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`w-2 h-2 rounded-full shrink-0 ${d.running > 0 ? "bg-green-400 animate-pulse" : "bg-slate-500"}`} />
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium capitalize truncate">{domain.replace(/_/g, " ")}</p>
+                            <p className="text-[10px] text-muted-foreground">{d.agents} agents · {d.totalRuns} runs</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right">
+                            <p className="text-xs font-bold">{d.avgSuccess}%</p>
+                            <p className="text-[9px] text-muted-foreground">success</p>
+                          </div>
+                          {d.running > 0 && <Badge variant="outline" className="text-[9px] border-green-500/30 text-green-400">{d.running} active</Badge>}
+                        </div>
+                      </div>
+                    );
+                  }) : (
+                    <div className="col-span-3 py-6 text-center text-sm text-muted-foreground">Agent simulator warming up...</div>
+                  )}
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3">
+                  <h3 className="text-sm font-semibold">Recent AI Runs</h3>
+                </div>
                 <div className="px-5 pb-4 space-y-2">
-                  {aiRuns.length === 0 ? (
+                  {recentRuns.length === 0 ? (
                     <div className="py-8 text-center">
                       <Bot className="h-10 w-10 mx-auto mb-2 text-info/30" />
-                      <p className="text-sm text-muted-foreground">No AI runs yet. Create a lead to trigger AI enrichment and scoring.</p>
+                      <p className="text-sm text-muted-foreground">No AI runs yet. The agent simulator will generate activity automatically.</p>
                     </div>
                   ) : (
-                    aiRuns.map((run: any) => (
-                      <div key={run.id} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    recentRuns.slice(0, 15).map((run: any, i: number) => (
+                      <div key={run.id ?? i} className="flex items-center justify-between p-3 rounded-lg glass-surface">
                         <div className="flex items-center gap-3">
                           <Bot className="h-4 w-4 text-info" />
                           <div>
-                            <p className="text-sm font-medium capitalize">{(run.runType ?? "").replace(/_/g, " ")}</p>
-                            <p className="text-[10px] text-muted-foreground">{run.model} &bull; {run.durationMs}ms &bull; {run.tokensUsed ?? 0} tokens</p>
+                            <p className="text-sm font-medium capitalize">{(run.runType ?? run.run_type ?? "").replace(/_/g, " ")}</p>
+                            <p className="text-[10px] text-muted-foreground">{run.model} · {run.durationMs ?? run.duration_ms}ms · {run.tokensUsed ?? run.tokens_used ?? 0} tokens</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          {run.confidenceScore && (
-                            <ConfidenceMeter score={Math.round(run.confidenceScore * 100)} size="sm" />
+                          {(run.confidenceScore ?? run.confidence_score) && (
+                            <ConfidenceMeter score={Math.round((run.confidenceScore ?? run.confidence_score) * 100)} size="sm" />
                           )}
-                          <span className="text-[10px] text-muted-foreground">{new Date(run.createdAt).toLocaleString()}</span>
+                          <StatusBadge variant={run.success === false ? "critical" : "success"} label={run.success === false ? "Failed" : "Success"} />
+                          <span className="text-[10px] text-muted-foreground">{new Date(run.createdAt ?? run.created_at).toLocaleString()}</span>
                         </div>
                       </div>
                     ))

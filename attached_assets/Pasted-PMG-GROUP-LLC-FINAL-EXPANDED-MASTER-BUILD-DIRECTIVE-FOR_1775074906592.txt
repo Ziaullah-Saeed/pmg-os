@@ -1,0 +1,896 @@
+PMG GROUP LLC — FINAL EXPANDED MASTER BUILD DIRECTIVE FOR REPLIT
+35-Part Operating Constitution + 11 Domains + 112-Agent System Logic
+For Full PMG AI Operating System Development
+PART 1 — FOUNDATIONAL DECLARATION
+
+This system is a greenfield creation from zero. It is not a redesign, not a migration, not a partial rebuild, not a UI enhancement, and not a continuation of an older product. No existing assumptions should be inherited automatically. Every part of the system must be justified from first principles according to PMG’s actual business needs.
+
+This means:
+
+no default SaaS patterns unless explicitly justified
+no shallow CRUD-first architecture
+no page shells pretending to be complete domains
+no dashboards mistaken for an operating system
+no “we will add this later” treatment for foundational business layers
+
+This is a full business operating environment, not a collection of screens.
+
+PART 2 — CORE PRODUCT IDENTITY
+
+The system must be built as a fully integrated, AI-native, enterprise-grade Business Operating System for PMG Group LLC. It must function as PMG’s business brain, workflow engine, execution layer, sales infrastructure, communication surface, production environment, reporting system, governance layer, archive memory, client management environment, and supervision system.
+
+The user must feel like they are operating inside PMG’s digital company infrastructure, not inside separate tools.
+
+PART 3 — STRATEGIC MARKET FOCUS
+
+This system is built specifically for Cybersecurity and IT companies and must reflect the realities of:
+
+trust-heavy B2B sales
+technical and semi-technical buyers
+authority-based buying chains
+compliance-aware communications
+credibility-sensitive positioning
+medium-to-long deal cycles
+service and software hybrid business models
+
+Every workflow, agent, report, AI behavior, and scoring model must understand that this is not a generic market.
+
+PART 4 — BUSINESS OBJECTIVE
+
+The platform must be designed to help PMG operate toward $10M+ scale by improving:
+
+pipeline generation
+qualification quality
+conversion probability
+delivery discipline
+retention
+speed of execution
+visibility
+governance
+repeatability
+operational leverage
+
+Every major module must connect to real business value.
+
+PART 5 — INTELLIGENCE STANDARD
+
+Every AI output must feel:
+
+specialized
+intelligent
+context-aware
+strategically useful
+commercially useful
+operationally disciplined
+
+No shallow filler. No generic automation language. No fake intelligence. The system must behave like a serious reasoning environment with high standards for quality and precision.
+
+PART 6 — AI-FIRST OPERATING PHILOSOPHY
+
+The target model is:
+
+95% structured work by AI
+5% critical human intervention
+
+AI should perform:
+
+processing
+drafting
+routing
+scoring
+tasking
+tracking
+summarization
+reporting
+follow-up
+orchestration
+
+Humans should handle:
+
+negotiation
+final approval
+trust-heavy communication
+legal exceptions
+financial escalation
+sensitive decisions
+overrides
+
+The system must support AI Auto, Hybrid, and Human Manual Control modes as real operating states, not cosmetic toggles.
+
+PART 7 — NEW-SYSTEM DESIGN RULE
+
+The system must be designed holistically before modularly:
+
+domains first
+relationships first
+workflows first
+data ownership first
+state logic first
+reporting first
+archive behavior first
+governance first
+
+No disconnected screen-building. No accidental architecture. No fake enterprise layer built on unrelated page fragments.
+
+PART 8 — THE 11 OPERATING DOMAINS
+
+The system must be organized into 11 true architectural domains, each with:
+
+clear purpose
+entities
+workflows
+role access
+state transitions
+AI participation
+reporting outputs
+archive behavior
+integration points
+business outcomes
+
+These are not navigation labels. They are system layers.
+
+PART 9 — COMMAND CENTER & EXECUTIVE CONTROL
+
+The Command Center must not be a vanity dashboard. It must answer:
+
+what matters today
+what is blocked
+what is behind
+what is risky
+where human intervention is needed
+what AI is running
+what exceptions need escalation
+what the business should do next
+
+It must provide executive view, manager view, operations view, exception view, and system health view.
+
+PART 10 — INTELLIGENCE, RESEARCH & STRATEGIC INSIGHT
+
+This domain must transform market data into:
+
+prioritization
+positioning logic
+target selection
+messaging advantage
+niche insight
+trust barrier analysis
+authority pattern analysis
+service-fit logic
+opportunity scoring
+
+It is not a document shelf. It is PMG’s intelligence engine.
+
+PART 11 — OUTREACH, PROSPECTING & PIPELINE DISCOVERY
+
+This domain must generate pipeline through:
+
+target company discovery
+company scoring
+contact discovery
+enrichment
+authority mapping
+pain mapping
+outreach angle construction
+personalization
+qualification routing
+CRM handoff
+
+Every lead must include commercial context, not just contact data.
+
+PART 12 — LEAD INTELLIGENCE DISCIPLINE
+
+Lead generation must be:
+
+evidence-aware
+confidence-aware
+traceable
+relevance-first
+quality-first
+non-fabricated
+brand-safe
+
+The platform must distinguish:
+
+strong fit vs weak fit
+signal vs noise
+verified vs inferred
+urgent vs passive
+authority vs non-authority
+
+This is a lead intelligence system, not a scraping engine.
+
+PART 13 — MARKETING, SEO, BRAND AWARENESS & DISCOVERABILITY
+
+The system must support:
+
+organic strategy
+paid campaigns
+content planning
+SEO
+search intent mapping
+topic clustering
+discoverability
+nurture flows
+retargeting
+authority building
+repurposing
+optimization loops
+
+It must understand each channel’s role in awareness, nurture, trust, search, and conversion.
+
+PART 14 — PLATFORM-SAFE MULTI-CHANNEL OPERATION
+
+The system must protect:
+
+sender reputation
+platform safety
+audience fit
+content quality
+account health
+suppression discipline
+risk-aware sequencing
+escalation when channels become dangerous
+
+Growth must be intelligent, not reckless.
+
+PART 15 — PRODUCTION, STUDIO, BRAND & ASSET GENERATION
+
+The Production domain must be a real creative workspace like a hybrid of Canva and InVideo, not a file list.
+
+Users must be able to:
+
+open projects
+preview work
+generate assets
+revise assets
+edit layouts
+edit scripts
+manage production tasks
+track revisions
+review drafts
+approve or reject output
+finalize deliverables
+
+The Production UI must feel like a serious AI-powered studio.
+
+PART 16 — PRODUCTION GOVERNANCE & APPROVAL LAW
+
+All production outputs must pass through:
+Generate → Preview → Review → Revise / Regenerate → Approve → Finalize
+
+No bypassing review. No invisible revisions. No finalization without lifecycle control, traceability, version history, and rejection reasons.
+
+PART 17 — EXECUTION, OPERATIONS, PUBLISHING & WORKFLOW CONTROL
+
+This is the “work happens here” layer.
+
+It must support:
+
+scheduling
+publishing
+campaign launch
+task routing
+reminders
+ownership
+checklists
+approval routing
+exception queues
+execution verification
+post-launch tracking
+
+It must answer:
+
+what is scheduled
+what launched
+what failed
+what is waiting
+who owns the next action
+what needs escalation
+
+PART 18 — CRM, SALES, CLOSING & REVENUE PIPELINE
+
+CRM must be one of the strongest layers in the platform and combine the best ideas from GoHighLevel and HubSpot, but enhanced with PMG-specific AI logic.
+
+It must include:
+
+lead records
+opportunity records
+pipeline board
+activity timeline
+tasks
+notes
+follow-ups
+proposal tracking
+contract tracking
+close probability
+AI summary
+confidence score
+next best action
+risk flags
+sync status
+routing status
+
+CRM is not contact storage. It is revenue movement control.
+
+PART 19 — CRM STRUCTURE AND MODELS
+
+The CRM must support three modes:
+
+PMG Internal CRM
+GoHighLevel
+HubSpot (optional)
+
+And two structural tabs:
+
+PMG CRM
+Client CRM
+
+PMG must retain visibility and reporting regardless of destination CRM.
+
+PART 20 — COMMUNICATION INTELLIGENCE, CALLING & MEETING SUPPORT
+
+This domain must support:
+
+AI-led calling
+human-led calling with AI guidance
+human-led meetings with AI support
+
+It must integrate:
+
+transcription
+objection detection
+pain detection
+hesitation detection
+next-step suggestions
+follow-up generation
+CRM logging
+reporting
+booking
+archive
+
+PART 21 — HUMAN + AI COMMUNICATION COORDINATION
+
+AI must amplify human effectiveness, not flatten human authenticity.
+
+This means:
+
+AI should coach, summarize, and assist
+humans should still own trust-heavy moments
+the system must make users sharper, more prepared, and more consistent
+
+PART 22 — FINANCE DOMAIN
+
+Finance must support:
+
+quotes
+estimates
+invoices
+receipts
+payments
+outstanding balances
+expenses
+profitability
+tax-ready exports
+risk awareness
+
+It must connect to CRM, reporting, archive, and wallet usage.
+
+PART 23 — LEGAL DOMAIN
+
+Legal must support:
+
+NDA
+MSA
+SOW
+service agreements
+contractor agreements
+privacy policies
+disclaimers
+DPA logic
+legal review status
+
+It must clearly flag:
+human legal review required
+when safe automation boundaries are exceeded.
+
+PART 24 — ADMINISTRATIVE DOMAIN
+
+Admin must support:
+
+SOPs
+policies
+forms
+work instructions
+memos
+notes
+handovers
+escalation forms
+admin archives
+
+This transforms PMG from unwritten habits into a structured operating company.
+
+PART 25 — QUALITY MANAGEMENT DOMAIN
+
+Quality must include:
+
+QA rules
+review checklists
+approval gates
+rejection reasons
+issue logging
+revision traceability
+quality summaries
+exceptions
+final acceptance checkpoints
+
+Outputs must be measurable, reviewable, rejectable, and improvable.
+
+PART 26 — REPORTING DOMAIN
+
+Every major activity must generate:
+
+Executive reports
+Technical / operational reports
+
+Reporting must cover all key domains and explain:
+
+what happened
+what changed
+what matters
+what needs attention
+what comes next
+
+PART 27 — REPORTING STYLE AND DELIVERY
+
+Reporting must support:
+
+automatic summaries
+scheduled reporting
+event-triggered reporting
+role-sensitive delivery
+exports
+Slack summaries
+CRM-linked status summaries
+communication history summaries
+
+Reports must explain the system, not merely display data.
+
+PART 28 — ARCHIVE, DOCUMENTATION & KNOWLEDGE MEMORY
+
+The archive must be:
+
+structured
+searchable
+permission-aware
+categorized
+retrieval-friendly
+operationally useful
+
+It must store contracts, SOPs, reports, proposals, transcripts, CRM records, workflow histories, quality records, final assets, and admin documents.
+
+PART 29 — SLACK, CLIENT REPORTING & COMMUNICATION SURFACE
+
+Slack must act as a real communication surface for:
+
+executive updates
+management summaries
+campaign updates
+lead summaries
+meeting summaries
+delivery summaries
+internal alerts
+client communication touchpoints
+
+Not a notification dump. A real reporting surface.
+
+PART 30 — SYSTEM CORE, GOVERNANCE, PERMISSIONS & INFRASTRUCTURE
+
+This is the trust layer. It must include:
+
+permissions
+secrets management
+integration control
+audit trails
+backups
+recovery planning
+wallet visibility
+environment management
+alerting
+incident awareness
+system supervision
+
+PART 31 — PERMISSION MODEL
+
+The system must enforce:
+
+Super Admin
+Admin
+Manager
+User
+
+Permissions must shape actual behavior, not just hide buttons.
+
+PART 32 — UI / UX DESIGN SYSTEM
+
+The system must feel:
+
+cinematic
+dramatic
+premium
+futuristic
+dark-first
+glassmorphic
+smooth
+AI-native
+controlled
+
+Color foundation:
+
+navy blue
+dark blue
+near-black
+crimson accents
+golden yellow accents
+
+It must feel like entering an advanced AI command environment.
+
+PART 33 — RESPONSIVE DESIGN, INTERACTION SYSTEMS & ACCESSIBILITY
+
+The system must work across desktop, laptop, tablet, and mobile, and support:
+
+responsive reflow
+touch-friendly interactions
+strong modal/drawer behavior
+accessibility-conscious design
+subtle transitions
+clear success/failure feedback
+
+PART 34 — TECHNOLOGY STACK, READINESS & DELIVERY STANDARD
+
+Use:
+
+React
+Next.js
+TypeScript
+Tailwind
+shadcn/ui
+Framer Motion
+Radix
+React Query / TanStack Query
+Zustand or equivalent
+modular API-first architecture
+OpenAI and other connected tools where needed
+
+Build for:
+
+production-grade stability
+scalability
+security
+auditability
+controllability
+maintainability
+
+PART 35 — FINAL CREATION MANDATE
+
+Do not leave foundational layers shallow.
+
+Do not leave:
+
+reporting shallow
+archive missing
+AI generic
+permissions weak
+workflows disconnected
+domains cosmetic
+governance incomplete
+
+Build:
+
+a real AI-powered company inside software
+
+Not a prototype. Not a dashboard. Not a loose toolset.
+
+THE 11 DOMAINS — DEEPER SYSTEM LOGIC
+Domain 1 — Command Center & Executive Control
+
+Purpose: executive nervous system
+Must manage visibility, AI work monitoring, human intervention queue, risks, priorities, bottlenecks, agent performance, and business momentum.
+
+Domain 2 — Intelligence, Market Research & Strategic Insight
+
+Purpose: research-to-decision engine
+Must convert research into positioning, market priority, ICP logic, trust analysis, and targeting strategy.
+
+Domain 3 — Outreach, Prospecting & Pipeline Discovery
+
+Purpose: create qualified pipeline
+Must discover, enrich, verify, score, route, and prepare leads with real commercial context.
+
+Domain 4 — Marketing, SEO, Brand Awareness & Discoverability
+
+Purpose: build authority and demand
+Must support campaigns, SEO, content planning, discoverability, and multi-channel strategy.
+
+Domain 5 — Production, Studio, Brand & Asset Generation
+
+Purpose: creative production environment
+Must function like AI-assisted Canva + InVideo + studio workspace with preview, edit, revise, approve, finalize flows.
+
+Domain 6 — Execution, Operations, Publishing & Workflow Control
+
+Purpose: make plans happen
+Must orchestrate tasks, approvals, publishing, scheduling, follow-up, reminders, and exceptions.
+
+Domain 7 — CRM, Sales, Closing & Revenue Pipeline
+
+Purpose: govern revenue movement
+Must manage deals, stages, follow-up, AI insights, activities, handoffs, and CRM modes.
+
+Domain 8 — Communication Intelligence, Calling & Meeting Support
+
+Purpose: communication enhancement
+Must power calls, meetings, summaries, coaching, transcripts, objections, next-step generation.
+
+Domain 9 — Finance, Legal, Administrative & Quality Management
+
+Purpose: trust and control
+Must handle operational finance, legal support, administrative structure, and quality governance.
+
+Domain 10 — Reporting, Archive, Documentation & Knowledge Memory
+
+Purpose: memory and explainability
+Must store, retrieve, summarize, and update PMG’s evolving business memory and reports.
+
+Domain 11 — System Core, Governance, Permissions, Integrations & Infrastructure
+
+Purpose: backbone and trust layer
+Must run integrations, security, wallet, system health, permissions, environment, and incident control.
+
+112-AGENT SYSTEM LOGIC
+MANDATORY DISTRIBUTED AGENT ARCHITECTURE
+
+The PMG AI Operating System must include at least 112 functional agents across all domains. These agents must not be decorative labels. They must perform real operational work.
+
+Agent distribution by domain
+Domain 1: 10 agents
+Domain 2: 12 agents
+Domain 3: 14 agents
+Domain 4: 12 agents
+Domain 5: 14 agents
+Domain 6: 10 agents
+Domain 7: 12 agents
+Domain 8: 10 agents
+Domain 9: 8 agents
+Domain 10: 6 agents
+Domain 11: 4 agents
+
+Total = 112 agents
+
+DOMAIN 1 — 10 COMMAND CENTER AGENTS
+Executive Signal Agent
+Priority Ranking Agent
+Risk Detection Agent
+Bottleneck Detection Agent
+Human Intervention Agent
+Agent Activity Supervisor
+Cross-Domain Summary Agent
+Performance Digest Agent
+Escalation Trigger Agent
+Daily Executive Brief Agent
+
+These agents synthesize the system into decision-ready executive visibility.
+
+DOMAIN 2 — 12 INTELLIGENCE AGENTS
+Market Segmentation Agent
+ICP Modeling Agent
+Competitor Mapping Agent
+Positioning Gap Agent
+Trust Barrier Agent
+Opportunity Scoring Agent
+Buyer Pain Analysis Agent
+Authority Structure Agent
+Service Fit Agent
+Niche Trend Agent
+Research Summary Agent
+Decision Support Agent
+
+These agents transform raw research into strategic guidance.
+
+DOMAIN 3 — 14 OUTREACH & PROSPECTING AGENTS
+Company Discovery Agent
+Contact Discovery Agent
+Email Verification Agent
+Phone Verification Agent
+Lead Enrichment Agent
+Authority Mapping Agent
+Pain Mapping Agent
+Confidence Scoring Agent
+Qualification Agent
+Outreach Angle Agent
+Personalization Agent
+Routing Agent
+Sequence Recommendation Agent
+Lead Readiness Agent
+
+These agents create qualified, context-rich pipeline.
+
+DOMAIN 4 — 12 MARKETING AGENTS
+SEO Intent Agent
+Topic Cluster Agent
+Content Calendar Agent
+Brand Consistency Agent
+Campaign Planning Agent
+Channel Role Agent
+Paid Strategy Agent
+Organic Strategy Agent
+Retargeting Agent
+Discoverability Agent
+Optimization Loop Agent
+Market Signal Monitoring Agent
+
+These agents drive discoverability and growth discipline.
+
+DOMAIN 5 — 14 PRODUCTION AGENTS
+Brand Strategy Agent
+Tone of Voice Agent
+Design Brief Agent
+Visual Concept Agent
+Asset Layout Agent
+Deck Structure Agent
+Proposal Draft Agent
+Script Draft Agent
+Storyboard Agent
+Revision Suggestion Agent
+Preview Preparation Agent
+Approval Routing Agent
+Finalization Readiness Agent
+Asset Archive Agent
+
+These agents power the AI studio and creative workspace.
+
+DOMAIN 6 — 10 EXECUTION AGENTS
+Workflow Trigger Agent
+Task Creation Agent
+Ownership Assignment Agent
+Reminder Agent
+Scheduling Agent
+Checklist Enforcement Agent
+Approval Queue Agent
+Failure Detection Agent
+Escalation Path Agent
+Completion Verification Agent
+
+These agents keep work moving and controlled.
+
+DOMAIN 7 — 12 CRM & SALES AGENTS
+Lead Acceptance Agent
+Deal Progression Agent
+Stage Integrity Agent
+Follow-Up Agent
+Activity Logging Agent
+Proposal Status Agent
+Contract Status Agent
+Risk-to-Close Agent
+Next Best Action Agent
+Stale Opportunity Agent
+CRM Sync Agent
+Revenue Forecast Agent
+
+These agents turn CRM into a live revenue operating environment.
+
+DOMAIN 8 — 10 COMMUNICATION AGENTS
+Call Eligibility Agent
+AI Call Guidance Agent
+Objection Detection Agent
+Interest Signal Agent
+Hesitation Detection Agent
+Meeting Summary Agent
+Follow-Up Draft Agent
+CRM Update Assistant Agent
+Tone Coaching Agent
+Conversation Outcome Agent
+
+These agents support real-time and post-call intelligence.
+
+DOMAIN 9 — 8 FINANCE / LEGAL / ADMIN / QUALITY AGENTS
+Invoice Tracking Agent
+Payment Risk Agent
+Profitability Snapshot Agent
+Legal Review Flag Agent
+Compliance Checklist Agent
+SOP Structuring Agent
+QA Review Agent
+Rejection Reason Agent
+
+These agents protect financial, legal, and quality integrity.
+
+DOMAIN 10 — 6 REPORTING / ARCHIVE / MEMORY AGENTS
+Executive Report Agent
+Technical Report Agent
+Archive Indexing Agent
+Memory Update Agent
+Retrieval Suggestion Agent
+Knowledge Relevance Agent
+
+These agents make the system explainable and self-improving.
+
+DOMAIN 11 — 4 SYSTEM CORE AGENTS
+Permission Enforcement Agent
+Integration Health Agent
+Wallet Spend Control Agent
+Incident Awareness Agent
+
+These agents protect trust, cost, and operational stability.
+
+MODE LOGIC FOR THE 112 AGENTS
+AI Auto Mode
+
+All eligible agents operate autonomously 24/7.
+Agents should:
+
+run workflows automatically
+make permitted decisions
+route work
+generate outputs
+trigger reports
+update the memory library
+monitor exceptions
+Hybrid Mode
+
+Agents remain active, but the user must clearly see:
+
+which task was done by AI
+which task was done by human
+which task requires human review
+which task AI recommended but did not complete
+
+Hybrid mode must expose AI-human collaboration clearly.
+
+Human Manual Control Mode
+
+AI agents step back from execution and become guide/support agents.
+Each section must include:
+
+manual guide
+manual steps
+suggested next actions
+structured human workflow support
+
+This mode must feel clean and direct for human operation.
+
+PRODUCTION MODE REQUIREMENT — CANVA + INVIDEO STYLE
+
+The Production domain must include:
+
+project workspace
+live preview canvas
+asset panels
+script panels
+timeline/task panels
+revision panels
+comments / review layer
+AI regeneration controls
+finalization controls
+
+It must feel like a real studio where users can do work, not just inspect status.
+
+FINAL INSTRUCTION TO REPLIT
+
+Build this system according to:
+
+all 35 parts above
+all 11 domains above
+the 112-agent architecture above
+real AI Auto / Hybrid / Human mode behavior
+real creative Production workspace behavior
+real CRM depth
+real GHL integration
+real wallet execution
+real knowledge library
+real reporting and governance
+
+Do not treat pages as complete because they render.
+Do not treat charts as business logic.
+Do not treat seeded data as operating capability.
+
+Build the full PMG AI Operating System correctly.

@@ -138,16 +138,43 @@ artifacts-monorepo/
 - CSV export buttons on Reports page (all 6 entities: leads, opportunities, companies, contacts, tasks, campaigns)
 - Export properly joins companies for display names
 
-### Quality & Administrative Pages
-- Quality page (`/quality`): QA reviews, quality gates, score cards, checklists
-- Admin page (`/admin`): SOPs, policies, work instructions, escalation templates
-- Both follow dual-mode pattern with ModeIndicatorBanner + workflow guides
+### Agent Simulation Engine
+- Background agent simulator runs every 45s, records AI runs in DB, charges wallet per tool cost
+- Agent activity feed endpoint: GET /api/dashboard/agent-activity
+- Agent Supervisor panel in Command Center AI Activity tab (per-domain agent counts/runs/success)
+- AI Recommendations endpoint: GET /api/dashboard/ai-recommendations (analyzes pipeline/tasks/leads)
+- Intervention Queue endpoint: GET /api/dashboard/intervention-queue
+
+### Quality Management Page
+- Quality page (`/quality`): Real quality_issues DB data via useQualityIssues/useCreateQualityIssue/useUpdateQualityIssue
+- Create quality issue dialog with title, description, domain, severity, entity type fields
+- Approve/reject actions on open issues (PATCH with status + score)
+- Quality Gates tab: domain-specific quality checklists (Content Review, Asset Approval, etc.)
+- Quality Scores tab: per-domain score distribution from real data
+- Review Checklists tab: interactive checklist forms
+- CreateQualityIssueBody requires: title, entityType, entityId (number), issueType, domain
+
+### Admin SOP Management
+- Admin page (`/admin`): SOPs with search filter, expandable detail view, domain field
+- SOP create form with category + domain dropdowns, loading spinner on submit
+- Filterable SOP list with badges for category/domain, version display
+- Click-to-expand SOP detail showing full content and creation date
+- Policies, Work Instructions, Escalation Templates tabs
+
+### CRM Deal Drawer Enhancements
+- DealNotesSection: notes list + create note per entity (uses useNotes/useCreateNote)
+- DealFollowUpsSection: follow-ups with complete/create (uses useFollowUps/useCreateFollowUp/useUpdateFollowUp)
+- Both sub-components defined as standalone functions above CRM export
 
 ### Notes, Follow-Ups & SOPs
 - DB tables: notes, follow_ups, sops (in lib/db/src/schema/notes.ts)
 - React Query hooks: useNotes, useCreateNote, useFollowUps, useCreateFollowUp, useUpdateFollowUp, useSops, useCreateSop
+- entityId passed as string to hooks
 
-### Intelligence Positioning
+### Intelligence — Dynamic ICP + Trust Analysis
+- ICP Analysis tab: dynamic from real leads/companies data (industries, sizes, locations, pain points)
+- Trust Barrier Analysis section with severity scores and mitigations
+- ICP Fit Analysis: companies sorted by fit score with click-to-detail
 - Competitive Advantages, Identified Gaps, Message-Market Fit analysis
 - Strategic Differentiation Matrix (PMG vs Traditional MSSPs vs Big 4)
 - AI-generated positioning insights
