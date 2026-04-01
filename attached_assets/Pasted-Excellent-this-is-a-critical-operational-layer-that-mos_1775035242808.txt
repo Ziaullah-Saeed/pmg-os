@@ -1,0 +1,449 @@
+Excellent — this is a **critical operational layer** that most systems miss.
+You’re essentially defining:
+
+1. **External CRM interoperability (GoHighLevel subdomain)**
+2. **Dual-mode operating system (AI-autonomous + Human-assisted)**
+
+I’m going to integrate both into a **developer-enforceable architecture spec** so it’s not just an idea — it becomes part of the system’s core behavior.
+
+---
+
+# 🔌 **PMG AI OS — EXTERNAL CRM INTEGRATION + DUAL OPERATING MODES**
+
+## **System Extension Layer (Must Be Built Into Core Architecture)**
+
+---
+
+# **PART 1 — EXTERNAL CRM INTEGRATION (GOHIGHLEVEL SUBDOMAIN)**
+
+## 🎯 **Objective**
+
+You are currently using a **GoHighLevel (GHL) subdomain managed by another company**, which means:
+
+* You **do NOT control the CRM infrastructure**
+* But you **must still send leads into it**
+* And maintain **visibility + continuity inside your AI OS**
+
+👉 Therefore, your system must support:
+
+> **Bidirectional or controlled one-way CRM routing with visibility preservation**
+
+---
+
+## **1.1 — CRM MODE SYSTEM (MANDATORY)**
+
+Inside your system, create a **CRM Mode Selector**
+
+### Modes:
+
+### **Mode A — Internal CRM (PMG Native)**
+
+* Full system control
+* All data stored internally
+* Preferred long-term
+
+---
+
+### **Mode B — External CRM (GoHighLevel)**
+
+* Leads are sent to GHL subdomain
+* PMG system acts as:
+
+  * intelligence layer
+  * routing layer
+  * monitoring layer
+
+---
+
+### **Mode C — Hybrid Mode**
+
+* Leads exist in PMG system
+* Synced or pushed to GHL
+* PMG retains:
+
+  * intelligence
+  * reporting
+  * control visibility
+
+---
+
+## **1.2 — LEAD ROUTING SYSTEM (CRITICAL)**
+
+You must build a **Lead Routing Engine**
+
+---
+
+### **Flow:**
+
+```id="1a9crm"
+Lead Created → Enriched → Scored → Routed → (PMG CRM OR GHL CRM)
+```
+
+---
+
+## **1.3 — GHL INTEGRATION REQUIREMENTS**
+
+### You MUST support:
+
+* API-based lead push (preferred)
+* Webhook-based fallback
+* Manual export fallback (CSV)
+
+---
+
+### **Lead Data Package (MANDATORY STRUCTURE)**
+
+Every lead sent to GHL must include:
+
+```
+{
+  name,
+  company,
+  email,
+  phone,
+  source,
+  tags,
+  pipeline_stage,
+  notes,
+  custom_fields,
+  PMG_score,
+  confidence_level,
+  AI_summary
+}
+```
+
+---
+
+### **IMPORTANT RULE**
+
+👉 Even if lead is sent to GHL:
+
+PMG system MUST retain:
+
+* lead record
+* intelligence data
+* scoring
+* activity logs
+* reporting visibility
+
+---
+
+## **1.4 — CRM HANDOFF UI (VERY IMPORTANT UX)**
+
+Inside Lead / Deal Drawer:
+
+Add section:
+
+### **“CRM Destination”**
+
+Options:
+
+* PMG CRM
+* GoHighLevel CRM
+
+---
+
+### Show:
+
+* Status: ✅ Sent / ⏳ Pending / ❌ Failed
+* Last sync time
+* External CRM ID
+* Quick link (if available)
+
+---
+
+## **1.5 — SYNC VISIBILITY PANEL**
+
+Inside CRM tab:
+
+Add:
+
+### **“External CRM Sync Dashboard”**
+
+Shows:
+
+* Leads sent to GHL
+* Sync status
+* Errors
+* Missing fields
+* Retry actions
+
+---
+
+## **1.6 — FAILURE HANDLING (NON-NEGOTIABLE)**
+
+If GHL fails:
+
+System must:
+
+* flag error
+* show alert in Command Center
+* allow retry
+* log failure reason
+
+---
+
+## **1.7 — COMMAND CENTER INTEGRATION**
+
+Command Center must show:
+
+* “Leads Sent to External CRM Today”
+* “Sync Failures”
+* “Pending CRM Routing”
+
+---
+
+# ⚙️ **PART 2 — DUAL OPERATING MODES (AI vs HUMAN)**
+
+This is one of the most powerful parts of your system.
+
+---
+
+# **2.1 — CORE CONCEPT**
+
+Your system must support **two modes of operation simultaneously**:
+
+---
+
+## 🔵 **MODE 1 — AI AUTONOMOUS MODE (24/7 OPERATION)**
+
+AI handles:
+
+* lead processing
+* scoring
+* routing
+* outreach preparation
+* follow-ups
+* reminders
+* reporting
+* task creation
+* workflow execution
+
+👉 This is the **default mode**
+
+---
+
+## 🟡 **MODE 2 — HUMAN-ASSISTED MODE**
+
+Human handles:
+
+* final approvals
+* negotiation
+* sensitive communication
+* complex decisions
+* overrides
+
+AI acts as:
+
+* advisor
+* assistant
+* co-pilot
+
+---
+
+# **2.2 — SYSTEM MODE SWITCH (GLOBAL + PER WORKFLOW)**
+
+You must allow:
+
+### **Global Mode Toggle**
+
+* AI Mode
+* Hybrid Mode
+* Human Mode
+
+---
+
+### **AND**
+
+### **Per Workflow Mode**
+
+Example:
+
+| Workflow           | Mode  |
+| ------------------ | ----- |
+| Lead Scoring       | AI    |
+| Outreach Messaging | AI    |
+| Closing            | Human |
+| Proposal Approval  | Human |
+| Reporting          | AI    |
+
+---
+
+# **2.3 — AI AUTONOMOUS CAPABILITIES (DETAILED)**
+
+AI must be able to:
+
+* create leads from data
+* enrich leads
+* assign scores
+* choose routing destination
+* generate outreach messages
+* schedule follow-ups
+* create tasks
+* update CRM records
+* generate reports
+* detect risks
+
+---
+
+## 🚫 BUT WITH LIMITS:
+
+AI cannot:
+
+* finalize contracts
+* approve financial actions
+* send sensitive communication without approval
+* override human decisions
+
+---
+
+# **2.4 — HUMAN INTERVENTION SYSTEM**
+
+System must detect:
+
+* low confidence decisions
+* high-value deals
+* risk signals
+
+👉 Then trigger:
+
+### **“Human Required” State**
+
+---
+
+## UI Behavior:
+
+* Crimson alert glow
+* Appears in:
+
+  * Command Center
+  * Notifications
+  * Task queue
+
+---
+
+# **2.5 — AI → HUMAN HANDOFF FLOW**
+
+```id="aihumanflow"
+AI Process → Confidence Check → 
+IF High → Continue  
+IF Medium → Suggest Review  
+IF Low → Require Human Intervention
+```
+
+---
+
+# **2.6 — HUMAN → AI HANDOFF**
+
+Human can:
+
+* approve AI action
+* modify AI suggestion
+* override decision
+* send back to AI for continuation
+
+---
+
+# **2.7 — VISUAL MODE INDICATORS (IMPORTANT FOR UX)**
+
+Every action must show:
+
+### Indicators:
+
+* 🔵 AI Executed
+* 🟡 Human Assisted
+* 🔴 Human Required
+
+---
+
+## UI Placement:
+
+* cards
+* drawers
+* workflows
+* activity logs
+
+---
+
+# **2.8 — COMMAND CENTER MODE VISIBILITY**
+
+Show:
+
+* % AI vs Human work
+* Pending human approvals
+* AI active workflows
+* intervention alerts
+
+---
+
+# **2.9 — WORKFLOW EXAMPLE (REAL)**
+
+---
+
+## Lead Flow:
+
+```id="flowfull"
+Lead Created → AI Enrich → AI Score → 
+IF High Confidence → Send to GHL  
+IF Medium → Suggest Review  
+IF Low → Human Required
+```
+
+---
+
+## Outreach:
+
+```id="outreachflow"
+AI Generates Message → 
+Human Approves → 
+AI Sends → 
+AI Tracks → 
+AI Follows Up
+```
+
+---
+
+# **2.10 — SYSTEM PHILOSOPHY**
+
+Your system is not:
+
+* AI replacing humans
+* Humans doing everything
+
+It is:
+
+> **AI running the system continuously, with humans stepping in where it matters most**
+
+---
+
+# 🔥 FINAL INTEGRATION STATEMENT
+
+Your system now becomes:
+
+> **A dual-mode AI operating system with external CRM routing capability, where intelligence, execution, and control remain inside PMG, while optionally syncing to external platforms like GoHighLevel — all while maintaining full visibility, governance, and workflow continuity.**
+
+---
+
+# 🚀 NEXT STEP (HIGHLY RECOMMENDED)
+
+Now that we’ve defined:
+
+* UI system
+* CRM architecture
+* AI modes
+* External integration
+
+I can build:
+
+### ✅ Exact **API contract for GHL integration**
+
+### ✅ Full **database schema**
+
+### ✅ AI agent system (who does what)
+
+### ✅ Backend architecture (services + endpoints)
+
+### ✅ Dev-ready system blueprint
+
+Just say:
+👉 *“Build backend architecture + APIs”*
