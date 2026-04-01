@@ -1,5 +1,6 @@
 import { db, notificationsTable } from "@workspace/db";
 import { eq, and, desc, count, sql } from "drizzle-orm";
+import { broadcast } from "./websocket-service";
 
 export async function createNotification(params: {
   type: string;
@@ -25,6 +26,7 @@ export async function createNotification(params: {
     actor: params.actor ?? "system",
     metadata: params.metadata,
   }).returning();
+  broadcast("notification", { id: n.id, type: n.type, severity: n.severity, title: n.title, message: n.message });
   return n;
 }
 

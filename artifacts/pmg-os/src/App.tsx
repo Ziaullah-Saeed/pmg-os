@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarLayout } from "@/components/layout/sidebar-layout";
 import { AiModeProvider } from "@/hooks/use-ai-mode-context";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { useWebSocket } from "@/hooks/use-websocket";
 import Dashboard from "@/pages/dashboard";
 import Intelligence from "@/pages/intelligence";
 import Outreach from "@/pages/outreach";
@@ -18,11 +20,30 @@ import System from "@/pages/system";
 import Automation from "@/pages/automation";
 import Quality from "@/pages/quality";
 import Admin from "@/pages/admin";
+import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
 
 function AppRouter() {
+  const { isAuthenticated, isLoading } = useAuth();
+  useWebSocket();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center gradient-bg-atmosphere">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-crimson/20 animate-pulse" />
+          <p className="text-sm text-muted-foreground">Loading PMG OS...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
   return (
     <AiModeProvider>
       <SidebarLayout>
@@ -53,7 +74,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <AppRouter />
+          <AuthProvider>
+            <AppRouter />
+          </AuthProvider>
         </WouterRouter>
         <Toaster />
       </TooltipProvider>

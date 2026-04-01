@@ -2,6 +2,7 @@ import { db, walletTable, walletTransactionsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { createNotification } from "./notification-service";
 import { logAudit } from "./audit-service";
+import { broadcast } from "./websocket-service";
 
 const LOW_BALANCE_THRESHOLD = 10;
 const CRITICAL_BALANCE_THRESHOLD = 2;
@@ -84,6 +85,7 @@ export async function chargeWallet(params: {
     }).catch(() => {});
   }
 
+  broadcast("wallet_update", { type: "charge", amount: cost, balance: newBalance });
   return { success: true, charged: cost, balanceAfter: newBalance, transactionId: tx.id };
 }
 
@@ -112,6 +114,7 @@ export async function fundWallet(amount: number): Promise<{ balance: number }> {
     metadata: { amount, newBalance },
   });
 
+  broadcast("wallet_update", { type: "fund", amount, balance: newBalance });
   return { balance: newBalance };
 }
 

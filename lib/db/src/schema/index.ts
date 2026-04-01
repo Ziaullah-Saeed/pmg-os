@@ -22,3 +22,4 @@ export * from "./reports";
 export * from "./wallet";
 export * from "./ai_mode_settings";
 export * from "./notes";
+export * from "./file_uploads";

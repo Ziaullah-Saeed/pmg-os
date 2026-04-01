@@ -18,6 +18,7 @@ export const leadsTable = pgTable("leads", {
   nextAction: text("next_action"),
   assignedTo: text("assigned_to"),
   notes: text("notes"),
+  aiModeOverride: text("ai_mode_override"),
   channelSource: text("channel_source"),
   qualifiedAt: timestamp("qualified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

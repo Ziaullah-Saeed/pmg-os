@@ -21,7 +21,7 @@ async function callAI(params: {
   entityType?: string;
   entityId?: number;
 }): Promise<{ result: string; confidence: number; runId: number }> {
-  const modeCheck = await shouldAiAct(params.workflowKey);
+  const modeCheck = await shouldAiAct(params.workflowKey, undefined, params.entityType, params.entityId);
   if (!modeCheck.canAct) {
     await createNotification({
       type: "human_required",

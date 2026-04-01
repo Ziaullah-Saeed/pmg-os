@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
+import { requireAuth, requirePermission } from "../middleware/auth";
 import healthRouter from "./health";
+import authRouter from "./auth";
 import companiesRouter from "./companies";
 import contactsRouter from "./contacts";
 import leadsRouter from "./leads";
@@ -33,10 +35,18 @@ import ghlRouter from "./ghl";
 import automationRouter from "./automation";
 import agentsRouter from "./agents";
 import notesRouter from "./notes";
+import uploadsRouter from "./uploads";
+import cacheRouter from "./cache";
+import recordModeRouter from "./record-mode";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(authRouter);
+
+router.use(requireAuth);
+router.use(requirePermission);
+
 router.use(dashboardRouter);
 router.use("/wallet", walletRouter);
 router.use("/ai-mode", aiModeRouter);
@@ -70,5 +80,8 @@ router.use(qualityIssuesRouter);
 router.use(reportsRouter);
 router.use(usersRouter);
 router.use(notesRouter);
+router.use(uploadsRouter);
+router.use(cacheRouter);
+router.use(recordModeRouter);
 
 export default router;

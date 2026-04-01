@@ -1,5 +1,7 @@
-import { db, aiModeSettingsTable } from "@workspace/db";
+import { db, aiModeSettingsTable, leadsTable, opportunitiesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import { cacheGet, cacheSet, cacheInvalidatePattern, TTL } from "./cache-service";
+import { broadcast } from "./websocket-service";
 
 export type AiMode = "ai_autonomous" | "hybrid" | "human_controlled";
 
@@ -21,10 +23,13 @@ const DEFAULT_WORKFLOW_MODES: Record<string, { mode: AiMode; description: string
 };
 
 export async function getGlobalMode(): Promise<AiMode> {
+  const cached = cacheGet<AiMode>("ai_mode:global");
+  if (cached) return cached;
   const rows = await db.select().from(aiModeSettingsTable)
     .where(and(eq(aiModeSettingsTable.scope, "global"), eq(aiModeSettingsTable.workflowKey, "global")));
-  if (rows.length === 0) return "ai_autonomous";
-  return rows[0].mode as AiMode;
+  const mode = rows.length === 0 ? "ai_autonomous" : rows[0].mode as AiMode;
+  cacheSet("ai_mode:global", mode, TTL.AI_RESPONSE);
+  return mode;
 }
 
 export async function setGlobalMode(mode: AiMode): Promise<void> {
@@ -35,21 +40,28 @@ export async function setGlobalMode(mode: AiMode): Promise<void> {
   } else {
     await db.update(aiModeSettingsTable).set({ mode }).where(eq(aiModeSettingsTable.id, existing[0].id));
   }
+  cacheInvalidatePattern("ai_mode:");
+  broadcast("mode_change", { scope: "global", mode });
 }
 
 export async function getWorkflowModes() {
+  const cached = cacheGet<any[]>("ai_mode:workflows");
+  if (cached) return cached;
+
   const dbRows = await db.select().from(aiModeSettingsTable).where(eq(aiModeSettingsTable.scope, "workflow"));
   const overrides: Record<string, AiMode> = {};
   for (const r of dbRows) {
     if (r.workflowKey) overrides[r.workflowKey] = r.mode as AiMode;
   }
 
-  return Object.entries(DEFAULT_WORKFLOW_MODES).map(([key, def]) => ({
+  const result = Object.entries(DEFAULT_WORKFLOW_MODES).map(([key, def]) => ({
     workflowKey: key,
     mode: overrides[key] ?? def.mode,
     description: def.description,
     isOverridden: key in overrides,
   }));
+  cacheSet("ai_mode:workflows", result, TTL.AI_RESPONSE);
+  return result;
 }
 
 export async function setWorkflowMode(workflowKey: string, mode: AiMode): Promise<void> {
@@ -60,16 +72,50 @@ export async function setWorkflowMode(workflowKey: string, mode: AiMode): Promis
   } else {
     await db.update(aiModeSettingsTable).set({ mode }).where(eq(aiModeSettingsTable.id, existing[0].id));
   }
+  cacheInvalidatePattern("ai_mode:");
+  broadcast("mode_change", { scope: "workflow", workflowKey, mode });
 }
 
-export async function shouldAiAct(workflowKey: string, confidence?: number): Promise<{
+async function getRecordOverride(entityType: string, entityId: number): Promise<AiMode | null> {
+  const cacheKey = `ai_mode:record:${entityType}:${entityId}`;
+  const cached = cacheGet<AiMode | null>(cacheKey);
+  if (cached !== undefined) return cached;
+
+  let override: string | null = null;
+  if (entityType === "lead") {
+    const [row] = await db.select({ aiModeOverride: leadsTable.aiModeOverride }).from(leadsTable).where(eq(leadsTable.id, entityId));
+    override = row?.aiModeOverride || null;
+  } else if (entityType === "opportunity") {
+    const [row] = await db.select({ aiModeOverride: opportunitiesTable.aiModeOverride }).from(opportunitiesTable).where(eq(opportunitiesTable.id, entityId));
+    override = row?.aiModeOverride || null;
+  }
+
+  cacheSet(cacheKey, override as AiMode | null, TTL.AI_RESPONSE);
+  return override as AiMode | null;
+}
+
+export async function shouldAiAct(workflowKey: string, confidence?: number, entityType?: string, entityId?: number): Promise<{
   canAct: boolean;
   mode: AiMode;
   reason: string;
+  source: "record" | "workflow" | "global";
 }> {
+  if (entityType && entityId) {
+    const recordMode = await getRecordOverride(entityType, entityId);
+    if (recordMode) {
+      if (recordMode === "human_controlled") {
+        return { canAct: false, mode: "human_controlled", reason: `Record-level override: ${entityType} #${entityId} is Human Controlled`, source: "record" };
+      }
+      if (recordMode === "hybrid" && confidence !== undefined && confidence < 70) {
+        return { canAct: false, mode: "hybrid", reason: `Record-level hybrid: confidence ${confidence}% below threshold`, source: "record" };
+      }
+      return { canAct: true, mode: recordMode, reason: `Record-level override: AI authorized (${recordMode})`, source: "record" };
+    }
+  }
+
   const globalMode = await getGlobalMode();
   if (globalMode === "human_controlled") {
-    return { canAct: false, mode: "human_controlled", reason: "Global mode is Human Controlled" };
+    return { canAct: false, mode: "human_controlled", reason: "Global mode is Human Controlled", source: "global" };
   }
 
   const workflows = await getWorkflowModes();
@@ -77,12 +123,12 @@ export async function shouldAiAct(workflowKey: string, confidence?: number): Pro
   const effectiveMode = wf?.mode ?? globalMode;
 
   if (effectiveMode === "human_controlled") {
-    return { canAct: false, mode: "human_controlled", reason: `Workflow "${workflowKey}" requires human control` };
+    return { canAct: false, mode: "human_controlled", reason: `Workflow "${workflowKey}" requires human control`, source: "workflow" };
   }
 
   if (effectiveMode === "hybrid" && confidence !== undefined && confidence < 70) {
-    return { canAct: false, mode: "hybrid", reason: `Confidence ${confidence}% below threshold for hybrid mode` };
+    return { canAct: false, mode: "hybrid", reason: `Confidence ${confidence}% below threshold for hybrid mode`, source: "workflow" };
   }
 
-  return { canAct: true, mode: effectiveMode, reason: "AI authorized to act" };
+  return { canAct: true, mode: effectiveMode, reason: "AI authorized to act", source: "workflow" };
 }

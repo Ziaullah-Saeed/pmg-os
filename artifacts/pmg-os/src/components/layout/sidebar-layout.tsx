@@ -29,6 +29,8 @@ import { NotificationBell } from "@/components/notification-bell";
 import { AiModeToggle } from "@/components/ai-mode-toggle";
 import { WalletDisplay } from "@/components/wallet-display";
 import { GlobalSearch } from "@/components/global-search";
+import { useAuth } from "@/hooks/use-auth";
+import { LogOut } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Command Center", icon: BarChart3, domain: "command" },
@@ -136,6 +138,40 @@ function NavLink({
   );
 }
 
+function UserProfile({ collapsed }: { collapsed?: boolean }) {
+  const { user, logout } = useAuth();
+  const initials = user?.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "??";
+  const roleName = user?.role?.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase()) || "User";
+
+  return (
+    <div className={cn("p-3 border-t border-border/30", collapsed && "p-2")}>
+      <div className={cn(
+        "flex items-center gap-2 p-2 rounded-lg glass-surface",
+        collapsed && "justify-center"
+      )}>
+        <div className="h-7 w-7 rounded-full bg-gradient-to-br from-crimson/80 to-crimson/40 flex items-center justify-center text-white text-xs font-bold shrink-0">
+          {initials}
+        </div>
+        {!collapsed && (
+          <>
+            <div className="overflow-hidden flex-1">
+              <div className="text-xs font-medium truncate">{user?.name || "Unknown"}</div>
+              <div className="text-[10px] text-muted-foreground truncate">{roleName}</div>
+            </div>
+            <button
+              onClick={() => logout()}
+              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -210,22 +246,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className={cn("p-3 border-t border-border/30", collapsed && "p-2")}>
-          <div className={cn(
-            "flex items-center gap-2 p-2 rounded-lg glass-surface",
-            collapsed && "justify-center"
-          )}>
-            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-crimson/80 to-crimson/40 flex items-center justify-center text-white text-xs font-bold shrink-0">
-              SK
-            </div>
-            {!collapsed && (
-              <div className="overflow-hidden">
-                <div className="text-xs font-medium truncate">SherShah K.</div>
-                <div className="text-[10px] text-muted-foreground truncate">Super Admin</div>
-              </div>
-            )}
-          </div>
-        </div>
+        <UserProfile collapsed={collapsed} />
       </aside>
 
       <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
