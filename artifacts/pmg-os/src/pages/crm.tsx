@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
 import {
   Briefcase, Plus, DollarSign, TrendingUp, Clock, AlertTriangle,
   ArrowRight, FileText, Phone, Calendar, ChevronRight, Bot, Target, Users,
@@ -91,6 +93,7 @@ export default function CRM() {
   const { data: leads } = useListLeads();
   const deleteLead = useDeleteLead();
   const routeLead = useRouteLead();
+  const { isHuman, isHybrid, isAuto } = useAiModeContext();
 
   const leadList = (leads ?? []) as any[];
 
@@ -128,6 +131,52 @@ export default function CRM() {
       <CreateCompanyForm open={showCreateCompany} onOpenChange={setShowCreateCompany} />
       <CreateContactForm open={showCreateContact} onOpenChange={setShowCreateContact} />
 
+      <ModeIndicatorBanner />
+
+      <ModeAwareWrapper
+        domain="crm"
+        humanContent={
+          <div className="space-y-6">
+            <HumanWorkflowGuide title="CRM & Deal Management Workflow" steps={[
+              { id: "1", title: "Review New Leads", description: "Check incoming leads, review company details and contact info", status: "current" as const, action: "View Leads" },
+              { id: "2", title: "Qualify & Score", description: "Manually assess lead fit, budget, authority, need, and timeline", status: "upcoming" as const },
+              { id: "3", title: "Create Opportunity", description: "Convert qualified leads into pipeline opportunities with deal value", status: "upcoming" as const },
+              { id: "4", title: "Progress Deals", description: "Move deals through pipeline stages — discovery, proposal, negotiation", status: "upcoming" as const },
+              { id: "5", title: "Close & Handoff", description: "Close won deals and hand off to production/delivery team", status: "upcoming" as const },
+            ]} icon={<Briefcase className="h-5 w-5 text-blue-400" />} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Active Leads ({leadList.length})</h3>
+                <div className="space-y-2">
+                  {leadList.slice(0, 8).map((lead: any) => (
+                    <div key={lead.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30 cursor-pointer" onClick={() => setSelectedLead(lead)}>
+                      <div>
+                        <p className="text-sm font-medium">{lead.companyName ?? lead.company_name}</p>
+                        <p className="text-[10px] text-muted-foreground">{lead.contactName ?? lead.contact_name} · {lead.source}</p>
+                      </div>
+                      <StatusBadge variant={lead.status === "qualified" ? "success" : "pending"} label={lead.status} />
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Pipeline Deals ({activeDeals.length})</h3>
+                <div className="space-y-2">
+                  {activeDeals.slice(0, 8).map((opp: any) => (
+                    <div key={opp.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30 cursor-pointer" onClick={() => setSelectedOpp(opp)}>
+                      <div>
+                        <p className="text-sm font-medium">{opp.title}</p>
+                        <p className="text-[10px] text-muted-foreground">${(opp.value ?? 0).toLocaleString()} · {opp.stage}</p>
+                      </div>
+                      <StatusBadge variant={opp.probability >= 70 ? "success" : opp.probability >= 40 ? "ai-recommended" : "pending"} label={`${opp.probability}%`} />
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        }
+      >
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -349,6 +398,7 @@ export default function CRM() {
           </div>
         )}
       </motion.div>
+      </ModeAwareWrapper>
 
       <DetailDrawer
         open={!!selectedOpp}

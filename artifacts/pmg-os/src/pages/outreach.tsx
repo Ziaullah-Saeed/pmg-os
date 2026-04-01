@@ -11,6 +11,8 @@ import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
 import {
   Target, ArrowUpRight, AlertCircle, CheckCircle2, Plus, Sparkles,
   Users, ArrowRight, Filter, ListChecks, Send
@@ -28,6 +30,7 @@ export default function Outreach() {
   const [statusFilter, setStatusFilter] = useState("all");
   const { data: leads } = useListLeads();
   const { data: companies } = useListCompanies();
+  const { isHuman, isHybrid, isAuto } = useAiModeContext();
   const leadList = (leads ?? []) as any[];
   const companyList = (companies ?? []) as any[];
 
@@ -38,19 +41,33 @@ export default function Outreach() {
   const avgConfidence = totalLeads ? Math.round(leadList.reduce((s: number, l: any) => s + (l.confidenceScore ?? l.confidence_score ?? 0), 0) / totalLeads) : 0;
   const avgFit = totalLeads ? Math.round(leadList.reduce((s: number, l: any) => s + (l.fitScore ?? l.fit_score ?? 0), 0) / totalLeads) : 0;
 
+  const humanWorkflowSteps = [
+    { id: "1", title: "Review Lead List", description: "Check incoming leads and prioritize by fit score and urgency", status: "current" as const, action: "Open List" },
+    { id: "2", title: "Research Top Prospects", description: "Manually research the top 5 leads — company size, tech stack, pain points", status: "upcoming" as const },
+    { id: "3", title: "Craft Outreach Messages", description: "Write personalized emails or LinkedIn messages for each prospect", status: "upcoming" as const },
+    { id: "4", title: "Schedule Follow-ups", description: "Set follow-up reminders and sequence timing for each lead", status: "upcoming" as const },
+    { id: "5", title: "Update Lead Status", description: "Move leads through pipeline stages based on responses", status: "upcoming" as const },
+  ];
+
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
         title="Outreach & Prospecting"
-        subtitle="Target discovery, lead scoring, qualification, and CRM handoff"
+        subtitle={isHuman ? "Manual prospecting, lead review, and personalized outreach" : "Target discovery, lead scoring, qualification, and CRM handoff"}
         icon={<Target className="h-5 w-5" />}
         actions={
-          <div className="flex gap-2">
+          isHuman ? (
             <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />New Lead</Button>
-            <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg"><Sparkles className="h-4 w-4 mr-2" />AI Prospect</Button>
-          </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />New Lead</Button>
+              <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg"><Sparkles className="h-4 w-4 mr-2" />AI Prospect</Button>
+            </div>
+          )
         }
       />
+
+      <ModeIndicatorBanner />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KpiCard label="Total Leads" value={totalLeads} icon={<Users className="h-4 w-4" />} accent="blue" />
@@ -60,6 +77,31 @@ export default function Outreach() {
         <KpiCard label="Avg Fit Score" value={`${avgFit}%`} icon={<Target className="h-4 w-4" />} accent="gold" />
       </div>
 
+      <ModeAwareWrapper
+        domain="outreach"
+        humanContent={
+          <div className="space-y-6">
+            <HumanWorkflowGuide title="Manual Prospecting Workflow" steps={humanWorkflowSteps} icon={<Target className="h-5 w-5 text-blue-400" />} />
+            <GlassCard>
+              <h3 className="text-sm font-semibold mb-3">Lead Queue ({leadList.length} leads)</h3>
+              <div className="space-y-2">
+                {leadList.slice(0, 8).map((lead: any) => (
+                  <div key={lead.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 cursor-pointer hover:bg-slate-800/50" onClick={() => setSelectedLead(lead)}>
+                    <div>
+                      <p className="text-sm font-medium">{lead.companyName ?? lead.company_name}</p>
+                      <p className="text-[10px] text-muted-foreground">{lead.contactName ?? lead.contact_name} · {lead.source}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge variant={lead.status === "qualified" ? "ai-approved" : lead.status === "contacted" ? "ai-recommended" : "pending"} label={lead.status} />
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        }
+      >
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -201,6 +243,7 @@ export default function Outreach() {
           </GlassCard>
         )}
       </motion.div>
+      </ModeAwareWrapper>
 
       <DetailDrawer
         open={!!selectedLead}

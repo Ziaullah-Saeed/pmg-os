@@ -8,6 +8,7 @@ import { PremiumTabs } from "@/components/ui/premium-tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ModeIndicatorBanner } from "@/components/mode-aware-wrapper";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   useAiMode, useSetAiMode, useWorkflowModes, useSetWorkflowMode,
@@ -107,6 +108,8 @@ export default function System() {
         <KpiCard label="AI Runs Today" value={cmdCenter?.aiRunsToday ?? 0} icon={<Zap className="h-4 w-4" />} accent="crimson" />
         <KpiCard label="Modules Active" value={modules.length} icon={<Cpu className="h-4 w-4" />} accent="success" />
       </div>
+
+      <ModeIndicatorBanner />
 
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 

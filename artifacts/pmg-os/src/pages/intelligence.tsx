@@ -10,6 +10,8 @@ import { ConfidenceMeter } from "@/components/ui/confidence-meter";
 import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
 import {
   BrainCircuit, Target, Building2, Users, Shield, Search,
   Sparkles, Globe, AlertTriangle, Plus, Eye,
@@ -46,6 +48,7 @@ export default function Intelligence() {
   const { data: companies } = useListCompanies();
   const { data: contacts } = useListContacts();
   const { data: leads } = useListLeads();
+  const { isHuman, isHybrid, isAuto } = useAiModeContext();
 
   const companyList = (companies ?? []) as any[];
   const contactList = (contacts ?? []) as any[];
@@ -56,23 +59,39 @@ export default function Intelligence() {
     : 0;
   const decisionMakers = contactList.filter((c: any) => c.isDecisionMaker ?? c.is_decision_maker);
 
+  const humanWorkflowSteps = [
+    { id: "1", title: "Identify Target Industries", description: "Review your ICP criteria and select 3-5 target verticals for research", status: "current" as const, action: "Start Research" },
+    { id: "2", title: "Map Decision Makers", description: "For each target company, identify the key decision makers and their roles", status: "upcoming" as const },
+    { id: "3", title: "Analyze Competitor Positioning", description: "Review competitor offerings, pricing, and market positioning", status: "upcoming" as const },
+    { id: "4", title: "Build Pain Point Matrix", description: "Document prospect pain points mapped to your solutions", status: "upcoming" as const },
+    { id: "5", title: "Create Intelligence Brief", description: "Compile findings into an actionable intelligence report for the team", status: "upcoming" as const },
+  ];
+
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
         title="Intelligence Engine"
-        subtitle="Market research, ICP modeling, competitor analysis, and strategic intelligence"
+        subtitle={isHuman ? "Manual market research, ICP modeling, and strategic intelligence" : "Market research, ICP modeling, competitor analysis, and strategic intelligence"}
         icon={<BrainCircuit className="h-5 w-5" />}
         actions={
-          <div className="flex gap-2">
+          isHuman ? (
             <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg">
-              <Plus className="h-4 w-4 mr-2" />Build ICP
+              <Plus className="h-4 w-4 mr-2" />Add Company
             </Button>
-            <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg">
-              <Sparkles className="h-4 w-4 mr-2" />AI Enrich
-            </Button>
-          </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg">
+                <Plus className="h-4 w-4 mr-2" />Build ICP
+              </Button>
+              <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg">
+                <Sparkles className="h-4 w-4 mr-2" />AI Enrich
+              </Button>
+            </div>
+          )
         }
       />
+
+      <ModeIndicatorBanner />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KpiCard label="Companies Tracked" value={companyList.length} icon={<Building2 className="h-4 w-4" />} accent="blue" />
@@ -82,6 +101,51 @@ export default function Intelligence() {
         <KpiCard label="Active Leads" value={leadList.length} icon={<Crosshair className="h-4 w-4" />} accent="success" />
       </div>
 
+      <ModeAwareWrapper
+        domain="intelligence"
+        humanContent={
+          <div className="space-y-6">
+            <HumanWorkflowGuide title="Intelligence Research Workflow" steps={humanWorkflowSteps} icon={<BrainCircuit className="h-5 w-5 text-blue-400" />} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Manual Research Checklist</h3>
+                <div className="space-y-2">
+                  {["Review LinkedIn for decision makers", "Check company website for tech stack", "Research recent news & press releases", "Identify compliance requirements", "Map organizational structure"].map((item, i) => (
+                    <label key={i} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                      <input type="checkbox" className="rounded border-slate-600" />
+                      {item}
+                    </label>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Quick Add Company</h3>
+                <div className="space-y-3">
+                  <input placeholder="Company name..." className="w-full px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700 text-sm" />
+                  <input placeholder="Industry..." className="w-full px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700 text-sm" />
+                  <input placeholder="Website URL..." className="w-full px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700 text-sm" />
+                  <textarea placeholder="Notes about this prospect..." className="w-full px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700 text-sm h-20 resize-none" />
+                  <Button className="btn-premium text-white text-sm w-full">Save Company</Button>
+                </div>
+              </GlassCard>
+            </div>
+            <GlassCard>
+              <h3 className="text-sm font-semibold mb-3">Companies ({companyList.length})</h3>
+              <div className="space-y-2">
+                {companyList.slice(0, 10).map((c: any) => (
+                  <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30">
+                    <div>
+                      <p className="text-sm font-medium">{c.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{c.industry} · {c.website}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="text-xs">View Details</Button>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        }
+      >
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -393,6 +457,7 @@ export default function Intelligence() {
           </div>
         )}
       </motion.div>
+      </ModeAwareWrapper>
 
       <DetailDrawer
         open={!!selectedCompany}

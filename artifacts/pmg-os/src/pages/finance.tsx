@@ -10,6 +10,8 @@ import { ConfidenceMeter } from "@/components/ui/confidence-meter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
 import {
   Landmark, DollarSign, TrendingUp, FileText, Plus, Receipt,
   Scale, AlertTriangle, Download
@@ -53,6 +55,7 @@ export default function Finance() {
   const [activeTab, setActiveTab] = useState("overview");
   const { data: opportunities } = useListOpportunities();
   const { data: documents } = useListDocuments();
+  const { isHuman, isHybrid, isAuto } = useAiModeContext();
   const oppList = (opportunities ?? []) as any[];
   const docList = ((documents ?? []) as any[]).filter((d: any) => d.category === "legal");
 
@@ -76,6 +79,8 @@ export default function Finance() {
         }
       />
 
+      <ModeIndicatorBanner />
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KpiCard label="Pipeline Value" value={`$${totalPipeline.toLocaleString()}`} icon={<DollarSign className="h-4 w-4" />} accent="crimson" />
         <KpiCard label="Weighted Revenue" value={`$${Math.round(weightedRevenue).toLocaleString()}`} icon={<TrendingUp className="h-4 w-4" />} />
@@ -84,6 +89,56 @@ export default function Finance() {
         <KpiCard label="Legal Docs" value={docList.length} icon={<Scale className="h-4 w-4" />} />
       </div>
 
+      <ModeAwareWrapper
+        domain="finance"
+        humanContent={
+          <div className="space-y-6">
+            <HumanWorkflowGuide title="Financial Operations Workflow" steps={[
+              { id: "1", title: "Review Outstanding Invoices", description: "Check pending and overdue invoices, follow up on payments", status: "current" as const, action: "View Invoices" },
+              { id: "2", title: "Create New Invoice", description: "Draft invoice for completed services with line items and terms", status: "upcoming" as const },
+              { id: "3", title: "Review Expenses", description: "Categorize and approve monthly expenses by department", status: "upcoming" as const },
+              { id: "4", title: "Profitability Check", description: "Compare revenue vs expenses, identify margin improvements", status: "upcoming" as const },
+              { id: "5", title: "Legal Compliance", description: "Review contract renewals, NDA status, and compliance deadlines", status: "upcoming" as const },
+            ]} icon={<Landmark className="h-5 w-5 text-blue-400" />} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Invoice Status</h3>
+                <div className="space-y-2">
+                  {invoices.map((inv) => (
+                    <div key={inv.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30">
+                      <div>
+                        <p className="text-sm font-medium">{inv.id} — {inv.client}</p>
+                        <p className="text-[10px] text-muted-foreground">{inv.service} · {inv.date}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">${inv.amount.toLocaleString()}</p>
+                        <StatusBadge variant={inv.status === "paid" ? "ai-approved" : inv.status === "overdue" ? "ai-flagged" : "pending"} label={inv.status} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Quotation Pipeline</h3>
+                <div className="space-y-2">
+                  {quotations.map((q) => (
+                    <div key={q.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30">
+                      <div>
+                        <p className="text-sm font-medium">{q.id} — {q.client}</p>
+                        <p className="text-[10px] text-muted-foreground">{q.service}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">${q.amount.toLocaleString()}</p>
+                        <StatusBadge variant={q.status === "accepted" ? "ai-approved" : q.status === "draft" ? "pending" : "ai-recommended"} label={q.status} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        }
+      >
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -220,6 +275,7 @@ export default function Finance() {
           </div>
         )}
       </motion.div>
+      </ModeAwareWrapper>
     </div>
   );
 }

@@ -9,6 +9,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
 import {
   MessagesSquare, Phone, Video, Mail, ArrowUpRight, ArrowDownLeft,
   Clock, Plus, Sparkles, Bot, User, Headphones, AlertCircle,
@@ -27,6 +29,7 @@ export default function Communications() {
   const [selectedComm, setSelectedComm] = useState<any>(null);
   const { data: communications } = useListCommunications();
   const { data: leads } = useListLeads();
+  const { isHuman, isHybrid, isAuto } = useAiModeContext();
   const commList = (communications ?? []) as any[];
   const leadList = (leads ?? []) as any[];
 
@@ -50,6 +53,8 @@ export default function Communications() {
         actions={<Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />Log Communication</Button>}
       />
 
+      <ModeIndicatorBanner />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard label="Total Comms" value={totalComms} icon={<MessagesSquare className="h-4 w-4" />} accent="blue" />
         <KpiCard label="Calls" value={calls} icon={<Phone className="h-4 w-4" />} />
@@ -57,6 +62,37 @@ export default function Communications() {
         <KpiCard label="Positive" value={positive} icon={<CheckCircle2 className="h-4 w-4" />} accent="success" />
       </div>
 
+      <ModeAwareWrapper
+        domain="communications"
+        humanContent={
+          <div className="space-y-6">
+            <HumanWorkflowGuide title="Communication Workflow" steps={[
+              { id: "1", title: "Review Upcoming Calls", description: "Check today's scheduled calls and prepare talking points", status: "current" as const, action: "View Schedule" },
+              { id: "2", title: "Prepare Call Script", description: "Review lead history, pain points, and objection handling notes", status: "upcoming" as const },
+              { id: "3", title: "Make the Call", description: "Conduct the call, take notes on key discussion points", status: "upcoming" as const },
+              { id: "4", title: "Log Communication", description: "Record call outcome, sentiment, and follow-up actions", status: "upcoming" as const },
+              { id: "5", title: "Schedule Follow-up", description: "Set next touchpoint and update CRM with meeting notes", status: "upcoming" as const },
+            ]} icon={<MessagesSquare className="h-5 w-5 text-blue-400" />} />
+            <GlassCard>
+              <h3 className="text-sm font-semibold mb-3">Recent Communications ({commList.length})</h3>
+              <div className="space-y-2">
+                {commList.map((comm: any) => (
+                  <div key={comm.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 cursor-pointer" onClick={() => setSelectedComm(comm)}>
+                    <div className="flex items-center gap-2">
+                      {typeIcon[comm.type] ?? <Mail className="h-4 w-4" />}
+                      <div>
+                        <p className="text-sm font-medium">{comm.subject}</p>
+                        <p className="text-[10px] text-muted-foreground">{comm.type} · {comm.direction} · {new Date(comm.createdAt ?? comm.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <StatusBadge variant={comm.sentiment === "positive" ? "ai-approved" : comm.sentiment === "negative" ? "ai-flagged" : "pending"} label={comm.sentiment ?? "neutral"} />
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        }
+      >
       <PremiumTabs tabs={tabs} activeTab={activeMode} onTabChange={setActiveMode} />
 
       <motion.div key={activeMode} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -222,6 +258,7 @@ export default function Communications() {
           </GlassCard>
         )}
       </motion.div>
+      </ModeAwareWrapper>
 
       <DetailDrawer open={!!selectedComm} onClose={() => setSelectedComm(null)} title={selectedComm?.subject} subtitle={selectedComm?.type}>
         {selectedComm && (

@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useKnowledgeLibrary, useSearchKnowledge, useAiGenerateReport } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
 import {
   FileBox, FileText, Search, BarChart3, Sparkles,
   Download, Clock, Eye, BookOpen, Brain, Loader2, FileDown
@@ -40,6 +42,7 @@ export default function Reports() {
   const [generatingReport, setGeneratingReport] = useState<string | null>(null);
   const [generatedReport, setGeneratedReport] = useState<string | null>(null);
   const { toast } = useToast();
+  const { isHuman, isHybrid, isAuto } = useAiModeContext();
   const { data: documents } = useListDocuments();
   const { data: opportunities } = useListOpportunities();
   const { data: campaigns } = useListCampaigns();
@@ -97,6 +100,54 @@ export default function Reports() {
         }
       />
 
+      <ModeIndicatorBanner />
+
+      <ModeAwareWrapper
+        domain="reports"
+        humanContent={
+          <div className="space-y-6">
+            <HumanWorkflowGuide title="Reporting Workflow" steps={[
+              { id: "1", title: "Select Report Type", description: "Choose which domain report to create — CRM, Marketing, Finance, or Operations", status: "current" as const, action: "Choose Report" },
+              { id: "2", title: "Gather Data", description: "Review current metrics and collect data points from relevant domains", status: "upcoming" as const },
+              { id: "3", title: "Draft Report", description: "Compile findings into a structured report with key metrics and insights", status: "upcoming" as const },
+              { id: "4", title: "Review & Distribute", description: "Review report for accuracy, then share with stakeholders", status: "upcoming" as const },
+            ]} icon={<FileBox className="h-5 w-5 text-blue-400" />} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-2">Quick Stats</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">Pipeline Value</span><span className="font-medium">${totalPipeline.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">Active Tasks</span><span className="font-medium">{activeTasks}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">Leads Generated</span><span className="font-medium">{totalLeads}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">Documents</span><span className="font-medium">{docList.length}</span></div>
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-2">Knowledge Library ({knowledgeList.length})</h3>
+                <div className="space-y-1">
+                  {knowledgeList.slice(0, 5).map((k: any) => (
+                    <div key={k.id} className="text-xs p-1.5 rounded bg-slate-800/30">
+                      <p className="font-medium truncate">{k.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{k.category}</p>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-2">Recent Documents</h3>
+                <div className="space-y-1">
+                  {docList.slice(0, 5).map((d: any) => (
+                    <div key={d.id} className="text-xs p-1.5 rounded bg-slate-800/30">
+                      <p className="font-medium truncate">{d.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{d.category} · {d.status}</p>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        }
+      >
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -318,6 +369,7 @@ export default function Reports() {
           </div>
         )}
       </motion.div>
+      </ModeAwareWrapper>
     </div>
   );
 }

@@ -8,6 +8,8 @@ type BadgeVariant =
   | "human-approved"
   | "awaiting-review"
   | "ai-recommended"
+  | "ai-approved"
+  | "ai-flagged"
   | "ai-drafted"
   | "manually-completed"
   | "active"
@@ -54,6 +56,16 @@ const badgeConfig: Record<BadgeVariant, { icon: React.ReactNode; defaultLabel: s
     icon: <Sparkles className="h-3 w-3" />,
     defaultLabel: "AI Recommended",
     className: "ai-badge",
+  },
+  "ai-approved": {
+    icon: <Check className="h-3 w-3" />,
+    defaultLabel: "AI Approved",
+    className: "bg-success/15 border border-success/30 text-success",
+  },
+  "ai-flagged": {
+    icon: <AlertTriangle className="h-3 w-3" />,
+    defaultLabel: "AI Flagged",
+    className: "bg-crimson/15 border border-crimson/30 text-crimson",
   },
   "ai-drafted": {
     icon: <Bot className="h-3 w-3" />,
@@ -103,7 +115,7 @@ const badgeConfig: Record<BadgeVariant, { icon: React.ReactNode; defaultLabel: s
 };
 
 export function StatusBadge({ variant, label, className: extraClass }: StatusBadgeProps) {
-  const config = badgeConfig[variant];
+  const config = badgeConfig[variant] ?? badgeConfig.pending;
   return (
     <span className={cn(
       "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",

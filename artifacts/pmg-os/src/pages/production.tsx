@@ -9,6 +9,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
 import {
   Palette, FileText, CheckCircle2, Clock, Edit, Plus, Eye,
   RotateCcw, ArrowRight, Sparkles, History, Ban
@@ -34,6 +36,7 @@ export default function Production() {
   const [activeTab, setActiveTab] = useState("queue");
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const { data: documents } = useListDocuments();
+  const { isHuman, isHybrid, isAuto } = useAiModeContext();
   const docList = (documents ?? []) as any[];
 
   const enriched = docList.map((d) => ({ ...d, lifecycle: mapDocStatus(d.status) }));
@@ -53,12 +56,45 @@ export default function Production() {
         }
       />
 
+      <ModeIndicatorBanner />
+
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {lifecycleStages.map((stage) => (
           <KpiCard key={stage} label={stage.charAt(0).toUpperCase() + stage.slice(1)} value={byStage[stage]?.length ?? 0} accent={stage === "finalize" ? "success" : stage === "review" ? "gold" : stage === "generate" ? "blue" : "default"} />
         ))}
       </div>
 
+      <ModeAwareWrapper
+        domain="production"
+        humanContent={
+          <div className="space-y-6">
+            <HumanWorkflowGuide title="Asset Production Workflow" steps={[
+              { id: "1", title: "Brief & Requirements", description: "Define asset type, audience, messaging, and brand guidelines", status: "current" as const, action: "Create Brief" },
+              { id: "2", title: "Draft Content", description: "Write copy, create designs, or record video — manual creation", status: "upcoming" as const },
+              { id: "3", title: "Internal Review", description: "Submit for team review, collect feedback, and address comments", status: "upcoming" as const },
+              { id: "4", title: "Revisions", description: "Apply requested changes and re-submit for approval", status: "upcoming" as const },
+              { id: "5", title: "Final Approval", description: "Get stakeholder sign-off and mark asset as finalized", status: "upcoming" as const },
+            ]} icon={<Palette className="h-5 w-5 text-blue-400" />} />
+            <GlassCard>
+              <h3 className="text-sm font-semibold mb-3">Assets in Pipeline ({docList.length})</h3>
+              <div className="space-y-2">
+                {enriched.map((doc: any) => (
+                  <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 cursor-pointer" onClick={() => setSelectedDoc(doc)}>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">{doc.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{doc.category} · Stage: {doc.lifecycle}</p>
+                      </div>
+                    </div>
+                    <StatusBadge variant={doc.lifecycle === "finalize" ? "ai-approved" : doc.lifecycle === "review" ? "pending" : "ai-recommended"} label={doc.lifecycle} />
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        }
+      >
       <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Asset Lifecycle Pipeline</h3>
@@ -156,6 +192,7 @@ export default function Production() {
           </GlassCard>
         )}
       </motion.div>
+      </ModeAwareWrapper>
 
       <DetailDrawer open={!!selectedDoc} onClose={() => setSelectedDoc(null)} title={selectedDoc?.title} subtitle={`${selectedDoc?.type} • v${selectedDoc?.version}`}>
         {selectedDoc && (() => {

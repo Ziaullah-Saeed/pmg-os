@@ -10,6 +10,8 @@ import { ConfidenceMeter } from "@/components/ui/confidence-meter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
 import {
   Megaphone, Plus, BarChart3, Calendar, Search, DollarSign,
   Users, TrendingUp, Sparkles, MousePointerClick
@@ -27,6 +29,7 @@ const tabs = [
 export default function Marketing() {
   const [activeTab, setActiveTab] = useState("campaigns");
   const { data: campaigns } = useListCampaigns();
+  const { isHuman, isHybrid, isAuto } = useAiModeContext();
   const campaignList = (campaigns ?? []) as any[];
 
   const totalLeads = campaignList.reduce((s: number, c: any) => s + (c.leadsGenerated ?? c.leads_generated ?? 0), 0);
@@ -52,6 +55,8 @@ export default function Marketing() {
         actions={<Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />New Campaign</Button>}
       />
 
+      <ModeIndicatorBanner />
+
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <KpiCard label="Leads Generated" value={totalLeads} icon={<Users className="h-4 w-4" />} accent="crimson" />
         <KpiCard label="Total Spent" value={`$${totalSpent.toLocaleString()}`} icon={<DollarSign className="h-4 w-4" />} />
@@ -61,6 +66,37 @@ export default function Marketing() {
         <KpiCard label="Conversions" value={totalConversions} icon={<TrendingUp className="h-4 w-4" />} accent="success" />
       </div>
 
+      <ModeAwareWrapper
+        domain="marketing"
+        humanContent={
+          <div className="space-y-6">
+            <HumanWorkflowGuide title="Campaign Setup Workflow" steps={[
+              { id: "1", title: "Define Campaign Goal", description: "Choose campaign objective: awareness, lead gen, or nurture", status: "current" as const, action: "Set Goal" },
+              { id: "2", title: "Select Target Audience", description: "Define audience segments and channel strategy", status: "upcoming" as const },
+              { id: "3", title: "Create Content", description: "Write copy, design creatives, and prepare landing pages", status: "upcoming" as const },
+              { id: "4", title: "Set Budget & Schedule", description: "Allocate budget across channels and set launch dates", status: "upcoming" as const },
+              { id: "5", title: "Launch & Monitor", description: "Deploy campaign and track initial performance metrics", status: "upcoming" as const },
+            ]} icon={<Megaphone className="h-5 w-5 text-blue-400" />} />
+            <GlassCard>
+              <h3 className="text-sm font-semibold mb-3">Active Campaigns ({campaignList.length})</h3>
+              <div className="space-y-2">
+                {campaignList.map((c: any) => (
+                  <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30">
+                    <div>
+                      <p className="text-sm font-medium">{c.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{c.channel} · {c.status}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{c.leadsGenerated ?? c.leads_generated ?? 0} leads</p>
+                      <p className="text-[10px] text-muted-foreground">${c.spent ?? 0} spent</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        }
+      >
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -192,6 +228,7 @@ export default function Marketing() {
           </GlassCard>
         )}
       </motion.div>
+      </ModeAwareWrapper>
     </div>
   );
 }

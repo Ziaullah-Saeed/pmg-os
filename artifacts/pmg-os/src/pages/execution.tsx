@@ -9,6 +9,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
 import {
   Zap, CheckCircle2, Clock, AlertTriangle, Plus, LayoutGrid,
   List, ArrowRight
@@ -27,6 +29,7 @@ export default function Execution() {
   const [activeTab, setActiveTab] = useState("kanban");
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const { data: tasks } = useListTasks();
+  const { isHuman, isHybrid, isAuto } = useAiModeContext();
   const taskList = (tasks ?? []) as any[];
 
   const total = taskList.length;
@@ -44,6 +47,8 @@ export default function Execution() {
         actions={<Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />New Task</Button>}
       />
 
+      <ModeIndicatorBanner />
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KpiCard label="Total Tasks" value={total} icon={<Zap className="h-4 w-4" />} />
         <KpiCard label="In Progress" value={inProgress} icon={<Clock className="h-4 w-4" />} accent="blue" />
@@ -52,6 +57,50 @@ export default function Execution() {
         <KpiCard label="Critical" value={critical} icon={<AlertTriangle className="h-4 w-4" />} accent="crimson" />
       </div>
 
+      <ModeAwareWrapper
+        domain="execution"
+        humanContent={
+          <div className="space-y-6">
+            <HumanWorkflowGuide title="Task Management Workflow" steps={[
+              { id: "1", title: "Review Task Queue", description: "Check pending and blocked tasks, prioritize by urgency and impact", status: "current" as const, action: "View Tasks" },
+              { id: "2", title: "Assign & Plan", description: "Assign tasks to team members, set deadlines and dependencies", status: "upcoming" as const },
+              { id: "3", title: "Execute & Track", description: "Work through tasks, update status as you progress", status: "upcoming" as const },
+              { id: "4", title: "Quality Check", description: "Review completed work against acceptance criteria", status: "upcoming" as const },
+              { id: "5", title: "Close & Document", description: "Mark tasks complete and document lessons learned", status: "upcoming" as const },
+            ]} icon={<Zap className="h-5 w-5 text-blue-400" />} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Priority Tasks ({pending + inProgress})</h3>
+                <div className="space-y-2">
+                  {taskList.filter((t: any) => t.status !== "completed").slice(0, 8).map((task: any) => (
+                    <div key={task.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30 cursor-pointer" onClick={() => setSelectedTask(task)}>
+                      <div>
+                        <p className="text-sm font-medium">{task.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{task.priority} · {task.status}</p>
+                      </div>
+                      <StatusBadge variant={task.priority === "critical" ? "ai-flagged" : task.status === "in_progress" ? "ai-recommended" : "pending"} label={task.status} />
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Recently Completed ({completed})</h3>
+                <div className="space-y-2">
+                  {taskList.filter((t: any) => t.status === "completed").slice(0, 8).map((task: any) => (
+                    <div key={task.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30 opacity-60">
+                      <div>
+                        <p className="text-sm font-medium">{task.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{task.priority}</p>
+                      </div>
+                      <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        }
+      >
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -140,6 +189,7 @@ export default function Execution() {
           </GlassCard>
         )}
       </motion.div>
+      </ModeAwareWrapper>
 
       <DetailDrawer open={!!selectedTask} onClose={() => setSelectedTask(null)} title={selectedTask?.title} subtitle={selectedTask?.domain}>
         {selectedTask && (
