@@ -1,0 +1,343 @@
+Absolutely — here is a **clean developer/stakeholder instruction block** you can add to the master directive so the team builds around your real setup, not an abstract one.
+
+---
+
+# **ADDITIONAL IMPLEMENTATION DIRECTIVE — LIVE BUSINESS CONNECTIONS, EXTERNAL CRM ROUTING, AND OPERATING MODES**
+
+## **1. CURRENT BUSINESS ASSETS MUST BE USED AS REAL SYSTEM INPUTS**
+
+This system must be designed around the business assets PMG Group LLC is actively using today, not around placeholder assumptions.
+
+The product team and engineering team must treat the following as live business-connected assets for integration, branding, data sourcing, automation, and workflow context:
+
+* PMG website: `pmggroup-llc.com`
+* Personal LinkedIn profile: SherShah Nawabi Khan
+* LinkedIn company page
+* Facebook business page
+* GoHighLevel sub-account currently used by PMG and managed under another company’s infrastructure
+
+PMG’s public website currently positions the business around lead generation for cybersecurity MSPs, including messaging such as “Generate 20 Ready-to-Close Cybersecurity Leads in 30 Days for MSPs,” AI-powered outreach, qualification, follow-up workflows, and targeting of decision-makers like IT Directors and CTOs. The site also emphasizes Facebook and LinkedIn campaigns, AI qualification, and automated follow-up, so the new operating system should align with and extend those existing business promises rather than ignore them. ([PMG Group LLC][1])
+
+---
+
+## **2. GOHIGHLEVEL SUB-ACCOUNT CONNECTION IS A REQUIRED SYSTEM FEATURE**
+
+The system must include a dedicated area where I can connect my existing **GoHighLevel sub-account** directly.
+
+This is not optional.
+
+Because the current GoHighLevel environment is a **sub-account managed by another company**, the system must assume that PMG may not control the full CRM infrastructure or top-level configuration. Therefore, the platform must be designed to integrate with an externally managed GoHighLevel environment while still preserving PMG’s internal visibility, intelligence, reporting, and workflow continuity.
+
+### **Required CRM Integration Capability**
+
+The system must provide:
+
+* a **GoHighLevel connection page**
+* credential / API configuration area
+* webhook configuration support
+* sync status monitoring
+* routing controls for leads, contacts, opportunities, notes, and status updates
+* error handling and retry tools
+* mapping controls for custom fields and pipeline stages
+* logs showing what was sent, when it was sent, and whether it succeeded
+
+### **Required UX Location**
+
+Inside the system, there must be a clearly visible section such as:
+
+* **Settings → Integrations → GoHighLevel**
+  or
+* **CRM → External CRM Connections**
+  or both
+
+That section must allow the user to:
+
+* connect the GoHighLevel sub-account
+* verify connection status
+* choose what data should sync
+* decide whether records are stored only in PMG, only in GHL, or in both
+* test the integration before going live
+
+---
+
+## **3. LEADS MUST BE ABLE TO BE SENT DIRECTLY INTO GOHIGHLEVEL**
+
+The system must include a dedicated routing mechanism so that leads generated, enriched, scored, or qualified inside the PMG AI Operating System can be sent directly into the connected GoHighLevel CRM.
+
+This means the system must support a workflow such as:
+
+**Lead Created → AI Enriched → AI Scored → Routed → Sent to GoHighLevel**
+
+### **Mandatory Routing Options**
+
+For each lead, there must be a routing option such as:
+
+* Send to PMG Internal CRM
+* Send to GoHighLevel
+* Send to Both
+* Hold for Human Review
+
+### **Lead Payload Requirements**
+
+When a lead is pushed to GoHighLevel, the system should send structured data including, where available:
+
+* full name
+* company name
+* email
+* phone
+* lead source
+* tags
+* estimated pipeline stage
+* owner
+* notes
+* AI-generated summary
+* qualification score
+* confidence score
+* recommended next action
+* campaign source / source channel
+* timestamps
+* custom field mappings required by the GoHighLevel setup
+
+### **Visibility Requirement**
+
+Even when a lead is sent to GoHighLevel, PMG’s own system must retain a full internal record of:
+
+* original lead data
+* AI enrichment data
+* score and confidence
+* source history
+* routing destination
+* sync status
+* timestamps
+* any sync failures
+* later status updates if sync-back is enabled
+
+The PMG system must not become blind after handoff.
+
+---
+
+## **4. THE SYSTEM MUST BE BUILT IN TWO OPERATING MODES**
+
+The product must be designed around **two real operating modes**.
+
+This is a core architectural rule.
+
+### **Mode 1 — AI Autonomous Mode**
+
+In this mode, the AI should be able to operate **24/7 continuously** and perform as much of the repeatable business work as possible without waiting for a human to manually do every step.
+
+This includes tasks such as:
+
+* lead intake
+* lead enrichment
+* lead scoring
+* company research
+* contact research
+* outreach draft generation
+* follow-up sequencing
+* reminders
+* task creation
+* CRM routing
+* reporting generation
+* alert generation
+* pipeline monitoring
+* workflow monitoring
+* exception detection
+* content suggestions
+* operational summaries
+
+This mode should represent the system’s strongest AI-native capability.
+
+### **Mode 2 — Human-Assisted / Human-Controlled Mode**
+
+In this mode, some work should be done by humans as well.
+
+This must exist because certain parts of the business require:
+
+* human judgment
+* trust-building
+* sensitive communication
+* negotiation
+* review
+* approval
+* strategic override
+* quality control
+* legal or financial caution
+* relationship preservation
+
+In this mode, the AI must act as:
+
+* advisor
+* assistant
+* recommender
+* drafter
+* summarizer
+* workflow coordinator
+
+but not always as the final actor.
+
+---
+
+## **5. THE SYSTEM MUST SUPPORT BOTH MODES AT THE SAME TIME**
+
+The system should not force an “AI only” or “human only” setup.
+
+Instead, it must support:
+
+* **global operating mode selection**
+* **per-workflow operating mode selection**
+* **per-record override where needed**
+
+### **Examples**
+
+A business user should be able to configure the system like this:
+
+* Lead research → AI Autonomous
+* Lead scoring → AI Autonomous
+* CRM routing → AI Autonomous
+* Initial outreach draft → AI Autonomous
+* Sensitive outreach send approval → Human Required
+* Proposal generation → AI Draft + Human Review
+* Closing conversations → Human-Led
+* Reporting → AI Autonomous
+* Contract approval → Human Required
+
+That means the platform must support not only system-wide modes, but workflow-specific and action-specific control.
+
+---
+
+## **6. EVERY ACTION MUST SHOW WHO DID THE WORK**
+
+The UI must make it clear whether a task or workflow step was performed by AI or by a human.
+
+This should be visible across:
+
+* CRM records
+* lead detail pages
+* task timelines
+* activity logs
+* audit trails
+* workflow history
+* reporting panels
+
+### **Status Labels**
+
+Use labels such as:
+
+* **AI Executed**
+* **Human Assisted**
+* **Human Approved**
+* **Human Required**
+* **Awaiting Review**
+* **AI Recommended**
+* **AI Drafted**
+* **Manually Completed**
+
+This will create clarity, trust, and operational accountability.
+
+---
+
+## **7. LINKEDIN, FACEBOOK, AND WEBSITE SHOULD BE TREATED AS BRAND AND DATA SURFACES**
+
+The website, LinkedIn presence, and Facebook page should be usable as part of the business operating system.
+
+That does not mean scraping restricted areas blindly. It means the system should be architected to support these as connected business surfaces through safe, authorized, and controllable workflows.
+
+### **Expected Uses**
+
+The system should be designed to support:
+
+* brand consistency across channels
+* social content planning
+* campaign attribution
+* lead source tracking
+* form and CTA routing
+* landing-page-to-CRM flows
+* organic and paid campaign support
+* channel-specific reporting
+* message alignment with PMG’s existing positioning
+
+PMG’s website publicly emphasizes AI outreach, Facebook and LinkedIn campaign targeting, and automated lead qualification, so these channels should be reflected in the system architecture as first-class growth surfaces. ([PMG Group LLC][1])
+
+### **Important Technical Note**
+
+Some LinkedIn and Facebook pages may require authenticated access, admin privileges, or official APIs to retrieve structured data reliably. In my check, the LinkedIn profile/page and Facebook page were not fully readable through public fetch because of rate limits, robots restrictions, or throttling, so the system should be designed to connect them through authorized user connection flows rather than assuming open public access. 
+
+---
+
+## **8. REQUIRED NEW PAGES / MODULES TO ADD TO THE SYSTEM**
+
+The team should explicitly add the following pages or modules:
+
+### **A. Integrations Hub**
+
+Contains:
+
+* GoHighLevel connection
+* LinkedIn connection
+* Facebook connection
+* Website / domain connection settings
+* webhook settings
+* API key management
+* sync logs
+* connection health
+
+### **B. CRM Routing Center**
+
+Contains:
+
+* internal CRM vs GoHighLevel routing rules
+* pipeline mapping
+* field mapping
+* sync failures
+* retry queue
+* manual push tools
+* routing logic by source / score / campaign / owner
+
+### **C. AI Mode Control Center**
+
+Contains:
+
+* global AI vs Human mode settings
+* workflow-level mode selection
+* approval thresholds
+* confidence thresholds
+* human-escalation rules
+* audit visibility of who acted
+
+### **D. Channel Intelligence Hub**
+
+Contains:
+
+* website lead source tracking
+* LinkedIn lead source / campaign mapping
+* Facebook lead source / campaign mapping
+* attribution overview
+* messaging consistency controls
+* content / brand sync guidance
+
+---
+
+## **9. FINAL DEVELOPER INSTRUCTION**
+
+Build the system so that:
+
+* I can connect my current GoHighLevel sub-account directly
+* leads can be routed into that CRM automatically
+* PMG still retains internal intelligence and visibility
+* the website, LinkedIn, and Facebook presence can be used as connected business surfaces
+* the system can operate in both **24/7 AI Autonomous Mode** and **Human-Assisted Mode**
+* every workflow can decide whether AI acts alone, humans act alone, or both collaborate
+* the user always knows what the AI did, what the human did, and what still requires review
+
+---
+
+## **10. MASTER POSITIONING STATEMENT**
+
+The system must be built as:
+
+> **A dual-mode AI operating system for PMG Group LLC that can run continuously through AI, collaborate with humans where required, connect to an externally managed GoHighLevel sub-account, and use PMG’s website and social channels as integrated business surfaces for acquisition, qualification, routing, reporting, and growth.**
+
+If you want, I can turn this into a **developer-ready technical spec** next, with exact modules, database tables, API endpoints, and page structure.
+
+[1]: https://pmggroup-llc.com/ "Home - PMG Group LLC"
