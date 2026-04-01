@@ -17,6 +17,7 @@ import { validateTransition, getValidTransitions, getInitialState } from "../ser
 import { createNotification } from "../services/notification-service";
 import { addKnowledgeEntry } from "../services/knowledge-service";
 import { routeLead } from "../services/ghl-service";
+import { logAudit } from "../services/audit-service";
 
 const router: IRouter = Router();
 
@@ -156,6 +157,17 @@ router.post("/leads", async (req, res): Promise<void> => {
     }
   })();
 
+  await logAudit({
+    eventType: "entity_created",
+    domain: "crm",
+    action: "lead_created",
+    description: `Lead created from source: ${lead.source ?? "manual"}`,
+    entityType: "lead",
+    entityId: lead.id,
+    actor: "user",
+    actorType: "human",
+  });
+
   res.status(201).json(GetLeadResponse.parse(lead));
 });
 
@@ -238,6 +250,18 @@ router.patch("/leads/:id", async (req, res): Promise<void> => {
     entityType: "lead",
     entityId: lead.id,
     performedBy: "user",
+  });
+
+  await logAudit({
+    eventType: "entity_updated",
+    domain: "crm",
+    action: "lead_updated",
+    description: `Lead ${lead.id} updated — fields: ${Object.keys(parsed.data).join(", ")}`,
+    entityType: "lead",
+    entityId: lead.id,
+    actor: "user",
+    actorType: "human",
+    metadata: { changedFields: Object.keys(parsed.data) },
   });
 
   res.json(UpdateLeadResponse.parse(lead));

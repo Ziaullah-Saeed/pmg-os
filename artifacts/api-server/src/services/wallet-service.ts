@@ -1,5 +1,10 @@
 import { db, walletTable, walletTransactionsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { createNotification } from "./notification-service";
+import { logAudit } from "./audit-service";
+
+const LOW_BALANCE_THRESHOLD = 10;
+const CRITICAL_BALANCE_THRESHOLD = 2;
 
 const TOOL_COSTS: Record<string, number> = {
   "ai-enrich-lead": 0.05,
@@ -59,6 +64,26 @@ export async function chargeWallet(params: {
     description: params.description ?? `${params.tool}: ${params.action}`,
   }).returning();
 
+  if (newBalance <= CRITICAL_BALANCE_THRESHOLD) {
+    await createNotification({
+      type: "wallet_critical",
+      severity: "critical",
+      title: "Critical Wallet Balance",
+      message: `Wallet balance is $${newBalance.toFixed(2)} — AI operations may be blocked. Fund your wallet immediately.`,
+      domain: "system",
+      actor: "wallet_guard",
+    }).catch(() => {});
+  } else if (newBalance <= LOW_BALANCE_THRESHOLD) {
+    await createNotification({
+      type: "wallet_low_balance",
+      severity: "warning",
+      title: "Low Wallet Balance",
+      message: `Wallet balance is $${newBalance.toFixed(2)}. Consider adding funds to avoid interruptions.`,
+      domain: "system",
+      actor: "wallet_guard",
+    }).catch(() => {});
+  }
+
   return { success: true, charged: cost, balanceAfter: newBalance, transactionId: tx.id };
 }
 
@@ -74,6 +99,17 @@ export async function fundWallet(amount: number): Promise<{ balance: number }> {
     domain: "system",
     action: "fund_wallet",
     description: `Wallet funded with $${amount.toFixed(2)}`,
+  });
+
+  await logAudit({
+    eventType: "wallet_funded",
+    domain: "system",
+    action: "fund_wallet",
+    description: `Wallet funded with $${amount.toFixed(2)}. New balance: $${newBalance.toFixed(2)}`,
+    actor: "admin",
+    actorType: "human",
+    severity: "info",
+    metadata: { amount, newBalance },
   });
 
   return { balance: newBalance };

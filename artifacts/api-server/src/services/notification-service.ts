@@ -1,5 +1,5 @@
 import { db, notificationsTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count, sql } from "drizzle-orm";
 
 export async function createNotification(params: {
   type: string;
@@ -36,9 +36,9 @@ export async function getNotifications(limit = 50) {
 }
 
 export async function getUnreadCount() {
-  const rows = await db.select().from(notificationsTable)
+  const [result] = await db.select({ value: count() }).from(notificationsTable)
     .where(and(eq(notificationsTable.isRead, false), eq(notificationsTable.isDismissed, false)));
-  return rows.length;
+  return result?.value ?? 0;
 }
 
 export async function markRead(id: number) {
