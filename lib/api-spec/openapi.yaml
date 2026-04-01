@@ -1,15 +1,35 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: PMG Group OS API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Command Center & Executive Control
+  - name: companies
+    description: Company management
+  - name: contacts
+    description: Contact management
+  - name: leads
+    description: Lead & prospecting management
+  - name: opportunities
+    description: CRM opportunities & deals
+  - name: activities
+    description: Activity logging
+  - name: campaigns
+    description: Marketing campaigns
+  - name: tasks
+    description: Task management
+  - name: documents
+    description: Document & archive management
+  - name: communications
+    description: Communication logs
+
 paths:
   /healthz:
     get:
@@ -24,6 +44,866 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get executive dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/pipeline:
+    get:
+      operationId: getPipelineSummary
+      tags: [dashboard]
+      summary: Get pipeline stage breakdown
+      responses:
+        "200":
+          description: Pipeline summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineSummary"
+
+  /dashboard/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent activity feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Recent activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+
+  /companies:
+    get:
+      operationId: listCompanies
+      tags: [companies]
+      summary: List companies
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: industry
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of companies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Company"
+    post:
+      operationId: createCompany
+      tags: [companies]
+      summary: Create a company
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompanyBody"
+      responses:
+        "201":
+          description: Created company
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+
+  /companies/{id}:
+    get:
+      operationId: getCompany
+      tags: [companies]
+      summary: Get a company
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Company details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCompany
+      tags: [companies]
+      summary: Update a company
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCompanyBody"
+      responses:
+        "200":
+          description: Updated company
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+    delete:
+      operationId: deleteCompany
+      tags: [companies]
+      summary: Delete a company
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /contacts:
+    get:
+      operationId: listContacts
+      tags: [contacts]
+      summary: List contacts
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: companyId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contact"
+    post:
+      operationId: createContact
+      tags: [contacts]
+      summary: Create a contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContactBody"
+      responses:
+        "201":
+          description: Created contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+
+  /contacts/{id}:
+    get:
+      operationId: getContact
+      tags: [contacts]
+      summary: Get a contact
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contact details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+    patch:
+      operationId: updateContact
+      tags: [contacts]
+      summary: Update a contact
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContactBody"
+      responses:
+        "200":
+          description: Updated contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+    delete:
+      operationId: deleteContact
+      tags: [contacts]
+      summary: Delete a contact
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /leads:
+    get:
+      operationId: listLeads
+      tags: [leads]
+      summary: List leads
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: priority
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of leads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lead"
+    post:
+      operationId: createLead
+      tags: [leads]
+      summary: Create a lead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLeadBody"
+      responses:
+        "201":
+          description: Created lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+
+  /leads/{id}:
+    get:
+      operationId: getLead
+      tags: [leads]
+      summary: Get a lead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lead details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+    patch:
+      operationId: updateLead
+      tags: [leads]
+      summary: Update a lead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLeadBody"
+      responses:
+        "200":
+          description: Updated lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+    delete:
+      operationId: deleteLead
+      tags: [leads]
+      summary: Delete a lead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /opportunities:
+    get:
+      operationId: listOpportunities
+      tags: [opportunities]
+      summary: List opportunities
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: stage
+          in: query
+          schema:
+            type: string
+        - name: ownerId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of opportunities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Opportunity"
+    post:
+      operationId: createOpportunity
+      tags: [opportunities]
+      summary: Create an opportunity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOpportunityBody"
+      responses:
+        "201":
+          description: Created opportunity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Opportunity"
+
+  /opportunities/{id}:
+    get:
+      operationId: getOpportunity
+      tags: [opportunities]
+      summary: Get an opportunity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Opportunity details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Opportunity"
+    patch:
+      operationId: updateOpportunity
+      tags: [opportunities]
+      summary: Update an opportunity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOpportunityBody"
+      responses:
+        "200":
+          description: Updated opportunity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Opportunity"
+    delete:
+      operationId: deleteOpportunity
+      tags: [opportunities]
+      summary: Delete an opportunity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /activities:
+    get:
+      operationId: listActivities
+      tags: [activities]
+      summary: List activities
+      parameters:
+        - name: entityType
+          in: query
+          schema:
+            type: string
+        - name: entityId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: List of activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+    post:
+      operationId: createActivity
+      tags: [activities]
+      summary: Log an activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateActivityBody"
+      responses:
+        "201":
+          description: Created activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+
+  /campaigns:
+    get:
+      operationId: listCampaigns
+      tags: [campaigns]
+      summary: List campaigns
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: channel
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Campaign"
+    post:
+      operationId: createCampaign
+      tags: [campaigns]
+      summary: Create a campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCampaignBody"
+      responses:
+        "201":
+          description: Created campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+
+  /campaigns/{id}:
+    get:
+      operationId: getCampaign
+      tags: [campaigns]
+      summary: Get a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+    patch:
+      operationId: updateCampaign
+      tags: [campaigns]
+      summary: Update a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCampaignBody"
+      responses:
+        "200":
+          description: Updated campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+    delete:
+      operationId: deleteCampaign
+      tags: [campaigns]
+      summary: Delete a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List tasks
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: priority
+          in: query
+          schema:
+            type: string
+        - name: assignedTo
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskBody"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    patch:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Update a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskBody"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Delete a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List documents
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+    post:
+      operationId: createDocument
+      tags: [documents]
+      summary: Create a document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDocumentBody"
+      responses:
+        "201":
+          description: Created document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+  /documents/{id}:
+    get:
+      operationId: getDocument
+      tags: [documents]
+      summary: Get a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Document details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+    patch:
+      operationId: updateDocument
+      tags: [documents]
+      summary: Update a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDocumentBody"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+    delete:
+      operationId: deleteDocument
+      tags: [documents]
+      summary: Delete a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /communications:
+    get:
+      operationId: listCommunications
+      tags: [communications]
+      summary: List communication logs
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: contactId
+          in: query
+          schema:
+            type: integer
+        - name: companyId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of communication logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Communication"
+    post:
+      operationId: createCommunication
+      tags: [communications]
+      summary: Log a communication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommunicationBody"
+      responses:
+        "201":
+          description: Created communication log
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Communication"
+
+  /communications/{id}:
+    get:
+      operationId: getCommunication
+      tags: [communications]
+      summary: Get a communication log
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Communication details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Communication"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +914,970 @@ components:
       required:
         - status
 
+    DashboardSummary:
+      type: object
+      properties:
+        totalCompanies:
+          type: integer
+        totalContacts:
+          type: integer
+        totalLeads:
+          type: integer
+        totalOpportunities:
+          type: integer
+        totalPipelineValue:
+          type: number
+        activeCampaigns:
+          type: integer
+        pendingTasks:
+          type: integer
+        recentCommunications:
+          type: integer
+        leadsByStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        opportunitiesByStage:
+          type: object
+          additionalProperties:
+            type: integer
+        revenueByMonth:
+          type: array
+          items:
+            $ref: "#/components/schemas/RevenueDataPoint"
+      required:
+        - totalCompanies
+        - totalContacts
+        - totalLeads
+        - totalOpportunities
+        - totalPipelineValue
+        - activeCampaigns
+        - pendingTasks
+        - recentCommunications
+        - leadsByStatus
+        - opportunitiesByStage
+        - revenueByMonth
+
+    RevenueDataPoint:
+      type: object
+      properties:
+        month:
+          type: string
+        value:
+          type: number
+      required:
+        - month
+        - value
+
+    PipelineSummary:
+      type: object
+      properties:
+        stages:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineStage"
+        totalValue:
+          type: number
+        totalDeals:
+          type: integer
+        avgDealSize:
+          type: number
+        winRate:
+          type: number
+      required:
+        - stages
+        - totalValue
+        - totalDeals
+        - avgDealSize
+        - winRate
+
+    PipelineStage:
+      type: object
+      properties:
+        name:
+          type: string
+        count:
+          type: integer
+        value:
+          type: number
+        percentage:
+          type: number
+      required:
+        - name
+        - count
+        - value
+        - percentage
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        industry:
+          type: string
+        subIndustry:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        size:
+          type: ["string", "null"]
+        revenue:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        status:
+          type: string
+        fitScore:
+          type: ["integer", "null"]
+        painPoints:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - industry
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateCompanyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        industry:
+          type: string
+        subIndustry:
+          type: string
+        website:
+          type: string
+        size:
+          type: string
+        revenue:
+          type: string
+        location:
+          type: string
+        status:
+          type: string
+        fitScore:
+          type: integer
+        painPoints:
+          type: string
+        notes:
+          type: string
+      required:
+        - name
+        - industry
+
+    UpdateCompanyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        industry:
+          type: string
+        subIndustry:
+          type: string
+        website:
+          type: string
+        size:
+          type: string
+        revenue:
+          type: string
+        location:
+          type: string
+        status:
+          type: string
+        fitScore:
+          type: integer
+        painPoints:
+          type: string
+        notes:
+          type: string
+
+    Contact:
+      type: object
+      properties:
+        id:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        title:
+          type: ["string", "null"]
+        role:
+          type: ["string", "null"]
+        companyId:
+          type: ["integer", "null"]
+        companyName:
+          type: ["string", "null"]
+        isDecisionMaker:
+          type: boolean
+        authorityLevel:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - firstName
+        - lastName
+        - isDecisionMaker
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateContactBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        title:
+          type: string
+        role:
+          type: string
+        companyId:
+          type: integer
+        isDecisionMaker:
+          type: boolean
+        authorityLevel:
+          type: string
+        linkedinUrl:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+      required:
+        - firstName
+        - lastName
+
+    UpdateContactBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        title:
+          type: string
+        role:
+          type: string
+        companyId:
+          type: integer
+        isDecisionMaker:
+          type: boolean
+        authorityLevel:
+          type: string
+        linkedinUrl:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+
+    Lead:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyId:
+          type: ["integer", "null"]
+        companyName:
+          type: ["string", "null"]
+        contactId:
+          type: ["integer", "null"]
+        contactName:
+          type: ["string", "null"]
+        source:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        fitScore:
+          type: ["integer", "null"]
+        confidenceScore:
+          type: ["integer", "null"]
+        painPoints:
+          type: ["string", "null"]
+        bestAngle:
+          type: ["string", "null"]
+        nextAction:
+          type: ["string", "null"]
+        assignedTo:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        qualifiedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - source
+        - status
+        - priority
+        - createdAt
+        - updatedAt
+
+    CreateLeadBody:
+      type: object
+      properties:
+        companyId:
+          type: integer
+        contactId:
+          type: integer
+        source:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        fitScore:
+          type: integer
+        confidenceScore:
+          type: integer
+        painPoints:
+          type: string
+        bestAngle:
+          type: string
+        nextAction:
+          type: string
+        assignedTo:
+          type: string
+        notes:
+          type: string
+      required:
+        - source
+
+    UpdateLeadBody:
+      type: object
+      properties:
+        companyId:
+          type: integer
+        contactId:
+          type: integer
+        source:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        fitScore:
+          type: integer
+        confidenceScore:
+          type: integer
+        painPoints:
+          type: string
+        bestAngle:
+          type: string
+        nextAction:
+          type: string
+        assignedTo:
+          type: string
+        notes:
+          type: string
+
+    Opportunity:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        companyId:
+          type: ["integer", "null"]
+        companyName:
+          type: ["string", "null"]
+        contactId:
+          type: ["integer", "null"]
+        contactName:
+          type: ["string", "null"]
+        leadId:
+          type: ["integer", "null"]
+        stage:
+          type: string
+        value:
+          type: number
+        probability:
+          type: ["integer", "null"]
+        expectedCloseDate:
+          type: ["string", "null"]
+          format: date-time
+        owner:
+          type: ["string", "null"]
+        serviceType:
+          type: ["string", "null"]
+        proposalStatus:
+          type: ["string", "null"]
+        contractStatus:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        wonAt:
+          type: ["string", "null"]
+          format: date-time
+        lostAt:
+          type: ["string", "null"]
+          format: date-time
+        lostReason:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - stage
+        - value
+        - createdAt
+        - updatedAt
+
+    CreateOpportunityBody:
+      type: object
+      properties:
+        title:
+          type: string
+        companyId:
+          type: integer
+        contactId:
+          type: integer
+        leadId:
+          type: integer
+        stage:
+          type: string
+        value:
+          type: number
+        probability:
+          type: integer
+        expectedCloseDate:
+          type: string
+        owner:
+          type: string
+        serviceType:
+          type: string
+        proposalStatus:
+          type: string
+        contractStatus:
+          type: string
+        notes:
+          type: string
+      required:
+        - title
+        - value
+
+    UpdateOpportunityBody:
+      type: object
+      properties:
+        title:
+          type: string
+        companyId:
+          type: integer
+        contactId:
+          type: integer
+        leadId:
+          type: integer
+        stage:
+          type: string
+        value:
+          type: number
+        probability:
+          type: integer
+        expectedCloseDate:
+          type: string
+        owner:
+          type: string
+        serviceType:
+          type: string
+        proposalStatus:
+          type: string
+        contractStatus:
+          type: string
+        notes:
+          type: string
+        lostReason:
+          type: string
+
+    Activity:
+      type: object
+      properties:
+        id:
+          type: integer
+        entityType:
+          type: string
+        entityId:
+          type: ["integer", "null"]
+        action:
+          type: string
+        description:
+          type: string
+        performedBy:
+          type: ["string", "null"]
+        metadata:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - entityType
+        - action
+        - description
+        - createdAt
+
+    CreateActivityBody:
+      type: object
+      properties:
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        action:
+          type: string
+        description:
+          type: string
+        performedBy:
+          type: string
+        metadata:
+          type: string
+      required:
+        - entityType
+        - action
+        - description
+
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        channel:
+          type: string
+        status:
+          type: string
+        targetAudience:
+          type: ["string", "null"]
+        budget:
+          type: ["number", "null"]
+        spent:
+          type: ["number", "null"]
+        startDate:
+          type: ["string", "null"]
+          format: date-time
+        endDate:
+          type: ["string", "null"]
+          format: date-time
+        leadsGenerated:
+          type: integer
+        conversions:
+          type: integer
+        impressions:
+          type: ["integer", "null"]
+        clicks:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - type
+        - channel
+        - status
+        - leadsGenerated
+        - conversions
+        - createdAt
+        - updatedAt
+
+    CreateCampaignBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        channel:
+          type: string
+        status:
+          type: string
+        targetAudience:
+          type: string
+        budget:
+          type: number
+        spent:
+          type: number
+        startDate:
+          type: string
+        endDate:
+          type: string
+        notes:
+          type: string
+      required:
+        - name
+        - type
+        - channel
+
+    UpdateCampaignBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        channel:
+          type: string
+        status:
+          type: string
+        targetAudience:
+          type: string
+        budget:
+          type: number
+        spent:
+          type: number
+        startDate:
+          type: string
+        endDate:
+          type: string
+        leadsGenerated:
+          type: integer
+        conversions:
+          type: integer
+        impressions:
+          type: integer
+        clicks:
+          type: integer
+        notes:
+          type: string
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        domain:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        assignedTo:
+          type: ["string", "null"]
+        dueDate:
+          type: ["string", "null"]
+          format: date-time
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+        entityType:
+          type: ["string", "null"]
+        entityId:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - domain
+        - status
+        - priority
+        - createdAt
+        - updatedAt
+
+    CreateTaskBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        domain:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        assignedTo:
+          type: string
+        dueDate:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        notes:
+          type: string
+      required:
+        - title
+        - domain
+
+    UpdateTaskBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        domain:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        assignedTo:
+          type: string
+        dueDate:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        notes:
+          type: string
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        category:
+          type: string
+        type:
+          type: string
+        content:
+          type: ["string", "null"]
+        status:
+          type: string
+        version:
+          type: integer
+        createdBy:
+          type: ["string", "null"]
+        approvedBy:
+          type: ["string", "null"]
+        entityType:
+          type: ["string", "null"]
+        entityId:
+          type: ["integer", "null"]
+        tags:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - category
+        - type
+        - status
+        - version
+        - createdAt
+        - updatedAt
+
+    CreateDocumentBody:
+      type: object
+      properties:
+        title:
+          type: string
+        category:
+          type: string
+        type:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+        createdBy:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        tags:
+          type: string
+        notes:
+          type: string
+      required:
+        - title
+        - category
+        - type
+
+    UpdateDocumentBody:
+      type: object
+      properties:
+        title:
+          type: string
+        category:
+          type: string
+        type:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+        approvedBy:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        tags:
+          type: string
+        notes:
+          type: string
+
+    Communication:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        direction:
+          type: string
+        subject:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        contactId:
+          type: ["integer", "null"]
+        contactName:
+          type: ["string", "null"]
+        companyId:
+          type: ["integer", "null"]
+        companyName:
+          type: ["string", "null"]
+        opportunityId:
+          type: ["integer", "null"]
+        duration:
+          type: ["integer", "null"]
+        outcome:
+          type: ["string", "null"]
+        nextSteps:
+          type: ["string", "null"]
+        sentiment:
+          type: ["string", "null"]
+        recordingUrl:
+          type: ["string", "null"]
+        transcript:
+          type: ["string", "null"]
+        performedBy:
+          type: ["string", "null"]
+        scheduledAt:
+          type: ["string", "null"]
+          format: date-time
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - direction
+        - createdAt
+
+    CreateCommunicationBody:
+      type: object
+      properties:
+        type:
+          type: string
+        direction:
+          type: string
+        subject:
+          type: string
+        summary:
+          type: string
+        contactId:
+          type: integer
+        companyId:
+          type: integer
+        opportunityId:
+          type: integer
+        duration:
+          type: integer
+        outcome:
+          type: string
+        nextSteps:
+          type: string
+        sentiment:
+          type: string
+        recordingUrl:
+          type: string
+        transcript:
+          type: string
+        performedBy:
+          type: string
+        scheduledAt:
+          type: string
+        completedAt:
+          type: string
+      required:
+        - type
+        - direction
