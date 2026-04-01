@@ -1,0 +1,164 @@
+PART 5 — INTELLIGENCE STANDARD
+
+Every AI layer, workflow decision layer, reasoning engine, recommendation layer, prioritization path, and output generation function inside the system must operate at an exceptionally high intelligence threshold. The platform is not permitted to behave like a generic automation tool or low-context AI wrapper.
+
+The required standard is one of:
+
+PhD-level reasoning intent
+Tier-1 business intelligence quality
+ultra-high contextual precision
+advanced multi-step logic
+elite output discipline
+low tolerance for shallow, generic, or low-signal generation
+rigor approaching ultra-precision reliability expectations
+
+In practical terms, the system must feel:
+
+exceptionally intelligent
+context-aware
+specialized
+commercially mature
+strategically useful
+operationally disciplined
+highly relevant to the task at hand
+
+This intelligence standard applies across the entire platform, including but not limited to:
+
+market research
+company analysis
+ICP creation
+pain and urgency analysis
+decision-maker mapping
+qualification logic
+personalized messaging
+campaign planning
+call coaching
+meeting support
+CRM routing
+operational recommendations
+quality review
+reporting synthesis
+risk flagging
+optimization and next-step logic
+
+The platform must not produce weak outputs that merely sound plausible. It must produce outputs that are useful, defensible, and action-worthy. AI behavior must be shaped by domain context, workflow state, confidence awareness, source awareness where relevant, and business consequence.
+
+The intelligence layer must elevate decision quality, not just output volume. It must be capable of transforming ambiguity into structured insight, and transforming raw signals into actionable business movement.
+
+PART 6 — AI-FIRST OPERATING PHILOSOPHY
+
+The platform shall be designed under an AI-first operating philosophy in which the overwhelming majority of repeatable, structured, information-heavy, process-heavy, and coordination-heavy work is handled through AI agents, workflow systems, and orchestration logic.
+
+The intended operating split is approximately:
+
+95% of structured, repeatable, process-oriented work managed by AI systems and orchestrated workflows
+5% reserved for human control where judgment, relationship sensitivity, authority, or legal/financial responsibility require direct human oversight
+
+Human effort must be focused primarily on:
+
+negotiation
+final approvals
+sensitive communication
+relationship preservation
+legal escalations
+financial escalations
+trust-heavy moments
+strategic override
+exception handling
+final quality acceptance
+
+AI should carry the burden of:
+
+information processing
+sequencing
+reminders
+qualification
+pattern recognition
+draft generation
+preparation and summarization
+documentation
+reporting support
+workflow continuity
+coordination logic
+operational routing
+repetitive execution support
+
+The system must be built not around AI as a decorative feature, but around AI as a business leverage mechanism. AI should reduce human drag, reduce task switching, reduce missed follow-up, reduce shallow analysis, and reduce avoidable operational inefficiency.
+
+However, this AI-first model must remain disciplined. AI must operate within clearly defined boundaries. It must be permission-aware, quality-aware, and consequence-aware. Human override and review must exist wherever final business risk, legal exposure, financial materiality, or reputational sensitivity are present.
+
+The goal is not “automation for its own sake.” The goal is intelligent leverage with controlled reliability.
+
+PART 7 — NEW-SYSTEM DESIGN RULE
+
+Because this is a greenfield operating system, the system must be designed holistically before it is implemented modularly. That means the architecture must first be understood as a unified whole, and only then decomposed into coherent implementation layers.
+
+The product must not be built as a collection of screens that are connected later. It must not be built as a series of CRUD interfaces pretending to constitute an enterprise system. It must not be defined by isolated modules that only become aware of each other after technical debt has already formed.
+
+Before implementation, the following must be intentionally defined:
+
+information architecture
+domain boundaries
+workflow relationships
+shared entities and ownership rules
+reporting dependencies
+archive and memory behavior
+permissions and role access
+AI-human collaboration patterns
+state transitions
+review and approval gates
+escalation paths
+integration points
+infrastructure supervision logic
+
+The system must be conceived as one coherent operating system in which each domain reinforces the others. Reporting must know about workflows. Workflows must know about approvals. Approvals must know about permissions. CRM must know about communication. Communication must know about meetings. Meetings must know about reporting. Reporting must know about archive. Archive must know about governance.
+
+The design doctrine is therefore:
+
+think system-first
+define domain relationships early
+avoid accidental architecture
+avoid hidden cross-domain coupling
+build with deliberate operational semantics
+preserve long-term maintainability from inception
+
+No module is allowed to exist in conceptual isolation if it materially affects business operations elsewhere in the platform.
+
+PART 8 — THE 11 OPERATING DOMAINS
+
+The platform must be built around 11 operating domains, each representing a true architectural layer rather than a superficial navigation category. These domains together form the complete operational anatomy of the system.
+
+The domains are:
+
+Command Center & Executive Control
+Intelligence, Market Research & Strategic Insight
+Outreach, Prospecting & Pipeline Discovery
+Marketing, SEO, Brand Awareness & Discoverability
+Production, Studio, Brand & Asset Generation
+Execution, Operations, Publishing & Workflow Control
+CRM, Sales, Closing & Revenue Pipeline
+Communication Intelligence, Calling & Meeting Support
+Finance, Legal, Administrative & Quality Management
+Reporting, Archive, Documentation & Knowledge Memory
+System Core, Governance, Permissions, Integrations & Infrastructure
+
+Each domain must define and document, at minimum:
+
+its objective
+its scope
+its entities and records
+its modules
+its workflows
+its AI participation model
+its state transitions
+its reporting outputs
+its archive behavior
+its permissions model
+its review gates
+its data ownership rules
+its integration dependencies
+its business outcomes
+
+The domain model must prevent ambiguity. Every significant user action, record type, alert, report, AI recommendation, and approval state should be attributable to a clear domain authority.
+
+At the same time, domain separation must not create silos. Domains must be interoperable through structured relationships, shared identifiers, state awareness, and controlled handoff mechanisms. The purpose of domainization is not fragmentation. The purpose is architectural strength.
