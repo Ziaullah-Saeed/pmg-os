@@ -1,0 +1,815 @@
+below is a complete master checklist you can paste into Replit or use as your internal acceptance checklist. It consolidates the PMG AI OS execution directive, the 11-domain operating model, the 3-mode behavior, CRM/GHL requirements, production studio requirements, wallet, integrations, knowledge library, user permissions, tool orchestration, testing, and final delivery rules into one structured checklist. It is based on your uploaded PMG directive and all continuation files.
+
+PMG AI OPERATING SYSTEM — COMPLETE MASTER CHECKLIST
+Zero-Miss Implementation & Acceptance Checklist
+0. EXECUTION RULES
+ Treat this as a greenfield operating system, not a redesign, refactor, migration, UI refresh, or patchwork app.
+ Do not stop after UI shells, charts, seeded data, CRUD, or page rendering.
+ Build the full architecture, not isolated features.
+ Implement real workflows, real state transitions, real role behavior, real AI/human mode behavior, real tool orchestration, real wallet behavior, real CRM routing, real knowledge memory, and full testing.
+ Do not report “complete” until every required phase, domain, workflow, integration, mode, and test is finished.
+1. SYSTEM PURPOSE & IDENTITY
+ Build one coherent AI-native business operating environment for PMG Group LLC.
+ Ensure the system functions as:
+ business brain
+ workflow engine
+ AI execution environment
+ CRM and revenue engine
+ communication intelligence surface
+ production studio
+ governance framework
+ memory and archive system
+ reporting engine
+ integrations hub
+ wallet-funded execution environment
+ Keep every design and workflow specialized for cybersecurity and IT companies and their trust-sensitive B2B sales environments.
+ Ensure every major module traces back to business outcomes such as pipeline generation, conversion quality, operational control, governance, scalability, and $10M+ growth objectives.
+2. THREE TRUE SYSTEM MODES
+2.1 Global Mode Engine
+ Implement global top-level mode selection:
+ AI Auto
+ Hybrid
+ Human / Manual Control
+ Make each mode change actual behavior, not just labels/UI.
+2.2 Workflow-Level Mode Control
+ Allow each workflow to be configured independently by mode.
+ Support examples like:
+ lead scoring = AI
+ outreach drafting = AI
+ outreach approval = Human
+ proposal generation = Hybrid
+ closing = Human
+ reporting = AI
+2.3 Record-Level Override
+ Allow any lead, deal, project, or report to be forced into:
+ AI-only path
+ Hybrid path
+ Human-only path
+2.4 AI Auto Mode
+ Create a dedicated AI Auto environment/page.
+ Show:
+ live AI task queue
+ autonomous workflows in progress
+ active agents
+ pending approvals
+ wallet usage
+ confidence indicators
+ escalation events
+ intervention-needed alerts
+ Let AI own low/medium-risk repeatable work.
+2.5 Hybrid Mode
+ Create a dedicated Hybrid workspace/page.
+ Show:
+ AI-completed tasks
+ human-assigned tasks
+ approval queue
+ task ownership split
+ workflow timeline with AI/Human markers
+ confidence handoff logic
+ next actions
+ Make every workflow declare:
+ AI-owned steps
+ human-owned steps
+ shared/review-required steps
+ Include “Enable AI Auto while I am away” and “Require approval before switching to full AI Auto.”
+2.6 Human / Manual Control Mode
+ Create a dedicated Human mode environment/page.
+ Reduce automation and make AI advisory only.
+ Show:
+ less AI noise
+ direct controls
+ manual forms
+ explicit workflow steps
+ section-specific manual guides
+ Each domain must include manual guides with:
+ task purpose
+ order of steps
+ required fields
+ outputs created
+ approvals needed
+ what happens next
+2.7 Cross-Mode Labels & Handoffs
+ Show who did the work on records, timelines, workflows, audits, and reports.
+ Use labels such as:
+ AI Executed
+ Human Assisted
+ Human Approved
+ Human Required
+ Awaiting Review
+ AI Recommended
+ AI Drafted
+ Manually Completed
+ Implement confidence-based handoff:
+ High → continue
+ Medium → suggest review
+ Low → Human Required
+3. ALL 11 DOMAINS
+D1 — Command Center & Executive Control
+ Live business overview
+ AI workload overview
+ human intervention queue
+ risk queue
+ sync failure queue
+ finance alerts
+ production bottlenecks
+ stale pipeline alerts
+ campaign health
+ execution readiness
+ approval pressure points
+ system health and wallet health
+ Summarize today’s operational reality
+ Rank what matters most
+ Surface top 10 priorities
+ Trigger escalation workflows
+ Route blocked items to admins/managers
+ Show mode status across departments
+D2 — Intelligence, Market Research & Strategic Insight
+ ICP creation
+ market segmentation
+ trust barrier analysis
+ competitor mapping
+ authority mapping
+ category analysis
+ service-fit scoring
+ niche opportunity scoring
+ market messaging gap analysis
+ Generate ICPs, target verticals, buying triggers, urgent pain signals, positioning recommendations
+ Route intelligence to outreach, marketing, and CRM
+D3 — Outreach, Prospecting & Pipeline Discovery
+ company discovery
+ contact discovery
+ enrichment
+ authority detection
+ verification
+ lead scoring
+ pain mapping
+ outreach angle creation
+ routing to PMG CRM / GHL / both / hold
+ Use real data + verification, not generic guessed lead data.
+D4 — Marketing, SEO, Brand Awareness & Discoverability
+ SEO strategy
+ content clustering
+ channel strategy
+ campaign planning
+ social planning
+ retargeting
+ authority content generation
+ discoverability tracking
+ brand monitoring
+ Treat channels differently by purpose:
+ awareness
+ nurture
+ trust-building
+ direct response
+ remarketing
+ search support
+ conversion support
+ Build safe multi-channel operation with reputation and suppression controls.
+D5 — Production, Studio, Brand & Asset Generation
+ Create a distinct UI that mimics Canva + InVideo style operations.
+ Include:
+ canvas area
+ preview area
+ timeline/scene panel
+ asset sidebar
+ brand kit panel
+ text/script panel
+ layer controls
+ resize/regenerate controls
+ version history
+ review comments
+ approval actions
+ Support:
+ design projects
+ decks
+ proposals
+ videos
+ landing page sections
+ social creatives
+ thumbnails
+ scripts
+ voiceover generation
+ storyboards
+ asset packaging
+ Enforce lifecycle:
+ Generate
+ Preview
+ Review
+ Revise/Regenerate
+ Approve
+ Finalize
+ Preserve complete revision/approval traceability.
+D6 — Execution, Operations, Publishing & Workflow Control
+ workflow automation
+ reminders
+ approvals
+ task queues
+ scheduling
+ checklist enforcement
+ publishing status
+ failure handling
+ escalation routing
+ Assign tasks, launch campaigns, verify completion, update reporting/archive.
+D7 — CRM, Sales, Closing & Revenue Pipeline
+ Distinct CRM UI with GoHighLevel + HubSpot level depth.
+ Two top-level CRM toggles:
+ PMG CRM
+ Client CRM Portal
+ Implement:
+ lead records
+ pipeline board
+ opportunities
+ contacts
+ tasks
+ activity timeline
+ notes
+ sequences
+ automations
+ AI insights
+ risk flags
+ close probability
+ sync center
+ GHL connection
+ routing options
+ internal / external / hybrid CRM modes
+D8 — Communication Intelligence, Calling & Meeting Support
+ call support
+ meeting support
+ transcription
+ objection detection
+ interest detection
+ sentiment / hesitation detection
+ summary generation
+ follow-up draft generation
+ CRM update support
+ call coaching
+D9 — Finance, Legal, Administrative & Quality
+ invoicing
+ payments
+ expenses
+ profitability
+ legal docs
+ contract review flags
+ SOPs
+ forms
+ admin records
+ QA rules
+ rejection reasons
+ quality checkpoints
+D10 — Reporting, Archive, Documentation & Knowledge Memory
+ executive report generation
+ technical report generation
+ scheduled reporting
+ event-triggered reporting
+ archive storage
+ searchable memory
+ AI retrieval
+ campaign lessons
+ best-practice reuse
+ failed-pattern detection
+ Preserve durable, searchable, permission-aware business memory.
+ Slack/client reporting communication surface integrated.
+D11 — System Core, Governance, Permissions, Integrations & Infrastructure
+ permissions
+ integrations hub
+ wallet management
+ secret storage
+ sync logs
+ observability
+ rate control
+ queue management
+ retries
+ audit logs
+ environment control
+ incident monitoring
+4. TECHNOLOGY STACK & ASSIGNMENT
+Core platform
+ Next.js / React / TypeScript
+ Tailwind + shadcn/ui + Radix + Framer Motion
+ Node.js / modular backend
+ PostgreSQL
+ Redis / Upstash
+ Supabase (Vector)
+ Object storage
+ WebSockets / realtime
+ observability tooling
+AI / memory
+ OpenAI for reasoning, drafting, summarization, planning, retrieval, reporting, orchestration
+ NotebookLM / Guru / internal vector memory
+ Fal.ai where relevant
+Orchestration
+ Lindy.ai
+ Make.com
+ Zapier Central
+ Replit Agent
+ Microsoft Copilot Studio
+Research / prospecting
+ Perplexity
+ Exa
+ Harmonic
+ SciSpace
+ Apollo
+ Clay
+ Ocean
+ Hunter
+ Nooks
+Marketing
+ Surfer SEO
+ Jasper
+ Brand24
+Production / media
+ Midjourney
+ ElevenLabs
+ Luma
+ Descript
+ Kling
+ Runway
+ Higgsfield
+ Black Forest Labs / FLUX providers
+ Claid.ai
+ Flair AI
+ SiliconFlow
+ Photoroom
+ Brandfetch
+ Recraft
+ Bannerbear
+ Kittl
+ Google Fonts API
+CRM / communication
+ Thunai
+ Gong
+ Conversica
+ Fathom
+ Read.ai
+ Otter.ai
+ Lavender
+Finance / legal / quality
+ Spellbook
+ Deel
+ Kira Systems
+ Ramp
+ Grammarly
+ Acrolinx
+ Testim
+5. AGENT-TO-TECHNOLOGY OPERATING MODEL
+ Every agent has:
+ purpose
+ trigger
+ tool access
+ wallet policy
+ confidence model
+ fallback behavior
+ output schema
+ archive behavior
+ Implement example mappings:
+ Market Research Agent → Perplexity + Exa + SciSpace + OpenAI
+ Lead Discovery Agent → Apollo + Clay + Ocean + OpenAI
+ Email Verification Agent → Hunter
+ Lead Scoring Agent → OpenAI + scoring model + memory
+ CRM Routing Agent → OpenAI + GHL integration + PMG CRM
+ Campaign Strategy Agent → OpenAI + Surfer + Brand24 + library
+ Visual Concept Agent → Midjourney + brand memory
+ Voiceover Agent → ElevenLabs
+ Video Draft Agent → Luma + Descript
+ Meeting Summary Agent → Fathom/Otter/Read.ai + OpenAI
+ Contract Flagging Agent → Spellbook + Kira + OpenAI
+ Spend Guard Agent → Ramp + wallet + notifications
+ Memory Update Agent → event bus + OpenAI + vector index + archive
+ Workflow Automation Agent → Make + workflow engine + Upstash
+ Implement creative agent mappings:
+ Visual Concept Agent → FLUX + Midjourney + Brandfetch + Recraft
+ Cinematic Storyboarding Agent → OpenAI + Luma + Kling + Runway
+ Ad Film Generation Agent → Kling + Runway + Luma
+ Product Hero Asset Agent → Claid + Flair + Photoroom + FLUX
+ Brand Identity Retrieval Agent → Brandfetch + Google Fonts
+ Vector Brand Asset Agent → Recraft
+ Distribution Graphic Agent → Bannerbear + Kittl + Google Fonts + Brandfetch
+6. WALLET EXECUTION SYSTEM
+ All paid execution routes through wallet logic.
+ Support:
+ current balance
+ reserved balance
+ spend history
+ per-provider spend
+ per-workflow spend
+ low balance warnings
+ hard thresholds
+ dummy mode for tests
+ action logs
+ Every UI surface shows tool used, action, status, cost, retry if failed.
+ Include spend guard protections:
+ low-balance notifications
+ insufficient-balance blocking
+ optional auto-pause for expensive automations
+ admin thresholds
+ anomaly alerts
+7. CACHE REQUIREMENTS
+ Cache repetitive AI reasoning where safe
+ cache repeated enrichment lookups
+ cache repeated research lookups
+ cache common templates
+ cache repeated report components
+ cache manual guides
+ cache reused production assets
+ cache prior successful outreach structures
+ cache frequently accessed CRM summaries
+ AI mode uses cache aggressively
+ Hybrid uses cache for repeated assistant tasks
+ Human uses cache for repetitive manual tasks/guides/previews
+8. GOHIGHLEVEL + EXTERNAL CRM
+ Integrations → GoHighLevel connection page
+ OAuth / private token support as appropriate
+ sync status
+ field mapping
+ pipeline mapping
+ routing options
+ retry queue
+ failure logs
+ external record IDs
+ PMG record retention after handoff
+ Routing options:
+ Send to PMG CRM
+ Send to GHL
+ Send to both
+ Hold for review
+9. CAMPAIGN CHANNELS / SOCIAL / WEBSITE INTEGRATIONS
+ Support all major campaign lead-gen channels as real data and attribution inputs.
+ Social/professional:
+ LinkedIn profile
+ LinkedIn company page
+ LinkedIn ads/forms where permitted
+ Facebook page
+ Meta ads/forms where permitted
+ Instagram
+ X/Twitter
+ YouTube
+ TikTok
+ Threads
+ Google Business Profile where relevant
+ Paid/prospecting:
+ LinkedIn Sales Navigator
+ LinkedIn Ads Manager
+ Meta Ads Manager
+ Google Ads
+ YouTube Ads
+ TikTok Ads
+ Apollo
+ Clay
+ Hunter
+ Ocean
+ comparable tools
+ Communication/outreach:
+ email providers
+ SMS providers
+ VoIP/calling tools
+ dialers
+ meeting booking tools
+ calendar links
+ Websites/owned media:
+ PMG website
+ PMG landing pages
+ client websites
+ client landing pages
+ embedded forms
+ chatbot/widgets
+ webinar registrations
+ downloadable assets
+ contact forms
+ CTA buttons
+ scheduling forms
+10. MANUAL INTEGRATION OPTION
+ Support automatic integration mode:
+ OAuth
+ token flow
+ webhooks
+ automatic sync
+ API pull/push
+ Support manual integration mode:
+ CSV import/export
+ manual field mapping
+ manual source assignment
+ manual lead import
+ manual sync trigger
+ manual account refresh
+ manual reconnection
+ manual upload
+ attribution correction
+ reconciliation queue
+11. INTEGRATIONS HUB
+ Include Channel & Growth Integrations section.
+ Show:
+ connection status
+ automatic vs manual mode
+ last sync
+ permission status
+ auth/token status
+ last manual upload
+ field mapping
+ lead source mapping
+ campaign source mapping
+ account ownership
+ retry/reconnect
+ logs
+ audit visibility
+ Include modules for:
+ GoHighLevel
+ OpenAI
+ LinkedIn
+ Facebook/Meta
+ Website/webhooks
+ email provider
+ phone/SMS
+ calendar
+ storage/documents
+12. WEBSITE / LANDING PAGE / FORM LEAD FLOW
+ Capture:
+ source website
+ source page/URL
+ landing page ID
+ form name/type
+ CTA source
+ UTM/campaign if available
+ referrer
+ timestamp
+ conversion action
+ downloaded asset/action
+ mapped campaign/ad group
+ destination workflow
+ CRM routing destination
+ AI score
+ confidence
+ next best action
+ Ensure flow:
+ Lead Capture
+ Attribution
+ AI Enrichment
+ AI Scoring
+ Routing
+ CRM / GHL / Both / Hold
+ Task Creation
+ Reporting
+ Library Update
+13. SOCIAL HANDLE AND PAGE AWARENESS
+ Store/manage:
+ platform name
+ handle/page name
+ account type
+ account owner
+ connected campaigns
+ connected landing pages
+ connected forms
+ sync method
+ manual / automatic status
+ reporting status
+ lead-source eligibility
+ posting/monitoring permissions
+ attribution status
+14. CHANNEL INTELLIGENCE HUB
+ connected channel inventory
+ active campaign list
+ source attribution map
+ incoming leads by channel
+ leads by page/form/ad source
+ source quality scoring
+ sync health
+ manual integration queue
+ unresolved attribution conflicts
+ channel-specific reporting
+ top-performing sources
+ underperforming sources
+ recommended next actions
+15. USER SECTION & PERMISSIONS ARCHITECTURE
+ Rebuild user section as a governance layer, not placeholder.
+ User must govern:
+ creation
+ status
+ assignment
+ permissions
+ per-domain access
+ per-action rights
+ approval rights
+ publishing rights
+ financial visibility
+ CRM visibility
+ archive visibility
+ integration access
+ AI mode access
+ wallet permissions
+ manual integration permissions
+ role changes
+ permission auditability
+15.1 Define User
+ full name
+ email
+ role
+ department/function
+ account status
+ assigned domains
+ permission profile
+ approval authority level
+ AI mode privileges
+ integration privileges
+ CRM privileges
+ reporting privileges
+ archive privileges
+ wallet/spend visibility privileges
+ manual integration privileges
+ audit history
+ last activity
+15.2 Super Admin Control
+ Super Admin can:
+ create users
+ deactivate users
+ change roles
+ assign domain access
+ define action rights
+ define approval rights
+ define publishing rights
+ define financial access
+ define CRM access
+ define archive access
+ define integration access
+ define manual integration rights
+ define AI mode privileges
+ define wallet/spend permissions
+ define reporting access
+ define user overrides
+15.3 Granular Permission Model
+ Role levels:
+ Super Admin
+ Admin
+ Manager
+ User
+ Domain access matrix
+ Action permissions matrix
+ Mode permissions
+ Permissions affect behavior, not just button visibility.
+15.4 User Management Interface
+ user list
+ role filters
+ domain permission matrix
+ action permission matrix
+ approval rights view
+ AI privilege view
+ integration privilege view
+ activity status
+ audit trail
+ activation/deactivation
+ per-user notes
+ per-user domain assignment
+ per-user workflow authority
+15.5 Workflow Ownership
+ assign owner for:
+ lead
+ opportunity
+ campaign
+ production project
+ report
+ approval
+ sync exception
+ legal review
+ quality review
+15.6 Human Mode User Guides
+ Each domain provides permission-aware manual guide for users.
+15.7 User Audit
+ Track who changed users/permissions/roles/AI privileges/integration rights and when.
+16. KNOWLEDGE LIBRARY / MEMORY
+ central, structured, continuously updating library
+ store:
+ strategy
+ sales
+ marketing
+ operations
+ clients
+ AI learning
+ reports
+ campaigns
+ SOPs
+ workflows
+ meeting transcripts
+ objection patterns
+ successful responses
+ outputs
+ feedback
+ performance data
+ failure cases
+ auto-update from:
+ CRM activity
+ meetings
+ calls
+ campaigns
+ reports
+ workflows
+ AI outputs
+ human corrections
+ approvals/rejections
+ support search, filters, tags, natural language retrieval, related items, usage tracking
+ AI must use this memory and avoid blind generic output.
+17. MULTI-TOOL ORCHESTRATION & REALISTIC OUTPUTS
+ Do not rely on one AI/provider.
+ Choose best tool per task
+ combine multiple tools for accuracy
+ store outputs in CRM + Library + Archive
+ show confidence levels
+ track usage per tool
+ Must not:
+ generate fake contact data
+ ignore verification
+ produce generic outputs
+ skip enrichment
+ Example end-to-end flow:
+ Apollo find lead
+ Hunter verify
+ AI analyze + score
+ AI/Jasper draft
+ Midjourney visual
+ system build campaign
+ CRM store/send
+18. CREATIVE ROUTING ENGINE
+ Creative Request / Campaign Request / Production Task →
+ system identifies output type
+ system selects best provider
+ provider generates draft
+ PMG Production receives output
+ Preview / Revise / Review / Approve / Finalize
+ store in Archive + Library + Reporting
+ Route examples:
+ cinematic awareness ad → Kling / Runway / Luma
+ product hero image → FLUX + Claid / Flair
+ 25 distribution banners → Bannerbear + Google Fonts + Brandfetch
+ logo/vector concept → Recraft
+ image cleanup → Photoroom
+19. TESTING
+Phase 1 — Dummy / No Spend
+ test AI mode
+ test Hybrid
+ test Human
+ use dummy records
+ simulated tool responses
+ no wallet spend
+ no provider charges
+ test workflows, handoffs, approvals, routing, UI state, library updates, reporting, cache, failures, retries
+Phase 2 — Real Test
+ run live provider tests
+ use real wallet deductions
+ validate real integrations
+ verify syncs
+ verify media generation
+ verify AI calls
+ verify CRM routing
+20. DELIVERY RULE
+ Follow sequence:
+ architecture + workflow map
+ mode engine
+ wallet + cache + integration gateway
+ domain logic
+ production and CRM distinct interfaces
+ agent orchestration
+ library + archive + reporting
+ dummy-mode testing
+ live testing
+ final validation
+ Do not claim completion until:
+ real workflows implemented
+ all three modes behave differently
+ Production behaves like studio
+ CRM behaves like advanced revenue environment
+ wallet works
+ cache works
+ tools orchestrated
+ GHL routing works
+ library updates itself
+ both testing phases pass
+21. FINAL VIDEO PRESENTATION
+ After full build, create a complete video presentation of the entire system.
+ Cover:
+ every domain
+ every major page
+ AI Mode
+ Hybrid Mode
+ Human Mode
+ CRM operation
+ GHL routing
+ Production studio usage
+ wallet usage
+ integrations
+ reporting
+ library/memory
+ permissions
+ manual guides
+ agent activity/orchestration
+ day-to-day usage flow
+22. FINAL ACCEPTANCE CHECK
+ No domain remains cosmetic.
+ No reporting is shallow or missing.
+ No archive/memory layer is missing.
+ No permission system is weak.
+ No AI layer is generic.
+ No workflow is disconnected.
+ No business-critical function is postponed if it belongs in the foundation.
+ Final product feels like:
+ a real AI-powered company inside software
+ not a prototype
+ not a dashboard
+ not a loose collection of tools
+ not a partially intelligent app
