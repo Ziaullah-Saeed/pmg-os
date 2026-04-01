@@ -1,0 +1,162 @@
+PART 9 — COMMAND CENTER & EXECUTIVE CONTROL DOMAIN
+
+The Command Center must be the true top-level control surface of the operating system. It must not be a decorative dashboard composed of vanity charts and disconnected metrics. It must function as the executive oversight environment through which PMG Group LLC can understand the current state of the business in real time.
+
+This domain must provide cross-domain visibility into:
+
+pipeline status
+lead quality
+campaign health
+production queues
+approvals pending
+meetings and calls
+CRM progression
+service delivery movement
+finance summaries
+quality issues
+archive activity
+system health
+operational risks
+bottlenecks and blockages
+areas requiring human attention
+
+It must support multiple views appropriate to role and responsibility, including:
+
+executive overview
+management operations view
+workflow and exception view
+system health view
+team accountability view
+human intervention queue
+
+The Command Center should instantly answer the following questions:
+
+What is happening right now?
+What matters most today?
+What is behind schedule?
+What is blocked?
+What is risky?
+What requires review?
+What is most likely to affect revenue, delivery, or trust?
+Where is human intervention needed?
+What should happen next?
+
+This domain must synthesize signal, not merely display data. It should surface meaning, prioritization, and actionworthiness. It must reduce leadership blindness and management fragmentation.
+
+The Command Center is the executive nervous system of the platform. It must make the company legible to itself.
+
+PART 10 — INTELLIGENCE, MARKET RESEARCH & STRATEGIC INSIGHT DOMAIN
+
+This domain shall function as the strategic intelligence foundation of the product. Its purpose is to transform market information into operationally useful insight. It must not behave like a passive library of notes or a loose collection of research outputs. It must operate as an intelligence engine.
+
+Its scope must include:
+
+market segmentation
+ICP development
+ideal-company analysis
+competitor mapping
+category landscape analysis
+niche opportunity analysis
+audience pain analysis
+positioning gap analysis
+trust barrier analysis
+authority pattern analysis
+service-fit analysis
+message-market mismatch identification
+opportunity scoring
+strategic targeting logic
+
+This domain must convert raw information into:
+
+insight
+prioritization
+decision support
+market logic
+strategic direction
+positioning advantage
+targeting intelligence
+
+Its outputs must directly influence downstream functions including:
+
+prospecting priorities
+outreach quality
+message construction
+content strategy
+sales approach
+communication framing
+qualification strength
+executive reporting
+
+The intelligence system must be able to answer not just what exists in the market, but what matters. It should identify where PMG is most likely to win, where friction is likely to emerge, which buyer conditions create urgency, and which positioning approaches are likely to produce resonance.
+
+This domain must elevate commercial quality. It is the layer that turns information into leverage.
+
+PART 11 — OUTREACH, PROSPECTING & PIPELINE DISCOVERY DOMAIN
+
+This domain must operationalize strategic intelligence into structured pipeline creation. It is responsible for turning market understanding into commercially actionable prospect discovery, qualification awareness, and early-stage outbound movement.
+
+The domain must include:
+
+target company discovery
+relevance scoring
+company enrichment
+contact enrichment
+decision-maker identification
+authority mapping
+verified/inferred/unavailable tagging
+confidence scoring
+pain and urgency mapping
+personalization angle construction
+outbound sequence logic
+outreach routing
+qualification routing
+CRM handoff logic
+
+This domain must distinguish clearly between:
+
+strong-fit companies and weak-fit companies
+active buying conditions and passive names
+authority holders and non-authority contacts
+high-signal leads and low-value records
+meaningful commercial opportunities and noise
+
+Every lead record must be more than a name in a database. It must carry structured commercial intelligence, including:
+
+why the company fits
+what business pain is likely relevant
+who the decision-maker may be
+what credibility barriers may exist
+what outreach angle is strongest
+what the confidence level is
+what the appropriate next action is
+
+The output of this domain must be structured, evidence-aware where relevant, confidence-sensitive, commercially usable, and easy to move into follow-up systems. Prospecting must produce qualified momentum, not raw clutter.
+
+PART 12 — LEAD INTELLIGENCE DISCIPLINE
+
+Prospecting inside this system must never degrade into quantity-first noise production. The lead intelligence layer must preserve a disciplined standard rooted in quality, relevance, confidence, and traceability.
+
+This layer must enforce:
+
+evidence-aware logic
+confidence-aware logic
+risk-aware logic
+compliance-aware logic
+non-fabrication discipline
+quality-before-volume rules
+fit-before-scale discipline
+source traceability where relevant
+
+Each lead must retain meaningful context rather than existing as an empty contact artifact. The system must preserve awareness of:
+
+why the lead is likely relevant
+what the probable pain or trigger is
+who holds buying influence or authority
+what the strongest message angle may be
+what assumptions are inferred rather than verified
+what level of confidence exists
+what next-step recommendation is appropriate
+
+This discipline is critical to brand protection, outreach performance, and sales efficiency. Weak lead quality produces downstream waste: poor messaging, wasted SDR effort, lower response rates, CRM pollution, false reporting, and reduced confidence in the system itself.
+
+Accordingly, the platform must treat lead generation as an intelligence exercise, not a scraping exercise.
