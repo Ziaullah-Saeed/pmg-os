@@ -11,12 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   useAiMode, useSetAiMode, useWorkflowModes, useSetWorkflowMode,
-  useWalletBalance, useWalletTransactions, useCommandCenter
+  useWalletBalance, useWalletTransactions, useCommandCenter,
+  useGHLConfig, useSaveGHLConfig, useTestGHLConnection, useGHLCRMMode, useSetGHLCRMMode
 } from "@/hooks/use-api";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import {
   Settings, CheckCircle2, Database, Shield, Server, Users,
   Lock, Eye, Activity, Clock, Globe, Cpu, Bot, Wallet, Zap,
-  TrendingUp, AlertTriangle
+  TrendingUp, AlertTriangle, Loader2, Save, PlugZap, RefreshCw
 } from "lucide-react";
 
 const roles = [
@@ -75,8 +79,16 @@ export default function System() {
   const { data: wallet } = useWalletBalance();
   const { data: transactions } = useWalletTransactions(20);
   const { data: cmdCenter } = useCommandCenter();
+  const { data: ghlConfig } = useGHLConfig();
+  const saveGHL = useSaveGHLConfig();
+  const testGHL = useTestGHLConnection();
+  const { data: crmModeData } = useGHLCRMMode();
+  const setCRMMode = useSetGHLCRMMode();
+  const { toast } = useToast();
+  const [ghlForm, setGhlForm] = useState({ apiKey: "", locationId: "", webhookUrl: "" });
 
   const currentMode = aiMode?.mode ?? "hybrid";
+  const crmMode = crmModeData?.mode ?? "internal";
   const workflowList = (workflows ?? []) as any[];
   const txList = (transactions ?? []) as any[];
 
@@ -394,31 +406,124 @@ export default function System() {
         )}
 
         {activeTab === "integrations" && (
-          <GlassCard className="p-0 overflow-hidden">
-            <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Integration Management</h3></div>
-            <div className="px-5 pb-4 space-y-2">
-              {[
-                { name: "OpenAI / GPT-4o-mini", status: "ready", desc: "AI intelligence engine (Replit proxy)" },
-                { name: "GoHighLevel", status: "available", desc: "Client CRM integration (sub-account)" },
-                { name: "ElevenLabs", status: "available", desc: "Voice AI for calling" },
-                { name: "Slack", status: "available", desc: "Reporting & communication surface" },
-                { name: "Stripe", status: "available", desc: "Payment processing" },
-                { name: "Google Calendar", status: "available", desc: "Meeting scheduling" },
-                { name: "LinkedIn", status: "available", desc: "Social selling & outreach" },
-              ].map((int) => (
-                <div key={int.name} className="flex items-center justify-between p-3 rounded-lg glass-surface">
-                  <div>
-                    <p className="text-sm font-medium">{int.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{int.desc}</p>
+          <div className="space-y-6">
+            <GlassCard glow="crimson" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <PlugZap className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">GoHighLevel Configuration</h3>
+                </div>
+                <Badge variant="outline" className="text-[10px]">CRM Integration</Badge>
+              </div>
+              <div className="px-5 pb-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {[
+                    { mode: "internal", label: "PMG Internal", desc: "Use PMG OS as sole CRM" },
+                    { mode: "ghl", label: "GoHighLevel", desc: "Route all leads to GHL" },
+                    { mode: "hybrid", label: "Hybrid", desc: "Use both CRMs in parallel" },
+                  ].map(m => (
+                    <button
+                      key={m.mode}
+                      onClick={() => setCRMMode.mutate(m.mode, { onSuccess: () => toast({ title: `CRM mode: ${m.label}` }) })}
+                      className={`p-3 rounded-lg border text-left transition-all ${
+                        crmMode === m.mode
+                          ? "border-crimson/30 bg-crimson/5 ring-1 ring-crimson/20"
+                          : "border-white/5 bg-white/[0.02] hover:bg-white/5"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold">{m.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{m.desc}</p>
+                      {crmMode === m.mode && <CheckCircle2 className="h-3 w-3 text-crimson mt-1" />}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-300 text-xs">GHL API Key</Label>
+                    <Input
+                      type="password"
+                      value={ghlForm.apiKey || (ghlConfig?.apiKey ? "••••••••" : "")}
+                      onChange={e => setGhlForm(f => ({ ...f, apiKey: e.target.value }))}
+                      className="bg-white/5 border-white/10 text-white text-sm"
+                      placeholder="eyJhbGciOiJIUzI1NiIs..."
+                    />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge variant={int.status === "ready" ? "active" : "pending"} label={int.status === "ready" ? "Connected" : "Available"} />
-                    {int.status !== "ready" && <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg">Connect</Button>}
+                  <div className="space-y-2">
+                    <Label className="text-slate-300 text-xs">Location ID</Label>
+                    <Input
+                      value={ghlForm.locationId || ghlConfig?.locationId || ""}
+                      onChange={e => setGhlForm(f => ({ ...f, locationId: e.target.value }))}
+                      className="bg-white/5 border-white/10 text-white text-sm"
+                      placeholder="loc_xxxxxxxxxx"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          </GlassCard>
+                <div className="space-y-2">
+                  <Label className="text-slate-300 text-xs">Webhook URL</Label>
+                  <Input
+                    value={ghlForm.webhookUrl || ghlConfig?.webhookUrl || ""}
+                    onChange={e => setGhlForm(f => ({ ...f, webhookUrl: e.target.value }))}
+                    className="bg-white/5 border-white/10 text-white text-sm"
+                    placeholder="https://hooks.example.com/ghl"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    className="btn-glass text-foreground text-xs px-3 py-1.5 rounded-lg"
+                    onClick={async () => {
+                      const res = await testGHL.mutateAsync();
+                      toast({ title: res.connected ? "Connection Successful" : "Connection Failed", description: res.error, variant: res.connected ? "default" : "destructive" });
+                    }}
+                    disabled={testGHL.isPending}
+                  >
+                    {testGHL.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                    Test Connection
+                  </Button>
+                  <Button
+                    className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"
+                    onClick={async () => {
+                      const config: Record<string, unknown> = {};
+                      if (ghlForm.apiKey && !ghlForm.apiKey.includes("•")) config.apiKey = ghlForm.apiKey;
+                      if (ghlForm.locationId) config.locationId = ghlForm.locationId;
+                      if (ghlForm.webhookUrl) config.webhookUrl = ghlForm.webhookUrl;
+                      await saveGHL.mutateAsync(config);
+                      toast({ title: "GHL Config Saved" });
+                    }}
+                    disabled={saveGHL.isPending}
+                  >
+                    {saveGHL.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                    Save Configuration
+                  </Button>
+                </div>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">All Integrations</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { name: "OpenAI / GPT-4o-mini", status: "ready", desc: "AI intelligence engine (Replit proxy)" },
+                  { name: "GoHighLevel", status: ghlConfig?.apiKey ? "ready" : "available", desc: "Client CRM integration (sub-account)" },
+                  { name: "ElevenLabs", status: "available", desc: "Voice AI for calling" },
+                  { name: "Slack", status: "available", desc: "Reporting & communication surface" },
+                  { name: "Stripe", status: "available", desc: "Payment processing" },
+                  { name: "Google Calendar", status: "available", desc: "Meeting scheduling" },
+                  { name: "LinkedIn", status: "available", desc: "Social selling & outreach" },
+                ].map((int) => (
+                  <div key={int.name} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div>
+                      <p className="text-sm font-medium">{int.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{int.desc}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge variant={int.status === "ready" ? "active" : "pending"} label={int.status === "ready" ? "Connected" : "Available"} />
+                      {int.status !== "ready" && <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg">Connect</Button>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
         )}
       </motion.div>
     </div>

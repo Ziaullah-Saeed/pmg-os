@@ -28,6 +28,9 @@ import notificationsRouter from "./notifications";
 import aiRouter from "./ai";
 import stateMachineRouter from "./state-machine";
 import knowledgeRouter from "./knowledge";
+import searchRouter from "./search";
+import ghlRouter from "./ghl";
+import automationRouter from "./automation";
 
 const router: IRouter = Router();
 
@@ -39,6 +42,9 @@ router.use("/notifications", notificationsRouter);
 router.use("/ai", aiRouter);
 router.use("/state-machines", stateMachineRouter);
 router.use("/knowledge", knowledgeRouter);
+router.use(searchRouter);
+router.use(ghlRouter);
+router.use(automationRouter);
 router.use(companiesRouter);
 router.use(contactsRouter);
 router.use(leadsRouter);

@@ -283,14 +283,114 @@ export default function Intelligence() {
         )}
 
         {activeTab === "positioning" && (
-          <GlassCard className="py-12 flex flex-col items-center gap-3">
-            <Lightbulb className="h-12 w-12 text-gold/50" />
-            <p className="text-lg font-semibold">Positioning & Gap Analysis</p>
-            <p className="text-sm text-muted-foreground text-center max-w-md">
-              Strategic positioning analysis, message-market fit assessment, and differentiation intelligence will be powered by market data and competitive insights.
-            </p>
-            <StatusBadge variant="ai-executed" label="AI Ready" />
-          </GlassCard>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <GlassCard>
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Competitive Advantages</h3>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { label: "AI-Native Operations", desc: "Fully autonomous cybersecurity workflows" },
+                    { label: "Speed-to-Deploy", desc: "72-hour onboarding vs 30-day industry avg" },
+                    { label: "Proactive Threat Intel", desc: "Continuous monitoring with AI escalation" },
+                    { label: "SMB Specialist", desc: "Enterprise-grade security at SMB pricing" },
+                  ].map((adv) => (
+                    <div key={adv.label} className="p-2 rounded glass-surface">
+                      <p className="text-xs font-medium text-white">{adv.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{adv.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard>
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="h-4 w-4 text-gold" />
+                  <h3 className="text-sm font-semibold">Identified Gaps</h3>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { label: "Brand Awareness", severity: 75, note: "Low recognition outside DFW region" },
+                    { label: "Enterprise Case Studies", severity: 60, note: "Need 3+ logo-worthy references" },
+                    { label: "Compliance Certifications", severity: 45, note: "SOC2 Type II in progress" },
+                    { label: "Partner Ecosystem", severity: 55, note: "Limited reseller channel" },
+                  ].map((gap) => (
+                    <div key={gap.label} className="p-2 rounded glass-surface">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-medium text-white">{gap.label}</p>
+                        <span className="text-[10px] text-muted-foreground">{gap.severity}% impact</span>
+                      </div>
+                      <div className="w-full h-1 bg-muted rounded-full mb-1"><div className="h-1 rounded-full bg-gold" style={{ width: `${gap.severity}%` }} /></div>
+                      <p className="text-[10px] text-muted-foreground">{gap.note}</p>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard>
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="h-4 w-4 text-green-400" />
+                  <h3 className="text-sm font-semibold">Message-Market Fit</h3>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { segment: "Healthcare SMB", fit: 92, message: "HIPAA compliance without the enterprise price tag" },
+                    { segment: "Financial Services", fit: 78, message: "Continuous compliance monitoring & reporting" },
+                    { segment: "Legal Firms", fit: 85, message: "Client data protection with audit trails" },
+                    { segment: "Manufacturing", fit: 64, message: "OT/IT convergence security" },
+                  ].map((seg) => (
+                    <div key={seg.segment} className="p-2 rounded glass-surface">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-medium text-white">{seg.segment}</p>
+                        <ConfidenceMeter score={seg.fit} size="sm" className="w-16" />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground italic">"{seg.message}"</p>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+
+            <GlassCard>
+              <div className="flex items-center gap-2 mb-3">
+                <Lightbulb className="h-4 w-4 text-gold" />
+                <h3 className="text-sm font-semibold">Strategic Differentiation Matrix</h3>
+                <StatusBadge variant="ai-executed" label="AI Generated" />
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-muted-foreground border-b border-white/5">
+                      <th className="text-left py-2 px-3">Dimension</th>
+                      <th className="text-left py-2 px-3">PMG Group</th>
+                      <th className="text-left py-2 px-3">Traditional MSSPs</th>
+                      <th className="text-left py-2 px-3">Big 4 Cyber</th>
+                      <th className="text-left py-2 px-3">Edge</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { dim: "Response Time", pmg: "< 15 min", trad: "1-4 hours", big4: "24-48 hours", edge: "Strong" },
+                      { dim: "AI Integration", pmg: "Native", trad: "Bolt-on", big4: "In development", edge: "Strong" },
+                      { dim: "Pricing Model", pmg: "Per-seat flat", trad: "Tiered", big4: "Project-based", edge: "Strong" },
+                      { dim: "Customization", pmg: "High", trad: "Medium", big4: "Low", edge: "Moderate" },
+                      { dim: "Compliance", pmg: "Automated", trad: "Manual", big4: "Comprehensive", edge: "Moderate" },
+                    ].map((row) => (
+                      <tr key={row.dim} className="border-b border-white/5">
+                        <td className="py-2 px-3 font-medium">{row.dim}</td>
+                        <td className="py-2 px-3 text-green-400">{row.pmg}</td>
+                        <td className="py-2 px-3 text-muted-foreground">{row.trad}</td>
+                        <td className="py-2 px-3 text-muted-foreground">{row.big4}</td>
+                        <td className="py-2 px-3"><Badge variant="outline" className={`text-[9px] ${row.edge === "Strong" ? "border-green-500/50 text-green-400" : "border-gold/50 text-gold"}`}>{row.edge}</Badge></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </GlassCard>
+          </div>
         )}
       </motion.div>
 

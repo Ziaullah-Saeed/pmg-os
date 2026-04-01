@@ -275,6 +275,121 @@ function invalidateEntity(qc: ReturnType<typeof useQueryClient>, entity: string)
   qc.invalidateQueries({ queryKey: [`/api/${entity}`] });
 }
 
+export function useGlobalSearch(query: string) {
+  return useQuery({
+    queryKey: ["search", query],
+    queryFn: () => apiFetch<{ results: Array<{ id: number; name: string; entityType: string }>; query: string; total: number }>(`/search?q=${encodeURIComponent(query)}`),
+    enabled: query.length >= 2,
+  });
+}
+
+export function useGHLConfig() {
+  return useQuery({
+    queryKey: ["ghl", "config"],
+    queryFn: () => apiFetch<any>("/ghl/config"),
+  });
+}
+
+export function useSaveGHLConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (config: Record<string, unknown>) => apiFetch<any>("/ghl/config", { method: "PUT", body: JSON.stringify(config) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl"] }); },
+  });
+}
+
+export function useTestGHLConnection() {
+  return useMutation({
+    mutationFn: () => apiFetch<{ connected: boolean; error?: string }>("/ghl/test", { method: "POST" }),
+  });
+}
+
+export function useGHLCRMMode() {
+  return useQuery({
+    queryKey: ["ghl", "crm-mode"],
+    queryFn: () => apiFetch<{ mode: string }>("/ghl/crm-mode"),
+  });
+}
+
+export function useSetGHLCRMMode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (mode: string) => apiFetch<{ mode: string }>("/ghl/crm-mode", { method: "PUT", body: JSON.stringify({ mode }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl"] }); },
+  });
+}
+
+export function useGHLSyncLogs() {
+  return useQuery({
+    queryKey: ["ghl", "sync-logs"],
+    queryFn: () => apiFetch<{ logs: any[]; total: number }>("/ghl/sync-logs"),
+  });
+}
+
+export function useAutomationRules() {
+  return useQuery({
+    queryKey: ["automation", "rules"],
+    queryFn: () => apiFetch<{ rules: any[]; total: number }>("/automation/rules"),
+  });
+}
+
+export function useAutomationTriggers() {
+  return useQuery({
+    queryKey: ["automation", "triggers"],
+    queryFn: () => apiFetch<{ triggers: Array<{ event: string; label: string }> }>("/automation/triggers"),
+  });
+}
+
+export function useAutomationActions() {
+  return useQuery({
+    queryKey: ["automation", "actions"],
+    queryFn: () => apiFetch<{ actions: Array<{ type: string; label: string }> }>("/automation/actions"),
+  });
+}
+
+export function useCreateAutomationRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => apiFetch<any>("/automation/rules", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["automation"] }); },
+  });
+}
+
+export function useToggleAutomationRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<any>(`/automation/rules/${id}/toggle`, { method: "PUT" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["automation"] }); },
+  });
+}
+
+export function useDeleteAutomationRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`/automation/rules/${id}`, { method: "DELETE" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["automation"] }); },
+  });
+}
+
+export function useUpdateOpportunityMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      apiFetch<any>(`/opportunities/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => { invalidateEntity(qc, "opportunities"); },
+  });
+}
+
+export function useCreateCampaignMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => apiFetch<any>("/campaigns", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { invalidateEntity(qc, "campaigns"); },
+  });
+}
+
+export { apiFetch };
+
 export function useCreateLead() {
   const qc = useQueryClient();
   return useMutation({

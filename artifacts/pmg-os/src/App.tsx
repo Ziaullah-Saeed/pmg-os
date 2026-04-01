@@ -14,6 +14,7 @@ import Execution from "@/pages/execution";
 import Finance from "@/pages/finance";
 import Reports from "@/pages/reports";
 import System from "@/pages/system";
+import Automation from "@/pages/automation";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ function Router() {
         <Route path="/finance" component={Finance} />
         <Route path="/reports" component={Reports} />
         <Route path="/system" component={System} />
+        <Route path="/automation" component={Automation} />
         <Route component={NotFound} />
       </Switch>
     </SidebarLayout>

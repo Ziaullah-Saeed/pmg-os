@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useListOpportunities, useListCommunications, useListTasks, useListCompanies, useListLeads } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,15 +10,23 @@ import { ConfidenceMeter } from "@/components/ui/confidence-meter";
 import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Briefcase, Plus, DollarSign, TrendingUp, Clock, AlertTriangle,
-  ArrowRight, FileText, Phone, Calendar, ChevronRight, Bot, Target, Users
+  ArrowRight, FileText, Phone, Calendar, ChevronRight, Bot, Target, Users,
+  GripVertical, Pencil, Save, X, Loader2, Building2, User
 } from "lucide-react";
 import { CreateLeadForm } from "@/components/forms/create-lead-form";
 import { CreateOpportunityForm } from "@/components/forms/create-opportunity-form";
-import { useDeleteLead, useUpdateLead, useRouteLead, useLeadActivities } from "@/hooks/use-api";
+import { CreateCompanyForm } from "@/components/forms/create-company-form";
+import { CreateContactForm } from "@/components/forms/create-contact-form";
+import { useDeleteLead, useUpdateLead, useRouteLead, useLeadActivities, useUpdateOpportunityMut } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 const stages = ["discovery", "qualification", "proposal", "negotiation", "closed_won", "closed_lost"] as const;
 const stageLabels: Record<string, string> = { discovery: "Discovery", qualification: "Qualification", proposal: "Proposal", negotiation: "Negotiation", closed_won: "Won", closed_lost: "Lost" };
@@ -29,13 +37,53 @@ const tabs = [
   { id: "client", label: "Client CRM", icon: <DollarSign className="h-3.5 w-3.5" /> },
 ];
 
+function DraggableDealCard({ opp, isStale, onClick }: { opp: any; isStale: boolean; onClick: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `deal-${opp.id}`, data: { opp } });
+  const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)`, opacity: isDragging ? 0.5 : 1, zIndex: isDragging ? 50 : undefined } : undefined;
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <GlassCard variant="interactive" className="cursor-pointer !p-3" onClick={onClick}>
+        <div className="flex items-start justify-between mb-1">
+          <div className="flex items-center gap-1.5">
+            <div {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-white"><GripVertical className="h-3 w-3" /></div>
+            <p className="font-medium text-sm leading-tight">{opp.title}</p>
+          </div>
+          {isStale && <AlertTriangle className="h-3 w-3 text-warning shrink-0 mt-0.5" />}
+        </div>
+        <p className="text-[10px] text-muted-foreground mb-2">{opp.companyName}</p>
+        <ConfidenceMeter score={opp.probability ?? 0} size="sm" className="mb-2" />
+        <div className="flex items-center justify-between">
+          <Badge variant="outline" className="text-[9px] px-1 capitalize">{opp.proposalStatus ?? opp.proposal_status ?? "pending"}</Badge>
+          <span className="text-xs font-bold gradient-text-crimson">${(opp.value ?? 0).toLocaleString()}</span>
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+function DroppableColumn({ stage, children }: { stage: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `stage-${stage}` });
+  return (
+    <div ref={setNodeRef} className={`space-y-2 min-h-[200px] rounded-lg p-1 transition-colors ${isOver ? "bg-crimson/5 ring-1 ring-crimson/20" : ""}`}>
+      {children}
+    </div>
+  );
+}
+
 export default function CRM() {
   const [activeTab, setActiveTab] = useState("leads");
   const [selectedOpp, setSelectedOpp] = useState<any>(null);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [showCreateDeal, setShowCreateDeal] = useState(false);
+  const [showCreateCompany, setShowCreateCompany] = useState(false);
+  const [showCreateContact, setShowCreateContact] = useState(false);
+  const [editingLead, setEditingLead] = useState(false);
+  const [leadEditForm, setLeadEditForm] = useState<any>({});
   const { toast } = useToast();
+  const updateOpp = useUpdateOpportunityMut();
+  const updateLead = useUpdateLead();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const { data: opportunities, isLoading } = useListOpportunities();
   const { data: communications } = useListCommunications();
   const { data: tasks } = useListTasks();
@@ -77,6 +125,8 @@ export default function CRM() {
 
       <CreateLeadForm open={showCreateLead} onOpenChange={setShowCreateLead} />
       <CreateOpportunityForm open={showCreateDeal} onClose={() => setShowCreateDeal(false)} />
+      <CreateCompanyForm open={showCreateCompany} onOpenChange={setShowCreateCompany} />
+      <CreateContactForm open={showCreateContact} onOpenChange={setShowCreateContact} />
 
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -113,7 +163,7 @@ export default function CRM() {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <div className="font-medium text-sm text-white">{lead.companyName ?? `Lead #${lead.id}`}</div>
-                            {lead.bestAngle && <Bot className="h-3 w-3 text-green-400" title="AI Enriched" />}
+                            {lead.bestAngle && <Bot className="h-3 w-3 text-green-400" />}
                           </div>
                           {lead.contactName && <div className="text-xs text-slate-500">{lead.contactName}</div>}
                         </td>
@@ -185,7 +235,7 @@ export default function CRM() {
         {activeTab === "pmg" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-muted-foreground">Deal Pipeline</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground">Deal Pipeline <span className="text-[10px] text-muted-foreground ml-2">(drag deals between stages)</span></h3>
               <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateDeal(true)}>
                 <Plus className="h-4 w-4 mr-2" />New Deal
               </Button>
@@ -203,67 +253,100 @@ export default function CRM() {
                 {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-96 w-full bg-muted/10" />)}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-min">
-                {stages.slice(0, 4).map((stage) => {
-                  const stageOpps = oppList.filter((o: any) => o.stage === stage);
-                  const stageValue = stageOpps.reduce((s: number, o: any) => s + (o.value ?? 0), 0);
-                  return (
-                    <div key={stage} className="space-y-3">
-                      <div className="flex items-center justify-between pb-2 border-b border-border/50">
-                        <div>
-                          <h3 className="kpi-label">{stageLabels[stage]}</h3>
-                          <p className="text-[10px] text-muted-foreground">${stageValue.toLocaleString()}</p>
-                        </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full glass-surface font-medium">{stageOpps.length}</span>
-                      </div>
-                      <div className="space-y-2">
-                        {stageOpps.map((opp: any) => {
-                          const isStale = staleDeals.includes(opp);
-                          return (
-                            <GlassCard key={opp.id} variant="interactive" className="cursor-pointer !p-3" onClick={() => setSelectedOpp(opp)}>
-                              <div className="flex items-start justify-between mb-1">
-                                <p className="font-medium text-sm leading-tight">{opp.title}</p>
-                                {isStale && <AlertTriangle className="h-3 w-3 text-warning shrink-0 mt-0.5" />}
-                              </div>
-                              <p className="text-[10px] text-muted-foreground mb-2">{opp.companyName}</p>
-                              <ConfidenceMeter score={opp.probability ?? 0} size="sm" className="mb-2" />
-                              <div className="flex items-center justify-between">
-                                <div className="flex gap-1">
-                                  <Badge variant="outline" className="text-[9px] px-1 capitalize">{opp.proposalStatus ?? opp.proposal_status ?? "pending"}</Badge>
-                                </div>
-                                <span className="text-xs font-bold gradient-text-crimson">${(opp.value ?? 0).toLocaleString()}</span>
-                              </div>
-                            </GlassCard>
-                          );
-                        })}
-                        {stageOpps.length === 0 && (
-                          <div className="p-6 border border-dashed border-border/30 rounded-lg text-center text-[10px] text-muted-foreground">
-                            No deals in {stageLabels[stage]}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(event: DragEndEvent) => {
+                  const { active, over } = event;
+                  if (!over) return;
+                  const overId = String(over.id);
+                  if (!overId.startsWith("stage-")) return;
+                  const newStage = overId.replace("stage-", "");
+                  const dealData = active.data?.current?.opp;
+                  if (!dealData || dealData.stage === newStage) return;
+                  updateOpp.mutate(
+                    { id: dealData.id, data: { stage: newStage } },
+                    { onSuccess: () => toast({ title: `Deal moved to ${stageLabels[newStage]}` }) }
                   );
-                })}
-              </div>
+                }}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-min">
+                  {stages.slice(0, 4).map((stage) => {
+                    const stageOpps = oppList.filter((o: any) => o.stage === stage);
+                    const stageValue = stageOpps.reduce((s: number, o: any) => s + (o.value ?? 0), 0);
+                    return (
+                      <div key={stage} className="space-y-3">
+                        <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                          <div>
+                            <h3 className="kpi-label">{stageLabels[stage]}</h3>
+                            <p className="text-[10px] text-muted-foreground">${stageValue.toLocaleString()}</p>
+                          </div>
+                          <span className="text-xs px-2 py-0.5 rounded-full glass-surface font-medium">{stageOpps.length}</span>
+                        </div>
+                        <DroppableColumn stage={stage}>
+                          {stageOpps.map((opp: any) => (
+                            <DraggableDealCard
+                              key={opp.id}
+                              opp={opp}
+                              isStale={staleDeals.includes(opp)}
+                              onClick={() => setSelectedOpp(opp)}
+                            />
+                          ))}
+                          {stageOpps.length === 0 && (
+                            <div className="p-6 border border-dashed border-border/30 rounded-lg text-center text-[10px] text-muted-foreground">
+                              Drop deals here
+                            </div>
+                          )}
+                        </DroppableColumn>
+                      </div>
+                    );
+                  })}
+                </div>
+              </DndContext>
             )}
           </div>
         )}
 
         {activeTab === "client" && (
-          <GlassCard className="py-12 flex flex-col items-center gap-3">
-            <Briefcase className="h-12 w-12 text-muted-foreground/30" />
-            <p className="text-lg font-semibold">Client CRM</p>
-            <p className="text-sm text-muted-foreground text-center max-w-md">
-              Client-facing CRM instances for deployed client pipelines. Supports PMG Internal CRM, GoHighLevel, and HubSpot integration modes.
-            </p>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline">PMG Internal CRM</Badge>
-              <Badge variant="outline">GoHighLevel</Badge>
-              <Badge variant="outline">HubSpot</Badge>
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KpiCard label="Companies" value={(companies ?? []).length} icon={<Building2 className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="Contacts" value={commList.length} icon={<User className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="Active Tasks" value={taskList.filter((t: any) => t.status !== "completed").length} icon={<Calendar className="h-4 w-4" />} accent="gold" />
+              <KpiCard label="Communications" value={commList.length} icon={<Phone className="h-4 w-4" />} accent="success" />
             </div>
-            <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg mt-4"><Plus className="h-4 w-4 mr-2" />Create Client Instance</Button>
-          </GlassCard>
+            <div className="flex gap-2">
+              <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateCompany(true)}>
+                <Building2 className="h-4 w-4 mr-2" />New Company
+              </Button>
+              <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateContact(true)}>
+                <User className="h-4 w-4 mr-2" />New Contact
+              </Button>
+            </div>
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Companies</h3></div>
+              <div className="px-5 pb-4">
+                <table className="w-full text-xs">
+                  <thead><tr className="text-muted-foreground border-b border-white/5">
+                    <th className="text-left py-2 px-2">Name</th><th className="text-left py-2 px-2">Industry</th><th className="text-left py-2 px-2">Size</th><th className="text-left py-2 px-2">Status</th>
+                  </tr></thead>
+                  <tbody>
+                    {((companies ?? []) as any[]).map((c: any) => (
+                      <tr key={c.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="py-2 px-2 font-medium">{c.name}</td>
+                        <td className="py-2 px-2 text-muted-foreground">{c.industry ?? "—"}</td>
+                        <td className="py-2 px-2 text-muted-foreground">{c.size ?? "—"}</td>
+                        <td className="py-2 px-2"><Badge variant="outline" className="text-[9px] capitalize">{c.status ?? "active"}</Badge></td>
+                      </tr>
+                    ))}
+                    {((companies ?? []) as any[]).length === 0 && (
+                      <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No companies yet</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </GlassCard>
+          </div>
         )}
       </motion.div>
 
@@ -348,78 +431,132 @@ export default function CRM() {
               )}
 
               <div className="flex gap-2">
-                <Button className="btn-glass text-foreground flex-1 text-sm rounded-lg"><FileText className="h-4 w-4 mr-2" />Generate Proposal</Button>
-                <Button className="btn-premium text-white flex-1 text-sm rounded-lg"><ArrowRight className="h-4 w-4 mr-2" />Advance Stage</Button>
+                <Button className="btn-glass text-foreground flex-1 text-sm rounded-lg"
+                  onClick={() => {
+                    updateOpp.mutate({ id: selectedOpp.id, data: { proposalStatus: "sent" } }, {
+                      onSuccess: () => toast({ title: "Proposal status updated to 'sent'" }),
+                    });
+                  }}
+                ><FileText className="h-4 w-4 mr-2" />Generate Proposal</Button>
+                <Button className="btn-premium text-white flex-1 text-sm rounded-lg"
+                  disabled={selectedOpp.stage === "closed_won" || selectedOpp.stage === "closed_lost"}
+                  onClick={() => {
+                    const idx = stages.indexOf(selectedOpp.stage);
+                    if (idx >= 0 && idx < stages.length - 1) {
+                      const next = stages[idx + 1];
+                      updateOpp.mutate({ id: selectedOpp.id, data: { stage: next } }, {
+                        onSuccess: () => { toast({ title: `Advanced to ${stageLabels[next]}` }); setSelectedOpp(null); },
+                      });
+                    }
+                  }}
+                ><ArrowRight className="h-4 w-4 mr-2" />Advance Stage</Button>
               </div>
             </div>
           );
         })()}
       </DetailDrawer>
 
-      <DetailDrawer open={!!selectedLead} onClose={() => setSelectedLead(null)} title={selectedLead?.companyName ?? `Lead #${selectedLead?.id}`}>
+      <DetailDrawer open={!!selectedLead} onClose={() => { setSelectedLead(null); setEditingLead(false); }} title={selectedLead?.companyName ?? `Lead #${selectedLead?.id}`}>
         {selectedLead && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg glass-surface">
-                <p className="text-[10px] uppercase text-slate-500">Status</p>
-                <Badge variant="outline" className="text-xs capitalize">{(selectedLead.status ?? "new").replace(/_/g, " ")}</Badge>
-              </div>
-              <div className="p-3 rounded-lg glass-surface">
-                <p className="text-[10px] uppercase text-slate-500">Score</p>
-                {selectedLead.fitScore ? <ConfidenceMeter score={selectedLead.fitScore} /> : <span className="text-sm text-slate-500">Pending</span>}
-              </div>
-              <div className="p-3 rounded-lg glass-surface">
-                <p className="text-[10px] uppercase text-slate-500">Priority</p>
-                <Badge variant="outline" className="text-xs capitalize">{selectedLead.priority ?? "medium"}</Badge>
-              </div>
-              <div className="p-3 rounded-lg glass-surface">
-                <p className="text-[10px] uppercase text-slate-500">Source</p>
-                <p className="text-sm">{selectedLead.source ?? "—"}</p>
-              </div>
-            </div>
-
-            {selectedLead.bestAngle && (
-              <div className="p-3 rounded-lg glass-surface">
-                <h4 className="text-xs font-semibold text-crimson-400 flex items-center gap-1 mb-2"><Bot className="h-3 w-3" />AI Enrichment</h4>
-                <p className="text-xs text-slate-300 whitespace-pre-wrap">{selectedLead.bestAngle}</p>
-              </div>
-            )}
-
-            {selectedLead.notes && (
-              <div className="p-3 rounded-lg glass-surface">
-                <h4 className="text-xs font-semibold text-slate-400 mb-1">AI Reasoning</h4>
-                <p className="text-xs text-slate-300">{selectedLead.notes}</p>
-              </div>
-            )}
-
-            <div className="flex gap-2">
+            <div className="flex items-center justify-end">
               <Button
-                className="btn-glass text-foreground flex-1 text-sm rounded-lg"
+                variant="ghost" size="sm" className="text-xs"
                 onClick={() => {
-                  routeLead.mutate({ id: selectedLead.id, destination: "internal" }, {
-                    onSuccess: () => {
-                      toast({ title: "Lead routed internally" });
-                      setSelectedLead(null);
-                    },
-                  });
+                  if (editingLead) { setEditingLead(false); }
+                  else {
+                    setLeadEditForm({ priority: selectedLead.priority ?? "medium", source: selectedLead.source ?? "website", notes: selectedLead.notes ?? "" });
+                    setEditingLead(true);
+                  }
                 }}
               >
-                <ArrowRight className="h-4 w-4 mr-2" />Route Internal
-              </Button>
-              <Button
-                className="btn-premium text-white flex-1 text-sm rounded-lg"
-                onClick={() => {
-                  routeLead.mutate({ id: selectedLead.id, destination: "ghl" }, {
-                    onSuccess: () => {
-                      toast({ title: "Lead routed to GHL" });
-                      setSelectedLead(null);
-                    },
-                  });
-                }}
-              >
-                <ArrowRight className="h-4 w-4 mr-2" />Route to GHL
+                {editingLead ? <><X className="h-3 w-3 mr-1" />Cancel</> : <><Pencil className="h-3 w-3 mr-1" />Edit</>}
               </Button>
             </div>
+
+            {editingLead ? (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-slate-400">Priority</Label>
+                  <Select value={leadEditForm.priority} onValueChange={v => setLeadEditForm((f: any) => ({ ...f, priority: v }))}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-[hsl(214,65%,8%)] border-white/10">
+                      {["low", "medium", "high", "urgent"].map(p => <SelectItem key={p} value={p} className="text-white capitalize">{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-slate-400">Source</Label>
+                  <Select value={leadEditForm.source} onValueChange={v => setLeadEditForm((f: any) => ({ ...f, source: v }))}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-[hsl(214,65%,8%)] border-white/10">
+                      {["website", "referral", "linkedin", "cold_outreach", "inbound", "conference", "partner"].map(s => <SelectItem key={s} value={s} className="text-white">{s.replace(/_/g, " ")}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-slate-400">Notes</Label>
+                  <Input value={leadEditForm.notes} onChange={e => setLeadEditForm((f: any) => ({ ...f, notes: e.target.value }))} className="bg-white/5 border-white/10 text-white text-xs h-8" />
+                </div>
+                <Button
+                  className="btn-premium text-white w-full text-xs rounded-lg"
+                  disabled={updateLead.isPending}
+                  onClick={() => {
+                    updateLead.mutate({ id: selectedLead.id, data: leadEditForm }, {
+                      onSuccess: () => { toast({ title: "Lead Updated" }); setEditingLead(false); setSelectedLead(null); },
+                    });
+                  }}
+                >
+                  {updateLead.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}Save Changes
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg glass-surface">
+                    <p className="text-[10px] uppercase text-slate-500">Status</p>
+                    <Badge variant="outline" className="text-xs capitalize">{(selectedLead.status ?? "new").replace(/_/g, " ")}</Badge>
+                  </div>
+                  <div className="p-3 rounded-lg glass-surface">
+                    <p className="text-[10px] uppercase text-slate-500">Score</p>
+                    {selectedLead.fitScore ? <ConfidenceMeter score={selectedLead.fitScore} /> : <span className="text-sm text-slate-500">Pending</span>}
+                  </div>
+                  <div className="p-3 rounded-lg glass-surface">
+                    <p className="text-[10px] uppercase text-slate-500">Priority</p>
+                    <Badge variant="outline" className="text-xs capitalize">{selectedLead.priority ?? "medium"}</Badge>
+                  </div>
+                  <div className="p-3 rounded-lg glass-surface">
+                    <p className="text-[10px] uppercase text-slate-500">Source</p>
+                    <p className="text-sm">{selectedLead.source ?? "—"}</p>
+                  </div>
+                </div>
+
+                {selectedLead.bestAngle && (
+                  <div className="p-3 rounded-lg glass-surface">
+                    <h4 className="text-xs font-semibold text-crimson-400 flex items-center gap-1 mb-2"><Bot className="h-3 w-3" />AI Enrichment</h4>
+                    <p className="text-xs text-slate-300 whitespace-pre-wrap">{selectedLead.bestAngle}</p>
+                  </div>
+                )}
+
+                {selectedLead.notes && (
+                  <div className="p-3 rounded-lg glass-surface">
+                    <h4 className="text-xs font-semibold text-slate-400 mb-1">AI Reasoning</h4>
+                    <p className="text-xs text-slate-300">{selectedLead.notes}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button className="btn-glass text-foreground flex-1 text-sm rounded-lg"
+                    onClick={() => { routeLead.mutate({ id: selectedLead.id, destination: "internal" }, { onSuccess: () => { toast({ title: "Lead routed internally" }); setSelectedLead(null); } }); }}>
+                    <ArrowRight className="h-4 w-4 mr-2" />Route Internal
+                  </Button>
+                  <Button className="btn-premium text-white flex-1 text-sm rounded-lg"
+                    onClick={() => { routeLead.mutate({ id: selectedLead.id, destination: "ghl" }, { onSuccess: () => { toast({ title: "Lead routed to GHL" }); setSelectedLead(null); } }); }}>
+                    <ArrowRight className="h-4 w-4 mr-2" />Route to GHL
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </DetailDrawer>

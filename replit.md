@@ -97,6 +97,44 @@ artifacts-monorepo/
 - Notification bell in header with unread count
 - Mark read/dismiss/mark all read
 
+### RBAC Middleware
+- Role hierarchy: super_admin → admin → manager → user
+- `requireRole(minRole)` middleware on sensitive routes
+- Reads `x-user-role` header (defaults to super_admin in dev)
+
+### Global Search
+- Cross-entity search across leads, opportunities, companies, contacts
+- Accessible via `GET /api/search?q=`
+- Frontend: ⌘K keyboard shortcut in header
+
+### GoHighLevel Integration
+- Config panel in System > Integrations tab
+- CRM mode selector: PMG Internal / GoHighLevel / Both
+- Test connection, save API key/location ID, webhook URL
+- Sync engine routes: push to GHL, sync logs, retry
+
+### Automation Rules Engine
+- Trigger → Action rules (lead.created → ai_enrich, lead.scored → notification, etc.)
+- In-memory rule storage with CRUD API
+- Tool orchestration config with 8 connected tools
+- Channel intelligence tracking (source attribution)
+
+### DnD Pipeline (CRM)
+- Drag-and-drop deal cards between pipeline stages using @dnd-kit
+- DraggableDealCard + DroppableColumn components
+- Stage advance button in deal drawer
+- Proposal status update button
+
+### Entity Forms & Edit Drawers
+- Create forms: Lead, Opportunity, Company, Contact, Task, Campaign
+- Lead edit drawer with priority/source/notes editing
+- CSV export buttons on Reports page (leads + opportunities)
+
+### Intelligence Positioning
+- Competitive Advantages, Identified Gaps, Message-Market Fit analysis
+- Strategic Differentiation Matrix (PMG vs Traditional MSSPs vs Big 4)
+- AI-generated positioning insights
+
 ## API Routes
 
 ### Core Engine Routes

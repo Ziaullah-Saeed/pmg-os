@@ -16,6 +16,7 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
+  Workflow,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { NotificationBell } from "@/components/notification-bell";
 import { AiModeToggle } from "@/components/ai-mode-toggle";
 import { WalletDisplay } from "@/components/wallet-display";
+import { GlobalSearch } from "@/components/global-search";
 
 const navItems = [
   { href: "/", label: "Command Center", icon: BarChart3, domain: "command" },
@@ -37,6 +39,7 @@ const navItems = [
   { href: "/execution", label: "Execution", icon: Zap, domain: "execution" },
   { href: "/finance", label: "Finance & Legal", icon: Landmark, domain: "finance" },
   { href: "/reports", label: "Reports & Archive", icon: FileBox, domain: "reports" },
+  { href: "/automation", label: "Automation", icon: Workflow, domain: "automation" },
   { href: "/system", label: "System", icon: Settings, domain: "system" },
 ];
 
@@ -222,7 +225,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
-        <div className="hidden md:flex items-center justify-end px-6 py-3 border-b border-border/30">
+        <div className="hidden md:flex items-center justify-end gap-3 px-6 py-3 border-b border-border/30">
+          <GlobalSearch />
           <NotificationBell />
         </div>
         <div className="flex-1 p-4 md:p-6 lg:p-8">

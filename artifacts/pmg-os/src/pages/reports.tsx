@@ -13,8 +13,9 @@ import { useKnowledgeLibrary, useSearchKnowledge, useAiGenerateReport } from "@/
 import { useToast } from "@/hooks/use-toast";
 import {
   FileBox, FileText, Search, BarChart3, Sparkles,
-  Download, Clock, Eye, BookOpen, Brain, Loader2
+  Download, Clock, Eye, BookOpen, Brain, Loader2, FileDown
 } from "lucide-react";
+import { apiFetch } from "@/hooks/use-api";
 
 const tabs = [
   { id: "reports", label: "Reports", icon: <BarChart3 className="h-3.5 w-3.5" /> },
@@ -134,7 +135,12 @@ export default function Reports() {
                     <ReportLine label="Attention Required" value={activeTasks > 5 ? "High task volume" : "Normal operations"} highlight={activeTasks > 5} />
                   </div>
                   <div className="flex gap-2 pt-2">
-                    <Button className="btn-glass text-foreground flex-1 text-xs rounded-lg"><Download className="h-3 w-3 mr-1" />Export PDF</Button>
+                    <Button className="btn-glass text-foreground flex-1 text-xs rounded-lg" onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = `${import.meta.env.VITE_API_BASE_URL || "/api"}/reports/export/leads`;
+                      a.download = "leads_export.csv";
+                      a.click();
+                    }}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
                     <Button
                       className="btn-glass text-foreground flex-1 text-xs rounded-lg"
                       onClick={() => handleGenerateReport("crm", "executive")}
@@ -161,7 +167,12 @@ export default function Reports() {
                     <ReportLine label="Task Completion" value={`${taskList.filter((t: any) => t.status === "completed").length}/${taskList.length}`} />
                   </div>
                   <div className="flex gap-2 pt-2">
-                    <Button className="btn-glass text-foreground flex-1 text-xs rounded-lg"><Download className="h-3 w-3 mr-1" />Export CSV</Button>
+                    <Button className="btn-glass text-foreground flex-1 text-xs rounded-lg" onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = `${import.meta.env.VITE_API_BASE_URL || "/api"}/reports/export/opportunities`;
+                      a.download = "opportunities_export.csv";
+                      a.click();
+                    }}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
                     <Button
                       className="btn-glass text-foreground flex-1 text-xs rounded-lg"
                       onClick={() => handleGenerateReport("operations", "operational")}
