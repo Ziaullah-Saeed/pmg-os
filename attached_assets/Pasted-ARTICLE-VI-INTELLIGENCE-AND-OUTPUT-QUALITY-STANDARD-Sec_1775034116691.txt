@@ -1,0 +1,252 @@
+ARTICLE VI — INTELLIGENCE AND OUTPUT QUALITY STANDARD
+Section 6.01 — General Standard
+
+All AI-assisted or AI-operated behavior in the System must perform at a materially elevated intelligence threshold consistent with the Company’s directive that outputs reflect advanced reasoning, high precision, and serious business usefulness.
+
+The intelligence standard shall include:
+
+advanced contextual awareness
+multi-step reasoning discipline
+high signal density
+specialized market relevance
+commercial usefulness
+precision in recommendations
+disciplined generation behavior
+low tolerance for shallow or generic outputs
+Section 6.02 — Areas of Application
+
+This intelligence standard shall apply across, without limitation:
+
+market research
+ICP development
+company analysis
+decision-maker discovery
+pain-point identification
+relevance and opportunity scoring
+outreach logic
+content and campaign planning
+call guidance
+meeting support
+CRM routing
+reporting synthesis
+issue summarization
+quality review assistance
+operational next-step logic
+leadership digest generation
+Section 6.03 — Prohibited Output Behavior
+
+The System shall not knowingly produce outputs that are:
+
+generic without justification
+fabricated in material respects
+commercially empty
+context-insensitive
+strategically weak
+overly verbose without signal
+misleadingly certain
+operationally unusable
+blind to workflow state
+blind to user role or permissions
+
+Where confidence is limited, the System must preserve confidence awareness rather than simulate false certainty.
+
+ARTICLE VII — AI-FIRST OPERATING PRINCIPLE WITH RESERVED HUMAN AUTHORITY
+Section 7.01 — AI-First Leverage Model
+
+The System shall be designed so that the majority of structured, repeatable, informational, coordination-heavy, and process-heavy work is performed through AI assistance, workflow automation, and orchestration logic.
+
+The intended operating model broadly reflects:
+
+AI as the primary carrier of repetitive operational burden
+humans as the primary holders of judgment in high-consequence moments
+Section 7.02 — Reserved Human Functions
+
+Human authority shall remain required in matters involving:
+
+negotiation
+sensitive client communication
+legal escalation
+financial escalation
+strategic override
+relationship preservation
+exception resolution
+final approvals
+final quality acceptance
+other trust-heavy or high-risk decisions
+Section 7.03 — AI Boundary Rule
+
+No AI process shall be granted final autonomous authority where its output materially creates:
+
+legal exposure
+financial liability
+external publishing risk
+strategic misrepresentation
+client trust damage
+irreversible finalization without review
+
+AI may recommend, prepare, summarize, route, sequence, and assist.
+AI may not silently exceed safe operational boundaries.
+
+ARTICLE VIII — HOLISTIC DESIGN DUTY
+Section 8.01 — System-First Requirement
+
+The System must be conceived and designed holistically before being implemented modularly.
+
+No domain may be built as though it exists independently from:
+
+reporting
+permissions
+archive
+approval pathways
+integrations
+role responsibilities
+cross-domain data dependencies
+executive visibility requirements
+Section 8.02 — Prohibited Design Approach
+
+The following implementation tendencies are expressly disfavored and, where material, prohibited:
+
+building disconnected screens and linking them later
+treating CRUD modules as equivalent to enterprise operating capability
+introducing workflows without defined states
+introducing states without reporting implications
+introducing records without ownership
+introducing approvals without traceability
+introducing AI without context boundaries
+Section 8.03 — Required Pre-Implementation Definitions
+
+Before material implementation of any major domain, the following shall be defined:
+
+objective and business purpose
+owned entities and records
+state models
+permissions behavior
+approval and rejection logic
+reporting outputs
+archive and retention behavior
+integration points
+risk conditions
+escalation conditions
+AI participation boundaries
+ARTICLE IX — DOMAIN CONSTITUTION AND ARCHITECTURAL ORGANIZATION
+Section 9.01 — Eleven Operating Domains
+
+The System shall be organized into eleven formal operating domains:
+
+Command Center & Executive Control
+Intelligence, Market Research & Strategic Insight
+Outreach, Prospecting & Pipeline Discovery
+Marketing, SEO, Brand Awareness & Discoverability
+Production, Studio, Brand & Asset Generation
+Execution, Operations, Publishing & Workflow Control
+CRM, Sales, Closing & Revenue Pipeline
+Communication Intelligence, Calling & Meeting Support
+Finance, Legal, Administrative & Quality Management
+Reporting, Archive, Documentation & Knowledge Memory
+System Core, Governance, Permissions, Integrations & Infrastructure
+Section 9.02 — Mandatory Characteristics of Each Domain
+
+Each domain must define, at minimum:
+
+domain objective
+scope boundaries
+user roles
+records and entities
+workflow definitions
+lifecycle states
+AI participation
+approval conditions
+reporting duties
+archive responsibilities
+integration relationships
+business outcomes
+exception conditions
+supervision requirements
+Section 9.03 — Domain Interoperability Requirement
+
+Domains must be structurally distinct but operationally interoperable.
+No domain shall become a silo where information cannot flow, reports cannot explain activity, or workflows lose continuity.
+
+The purpose of domain separation is architectural integrity, not fragmentation.
+
+ARTICLE X — COMMAND, VISIBILITY, AND EXECUTIVE CONTROL
+Section 10.01 — Executive Oversight Requirement
+
+The Command Center shall function as the genuine top-level oversight surface of the System and shall not be reduced to a decorative dashboard.
+
+It must provide authorized visibility into, at minimum:
+
+pipeline health
+lead quality
+campaign status
+production queues
+pending approvals
+calls and meetings
+CRM movement
+delivery progression
+finance summaries
+quality issues
+archive activity
+system health
+risk signals
+intervention queues
+Section 10.02 — Mandatory Questions the System Must Answer
+
+The executive control layer must allow authorized stakeholders to determine:
+
+what is happening
+what matters most
+what is behind
+what is blocked
+what is risky
+where human attention is needed
+what requires decision
+what must happen next
+
+A control system that cannot answer these questions shall be deemed inadequate.
+
+ARTICLE XI — COMMERCIAL WORKFLOW, CLIENT TRUST, AND COMMUNICATION GOVERNANCE
+Section 11.01 — Revenue Workflow Integrity
+
+The System must preserve continuity from intelligence to outreach, from outreach to qualification, from qualification to CRM, from CRM to meeting, from meeting to proposal, and from proposal to close and post-close operational handoff.
+
+Any architectural gap that materially breaks this continuity shall be treated as a defect of enterprise significance.
+
+Section 11.02 — Communication Support Principle
+
+The communication domain must improve human effectiveness, consistency, context awareness, and follow-through, whether through AI-led workflows, human-led workflows with AI guidance, or human-led meetings supported by AI summarization and recommendation logic.
+
+The System shall not reduce communication intelligence to mere transcription. It must support situational awareness, objection handling, next-step logic, and CRM continuity.
+
+Section 11.03 — Trust Preservation Rule
+
+Because the Company operates in credibility-heavy and trust-sensitive commercial environments, the System must preserve restraint, clarity, contextual accuracy, and quality in all communication-related workflows.
+
+Volume without trust shall not qualify as success.
+
+ARTICLE XII — FINANCE, LEGAL, ADMINISTRATIVE, AND QUALITY DUTIES
+Section 12.01 — Finance
+
+The System shall support meaningful operational finance visibility, including but not limited to quotes, invoices, receipts, payment tracking, profitability awareness, expense awareness, outstanding balances, and tax-ready export support.
+
+The finance domain must support real operational awareness rather than symbolic bookkeeping.
+
+Section 12.02 — Legal
+
+The legal domain must support structured handling of NDAs, MSAs, SOWs, service agreements, contractor agreements, privacy policies, disclaimers, compliance checklists, and legal review status.
+
+Where matters exceed templated or safe automated boundaries, the System must clearly designate:
+
+human legal review required
+
+Section 12.03 — Administrative Integrity
+
+The System shall maintain administrative materials such as SOPs, procedures, forms, policy documents, instructions, memos, handover records, and escalation forms in a structured and retrievable way.
+
+Administrative clarity is part of operational maturity and not optional overhead.
+
+Section 12.04 — Quality Management
+
+Quality must be treated as an explicit system layer. Review rules, approval gates, rejection reasons, issue logging, revision traceability, and final acceptance checkpoints must be materially supported.
+
+Outputs that cannot be reviewed, rejected, or improved in a structured manner shall not be considered governed outputs.
