@@ -236,6 +236,15 @@ Manual React Query hooks for all new engine APIs (wallet, AI mode, notifications
 - `NotificationBell` — header notification dropdown
 - `CreateLeadForm` — modal form that triggers AI auto-enrichment + scoring
 
+## AI Mode Architecture (3 Modes)
+
+- **AI Autonomous**: Full AI agent operation, automation badges, AI-generated content
+- **Hybrid**: AI handles routine tasks, human-review items highlighted
+- **Human Controlled**: Same full functional UI as AI mode, but AI automation paused. Collapsible workflow guides appear above real content as optional step-by-step helpers
+- `ModeAwareWrapper` always renders children (real content); in Human mode, renders `humanContent` prop as a collapsible guide section above children — never replaces children
+- `ModeIndicatorBanner` shows mode status in Human/Hybrid modes
+- Dashboard uses `useAiModeContext()` directly (no wrapper) — shows same full dashboard in all modes
+
 ## Important Notes
 
 - `parseDate()` from `artifacts/api-server/src/lib/parse-date.ts` for date conversions

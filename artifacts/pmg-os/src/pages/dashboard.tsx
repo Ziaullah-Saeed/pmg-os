@@ -134,123 +134,20 @@ export default function Dashboard() {
   const { data: interventionData } = useInterventionQueue();
   const { data: agentActivityData } = useAgentActivity();
 
-  if (isHuman) {
-    return (
-      <div className="max-w-[1600px] mx-auto w-full space-y-6">
-        <PageHeader
-          title="Command Center"
-          subtitle="Manual operations mode — step-by-step guidance for your daily workflow"
-          icon={<Users className="h-5 w-5" />}
-          actions={
-            <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-3 py-1">
-              <Users className="h-3 w-3 mr-1.5" />Human Control Active
-            </Badge>
-          }
-        />
-        <ModeIndicatorBanner />
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <GlassCard className="col-span-1 md:col-span-2">
-            <h3 className="text-sm font-semibold text-blue-200 mb-4 flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-blue-400" />Today's Action Items
-            </h3>
-            <div className="space-y-2">
-              {[
-                { label: "Review pipeline — check for stale deals", done: false, icon: <Briefcase className="h-3.5 w-3.5" /> },
-                { label: "Follow up on pending leads", done: false, icon: <Phone className="h-3.5 w-3.5" /> },
-                { label: "Review AI recommendations from yesterday", done: false, icon: <Inbox className="h-3.5 w-3.5" /> },
-                { label: "Check outstanding invoices", done: false, icon: <DollarSign className="h-3.5 w-3.5" /> },
-                { label: "Update campaign performance notes", done: false, icon: <Megaphone className="h-3.5 w-3.5" /> },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer group">
-                  <div className="p-1.5 rounded bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
-                    {item.icon}
-                  </div>
-                  <span className="text-xs text-slate-300 flex-1">{item.label}</span>
-                  <ArrowRight className="h-3 w-3 text-slate-600 group-hover:text-blue-400 transition-colors" />
-                </div>
-              ))}
-            </div>
-          </GlassCard>
-
-          <div className="space-y-4">
-            <GlassCard>
-              <h3 className="text-sm font-semibold text-blue-200 mb-3 flex items-center gap-2">
-                <ListChecks className="h-4 w-4 text-blue-400" />Quick Stats
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-400">Active Deals</span>
-                  <span className="text-sm font-bold text-white">{oppList.filter((o: any) => !["closed_won", "closed_lost"].includes(o.stage)).length}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-400">Pipeline Value</span>
-                  <span className="text-sm font-bold text-white">${totalPipelineValue.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-400">Open Leads</span>
-                  <span className="text-sm font-bold text-white">{totalLeads}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-400">Pending Tasks</span>
-                  <span className="text-sm font-bold text-white">{pendingTasks.length}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-400">Stale Deals</span>
-                  <span className={`text-sm font-bold ${staleDeals.length > 0 ? "text-red-400" : "text-green-400"}`}>{staleDeals.length}</span>
-                </div>
-              </div>
-            </GlassCard>
-
-            <GlassCard>
-              <h3 className="text-sm font-semibold text-yellow-200 mb-3 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-yellow-400" />Needs Attention
-              </h3>
-              {attentionItems.length === 0 ? (
-                <div className="text-center py-3">
-                  <CheckCircle2 className="h-6 w-6 text-green-400 mx-auto mb-1" />
-                  <p className="text-[10px] text-slate-500">All clear</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {attentionItems.slice(0, 5).map((item, i) => (
-                    <div key={i} className="p-2 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
-                      <p className="text-[10px] font-medium text-yellow-200">{item.text}</p>
-                      <p className="text-[9px] text-yellow-400/50">{item.detail}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </GlassCard>
-          </div>
-        </div>
-
-        <HumanWorkflowGuide
-          title="Daily Operations Workflow"
-          steps={[
-            { id: "1", title: "Review Dashboard", description: "Check pipeline health, stale deals, and pending tasks", status: "current", action: "Start Review" },
-            { id: "2", title: "Process Lead Queue", description: "Review new leads, score manually, assign priorities", status: "upcoming" },
-            { id: "3", title: "Follow Up on Deals", description: "Call or email contacts with stale or advancing deals", status: "upcoming" },
-            { id: "4", title: "Update CRM Records", description: "Log activities, update deal stages, add notes", status: "upcoming" },
-            { id: "5", title: "End-of-Day Summary", description: "Review what was accomplished and set tomorrow's priorities", status: "upcoming" },
-          ]}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
         title="Command Center"
-        subtitle={isHybrid
-          ? "Hybrid mode — AI handles routine tasks, items needing review are highlighted"
-          : "Executive control surface — real-time cross-domain visibility and operational intelligence"
+        subtitle={isHuman
+          ? "Manual operations mode — full dashboard with manual controls"
+          : isHybrid
+            ? "Hybrid mode — AI handles routine tasks, items needing review are highlighted"
+            : "Executive control surface — real-time cross-domain visibility and operational intelligence"
         }
-        icon={isHybrid ? <Zap className="h-5 w-5" /> : <BarChart3 className="h-5 w-5" />}
+        icon={isHuman ? <Users className="h-5 w-5" /> : isHybrid ? <Zap className="h-5 w-5" /> : <BarChart3 className="h-5 w-5" />}
         actions={
           <div className="flex items-center gap-3">
-            {agentStats && (
+            {agentStats && !isHuman && (
               <Badge variant="outline" className="border-green-500/20 text-green-400 text-[10px]">
                 <Bot className="h-3 w-3 mr-1" />{agentStats.total} Agents • {agentStats.totalRuns} Runs
               </Badge>
@@ -260,7 +157,7 @@ export default function Dashboard() {
         }
       />
 
-      {isHybrid && <ModeIndicatorBanner />}
+      {(isHybrid || isHuman) && <ModeIndicatorBanner />}
 
       <PremiumTabs tabs={tabsWithCounts} activeTab={activeView} onTabChange={setActiveView} />
 
