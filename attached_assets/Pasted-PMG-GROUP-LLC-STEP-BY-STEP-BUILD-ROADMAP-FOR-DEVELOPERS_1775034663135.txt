@@ -1,0 +1,1221 @@
+PMG GROUP LLC — STEP-BY-STEP BUILD ROADMAP FOR DEVELOPERS
+Greenfield AI Operating System
+Deep Technical Delivery Roadmap
+
+This roadmap is written for developers, technical leads, product architects, and engineering stakeholders who need a sequenced build strategy that preserves system integrity, prevents architectural drift, and ensures the final platform behaves like a real business operating system rather than a disconnected application. The roadmap follows the directive’s core requirements: a greenfield build from first principles, 11 operating domains, strong governance, AI-first workflows, structured approvals, reporting as a core layer, archive and memory infrastructure, and enterprise-grade delivery standards.
+
+SECTION 1 — BUILD PHILOSOPHY AND DELIVERY RULES
+
+Before implementation begins, the development team must align on five non-negotiable rules.
+
+Rule 1 — Build the system spine before building domain richness
+
+No team should begin deep feature development in CRM, finance, communications, production, or reporting until the platform has a stable core shell, authentication model, permissions model, routing system, audit scaffolding, and cross-domain entity strategy. The directive makes clear that this is not a collection of modules and must be treated as one coherent operating system.
+
+Rule 2 — Build workflows, not screens
+
+Developers must resist the temptation to build “pages” first. Each page should be the UI expression of a previously defined workflow, state model, and business outcome. The directive explicitly prohibits disconnected screen-building and CRUD-first product behavior.
+
+Rule 3 — Every domain must ship with reporting, archive, and permissions awareness
+
+A domain is not complete if it only stores or displays data. It must know:
+
+who can view or act
+how workflow state changes
+what gets reported upward
+what gets archived
+what triggers escalation
+what AI participates in
+how the domain integrates with the rest of the system
+
+This follows directly from the 11-domain constitutional structure in the source file.
+
+Rule 4 — AI is embedded in workflow, not bolted on
+
+The platform’s philosophy is AI-first, with AI handling the majority of structured repeatable work while humans retain authority for sensitive approvals, negotiation, legal, financial, trust-heavy, and exception-based decisions. That means developers must wire AI into the business lifecycle, not place it in a separate “assistant tab.”
+
+Rule 5 — Governance is part of the product, not internal overhead
+
+Permissions, approval rules, revision history, audit trails, review states, archive logic, and system supervision must be first-class concerns from the earliest stages. The directive treats governance as part of trust and operational seriousness, not optional polish.
+
+SECTION 2 — RECOMMENDED EXECUTION MODEL
+
+The most effective way to build this system is through 10 execution phases, each with:
+
+objectives
+build scope
+architectural deliverables
+developer tasks
+exit criteria
+major risks to avoid
+
+This ordering is deliberate. It prioritizes structural integrity, then cross-domain continuity, then operational depth.
+
+PHASE 0 — PRODUCT ARCHITECTURE, DOMAIN MAPPING, AND DELIVERY FOUNDATIONS
+Objective
+
+Define the product before coding it. This phase exists to eliminate ambiguity around domain boundaries, entities, role behavior, workflow state transitions, AI participation, reporting outputs, and infrastructure expectations.
+
+Why this phase is mandatory
+
+The directive explicitly requires holistic design before modular implementation, and it rejects building disconnected screens first.
+
+Core outputs
+
+The team must produce:
+
+1. Domain map
+
+A full definition of all 11 operating domains:
+
+Command Center & Executive Control
+Intelligence, Market Research & Strategic Insight
+Outreach, Prospecting & Pipeline Discovery
+Marketing, SEO, Brand Awareness & Discoverability
+Production, Studio, Brand & Asset Generation
+Execution, Operations, Publishing & Workflow Control
+CRM, Sales, Closing & Revenue Pipeline
+Communication Intelligence, Calling & Meeting Support
+Finance, Legal, Administrative & Quality Management
+Reporting, Archive, Documentation & Knowledge Memory
+System Core, Governance, Permissions, Integrations & Infrastructure
+2. Canonical entity model
+
+Define the first set of core entities and ownership:
+
+User
+Role
+Permission policy
+Organization / workspace
+Lead
+Company
+Contact
+Opportunity
+Task
+Campaign
+Asset
+Meeting
+Call log
+Report
+Approval
+Invoice
+Contract
+Quality issue
+Archive item
+AI run / generation log
+Integration record
+Audit event
+3. Global state strategy
+
+Define state machines for every critical workflow, such as:
+
+lead lifecycle
+opportunity lifecycle
+asset lifecycle
+approval lifecycle
+invoice lifecycle
+meeting follow-up lifecycle
+issue lifecycle
+archive/finalization lifecycle
+4. Role and permission matrix
+
+Minimum roles are mandated in the source:
+
+Super Admin
+Admin
+Manager
+User
+
+Define for each role:
+
+readable domains
+editable records
+approval authority
+publishing rights
+reporting visibility
+financial visibility
+governance access
+archive access
+integration control
+5. Reporting map
+
+For each domain, define:
+
+executive summary outputs
+technical/operational outputs
+event-triggered reports
+scheduled reports
+escalation reports
+
+The source requires two report types across major activities.
+
+6. Archive taxonomy
+
+Define how artifacts become searchable memory:
+
+source type
+record type
+tags
+owner
+client/workspace linkage
+version history
+approval state
+retention policy
+retrieval rules
+7. AI policy framework
+
+Define:
+
+where AI can generate
+where AI can recommend
+where AI can summarize
+where AI can auto-route
+where AI must request review
+where human intervention is required
+Developer tasks
+Write architecture decision records
+Produce system diagrams
+Define API conventions
+Define monorepo or multi-repo strategy
+Establish coding standards
+Define event naming conventions
+Define audit logging format
+Define database naming conventions
+Define prompt versioning standards
+Define observability standards
+Exit criteria
+
+Phase 0 is complete only when:
+
+every domain has a written purpose and boundary
+every major entity has an owner and lifecycle
+permission model is defined
+reporting model is defined
+approval model is defined
+archive model is defined
+engineering agrees on architecture
+product agrees on workflows
+Main risks
+jumping into frontend too early
+unclear domain boundaries
+weak entity ownership
+AI used vaguely without workflow context
+PHASE 1 — ENGINEERING FOUNDATIONS AND SYSTEM CORE
+Objective
+
+Build the platform skeleton that every future domain depends on.
+
+Scope
+
+This phase builds the trust layer and system spine required by the directive’s System Core, Governance, Permissions, Integrations, and Infrastructure domain.
+
+Must-build components
+1. Frontend shell
+
+Implement:
+
+Next.js app structure
+route segmentation by domain
+role-aware layout engine
+global nav
+domain nav
+command bar/search trigger
+command-center shell
+theme/token foundation
+dark-first layout
+
+The directive specifies React, Next.js, TypeScript, Tailwind, shadcn/ui, Framer Motion, dark-first design, and premium AI-native UX.
+
+2. Authentication and session layer
+
+Implement:
+
+sign-in and sign-out
+session management
+secure auth storage
+tenant/workspace selection if multi-client
+role resolution
+user profile hydration
+3. Authorization framework
+
+Build:
+
+route guards
+page-level permissions
+module-level permissions
+action-level permissions
+API-level authorization
+feature gate middleware
+
+Permissions must shape system behavior, not just hide buttons.
+
+4. Environment and secrets management
+
+Implement:
+
+environment configuration layering
+secrets storage/access pattern
+provider credential management
+integration secret rotation path
+dev/staging/prod separation
+5. Audit trail infrastructure
+
+Create system-wide audit event recording for:
+
+create/update/delete
+approval actions
+publishing actions
+workflow transitions
+login/security events
+integration changes
+permission changes
+AI generation events
+6. Error handling and observability
+
+Build:
+
+structured server logs
+client error tracking
+request tracing
+integration failure tracking
+retry policies
+operational alert routing
+health checks
+7. Notification/event framework
+
+Create a generalized event system for:
+
+reminders
+approvals pending
+failures
+task routing
+stale opportunities
+reporting triggers
+quality issues
+legal review required
+invoice overdue
+Developer tasks
+set up repo structure
+CI/CD
+linting, formatting, type enforcement
+base database migrations
+auth middleware
+permission middleware
+event bus or async job framework
+observability dashboards
+Exit criteria
+users can log in
+roles resolve correctly
+shell is navigable
+permissions enforce behavior
+audit logs persist
+system health can be monitored
+events can be emitted and consumed
+Main risks
+shallow permissions
+no auditability
+weak dev/staging/prod isolation
+no unified event system
+PHASE 2 — DESIGN SYSTEM, UI FRAMEWORK, AND INTERACTION PRIMITIVES
+Objective
+
+Build the reusable UI system so later domain work remains fast, consistent, and premium rather than fragmented.
+
+Why this matters
+
+The directive emphasizes a cinematic, premium, controlled, dark-first AI-native interface with strong hierarchy, minimal clutter, and accessibility-conscious responsiveness.
+
+Build scope
+1. Design tokens
+
+Define:
+
+color tokens
+spacing
+radii
+typography scale
+shadows
+motion durations
+status colors
+semantic action colors
+chart/display conventions
+
+The source explicitly calls for crimson emphasis, navy foundations, strong contrast, subtle neutrals, and premium dark-first presentation.
+
+2. Component library
+
+Build standardized:
+
+buttons
+inputs
+forms
+selectors
+tables
+data grids
+sidebars
+command palette
+drawers
+modals
+approval cards
+audit/history panels
+timeline views
+report panels
+AI response containers
+confidence badges
+state chips
+role guard wrappers
+3. Workflow UI primitives
+
+Build reusable patterns for:
+
+step flows
+state transitions
+review queues
+approval queues
+version comparison
+notes/comments
+attachments
+revision history
+issue flags
+escalation banners
+4. Responsive foundations
+
+Implement:
+
+desktop-first layouts
+tablet reflow
+mobile-safe drawers
+collapsible panels
+no-broken-grid policy
+keyboard accessibility
+sensible focus management
+Exit criteria
+design system documented
+shared component library in place
+workflow primitives reusable
+responsive shell stable
+accessibility basics covered
+Main risks
+domain teams handcrafting inconsistent UI
+no standardized state displays
+mobile ignored until too late
+PHASE 3 — COMMAND CENTER AND GLOBAL OPERATING VISIBILITY
+Objective
+
+Build the executive oversight layer early so the rest of the system has a visible control plane as domains come online.
+
+Why now
+
+The directive states the Command Center must be the real top-level control surface, not a decorative dashboard.
+
+Build scope
+1. Cross-domain summary model
+
+Design a unified query layer that can aggregate:
+
+pipeline status
+campaign status
+production queue
+approvals pending
+calls/meetings
+delivery state
+financial snapshot
+quality issues
+system health
+risks and blockages
+intervention-needed items
+
+These are all explicitly listed in the source.
+
+2. Role-based dashboard variants
+
+Implement views for:
+
+executive
+manager
+operations
+system health
+exception-focused
+3. Attention routing
+
+Build “what needs human attention now” logic:
+
+stale opportunities
+approval bottlenecks
+failed workflows
+overdue tasks
+client-facing deliverables awaiting review
+invoice risk
+quality exceptions
+legal review flags
+4. Operational widgets
+
+Create cards/panels for:
+
+daily priorities
+pending approvals
+alerts
+system incidents
+top blockers
+weekly movement
+AI workload summary
+human intervention queue
+Exit criteria
+command center reflects live data from at least initial domains
+role-based views work
+priority/attention logic works
+system can answer: what matters, what is blocked, what needs intervention
+Main risks
+dashboard built before data model maturity
+vanity metrics instead of action-driving visibility
+PHASE 4 — INTELLIGENCE DOMAIN AND STRATEGIC INSIGHT ENGINE
+Objective
+
+Build the strategic research and intelligence foundation that powers targeting, outreach, messaging, and decision support.
+
+Why this phase matters
+
+The directive calls this the strategic intelligence foundation and says it is not a research library but an intelligence engine.
+
+Build scope
+1. Research records
+
+Implement entities for:
+
+market segment
+ICP definition
+competitor profile
+pain-point map
+trust barrier
+authority pattern
+opportunity score
+message gap
+category analysis
+2. Intelligence workflows
+
+Build workflows for:
+
+create/update ICP
+analyze company fit
+identify industry pain themes
+map decision-maker roles
+compare competitors
+create targeting recommendations
+generate strategic summary
+3. AI functionality
+
+Embed AI for:
+
+research synthesis
+company analysis
+fit scoring assistance
+pain/objection extraction
+niche summary generation
+positioning recommendations
+relevance explanations
+4. Output structure
+
+Each intelligence output must persist:
+
+source context or input context
+assumptions
+confidence indicators
+recommended next actions
+downstream use cases
+5. Integration
+
+Make outputs feed:
+
+prospecting
+outreach angle generation
+content strategy
+executive reports
+CRM context
+Exit criteria
+intelligence records are usable downstream
+AI outputs are structured and reviewable
+market insights feed prospecting and messaging
+Main risks
+research stored as unstructured notes
+no confidence model
+intelligence doesn’t connect to execution
+PHASE 5 — OUTREACH, PROSPECTING, AND LEAD INTELLIGENCE
+Objective
+
+Turn strategic insight into actionable pipeline generation.
+
+Directive basis
+
+This domain must operationalize intelligence into pipeline creation, with confidence-aware, relevance-aware, commercially actionable outputs and non-fabrication discipline.
+
+Build scope
+1. Core lead entities
+
+Implement:
+
+target company
+target contact
+fit analysis
+pain hypothesis
+authority hypothesis
+verified/inferred/unavailable markers
+confidence score
+outreach angle
+readiness state
+CRM handoff state
+2. Workflow stages
+
+Recommended lead lifecycle:
+
+Discovered
+Enriched
+Fit Assessed
+Contact Mapped
+Outreach Angle Prepared
+Ready for Outreach
+In Outreach
+Qualified
+Disqualified
+Handoff to CRM
+3. AI capabilities
+
+Use AI for:
+
+company fit explanation
+likely pain mapping
+personalization suggestions
+authority role inference
+next-step suggestions
+contact prioritization
+4. Lead quality controls
+
+Hard constraints:
+
+no lead without fit rationale
+no lead without confidence marker
+no AI output without structured fields
+no CRM handoff without minimum quality criteria
+5. Handoff mechanism
+
+Build a clean promotion path from lead intelligence into CRM opportunity or sales lead state.
+
+Exit criteria
+prospecting produces structured leads
+confidence is visible
+CRM handoff works
+irrelevant noise is suppressed
+Main risks
+scraping-first mindset
+no fit explanation
+poor lead quality polluting CRM
+PHASE 6 — CRM, SALES PIPELINE, AND REVENUE OPERATIONS
+Objective
+
+Build one of the strongest domains in the system: revenue movement from accepted lead to close and transition.
+
+Directive basis
+
+The CRM must support lead acceptance, opportunities, deal progression, tasks, follow-ups, proposal/contract status, stale detection, and post-close transition. It must support PMG Internal CRM by default, while also allowing optional GoHighLevel and HubSpot modes.
+
+Build scope
+1. CRM architecture
+
+Implement two structural environments:
+
+PMG CRM
+Client CRM
+
+As required in the source.
+
+2. Core CRM entities
+sales lead
+opportunity
+deal stage
+activity
+task
+meeting record
+proposal status
+contract status
+owner
+handoff record
+stale signal
+close probability
+client account
+3. Pipeline state model
+
+Recommended opportunity states:
+
+New
+Accepted
+Discovery Scheduled
+Discovery Completed
+Qualified
+Proposal in Progress
+Proposal Sent
+Negotiation
+Contract Pending
+Won
+Lost
+On Hold
+Stale
+Transition to Delivery
+4. Operational logic
+
+Build:
+
+activity timelines
+reminders
+follow-up sequences
+owner assignment
+stage transition validation
+stale opportunity detection
+next-best-action prompts
+reporting hooks
+5. Integrations
+
+Support optional CRM bridges without surrendering PMG visibility:
+
+import/sync layers
+external source mapping
+source-of-truth designation
+sync audit logs
+failure alerts
+Exit criteria
+full pipeline movement works
+tasks and meetings integrate
+stale detection works
+PMG retains visibility even in optional CRM modes
+Main risks
+contact database masquerading as CRM
+weak stage logic
+fragmented client/external CRM syncing
+PHASE 7 — COMMUNICATION INTELLIGENCE, CALLING, AND MEETING SUPPORT
+Objective
+
+Support AI-led and human-led communication workflows with real-time and post-call intelligence.
+
+Directive basis
+
+The source defines three modes: AI-led calling, human-led cold calling with AI guidance, and human-led meetings/closing support with transcription, objection detection, summaries, CRM updates, and next-step support.
+
+Build scope
+1. Communication records
+call session
+meeting session
+transcript
+summary
+objection/event markers
+interest signals
+hesitation signals
+recommendation items
+follow-up draft
+booking event
+CRM update link
+2. Three-mode support
+
+Implement workflows for:
+
+AI-led call orchestration
+human call assist panel
+meeting copilot panel
+3. Real-time assist surfaces
+
+Build UI for:
+
+company context
+lead context
+likely pain summary
+objection map
+opening suggestions
+next-sentence guidance
+meeting goal checklist
+follow-up suggestions
+4. Post-session automation
+
+After calls or meetings, generate:
+
+concise summary
+action items
+follow-up draft
+CRM update proposal
+report hook
+archive entry
+5. Audio/transcription plumbing
+
+Support transcription and event extraction. The source references ElevenLabs and Whisper where applicable.
+
+Exit criteria
+communication sessions produce structured intelligence
+follow-up workflows connect to CRM and tasks
+summaries archive correctly
+AI support helps but does not override human authority in sensitive moments
+Main risks
+reducing the feature to transcription only
+no CRM continuity
+no actionable summary structure
+PHASE 8 — MARKETING, SEO, PRODUCTION STUDIO, AND APPROVAL GOVERNANCE
+Objective
+
+Build the growth and content production side of the platform together with rigorous approval governance.
+
+Directive basis
+
+The source requires a full marketing/discoverability domain and a controlled production environment with a lifecycle of Generate → Preview → Review → Revise/Regenerate → Approve → Finalize. It explicitly prohibits uncontrolled finalization and invisible revisions.
+
+Build scope
+Part A — Marketing and discoverability
+
+Implement:
+
+content calendar
+campaign record
+channel-specific plans
+SEO topic cluster records
+page/intention alignment
+nurture path definitions
+repurposing workflows
+optimization loops
+Part B — Platform-safe operation
+
+Build controls for:
+
+cadence management
+sender/channel health awareness
+suppression logic
+account safety flags
+audience mismatch prevention
+fallback logic for risky channels
+
+These are directly required by the multi-channel safety section.
+
+Part C — Production studio
+
+Support creation of:
+
+proposals
+decks
+one-pagers
+landing pages
+scripts
+brand systems
+messaging frameworks
+storyboards
+content packs
+onboarding materials
+
+As listed in the source production domain.
+
+Part D — Approval lifecycle
+
+Implement the mandatory asset lifecycle:
+
+Generate
+Preview
+Review
+Revise/Regenerate
+Approve
+Finalize
+
+Support:
+
+drafts
+revisions
+review notes
+approvals
+rejection reasons
+final versions
+traceability history
+Exit criteria
+content and assets can be generated in controlled workflows
+no asset bypasses review
+version history persists
+final outputs archive correctly
+Main risks
+AI output treated as final
+no version history
+marketing workflow not connected to reporting or execution
+PHASE 9 — EXECUTION, OPERATIONS, TASK ROUTING, AND PUBLISHING CONTROL
+Objective
+
+Create the “work happens here” layer where approved plans and assets become executed action.
+
+Directive basis
+
+The execution domain must support scheduling, campaign launch, operational routing, reminders, checklists, task ownership, execution verification, approval routing, exception handling, and post-launch monitoring.
+
+Build scope
+1. Core execution entities
+task
+checklist
+launch job
+scheduled publish
+execution queue
+approval dependency
+owner
+reminder
+exception
+verification record
+2. Workflow logic
+
+Build:
+
+task assignment
+due dates and reminders
+dependent tasks
+launch blockers
+execution verification
+failure handling
+escalation routing
+post-launch follow-up
+3. Publishing logic
+
+Support:
+
+scheduled publishing
+approval-required publishing
+rollback or failure state capture
+launch logs
+execution status reporting
+4. Operational control
+
+Surface:
+
+what is waiting
+what failed
+who owns the next action
+what needs escalation
+what needs approval
+
+The source explicitly says this domain must answer these questions.
+
+Exit criteria
+tasks are actionable and owned
+launch workflows are trackable
+operational exceptions are visible
+command center reflects execution state
+Main risks
+task list without workflow intelligence
+no dependency handling
+no verification or exception routing
+PHASE 10 — FINANCE, LEGAL, ADMIN, QUALITY, REPORTING, ARCHIVE, SLACK, AND HARDENING
+Objective
+
+Complete the company-grade operating layers that make the platform dependable, governable, and scalable.
+
+Directive basis
+
+The source requires serious finance, legal, admin, quality, reporting, archive/memory, Slack, and governance/infrastructure capabilities.
+
+Build scope
+A. Finance
+
+Implement:
+
+quote/estimate records
+invoice generation
+payment records
+outstanding balance tracking
+expenses
+profitability snapshots
+cost tracking
+tax-ready exports
+
+As required in the finance domain.
+
+B. Legal
+
+Implement:
+
+NDA/MSA/SOW storage
+legal review states
+template library
+legal-required escalation flags
+document integrity and access control
+C. Administrative
+
+Implement:
+
+SOP library
+policy docs
+procedures
+forms
+handover records
+escalation forms
+internal memos
+administrative archive
+D. Quality management
+
+Build:
+
+QA checklists
+review rules
+issue logging
+rejection reasons
+revision traceability
+final acceptance checkpoints
+quality summaries
+
+This is explicitly required in the quality domain.
+
+E. Reporting engine
+
+This is a major sub-phase and should not be shallow.
+
+Reporting must support:
+executive reports
+technical reports
+automatic summaries
+scheduled reports
+event-triggered reports
+role-sensitive reporting
+leadership digests
+export/archive logic
+CRM-linked reporting
+communication history summaries
+Slack summaries
+
+These come directly from the reporting sections.
+
+Reporting architecture tasks
+define report schemas
+define report generators by domain
+build report scheduling service
+build event-triggered report producer
+build reporting UI and history
+build report archive retrieval
+F. Archive and knowledge memory
+
+Implement searchable memory over:
+
+contracts
+SOPs
+quotes/invoices
+decks/proposals
+reports
+call logs/summaries
+meeting transcripts/summaries
+CRM records
+quality records
+workflow histories
+final assets
+admin docs
+
+These are all explicitly listed in the archive domain.
+
+Archive features
+category structure
+tags
+filters
+full-text search
+permission-aware retrieval
+version lineage
+linked-record navigation
+G. Slack and communication surface
+
+Build Slack integration for:
+
+executive summaries
+management updates
+campaign updates
+lead summaries
+call summaries
+meeting summaries
+delivery summaries
+operational alerts
+internal-to-client updates
+
+As required by the source.
+
+H. Hardening and trust layer
+
+Finish:
+
+backups
+recovery readiness
+dependency visibility
+incident alerts
+environment supervision
+integration health dashboards
+secrets review
+audit review tools
+Exit criteria
+system is reportable end-to-end
+archive works as real memory
+finance/legal/admin/quality are operational
+Slack summaries and alerts work
+system supervision is credible
+Main risks
+leaving reporting for the end and rushing it
+archive becoming a dump instead of structured memory
+finance/legal/admin treated as minor modules
+SECTION 3 — TESTING STRATEGY BY STAGE
+
+Because the directive rejects endless testing of basic broken flows in production, testing must be layered early.
+
+1. Unit tests
+
+Use for:
+
+state transition rules
+permission checks
+domain services
+AI output parsers
+report schema builders
+utility functions
+2. Integration tests
+
+Use for:
+
+auth + permission middleware
+database writes
+event-driven workflows
+CRM handoff
+approval lifecycle
+report generation
+archive indexing
+Slack delivery
+3. End-to-end tests
+
+Use for:
+
+lead-to-opportunity flow
+proposal approval flow
+meeting-summary-to-CRM flow
+invoice generation flow
+report generation flow
+archive retrieval flow
+4. Role-based behavioral tests
+
+Validate that Super Admin, Admin, Manager, and User truly experience different system behavior, not just different menus.
+
+5. Human-in-the-loop tests
+
+For AI workflows:
+
+review requirement enforcement
+confidence labeling
+escalation logic
+false certainty prevention
+SECTION 4 — SUGGESTED TEAM STRUCTURE
+
+To build this at quality, developers should not work as a generic undifferentiated pool.
+
+Recommended squads
+Core Platform Squad
+
+Auth, permissions, audit, infra, events, shell, observability
+
+Revenue Systems Squad
+
+Intelligence, prospecting, CRM, communication support
+
+Growth and Production Squad
+
+Marketing, content, studio, approvals, execution
+
+Business Ops Squad
+
+Finance, legal, admin, quality, archive, reporting, Slack
+
+Shared AI/Workflow Squad
+
+Prompt architecture, orchestration logic, AI schemas, evaluation, guardrails
+
+SECTION 5 — DEFINITION OF DONE
+
+A feature or domain is only done when it satisfies all of the following:
+
+Functional
+performs the intended business task
+Workflow-valid
+state transitions are correct
+Permission-valid
+role behavior is enforced
+Governed
+review/approval rules exist where required
+Reportable
+major actions generate relevant report outputs
+Auditable
+major actions are traceable
+Archivable
+outputs/history can enter memory layer
+Observable
+failures and health issues are visible
+AI-safe
+AI behavior is bounded and review-aware
+
+If one of these is missing, the implementation is incomplete.
+
+SECTION 6 — PRACTICAL RELEASE STRATEGY
+Release 1 — Core Internal Operating Alpha
+
+Ship:
+
+auth/roles
+shell
+command center base
+intelligence
+prospecting
+PMG CRM core
+communication summaries
+task routing
+basic reporting
+archive base
+Release 2 — Revenue and Communication Beta
+
+Ship:
+
+enhanced pipeline
+meeting copilot
+proposal tracking
+stronger reporting
+Slack summaries
+quality hooks
+Release 3 — Production and Marketing Beta
+
+Ship:
+
+campaign planning
+content calendar
+production studio
+approval lifecycle
+publish control
+Release 4 — Business Operations Expansion
+
+Ship:
+
+finance
+legal
+admin
+quality
+deeper archive
+hardening
+Release 5 — Enterprise Readiness
+
+Ship:
+
+full observability
+recovery readiness
+external CRM modes
+optimization layer
+advanced executive reporting
+SECTION 7 — FINAL ENGINEERING MANDATE
+
+Developers should treat this system as enterprise operating infrastructure, not a startup dashboard. The final product must reflect the original directive’s core standard:
+
+no shallow domains
+no disconnected workflows
+no weak reporting
+no weak permissions
+no generic AI
+no uncontrolled publishing
+no missing archive
+no cosmetic governance
+no fragile operational core
+
+The goal is not to “finish features.”
+The goal is to build:
+
+a real AI-powered company inside software.
+
+If you want, next I can turn this into a developer delivery plan by week/sprint, for example Weeks 1–4, 5–8, 9–12, with exact milestones, handoffs, and engineering outputs.
