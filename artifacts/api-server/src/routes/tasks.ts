@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, and } from "drizzle-orm";
 import { db, tasksTable } from "@workspace/db";
+import { parseDate } from "../lib/parse-date";
 import {
   ListTasksQueryParams,
   ListTasksResponse,
@@ -46,7 +47,16 @@ router.post("/tasks", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [task] = await db.insert(tasksTable).values(parsed.data).returning();
+  try {
+    var insertData = {
+      ...parsed.data,
+      dueDate: parseDate(parsed.data.dueDate),
+    };
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+    return;
+  }
+  const [task] = await db.insert(tasksTable).values(insertData).returning();
   res.status(201).json(GetTaskResponse.parse(task));
 });
 
@@ -75,7 +85,16 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [task] = await db.update(tasksTable).set(parsed.data).where(eq(tasksTable.id, params.data.id)).returning();
+  try {
+    var updateData = {
+      ...parsed.data,
+      dueDate: parseDate(parsed.data.dueDate),
+    };
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+    return;
+  }
+  const [task] = await db.update(tasksTable).set(updateData).where(eq(tasksTable.id, params.data.id)).returning();
   if (!task) {
     res.status(404).json({ error: "Task not found" });
     return;

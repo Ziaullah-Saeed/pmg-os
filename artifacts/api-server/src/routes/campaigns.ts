@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, and } from "drizzle-orm";
 import { db, campaignsTable } from "@workspace/db";
+import { parseDate } from "../lib/parse-date";
 import {
   ListCampaignsQueryParams,
   ListCampaignsResponse,
@@ -43,7 +44,17 @@ router.post("/campaigns", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [campaign] = await db.insert(campaignsTable).values(parsed.data).returning();
+  try {
+    var insertData = {
+      ...parsed.data,
+      startDate: parseDate(parsed.data.startDate),
+      endDate: parseDate(parsed.data.endDate),
+    };
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+    return;
+  }
+  const [campaign] = await db.insert(campaignsTable).values(insertData).returning();
   res.status(201).json(GetCampaignResponse.parse(campaign));
 });
 
@@ -72,7 +83,17 @@ router.patch("/campaigns/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [campaign] = await db.update(campaignsTable).set(parsed.data).where(eq(campaignsTable.id, params.data.id)).returning();
+  try {
+    var updateData = {
+      ...parsed.data,
+      startDate: parseDate(parsed.data.startDate),
+      endDate: parseDate(parsed.data.endDate),
+    };
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+    return;
+  }
+  const [campaign] = await db.update(campaignsTable).set(updateData).where(eq(campaignsTable.id, params.data.id)).returning();
   if (!campaign) {
     res.status(404).json({ error: "Campaign not found" });
     return;

@@ -1,17 +1,44 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
-import { BrainCircuit, Building2, Users, TrendingUp, Target, Shield, Search, Plus, Sparkles, Eye, ChevronRight, MapPin, Globe, Zap } from "lucide-react";
 import { useListCompanies, useListContacts, useListLeads } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
+import { PageHeader } from "@/components/ui/page-header";
+import { GlassCard } from "@/components/ui/glass-card";
+import { KpiCard } from "@/components/ui/kpi-card";
+import { PremiumTabs } from "@/components/ui/premium-tabs";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ConfidenceMeter } from "@/components/ui/confidence-meter";
+import { DetailDrawer } from "@/components/ui/detail-drawer";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  BrainCircuit, Target, Building2, Users, Shield, Search,
+  Sparkles, Globe, AlertTriangle, Plus, Eye,
+  Crosshair, Lightbulb, ArrowRight, MapPin
+} from "lucide-react";
+
+const tabs = [
+  { id: "companies", label: "Company Intelligence", icon: <Building2 className="h-3.5 w-3.5" /> },
+  { id: "contacts", label: "Decision Maker Map", icon: <Users className="h-3.5 w-3.5" /> },
+  { id: "icp", label: "ICP Analysis", icon: <Crosshair className="h-3.5 w-3.5" /> },
+  { id: "competitors", label: "Competitor Watch", icon: <Eye className="h-3.5 w-3.5" /> },
+  { id: "pain", label: "Pain Analysis", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
+  { id: "positioning", label: "Positioning", icon: <Lightbulb className="h-3.5 w-3.5" /> },
+];
+
+const competitors = [
+  { name: "Accenture Security", strength: "Global brand, enterprise relationships", weakness: "Expensive, slow engagement", threat: 85, segments: ["Enterprise", "Government"] },
+  { name: "Deloitte Cyber", strength: "Compliance expertise, audit integration", weakness: "Complex procurement, long timelines", threat: 65, segments: ["Financial Services", "Healthcare"] },
+  { name: "CrowdStrike Services", strength: "Tech-first, strong detection platform", weakness: "Limited managed services depth", threat: 55, segments: ["Technology", "SaaS"] },
+  { name: "Boutique IT Firms", strength: "Price competitive, local presence", weakness: "Limited scale, narrow expertise", threat: 30, segments: ["SMB", "Local"] },
+];
+
+const painThemes = [
+  { theme: "Compliance & Regulatory Pressure", urgency: 95, frequency: "Very High", segments: ["MSPs", "Healthcare IT"], opportunity: "Position as compliance-first security partner" },
+  { theme: "Talent Shortage in Security", urgency: 88, frequency: "High", segments: ["All Cybersecurity"], opportunity: "AI-augmented security services" },
+  { theme: "Lead Generation Struggles", urgency: 82, frequency: "High", segments: ["Small MSPs", "Startups"], opportunity: "Done-for-you pipeline building" },
+  { theme: "Brand Trust & Authority", urgency: 75, frequency: "Medium", segments: ["New Entrants", "Regional Firms"], opportunity: "Authority content & positioning" },
+  { theme: "Client Retention Risk", urgency: 70, frequency: "Medium", segments: ["Growing MSPs"], opportunity: "Client success frameworks" },
+];
 
 export default function Intelligence() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -27,388 +54,306 @@ export default function Intelligence() {
   const avgFitScore = leadList.length
     ? Math.round(leadList.reduce((sum: number, l: any) => sum + (l.fitScore ?? l.fit_score ?? 0), 0) / leadList.length)
     : 0;
-
   const decisionMakers = contactList.filter((c: any) => c.isDecisionMaker ?? c.is_decision_maker);
 
   return (
-    <motion.div className="p-6 md:p-8 max-w-[1600px] mx-auto w-full space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <BrainCircuit className="h-8 w-8 text-primary" />
-            Intelligence Engine
-          </h1>
-          <p className="text-muted-foreground mt-1">Market research, ICP modeling, competitor analysis, and strategic intelligence.</p>
-        </div>
-        <div className="flex gap-2">
-          <ICPBuilderDialog />
-          <Button variant="outline"><Sparkles className="h-4 w-4 mr-2" />AI Enrich</Button>
-        </div>
-      </div>
+    <div className="max-w-[1600px] mx-auto w-full space-y-6">
+      <PageHeader
+        title="Intelligence Engine"
+        subtitle="Market research, ICP modeling, competitor analysis, and strategic intelligence"
+        icon={<BrainCircuit className="h-5 w-5" />}
+        actions={
+          <div className="flex gap-2">
+            <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg">
+              <Plus className="h-4 w-4 mr-2" />Build ICP
+            </Button>
+            <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg">
+              <Sparkles className="h-4 w-4 mr-2" />AI Enrich
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <SmallMetric label="Companies Tracked" value={companyList.length} icon={Building2} />
-        <SmallMetric label="Contacts Mapped" value={contactList.length} icon={Users} />
-        <SmallMetric label="Decision Makers" value={decisionMakers.length} icon={Shield} accent />
-        <SmallMetric label="Avg Fit Score" value={`${avgFitScore}%`} icon={Target} accent />
-        <SmallMetric label="Active Leads" value={leadList.length} icon={TrendingUp} />
+        <KpiCard label="Companies Tracked" value={companyList.length} icon={<Building2 className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="Contacts Mapped" value={contactList.length} icon={<Users className="h-4 w-4" />} />
+        <KpiCard label="Decision Makers" value={decisionMakers.length} icon={<Shield className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Avg Fit Score" value={`${avgFitScore}%`} icon={<Target className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Active Leads" value={leadList.length} icon={<Crosshair className="h-4 w-4" />} accent="success" />
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-card/50 border border-border/50">
-          <TabsTrigger value="companies" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Building2 className="h-4 w-4 mr-2" />Company Intelligence
-          </TabsTrigger>
-          <TabsTrigger value="contacts" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Users className="h-4 w-4 mr-2" />Decision Maker Map
-          </TabsTrigger>
-          <TabsTrigger value="icp" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Target className="h-4 w-4 mr-2" />ICP Analysis
-          </TabsTrigger>
-          <TabsTrigger value="competitors" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Eye className="h-4 w-4 mr-2" />Competitor Watch
-          </TabsTrigger>
-        </TabsList>
+      <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <TabsContent value="companies" className="space-y-4 mt-6">
-          {companyList.map((company: any) => (
-            <motion.div key={company.id} whileHover={{ scale: 1.005 }} transition={{ duration: 0.15 }}>
-              <Card className="bg-card/50 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-colors cursor-pointer" onClick={() => setSelectedCompany(company)}>
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1 min-w-0">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                          {company.name?.charAt(0)}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-base">{company.name}</h3>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Globe className="h-3 w-3" />{company.industry}
-                            <MapPin className="h-3 w-3 ml-1" />{company.location}
-                            <span className="ml-1">{company.size} employees</span>
-                          </div>
-                        </div>
+      <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        {activeTab === "companies" && (
+          <div className="space-y-3">
+            {companyList.map((company: any) => (
+              <GlassCard key={company.id} variant="interactive" className="cursor-pointer" onClick={() => setSelectedCompany(company)}>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-crimson/10 flex items-center justify-center text-crimson font-bold text-sm shrink-0">
+                      {company.name?.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-sm">{company.name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Globe className="h-3 w-3" />{company.industry}
+                        <MapPin className="h-3 w-3 ml-1" />{company.location}
+                        <span className="ml-1">{company.size} employees</span>
                       </div>
                       {(company.painPoints ?? company.pain_points) && (
-                        <div className="ml-13 p-2 rounded-md bg-orange-500/5 border border-orange-500/10">
-                          <p className="text-xs text-orange-300"><span className="font-semibold">Pain Points:</span> {company.painPoints ?? company.pain_points}</p>
-                        </div>
+                        <p className="text-xs text-warning mt-1 flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          {company.painPoints ?? company.pain_points}
+                        </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-4">
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-primary">{company.fitScore ?? company.fit_score}%</div>
-                        <div className="text-[10px] text-muted-foreground">Fit Score</div>
-                        <Progress value={company.fitScore ?? company.fit_score ?? 0} className="h-1 w-16 mt-1" />
-                      </div>
-                      <Badge variant={company.status === 'active_client' ? 'default' : 'secondary'} className="capitalize">
-                        {company.status?.replace(/_/g, ' ')}
-                      </Badge>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </TabsContent>
+                  <div className="flex items-center gap-3 shrink-0 ml-4">
+                    <div className="text-center">
+                      <ConfidenceMeter score={company.fitScore ?? company.fit_score ?? 0} className="w-20" />
+                    </div>
+                    <StatusBadge variant={company.status === "active_client" ? "active" : "pending"} label={company.status?.replace(/_/g, " ")} />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+              </GlassCard>
+            ))}
+            {companyList.length === 0 && (
+              <GlassCard className="py-12 flex flex-col items-center gap-3">
+                <Building2 className="h-12 w-12 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No companies tracked yet</p>
+              </GlassCard>
+            )}
+          </div>
+        )}
 
-        <TabsContent value="contacts" className="space-y-4 mt-6">
+        {activeTab === "contacts" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {contactList.map((contact: any) => {
               const company = companyList.find((c: any) => c.id === contact.companyId || c.id === contact.company_id);
-              const authorityLevel = contact.authorityLevel ?? contact.authority_level ?? 'unknown';
-              const authorityColor = authorityLevel === 'c_level' ? 'text-primary' : authorityLevel === 'vp' ? 'text-orange-400' : authorityLevel === 'director' ? 'text-yellow-400' : 'text-muted-foreground';
+              const authorityLevel = contact.authorityLevel ?? contact.authority_level ?? "unknown";
               return (
-                <Card key={contact.id} className="bg-card/50 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
-                        {(contact.firstName ?? contact.first_name ?? '?').charAt(0)}{(contact.lastName ?? contact.last_name ?? '?').charAt(0)}
+                <GlassCard key={contact.id} variant="interactive" className="cursor-pointer">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-crimson/40 to-crimson/10 flex items-center justify-center text-crimson font-bold shrink-0">
+                      {(contact.firstName ?? contact.first_name ?? "?").charAt(0)}{(contact.lastName ?? contact.last_name ?? "?").charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm">{contact.firstName ?? contact.first_name} {contact.lastName ?? contact.last_name}</h3>
+                        {(contact.isDecisionMaker ?? contact.is_decision_maker) && (
+                          <StatusBadge variant="ai-recommended" label="Decision Maker" />
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{contact.firstName ?? contact.first_name} {contact.lastName ?? contact.last_name}</h3>
-                          {(contact.isDecisionMaker ?? contact.is_decision_maker) && (
-                            <Badge className="bg-primary/20 text-primary border-primary/30 text-[9px]">Decision Maker</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">{contact.title}</p>
-                        <p className="text-xs text-muted-foreground">{company?.name ?? 'Unknown Company'}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className={`text-sm font-semibold capitalize ${authorityColor}`}>{authorityLevel?.replace(/_/g, ' ')}</p>
-                        <p className="text-[10px] text-muted-foreground">Authority</p>
-                        <div className="flex gap-1 mt-1">
-                          {contact.email && <Badge variant="outline" className="text-[9px] px-1">Email</Badge>}
-                          {contact.phone && <Badge variant="outline" className="text-[9px] px-1">Phone</Badge>}
-                        </div>
+                      <p className="text-xs text-muted-foreground">{contact.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{company?.name ?? "Unknown Company"}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-semibold capitalize">{authorityLevel?.replace(/_/g, " ")}</p>
+                      <div className="flex gap-1 mt-1">
+                        {contact.email && <Badge variant="outline" className="text-[9px] px-1">Email</Badge>}
+                        {contact.phone && <Badge variant="outline" className="text-[9px] px-1">Phone</Badge>}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </GlassCard>
               );
             })}
           </div>
-        </TabsContent>
+        )}
 
-        <TabsContent value="icp" className="space-y-6 mt-6">
-          <Card className="bg-card/50 backdrop-blur-sm border-border/50 border-l-4 border-l-primary">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2"><Target className="h-4 w-4 text-primary" />Ideal Customer Profile — PMG Group</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-primary">Firmographics</h4>
+        {activeTab === "icp" && (
+          <div className="space-y-6">
+            <GlassCard glow="crimson" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Ideal Customer Profile — PMG Group</h3>
+                </div>
+                <StatusBadge variant="ai-executed" label="AI Analyzed" />
+              </div>
+              <div className="px-5 pb-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-crimson uppercase tracking-wider">Firmographics</h4>
                   <IcpItem label="Industry" value="IT Services, Financial Services, Healthcare, SaaS" />
                   <IcpItem label="Company Size" value="50-500 employees" />
                   <IcpItem label="Revenue" value="$5M - $100M ARR" />
                   <IcpItem label="Geography" value="United States, Canada" />
                 </div>
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-primary">Pain Signals</h4>
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-crimson uppercase tracking-wider">Pain Signals</h4>
                   <IcpItem label="Primary" value="Cybersecurity compliance gaps" />
                   <IcpItem label="Secondary" value="IT infrastructure scaling challenges" />
                   <IcpItem label="Trigger" value="Recent breach, audit finding, growth phase" />
                   <IcpItem label="Urgency" value="Regulatory deadline or board mandate" />
                 </div>
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-primary">Decision Criteria</h4>
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-crimson uppercase tracking-wider">Decision Criteria</h4>
                   <IcpItem label="Buyer" value="CTO, CISO, VP Engineering" />
                   <IcpItem label="Budget" value="$50K - $500K annually" />
                   <IcpItem label="Timeline" value="30-90 day decision cycle" />
                   <IcpItem label="Competition" value="Accenture, Deloitte, boutique firms" />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCard>
 
-          <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">ICP Fit Analysis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3">
+                <h3 className="text-sm font-semibold">ICP Fit Analysis</h3>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
                 {companyList.map((c: any) => {
                   const fit = c.fitScore ?? c.fit_score ?? 0;
-                  const fitColor = fit >= 80 ? 'text-green-400' : fit >= 60 ? 'text-yellow-400' : 'text-red-400';
                   return (
-                    <div key={c.id} className="flex items-center gap-4 p-3 rounded-lg bg-background/50 border border-border/30">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">{c.name?.charAt(0)}</div>
+                    <div key={c.id} className="flex items-center gap-4 p-3 rounded-lg glass-surface">
+                      <div className="w-8 h-8 rounded-lg bg-crimson/10 flex items-center justify-center text-crimson font-bold text-xs shrink-0">{c.name?.charAt(0)}</div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">{c.name}</p>
                         <p className="text-[10px] text-muted-foreground">{c.industry} &bull; {c.size} employees</p>
                       </div>
-                      <div className="w-32">
-                        <Progress value={fit} className="h-2" />
-                      </div>
-                      <span className={`text-sm font-bold ${fitColor} w-12 text-right`}>{fit}%</span>
-                      <Badge variant={fit >= 80 ? 'default' : 'secondary'} className="text-[10px]">{fit >= 80 ? 'Strong Fit' : fit >= 60 ? 'Moderate' : 'Weak'}</Badge>
+                      <ConfidenceMeter score={fit} className="w-28" />
+                      <StatusBadge variant={fit >= 80 ? "success" : fit >= 60 ? "warning" : "critical"} label={fit >= 80 ? "Strong Fit" : fit >= 60 ? "Moderate" : "Weak"} />
                     </div>
                   );
                 })}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </GlassCard>
+          </div>
+        )}
 
-        <TabsContent value="competitors" className="space-y-4 mt-6">
-          {[
-            { name: 'Accenture Security', strength: 'Global brand, enterprise relationships', weakness: 'Expensive, slow engagement', threat: 'High', segments: ['Enterprise', 'Government'] },
-            { name: 'Deloitte Cyber', strength: 'Compliance expertise, audit integration', weakness: 'Complex procurement, long timelines', threat: 'Medium', segments: ['Financial Services', 'Healthcare'] },
-            { name: 'CrowdStrike Services', strength: 'Tech-first, strong detection platform', weakness: 'Limited managed services depth', threat: 'Medium', segments: ['Technology', 'SaaS'] },
-            { name: 'Boutique IT Firms', strength: 'Price competitive, local presence', weakness: 'Limited scale, narrow expertise', threat: 'Low', segments: ['SMB', 'Local'] },
-          ].map((comp, i) => (
-            <Card key={i} className="bg-card/50 backdrop-blur-sm border-border/50">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-3 flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center font-bold text-sm">{comp.name.charAt(0)}</div>
-                      <div>
-                        <h3 className="font-semibold">{comp.name}</h3>
-                        <div className="flex gap-1 mt-0.5">
-                          {comp.segments.map(s => <Badge key={s} variant="outline" className="text-[9px]">{s}</Badge>)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="p-2 rounded bg-green-500/5 border border-green-500/10">
-                        <p className="text-[10px] font-semibold text-green-400 mb-0.5">Strength</p>
-                        <p className="text-xs text-muted-foreground">{comp.strength}</p>
-                      </div>
-                      <div className="p-2 rounded bg-red-500/5 border border-red-500/10">
-                        <p className="text-[10px] font-semibold text-red-400 mb-0.5">Weakness</p>
-                        <p className="text-xs text-muted-foreground">{comp.weakness}</p>
+        {activeTab === "competitors" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {competitors.map((comp) => (
+              <GlassCard key={comp.name} variant="interactive" className="cursor-pointer">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg glass-surface flex items-center justify-center font-bold text-sm">{comp.name.charAt(0)}</div>
+                    <div>
+                      <h3 className="font-semibold text-sm">{comp.name}</h3>
+                      <div className="flex gap-1 mt-0.5">
+                        {comp.segments.map((s) => <Badge key={s} variant="outline" className="text-[9px]">{s}</Badge>)}
                       </div>
                     </div>
                   </div>
-                  <Badge className={`shrink-0 ml-4 ${comp.threat === 'High' ? 'bg-red-500/20 text-red-400' : comp.threat === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
-                    {comp.threat} Threat
-                  </Badge>
+                  <StatusBadge variant={comp.threat > 70 ? "critical" : comp.threat > 50 ? "warning" : "active"} label={`Threat: ${comp.threat}%`} />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-      </Tabs>
-
-      {selectedCompany && <CompanyDetailModal company={selectedCompany} contacts={contactList} leads={leadList} onClose={() => setSelectedCompany(null)} />}
-    </motion.div>
-  );
-}
-
-function SmallMetric({ label, value, icon: Icon, accent }: any) {
-  return (
-    <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        </div>
-        <div className={`text-xl font-bold ${accent ? 'text-primary' : ''}`}>{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function IcpItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="p-2 rounded bg-background/50 border border-border/30">
-      <p className="text-[10px] text-muted-foreground font-medium">{label}</p>
-      <p className="text-xs">{value}</p>
-    </div>
-  );
-}
-
-function ICPBuilderDialog() {
-  const [open, setOpen] = useState(false);
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-primary hover:bg-primary/90"><Plus className="h-4 w-4 mr-2" />Build ICP</Button>
-      </DialogTrigger>
-      <DialogContent className="bg-card border-border/50 max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Target className="h-5 w-5 text-primary" />ICP Builder</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>Target Industry</Label>
-            <Input placeholder="e.g., Financial Services, Healthcare" className="bg-background/50" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-2 rounded-lg glass-surface">
+                    <p className="text-[10px] font-semibold text-success mb-0.5">Strength</p>
+                    <p className="text-xs text-muted-foreground">{comp.strength}</p>
+                  </div>
+                  <div className="p-2 rounded-lg glass-surface">
+                    <p className="text-[10px] font-semibold text-crimson mb-0.5">Weakness</p>
+                    <p className="text-xs text-muted-foreground">{comp.weakness}</p>
+                  </div>
+                </div>
+                <ConfidenceMeter score={comp.threat} className="mt-3" />
+              </GlassCard>
+            ))}
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Company Size</Label>
-              <Select><SelectTrigger className="bg-background/50"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1-50">1-50</SelectItem>
-                  <SelectItem value="50-200">50-200</SelectItem>
-                  <SelectItem value="200-500">200-500</SelectItem>
-                  <SelectItem value="500+">500+</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Revenue Range</Label>
-              <Select><SelectTrigger className="bg-background/50"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1-5m">$1M - $5M</SelectItem>
-                  <SelectItem value="5-25m">$5M - $25M</SelectItem>
-                  <SelectItem value="25-100m">$25M - $100M</SelectItem>
-                  <SelectItem value="100m+">$100M+</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Primary Pain Points</Label>
-            <Textarea placeholder="Describe the primary pain points this ICP experiences..." className="bg-background/50" rows={3} />
-          </div>
-          <div className="space-y-2">
-            <Label>Decision Maker Titles</Label>
-            <Input placeholder="e.g., CTO, CISO, VP Engineering" className="bg-background/50" />
-          </div>
-          <div className="space-y-2">
-            <Label>Buying Triggers</Label>
-            <Textarea placeholder="What events trigger a purchase decision?" className="bg-background/50" rows={2} />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1"><Sparkles className="h-4 w-4 mr-2" />AI Generate</Button>
-            <Button className="flex-1 bg-primary hover:bg-primary/90">Save ICP</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+        )}
 
-function CompanyDetailModal({ company, contacts, leads, onClose }: any) {
-  const companyContacts = contacts.filter((c: any) => (c.companyId ?? c.company_id) === company.id);
-  const companyLeads = leads.filter((l: any) => (l.companyId ?? l.company_id) === company.id);
-  return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border/50 max-w-2xl max-h-[85vh] overflow-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">{company.name?.charAt(0)}</div>
-            <div>
-              <div>{company.name}</div>
-              <div className="text-sm font-normal text-muted-foreground">{company.industry} &bull; {company.location}</div>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-6 mt-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 rounded-lg bg-background/50 border border-border/30 text-center">
-              <p className="text-lg font-bold text-primary">{company.fitScore ?? company.fit_score}%</p>
-              <p className="text-[10px] text-muted-foreground">Fit Score</p>
-            </div>
-            <div className="p-3 rounded-lg bg-background/50 border border-border/30 text-center">
-              <p className="text-lg font-bold">{company.size}</p>
-              <p className="text-[10px] text-muted-foreground">Employees</p>
-            </div>
-            <div className="p-3 rounded-lg bg-background/50 border border-border/30 text-center">
-              <Badge variant={company.status === 'active_client' ? 'default' : 'secondary'} className="capitalize">{company.status?.replace(/_/g, ' ')}</Badge>
-              <p className="text-[10px] text-muted-foreground mt-1">Status</p>
-            </div>
+        {activeTab === "pain" && (
+          <div className="space-y-3">
+            {painThemes.map((pain, i) => (
+              <GlassCard key={i} variant="interactive" className="cursor-pointer">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold mb-1">{pain.theme}</h3>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-xs text-muted-foreground">Urgency: {pain.urgency}%</span>
+                      <span className="text-xs text-muted-foreground">Frequency: {pain.frequency}</span>
+                    </div>
+                    <ConfidenceMeter score={pain.urgency} className="mb-2" />
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {pain.segments.map((seg) => (
+                        <span key={seg} className="text-[10px] px-2 py-0.5 rounded-full glass-surface">{seg}</span>
+                      ))}
+                    </div>
+                    <div className="p-2 rounded-lg glass-surface">
+                      <p className="text-[10px] uppercase tracking-wider text-gold mb-0.5">PMG Opportunity</p>
+                      <p className="text-xs">{pain.opportunity}</p>
+                    </div>
+                  </div>
+                </div>
+              </GlassCard>
+            ))}
           </div>
+        )}
 
-          {(company.painPoints ?? company.pain_points) && (
-            <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
-              <p className="text-xs font-semibold text-orange-400 mb-1">Identified Pain Points</p>
-              <p className="text-sm text-muted-foreground">{company.painPoints ?? company.pain_points}</p>
+        {activeTab === "positioning" && (
+          <GlassCard className="py-12 flex flex-col items-center gap-3">
+            <Lightbulb className="h-12 w-12 text-gold/50" />
+            <p className="text-lg font-semibold">Positioning & Gap Analysis</p>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Strategic positioning analysis, message-market fit assessment, and differentiation intelligence will be powered by market data and competitive insights.
+            </p>
+            <StatusBadge variant="ai-executed" label="AI Ready" />
+          </GlassCard>
+        )}
+      </motion.div>
+
+      <DetailDrawer
+        open={!!selectedCompany}
+        onClose={() => setSelectedCompany(null)}
+        title={selectedCompany?.name}
+        subtitle={`${selectedCompany?.industry} • ${selectedCompany?.location}`}
+        badge={selectedCompany ? <ConfidenceMeter score={selectedCompany.fitScore ?? selectedCompany.fit_score ?? 0} className="w-24" /> : undefined}
+      >
+        {selectedCompany && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold gradient-text-crimson">{selectedCompany.fitScore ?? selectedCompany.fit_score}%</p>
+                <p className="text-[10px] text-muted-foreground">Fit Score</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold">{selectedCompany.size}</p>
+                <p className="text-[10px] text-muted-foreground">Employees</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <StatusBadge variant={selectedCompany.status === "active_client" ? "active" : "pending"} label={selectedCompany.status?.replace(/_/g, " ")} />
+              </div>
             </div>
-          )}
-
-          {companyContacts.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4 text-primary" />Key Contacts</h4>
-              <div className="space-y-2">
-                {companyContacts.map((c: any) => (
-                  <div key={c.id} className="flex items-center justify-between p-2 rounded bg-background/50 border border-border/30">
+            {(selectedCompany.painPoints ?? selectedCompany.pain_points) && (
+              <GlassCard variant="alert-warning">
+                <p className="text-xs font-semibold text-warning mb-1">Identified Pain Points</p>
+                <p className="text-sm">{selectedCompany.painPoints ?? selectedCompany.pain_points}</p>
+              </GlassCard>
+            )}
+            {contactList.filter((c: any) => (c.companyId ?? c.company_id) === selectedCompany.id).length > 0 && (
+              <div>
+                <h4 className="section-header mb-2">Key Contacts</h4>
+                {contactList.filter((c: any) => (c.companyId ?? c.company_id) === selectedCompany.id).map((c: any) => (
+                  <div key={c.id} className="flex items-center justify-between p-2 rounded-lg glass-surface mb-1">
                     <div>
                       <p className="text-sm font-medium">{c.firstName ?? c.first_name} {c.lastName ?? c.last_name}</p>
                       <p className="text-[10px] text-muted-foreground">{c.title}</p>
                     </div>
                     <div className="flex gap-1">
-                      {(c.isDecisionMaker ?? c.is_decision_maker) && <Badge className="bg-primary/20 text-primary text-[9px]">DM</Badge>}
-                      <Badge variant="outline" className="text-[9px] capitalize">{(c.authorityLevel ?? c.authority_level)?.replace(/_/g, ' ')}</Badge>
+                      {(c.isDecisionMaker ?? c.is_decision_maker) && <StatusBadge variant="ai-recommended" label="DM" />}
                     </div>
                   </div>
                 ))}
               </div>
+            )}
+            <div className="flex gap-2">
+              <Button className="btn-glass text-foreground flex-1 text-sm rounded-lg"><Sparkles className="h-4 w-4 mr-2" />AI Enrich</Button>
+              <Button className="btn-premium text-white flex-1 text-sm rounded-lg"><ArrowRight className="h-4 w-4 mr-2" />Create Outreach</Button>
             </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1"><Sparkles className="h-4 w-4 mr-2" />AI Enrich</Button>
-            <Button className="flex-1 bg-primary hover:bg-primary/90"><Zap className="h-4 w-4 mr-2" />Create Outreach</Button>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        )}
+      </DetailDrawer>
+    </div>
+  );
+}
+
+function IcpItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="p-2 rounded-lg glass-surface">
+      <p className="text-[10px] text-muted-foreground font-medium">{label}</p>
+      <p className="text-xs">{value}</p>
+    </div>
   );
 }

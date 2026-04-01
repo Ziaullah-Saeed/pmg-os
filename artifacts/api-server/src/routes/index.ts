@@ -10,6 +10,18 @@ import tasksRouter from "./tasks";
 import documentsRouter from "./documents";
 import communicationsRouter from "./communications";
 import dashboardRouter from "./dashboard";
+import approvalsRouter from "./approvals";
+import assetsRouter from "./assets";
+import auditEventsRouter from "./audit-events";
+import aiRunsRouter from "./ai-runs";
+import archiveItemsRouter from "./archive-items";
+import contractsRouter from "./contracts";
+import invoicesRouter from "./invoices";
+import integrationsRouter from "./integrations";
+import outreachSequencesRouter from "./outreach-sequences";
+import qualityIssuesRouter from "./quality-issues";
+import reportsRouter from "./reports";
+import usersRouter from "./users";
 
 const router: IRouter = Router();
 
@@ -24,5 +36,17 @@ router.use(campaignsRouter);
 router.use(tasksRouter);
 router.use(documentsRouter);
 router.use(communicationsRouter);
+router.use(approvalsRouter);
+router.use(assetsRouter);
+router.use(auditEventsRouter);
+router.use(aiRunsRouter);
+router.use(archiveItemsRouter);
+router.use(contractsRouter);
+router.use(invoicesRouter);
+router.use(integrationsRouter);
+router.use(outreachSequencesRouter);
+router.use(qualityIssuesRouter);
+router.use(reportsRouter);
+router.use(usersRouter);
 
 export default router;

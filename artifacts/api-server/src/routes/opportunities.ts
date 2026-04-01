@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, and } from "drizzle-orm";
 import { db, opportunitiesTable, companiesTable, contactsTable } from "@workspace/db";
+import { parseDate } from "../lib/parse-date";
 import {
   ListOpportunitiesQueryParams,
   ListOpportunitiesResponse,
@@ -64,7 +65,16 @@ router.post("/opportunities", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [opp] = await db.insert(opportunitiesTable).values(parsed.data).returning();
+  try {
+    var insertData = {
+      ...parsed.data,
+      expectedCloseDate: parseDate(parsed.data.expectedCloseDate),
+    };
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+    return;
+  }
+  const [opp] = await db.insert(opportunitiesTable).values(insertData).returning();
   res.status(201).json(GetOpportunityResponse.parse(opp));
 });
 
@@ -120,7 +130,16 @@ router.patch("/opportunities/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [opp] = await db.update(opportunitiesTable).set(parsed.data).where(eq(opportunitiesTable.id, params.data.id)).returning();
+  try {
+    var updateData = {
+      ...parsed.data,
+      expectedCloseDate: parseDate(parsed.data.expectedCloseDate),
+    };
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+    return;
+  }
+  const [opp] = await db.update(opportunitiesTable).set(updateData).where(eq(opportunitiesTable.id, params.data.id)).returning();
   if (!opp) {
     res.status(404).json({ error: "Opportunity not found" });
     return;

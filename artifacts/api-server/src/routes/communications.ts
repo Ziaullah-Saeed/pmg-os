@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, communicationsTable, contactsTable, companiesTable } from "@workspace/db";
+import { parseDate } from "../lib/parse-date";
 import {
   ListCommunicationsQueryParams,
   ListCommunicationsResponse,
@@ -62,7 +63,17 @@ router.post("/communications", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [comm] = await db.insert(communicationsTable).values(parsed.data).returning();
+  try {
+    var insertData = {
+      ...parsed.data,
+      completedAt: parseDate(parsed.data.completedAt),
+      scheduledAt: parseDate(parsed.data.scheduledAt),
+    };
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+    return;
+  }
+  const [comm] = await db.insert(communicationsTable).values(insertData).returning();
   res.status(201).json(GetCommunicationResponse.parse(comm));
 });
 

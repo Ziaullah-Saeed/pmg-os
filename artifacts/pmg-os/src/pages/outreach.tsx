@@ -1,18 +1,26 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Target, ArrowUpRight, AlertCircle, CheckCircle2, Plus, Sparkles, Users, Zap, ArrowRight, Filter, ListChecks, Send } from "lucide-react";
 import { useListLeads, useListCompanies } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
+import { PageHeader } from "@/components/ui/page-header";
+import { GlassCard } from "@/components/ui/glass-card";
+import { KpiCard } from "@/components/ui/kpi-card";
+import { PremiumTabs } from "@/components/ui/premium-tabs";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ConfidenceMeter } from "@/components/ui/confidence-meter";
+import { DetailDrawer } from "@/components/ui/detail-drawer";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Target, ArrowUpRight, AlertCircle, CheckCircle2, Plus, Sparkles,
+  Users, ArrowRight, Filter, ListChecks, Send
+} from "lucide-react";
+
+const tabs = [
+  { id: "pipeline", label: "Lead Pipeline", icon: <Target className="h-3.5 w-3.5" /> },
+  { id: "sequences", label: "Outbound Sequences", icon: <Send className="h-3.5 w-3.5" /> },
+  { id: "qualification", label: "Qualification", icon: <ListChecks className="h-3.5 w-3.5" /> },
+];
 
 export default function Outreach() {
   const [activeTab, setActiveTab] = useState("pipeline");
@@ -23,326 +31,224 @@ export default function Outreach() {
   const leadList = (leads ?? []) as any[];
   const companyList = (companies ?? []) as any[];
 
-  const filtered = statusFilter === 'all' ? leadList : leadList.filter((l: any) => l.status === statusFilter);
-
+  const filtered = statusFilter === "all" ? leadList : leadList.filter((l: any) => l.status === statusFilter);
   const totalLeads = leadList.length;
-  const qualified = leadList.filter((l: any) => l.status === 'qualified').length;
-  const contacted = leadList.filter((l: any) => l.status === 'contacted').length;
+  const qualified = leadList.filter((l: any) => l.status === "qualified").length;
+  const contacted = leadList.filter((l: any) => l.status === "contacted").length;
   const avgConfidence = totalLeads ? Math.round(leadList.reduce((s: number, l: any) => s + (l.confidenceScore ?? l.confidence_score ?? 0), 0) / totalLeads) : 0;
   const avgFit = totalLeads ? Math.round(leadList.reduce((s: number, l: any) => s + (l.fitScore ?? l.fit_score ?? 0), 0) / totalLeads) : 0;
 
-  const priorityColor: Record<string, string> = { critical: 'border-l-red-500', high: 'border-l-orange-500', medium: 'border-l-yellow-500', low: 'border-l-muted' };
-
   return (
-    <motion.div className="p-6 md:p-8 max-w-[1600px] mx-auto w-full space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Target className="h-8 w-8 text-primary" />
-            Outreach & Prospecting
-          </h1>
-          <p className="text-muted-foreground mt-1">Target discovery, lead scoring, qualification, and CRM handoff.</p>
-        </div>
-        <div className="flex gap-2">
-          <NewLeadDialog companies={companyList} />
-          <Button variant="outline"><Sparkles className="h-4 w-4 mr-2" />AI Prospect</Button>
-        </div>
-      </div>
+    <div className="max-w-[1600px] mx-auto w-full space-y-6">
+      <PageHeader
+        title="Outreach & Prospecting"
+        subtitle="Target discovery, lead scoring, qualification, and CRM handoff"
+        icon={<Target className="h-5 w-5" />}
+        actions={
+          <div className="flex gap-2">
+            <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />New Lead</Button>
+            <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg"><Sparkles className="h-4 w-4 mr-2" />AI Prospect</Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <SmallMetric label="Total Leads" value={totalLeads} icon={Users} />
-        <SmallMetric label="Qualified" value={qualified} accent="green" />
-        <SmallMetric label="Contacted" value={contacted} accent="blue" />
-        <SmallMetric label="Avg Confidence" value={`${avgConfidence}%`} accent="primary" />
-        <SmallMetric label="Avg Fit Score" value={`${avgFit}%`} accent="primary" />
+        <KpiCard label="Total Leads" value={totalLeads} icon={<Users className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="Qualified" value={qualified} icon={<CheckCircle2 className="h-4 w-4" />} accent="success" />
+        <KpiCard label="Contacted" value={contacted} icon={<Send className="h-4 w-4" />} />
+        <KpiCard label="Avg Confidence" value={`${avgConfidence}%`} icon={<Target className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Avg Fit Score" value={`${avgFit}%`} icon={<Target className="h-4 w-4" />} accent="gold" />
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-card/50 border border-border/50">
-          <TabsTrigger value="pipeline" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Target className="h-4 w-4 mr-2" />Lead Pipeline
-          </TabsTrigger>
-          <TabsTrigger value="sequences" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Send className="h-4 w-4 mr-2" />Outbound Sequences
-          </TabsTrigger>
-          <TabsTrigger value="qualification" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <ListChecks className="h-4 w-4 mr-2" />Qualification
-          </TabsTrigger>
-        </TabsList>
+      <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <TabsContent value="pipeline" className="space-y-4 mt-6">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40 bg-card/50 border-border/50"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Leads</SelectItem>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="contacted">Contacted</SelectItem>
-                <SelectItem value="qualified">Qualified</SelectItem>
-                <SelectItem value="disqualified">Disqualified</SelectItem>
-              </SelectContent>
-            </Select>
-            <span className="text-xs text-muted-foreground">{filtered.length} leads</span>
-          </div>
+      <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        {activeTab === "pipeline" && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40 glass-surface border-border/50"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Leads</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="contacted">Contacted</SelectItem>
+                  <SelectItem value="qualified">Qualified</SelectItem>
+                  <SelectItem value="disqualified">Disqualified</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground">{filtered.length} leads</span>
+            </div>
 
-          {filtered.map((lead: any) => (
-            <motion.div key={lead.id} whileHover={{ scale: 1.003 }}>
-              <Card
-                className={`bg-card/50 backdrop-blur-sm border-border/50 border-l-4 ${priorityColor[lead.priority] ?? 'border-l-muted'} hover:border-primary/30 transition-colors cursor-pointer`}
-                onClick={() => setSelectedLead(lead)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold uppercase text-[10px] ${lead.priority === 'critical' ? 'text-red-400' : lead.priority === 'high' ? 'text-orange-400' : 'text-yellow-400'}`}>
-                          {lead.priority}
-                        </span>
-                        <Badge variant="secondary" className="capitalize text-[10px]">{lead.status}</Badge>
-                        <Badge variant="outline" className="capitalize text-[10px]">{lead.source}</Badge>
-                      </div>
-                      {(lead.painPoints ?? lead.pain_points) && (
-                        <p className="text-sm text-muted-foreground flex items-start gap-2">
-                          <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-orange-400" />
-                          {lead.painPoints ?? lead.pain_points}
-                        </p>
-                      )}
-                      {(lead.bestAngle ?? lead.best_angle) && (
-                        <p className="text-sm text-muted-foreground flex items-start gap-2">
-                          <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-green-400" />
-                          {lead.bestAngle ?? lead.best_angle}
-                        </p>
-                      )}
-                      {(lead.nextAction ?? lead.next_action) && (
-                        <p className="text-sm font-medium flex items-center gap-2 text-primary">
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                          Next: {lead.nextAction ?? lead.next_action}
-                        </p>
-                      )}
+            {filtered.map((lead: any) => (
+              <GlassCard key={lead.id} variant="interactive" className="cursor-pointer" onClick={() => setSelectedLead(lead)}>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2 flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold uppercase text-[10px] ${lead.priority === "critical" ? "text-crimson" : lead.priority === "high" ? "text-warning" : "text-info"}`}>
+                        {lead.priority}
+                      </span>
+                      <StatusBadge variant={lead.status === "qualified" ? "success" : lead.status === "contacted" ? "active" : "pending"} label={lead.status} />
+                      <Badge variant="outline" className="capitalize text-[10px]">{lead.source}</Badge>
                     </div>
-                    <div className="flex items-center gap-4 shrink-0 ml-4">
-                      <div className="text-center">
-                        <p className="text-sm font-bold text-primary">{lead.fitScore ?? lead.fit_score}%</p>
-                        <p className="text-[9px] text-muted-foreground">Fit</p>
-                        <Progress value={lead.fitScore ?? lead.fit_score ?? 0} className="h-1 w-14 mt-0.5" />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm font-bold">{lead.confidenceScore ?? lead.confidence_score}%</p>
-                        <p className="text-[9px] text-muted-foreground">Confidence</p>
-                        <Progress value={lead.confidenceScore ?? lead.confidence_score ?? 0} className="h-1 w-14 mt-0.5" />
-                      </div>
+                    {(lead.painPoints ?? lead.pain_points) && (
+                      <p className="text-sm text-muted-foreground flex items-start gap-2">
+                        <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-warning" />
+                        {lead.painPoints ?? lead.pain_points}
+                      </p>
+                    )}
+                    {(lead.bestAngle ?? lead.best_angle) && (
+                      <p className="text-sm text-muted-foreground flex items-start gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-success" />
+                        {lead.bestAngle ?? lead.best_angle}
+                      </p>
+                    )}
+                    {(lead.nextAction ?? lead.next_action) && (
+                      <p className="text-sm font-medium flex items-center gap-2 text-crimson">
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                        Next: {lead.nextAction ?? lead.next_action}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 shrink-0 ml-4">
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground mb-0.5">Fit</p>
+                      <ConfidenceMeter score={lead.fitScore ?? lead.fit_score ?? 0} className="w-16" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground mb-0.5">Confidence</p>
+                      <ConfidenceMeter score={lead.confidenceScore ?? lead.confidence_score ?? 0} className="w-16" />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </TabsContent>
+                </div>
+              </GlassCard>
+            ))}
+            {filtered.length === 0 && (
+              <GlassCard className="py-12 flex flex-col items-center gap-3">
+                <Target className="h-12 w-12 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No leads found</p>
+              </GlassCard>
+            )}
+          </div>
+        )}
 
-        <TabsContent value="sequences" className="space-y-4 mt-6">
-          <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Outbound Sequences</CardTitle>
-                <Button size="sm" className="bg-primary hover:bg-primary/90"><Plus className="h-3 w-3 mr-1" />New Sequence</Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {activeTab === "sequences" && (
+          <GlassCard className="p-0 overflow-hidden">
+            <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Outbound Sequences</h3>
+              <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"><Plus className="h-3 w-3 mr-1" />New Sequence</Button>
+            </div>
+            <div className="px-5 pb-4 space-y-3">
               {[
-                { name: 'Cybersecurity Compliance Gap', steps: 5, enrolled: 12, replied: 3, status: 'active', channel: 'Email + LinkedIn' },
-                { name: 'IT Infrastructure Scaling', steps: 4, enrolled: 8, replied: 2, status: 'active', channel: 'Email' },
-                { name: 'Post-Breach Response', steps: 3, enrolled: 4, replied: 1, status: 'paused', channel: 'Email + Call' },
+                { name: "Cybersecurity Compliance Gap", steps: 5, enrolled: 12, replied: 3, status: "active", channel: "Email + LinkedIn" },
+                { name: "IT Infrastructure Scaling", steps: 4, enrolled: 8, replied: 2, status: "active", channel: "Email" },
+                { name: "Post-Breach Response", steps: 3, enrolled: 4, replied: 1, status: "paused", channel: "Email + Call" },
               ].map((seq, i) => (
-                <div key={i} className="p-4 rounded-lg bg-background/50 border border-border/30">
+                <div key={i} className="p-4 rounded-lg glass-surface">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <h3 className="font-semibold text-sm">{seq.name}</h3>
                       <p className="text-[10px] text-muted-foreground">{seq.channel} &bull; {seq.steps} steps</p>
                     </div>
-                    <Badge className={seq.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}>{seq.status}</Badge>
+                    <StatusBadge variant={seq.status === "active" ? "active" : "pending"} label={seq.status} />
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="p-2 rounded bg-muted/30">
-                      <p className="text-sm font-bold">{seq.enrolled}</p>
-                      <p className="text-[9px] text-muted-foreground">Enrolled</p>
-                    </div>
-                    <div className="p-2 rounded bg-muted/30">
-                      <p className="text-sm font-bold text-primary">{seq.replied}</p>
-                      <p className="text-[9px] text-muted-foreground">Replied</p>
-                    </div>
-                    <div className="p-2 rounded bg-muted/30">
-                      <p className="text-sm font-bold">{seq.enrolled ? Math.round(seq.replied / seq.enrolled * 100) : 0}%</p>
-                      <p className="text-[9px] text-muted-foreground">Reply Rate</p>
-                    </div>
+                    <div className="p-2 rounded-lg glass-surface"><p className="text-sm font-bold">{seq.enrolled}</p><p className="text-[9px] text-muted-foreground">Enrolled</p></div>
+                    <div className="p-2 rounded-lg glass-surface"><p className="text-sm font-bold gradient-text-crimson">{seq.replied}</p><p className="text-[9px] text-muted-foreground">Replied</p></div>
+                    <div className="p-2 rounded-lg glass-surface"><p className="text-sm font-bold">{seq.enrolled ? Math.round((seq.replied / seq.enrolled) * 100) : 0}%</p><p className="text-[9px] text-muted-foreground">Reply Rate</p></div>
                   </div>
                 </div>
               ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </GlassCard>
+        )}
 
-        <TabsContent value="qualification" className="space-y-4 mt-6">
-          <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2"><ListChecks className="h-4 w-4 text-primary" />Qualification Checklist</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {leadList.filter((l: any) => l.status !== 'disqualified').map((lead: any) => (
-                  <div key={lead.id} className="p-4 rounded-lg bg-background/50 border border-border/30 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="capitalize text-[10px]">{lead.status}</Badge>
-                        <span className="text-sm font-medium">Fit: {lead.fitScore ?? lead.fit_score}%</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="text-xs h-7"><ArrowRight className="h-3 w-3 mr-1" />Handoff to CRM</Button>
-                      </div>
+        {activeTab === "qualification" && (
+          <GlassCard className="p-0 overflow-hidden">
+            <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+              <ListChecks className="h-4 w-4 text-crimson" />
+              <h3 className="text-sm font-semibold">Qualification Checklist</h3>
+            </div>
+            <div className="px-5 pb-4 space-y-4">
+              {leadList.filter((l: any) => l.status !== "disqualified").map((lead: any) => (
+                <div key={lead.id} className="p-4 rounded-lg glass-surface space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <StatusBadge variant={lead.status === "qualified" ? "success" : "pending"} label={lead.status} />
+                      <ConfidenceMeter score={lead.fitScore ?? lead.fit_score ?? 0} className="w-20" />
                     </div>
-                    <div className="space-y-2">
-                      {[
-                        { label: 'Budget identified', checked: (lead.fitScore ?? lead.fit_score) > 70 },
-                        { label: 'Decision maker contacted', checked: lead.status === 'qualified' || lead.status === 'contacted' },
-                        { label: 'Pain point confirmed', checked: !!(lead.painPoints ?? lead.pain_points) },
-                        { label: 'Timeline established', checked: lead.status === 'qualified' },
-                        { label: 'Competition assessed', checked: false },
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-center gap-2 text-sm">
-                          <Checkbox checked={item.checked} className="data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
-                          <span className={item.checked ? '' : 'text-muted-foreground'}>{item.label}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <Button className="btn-glass text-foreground text-xs px-3 py-1.5 rounded-lg"><ArrowRight className="h-3 w-3 mr-1" />Handoff to CRM</Button>
                   </div>
-                ))}
+                  <div className="space-y-1.5 text-sm">
+                    {[
+                      { label: "Budget identified", checked: (lead.fitScore ?? lead.fit_score) > 70 },
+                      { label: "Decision maker contacted", checked: lead.status === "qualified" || lead.status === "contacted" },
+                      { label: "Pain point confirmed", checked: !!(lead.painPoints ?? lead.pain_points) },
+                      { label: "Timeline established", checked: lead.status === "qualified" },
+                      { label: "Competition assessed", checked: false },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${item.checked ? "bg-success border-success" : "border-border"}`}>
+                          {item.checked && <CheckCircle2 className="h-2.5 w-2.5 text-white" />}
+                        </div>
+                        <span className={item.checked ? "" : "text-muted-foreground"}>{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        )}
+      </motion.div>
+
+      <DetailDrawer
+        open={!!selectedLead}
+        onClose={() => setSelectedLead(null)}
+        title="Lead Details"
+        subtitle={selectedLead ? `Source: ${selectedLead.source}` : ""}
+      >
+        {selectedLead && (() => {
+          const company = companyList.find((c: any) => c.id === (selectedLead.companyId ?? selectedLead.company_id));
+          return (
+            <div className="space-y-5">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-lg glass-surface text-center">
+                  <p className="text-lg font-bold gradient-text-crimson">{selectedLead.fitScore ?? selectedLead.fit_score}%</p>
+                  <p className="text-[10px] text-muted-foreground">Fit Score</p>
+                </div>
+                <div className="p-3 rounded-lg glass-surface text-center">
+                  <p className="text-lg font-bold">{selectedLead.confidenceScore ?? selectedLead.confidence_score}%</p>
+                  <p className="text-[10px] text-muted-foreground">Confidence</p>
+                </div>
+                <div className="p-3 rounded-lg glass-surface text-center">
+                  <StatusBadge variant={selectedLead.status === "qualified" ? "success" : "pending"} label={selectedLead.status} />
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {selectedLead && <LeadDetailModal lead={selectedLead} companies={companyList} onClose={() => setSelectedLead(null)} />}
-    </motion.div>
-  );
-}
-
-function SmallMetric({ label, value, icon: Icon, accent }: any) {
-  const accentClass = accent === 'green' ? 'text-green-400' : accent === 'blue' ? 'text-blue-400' : accent === 'primary' ? 'text-primary' : '';
-  return (
-    <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-      <CardContent className="p-4">
-        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-        <div className={`text-xl font-bold ${accentClass}`}>{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function NewLeadDialog({ companies }: { companies: any[] }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-primary hover:bg-primary/90"><Plus className="h-4 w-4 mr-2" />New Lead</Button>
-      </DialogTrigger>
-      <DialogContent className="bg-card border-border/50 max-w-lg">
-        <DialogHeader><DialogTitle>Create Lead</DialogTitle></DialogHeader>
-        <div className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>Company</Label>
-            <Select><SelectTrigger className="bg-background/50"><SelectValue placeholder="Select company" /></SelectTrigger>
-              <SelectContent>{companies.map((c: any) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Source</Label>
-              <Select><SelectTrigger className="bg-background/50"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="linkedin">LinkedIn</SelectItem>
-                  <SelectItem value="referral">Referral</SelectItem>
-                  <SelectItem value="website">Website</SelectItem>
-                  <SelectItem value="cold_outreach">Cold Outreach</SelectItem>
-                  <SelectItem value="event">Event</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-muted-foreground text-xs">Company</span><p className="font-medium">{company?.name ?? "Unknown"}</p></div>
+                <div><span className="text-muted-foreground text-xs">Priority</span><p className="font-medium capitalize">{selectedLead.priority}</p></div>
+              </div>
+              {(selectedLead.painPoints ?? selectedLead.pain_points) && (
+                <GlassCard variant="alert-warning">
+                  <p className="text-[10px] font-semibold text-warning mb-1">Pain Points</p>
+                  <p className="text-sm">{selectedLead.painPoints ?? selectedLead.pain_points}</p>
+                </GlassCard>
+              )}
+              {(selectedLead.bestAngle ?? selectedLead.best_angle) && (
+                <GlassCard glow="success">
+                  <p className="text-[10px] font-semibold text-success mb-1">Best Approach</p>
+                  <p className="text-sm">{selectedLead.bestAngle ?? selectedLead.best_angle}</p>
+                </GlassCard>
+              )}
+              <div className="flex gap-2">
+                <Button className="btn-glass text-foreground flex-1 text-sm rounded-lg"><Sparkles className="h-4 w-4 mr-2" />AI Qualify</Button>
+                <Button className="btn-premium text-white flex-1 text-sm rounded-lg"><ArrowRight className="h-4 w-4 mr-2" />Handoff to CRM</Button>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Priority</Label>
-              <Select><SelectTrigger className="bg-background/50"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="critical">Critical</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Pain Points</Label>
-            <Textarea placeholder="What challenges is this prospect facing?" className="bg-background/50" rows={2} />
-          </div>
-          <div className="space-y-2">
-            <Label>Best Approach Angle</Label>
-            <Textarea placeholder="What's the best way to approach this lead?" className="bg-background/50" rows={2} />
-          </div>
-          <Button className="w-full bg-primary hover:bg-primary/90">Create Lead</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function LeadDetailModal({ lead, companies, onClose }: any) {
-  const company = companies.find((c: any) => c.id === (lead.companyId ?? lead.company_id));
-  return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border/50 max-w-xl max-h-[85vh] overflow-auto">
-        <DialogHeader><DialogTitle>Lead Details</DialogTitle></DialogHeader>
-        <div className="space-y-5 mt-2">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 rounded-lg bg-background/50 border border-border/30 text-center">
-              <p className="text-lg font-bold text-primary">{lead.fitScore ?? lead.fit_score}%</p>
-              <p className="text-[10px] text-muted-foreground">Fit Score</p>
-            </div>
-            <div className="p-3 rounded-lg bg-background/50 border border-border/30 text-center">
-              <p className="text-lg font-bold">{lead.confidenceScore ?? lead.confidence_score}%</p>
-              <p className="text-[10px] text-muted-foreground">Confidence</p>
-            </div>
-            <div className="p-3 rounded-lg bg-background/50 border border-border/30 text-center">
-              <Badge variant="secondary" className="capitalize">{lead.status}</Badge>
-              <p className="text-[10px] text-muted-foreground mt-1">Status</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div><span className="text-muted-foreground text-xs">Company</span><p className="font-medium">{company?.name ?? 'Unknown'}</p></div>
-            <div><span className="text-muted-foreground text-xs">Source</span><p className="font-medium capitalize">{lead.source}</p></div>
-            <div><span className="text-muted-foreground text-xs">Priority</span><Badge className="capitalize mt-0.5">{lead.priority}</Badge></div>
-            <div><span className="text-muted-foreground text-xs">Next Action</span><p className="font-medium text-primary">{lead.nextAction ?? lead.next_action}</p></div>
-          </div>
-
-          {(lead.painPoints ?? lead.pain_points) && (
-            <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
-              <p className="text-[10px] font-semibold text-orange-400 mb-1">Pain Points</p>
-              <p className="text-sm">{lead.painPoints ?? lead.pain_points}</p>
-            </div>
-          )}
-          {(lead.bestAngle ?? lead.best_angle) && (
-            <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/10">
-              <p className="text-[10px] font-semibold text-green-400 mb-1">Best Approach</p>
-              <p className="text-sm">{lead.bestAngle ?? lead.best_angle}</p>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1"><Sparkles className="h-4 w-4 mr-2" />AI Qualify</Button>
-            <Button className="flex-1 bg-primary hover:bg-primary/90"><ArrowRight className="h-4 w-4 mr-2" />Handoff to CRM</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+          );
+        })()}
+      </DetailDrawer>
+    </div>
   );
 }
