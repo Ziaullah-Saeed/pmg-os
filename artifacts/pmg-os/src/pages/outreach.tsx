@@ -17,6 +17,7 @@ import {
   Target, ArrowUpRight, AlertCircle, CheckCircle2, Plus, Sparkles,
   Users, ArrowRight, Filter, ListChecks, Send
 } from "lucide-react";
+import { CreateLeadForm } from "@/components/forms/create-lead-form";
 
 const tabs = [
   { id: "pipeline", label: "Lead Pipeline", icon: <Target className="h-3.5 w-3.5" /> },
@@ -28,6 +29,7 @@ export default function Outreach() {
   const [activeTab, setActiveTab] = useState("pipeline");
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showCreateLead, setShowCreateLead] = useState(false);
   const { data: leads } = useListLeads();
   const { data: companies } = useListCompanies();
   const { isHuman, isHybrid, isAuto } = useAiModeContext();
@@ -56,14 +58,12 @@ export default function Outreach() {
         subtitle={isHuman ? "Manual prospecting, lead review, and personalized outreach" : "Target discovery, lead scoring, qualification, and CRM handoff"}
         icon={<Target className="h-5 w-5" />}
         actions={
-          isHuman ? (
-            <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />New Lead</Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />New Lead</Button>
+          <div className="flex gap-2">
+            <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateLead(true)}><Plus className="h-4 w-4 mr-2" />New Lead</Button>
+            {!isHuman && (
               <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg"><Sparkles className="h-4 w-4 mr-2" />AI Prospect</Button>
-            </div>
-          )
+            )}
+          </div>
         }
       />
 
@@ -292,6 +292,8 @@ export default function Outreach() {
           );
         })()}
       </DetailDrawer>
+
+      <CreateLeadForm open={showCreateLead} onOpenChange={setShowCreateLead} />
     </div>
   );
 }

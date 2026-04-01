@@ -245,6 +245,15 @@ Manual React Query hooks for all new engine APIs (wallet, AI mode, notifications
 - `ModeIndicatorBanner` shows mode status in Human/Hybrid modes
 - Dashboard uses `useAiModeContext()` directly (no wrapper) — shows same full dashboard in all modes
 
+## Form Components (artifacts/pmg-os/src/components/forms/)
+- `CreateLeadForm` — new lead with AI auto-enrich + scoring
+- `CreateCompanyForm` — new company for intelligence tracking
+- `CreateDocumentForm` — new production asset (title, category, type, content, tags)
+- `CreateTaskForm` — new task (self-wrapping Dialog, uses `open`/`onOpenChange`)
+- `CreateCampaignForm` — new campaign (self-wrapping Dialog, uses `open`/`onOpenChange`)
+- `CreateOpportunityForm` — new deal/opportunity
+- `CreateContactForm` — new contact
+
 ## Important Notes
 
 - `parseDate()` from `artifacts/api-server/src/lib/parse-date.ts` for date conversions

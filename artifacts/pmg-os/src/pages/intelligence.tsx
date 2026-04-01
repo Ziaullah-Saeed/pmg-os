@@ -17,6 +17,7 @@ import {
   Sparkles, Globe, AlertTriangle, Plus, Eye,
   Crosshair, Lightbulb, ArrowRight, MapPin
 } from "lucide-react";
+import { CreateCompanyForm } from "@/components/forms/create-company-form";
 
 const tabs = [
   { id: "companies", label: "Company Intelligence", icon: <Building2 className="h-3.5 w-3.5" /> },
@@ -45,6 +46,7 @@ const painThemes = [
 export default function Intelligence() {
   const [activeTab, setActiveTab] = useState("companies");
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
+  const [showCreateCompany, setShowCreateCompany] = useState(false);
   const { data: companies } = useListCompanies();
   const { data: contacts } = useListContacts();
   const { data: leads } = useListLeads();
@@ -74,20 +76,16 @@ export default function Intelligence() {
         subtitle={isHuman ? "Manual market research, ICP modeling, and strategic intelligence" : "Market research, ICP modeling, competitor analysis, and strategic intelligence"}
         icon={<BrainCircuit className="h-5 w-5" />}
         actions={
-          isHuman ? (
-            <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg">
+          <div className="flex gap-2">
+            <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateCompany(true)}>
               <Plus className="h-4 w-4 mr-2" />Add Company
             </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg">
-                <Plus className="h-4 w-4 mr-2" />Build ICP
-              </Button>
+            {!isHuman && (
               <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg">
                 <Sparkles className="h-4 w-4 mr-2" />AI Enrich
               </Button>
-            </div>
-          )
+            )}
+          </div>
         }
       />
 
@@ -560,6 +558,8 @@ export default function Intelligence() {
           </div>
         )}
       </DetailDrawer>
+
+      <CreateCompanyForm open={showCreateCompany} onOpenChange={setShowCreateCompany} />
     </div>
   );
 }

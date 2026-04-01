@@ -16,6 +16,7 @@ import {
   Palette, FileText, CheckCircle2, Clock, Edit, Plus, Eye,
   RotateCcw, ArrowRight, Sparkles, History, Ban
 } from "lucide-react";
+import { CreateDocumentForm } from "@/components/forms/create-document-form";
 
 const lifecycleStages = ["generate", "preview", "review", "revise", "approve", "finalize"] as const;
 const statusForStage: Record<string, string> = { generate: "draft", preview: "draft", review: "in_review", revise: "draft", approve: "approved", finalize: "published" };
@@ -43,6 +44,7 @@ const tabs = [
 export default function Production() {
   const [activeTab, setActiveTab] = useState("queue");
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [showCreateDoc, setShowCreateDoc] = useState(false);
   const { data: documents } = useListDocuments();
   const { isHuman } = useAiModeContext();
   const updateDoc = useUpdateDocumentMut();
@@ -81,7 +83,7 @@ export default function Production() {
         actions={
           <div className="flex gap-2">
             <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Sparkles className="h-4 w-4 mr-2" />AI Generate</Button>
-            <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />Create Asset</Button>
+            <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateDoc(true)}><Plus className="h-4 w-4 mr-2" />Create Asset</Button>
           </div>
         }
       />
@@ -268,6 +270,8 @@ export default function Production() {
           );
         })()}
       </DetailDrawer>
+
+      <CreateDocumentForm open={showCreateDoc} onOpenChange={setShowCreateDoc} />
     </div>
   );
 }
