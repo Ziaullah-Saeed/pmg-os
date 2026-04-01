@@ -54,7 +54,21 @@ export async function createUserWithPassword(data: {
 }
 
 export async function seedDefaultAdmin() {
-  const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, "shershah@pmggroup.com"));
+  const ADMIN_EMAIL = "shershah@pmggroup-llc.com";
+
+  const [oldAdmin] = await db.select().from(usersTable).where(eq(usersTable.email, "shershah@pmggroup.com"));
+  if (oldAdmin) {
+    const hash = oldAdmin.passwordHash || await hashPassword("PMGAdmin2024!");
+    await db.update(usersTable).set({
+      email: ADMIN_EMAIL,
+      passwordHash: hash,
+      role: "super_admin",
+      permissions: ["*"],
+    }).where(eq(usersTable.id, oldAdmin.id));
+    return;
+  }
+
+  const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, ADMIN_EMAIL));
   if (existing) {
     if (!existing.passwordHash) {
       const hash = await hashPassword("PMGAdmin2024!");
@@ -66,8 +80,9 @@ export async function seedDefaultAdmin() {
     }
     return;
   }
+
   await createUserWithPassword({
-    email: "shershah@pmggroup.com",
+    email: ADMIN_EMAIL,
     name: "SherShah K.",
     password: "PMGAdmin2024!",
     role: "super_admin",
