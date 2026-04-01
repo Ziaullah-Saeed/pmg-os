@@ -1,0 +1,274 @@
+PART 23 — LEGAL DOMAIN
+
+The legal domain must provide structured support for standardized operational legal workflows while also clearly recognizing the boundary between automatable legal structure and matters requiring human legal review. It must operate with caution, documentation discipline, and permission awareness.
+
+It must support:
+
+NDA
+MSA
+SOW
+service agreements
+contractor agreements
+privacy policies
+disclaimers
+DPA / data handling logic where applicable
+compliance checklists
+legal file storage
+legal review status tracking
+
+The system must also know when a matter exceeds safe automated boundaries and clearly indicate:
+
+human legal review required
+
+This domain must preserve:
+
+traceability
+review status
+controlled access
+document integrity
+expiration and renewal awareness where relevant
+legal record retention
+
+Legal support must remain operationally useful but conservative. It must never pretend automated sufficiency where actual legal judgment is required.
+
+PART 24 — ADMINISTRATIVE DOMAIN
+
+The platform must support PMG’s internal administrative backbone. Administrative structure is essential for consistency, accountability, handoff quality, and organizational maturity.
+
+This domain must include:
+
+SOP creation and storage
+policy documents
+procedures
+forms
+work instructions
+internal memos
+team notes
+handover records
+approval forms
+escalation forms
+administrative process documentation
+administrative archives
+
+This domain ensures that PMG does not operate only through unwritten habits or scattered knowledge. It helps transform repeated work into structured operating discipline.
+
+Administrative documentation must be:
+
+searchable
+versioned
+permission-aware
+easy to retrieve
+operationally usable
+tied to process ownership
+
+A company-grade operating system must preserve not only execution data, but administrative memory.
+
+PART 25 — QUALITY MANAGEMENT DOMAIN
+
+Quality must exist as an explicit system layer. It cannot be left to informal judgment or occasional review. Every meaningful output that affects clients, operations, reporting, or business credibility must be capable of passing through a quality-aware framework.
+
+The platform must support:
+
+review rules
+internal QA checklists
+client-facing QA checklists
+approval gates
+rejection reasons
+issue logging
+revision traceability
+quality summaries
+quality exceptions
+final acceptance checkpoints
+
+The purpose of this domain is to ensure outputs are:
+
+reviewable
+measurable
+rejectable
+improvable
+not blindly accepted
+
+Quality management should integrate with production, execution, reporting, and archive. Quality events must not disappear after review. They must form part of the company’s operating memory and improvement logic.
+
+PART 26 — REPORTING DOMAIN
+
+Reporting must be designed as a core system layer, not as a final-stage add-on. The system must be able to explain itself continuously. Every major activity, state change, workflow, exception, and result must be reportable at an appropriate level of abstraction.
+
+Every major activity must generate two reporting modes:
+
+Executive / Leadership Report
+
+Must be:
+
+concise
+decision-oriented
+non-technical
+outcome-focused
+fast to read
+
+It should explain:
+
+what happened
+what changed
+what matters
+where attention is needed
+what decision may be needed next
+Technical / Operational Report
+
+Must be:
+
+detailed
+workflow-aware
+traceable
+operationally useful
+more technical where appropriate
+
+It should explain:
+
+specific actions
+workflow states
+metrics
+issues
+performance
+exceptions
+next steps
+
+This reporting discipline must apply across:
+
+leads
+campaigns
+calls
+meetings
+CRM
+production
+execution
+finance
+legal
+administration
+quality
+system health
+
+Reporting is how the operating system becomes explainable, governable, and trustworthy.
+
+PART 27 — REPORTING STYLE AND DELIVERY
+
+Reports must not be shallow, generic, or mechanically summarized. Reporting must make the system intelligible. It must allow leadership, managers, and operators to understand not only that something occurred, but why it matters and what should happen next.
+
+The reporting system must support:
+
+automatic summary generation
+scheduled reporting
+event-triggered reporting
+role-sensitive reporting
+leadership digest generation
+technical operations logs
+export and archive logic
+Slack summaries
+CRM-linked status reporting
+communication history summaries
+
+The style of reporting must emphasize:
+
+clarity
+signal over noise
+business consequence
+prioritization
+traceability
+readability by role
+
+The operating system must be able to narrate its own activity at multiple layers of detail. Reporting should function as a cognitive compression layer that turns complexity into structured understanding.
+
+PART 28 — ARCHIVE, DOCUMENTATION & KNOWLEDGE MEMORY DOMAIN
+
+This domain must preserve the long-term business memory of PMG Group LLC. It must not operate as a random file bucket. It must be a structured, searchable, permission-aware, retrieval-friendly memory system.
+
+It must store and structure:
+
+contracts
+SOPs
+legal documents
+privacy documents
+finance documents
+quotations
+invoices
+decks
+proposals
+reports
+call logs
+call summaries
+meeting transcripts
+meeting summaries
+CRM records
+quality records
+workflow histories
+final assets
+administrative documents
+
+This domain must be:
+
+searchable
+categorized
+permission-aware
+retrieval-friendly
+operationally useful
+durable as memory infrastructure
+
+Knowledge memory must support the ability to answer:
+
+What was decided?
+What happened?
+What was sent?
+What was approved?
+What changed?
+What was discussed with this client?
+What asset version is final?
+What contract governs this engagement?
+
+This archive layer is essential to continuity, accountability, and scaling without institutional amnesia.
+
+PART 29 — SLACK, CLIENT REPORTING & COMMUNICATION SURFACE DOMAIN
+
+Slack must be integrated as a native reporting and communication surface, not treated as a disconnected notification destination. It must be part of the operating ecosystem.
+
+It must support:
+
+executive summaries
+management summaries
+campaign updates
+lead summaries
+call summaries
+meeting summaries
+delivery summaries
+operational alerts
+internal-to-client updates
+account management communication touchpoints
+
+Slack integration must preserve context, relevance, and routing discipline. Messages should be role-aware and purpose-aware. The system should know whether a summary belongs to leadership, delivery management, account oversight, or client communication.
+
+Slack should function as an active communication surface within the operating system rather than a passive alert feed.
+
+PART 30 — SYSTEM CORE, GOVERNANCE, PERMISSIONS & INFRASTRUCTURE DOMAIN
+
+This domain is the backbone of trust, control, and technical governance. It must ensure that the entire platform remains secure, observable, recoverable, permission-aware, and administratively controlled.
+
+It must support:
+
+permissions
+governance logic
+secrets management
+integration control
+system health visibility
+update intelligence
+dependency awareness
+audit trails
+backup logic
+recovery planning
+wallet visibility
+environment management
+alerting
+incident awareness
+operational supervision
+
+This domain must protect the integrity of the platform. It should make the system administratively legible and operationally resilient.
+
+It is the trust layer. If this layer is weak, every other domain becomes fragile regardless of feature richness.
