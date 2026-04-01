@@ -54,9 +54,9 @@ export async function createUserWithPassword(data: {
 }
 
 export async function seedDefaultAdmin() {
-  const ADMIN_EMAIL = "shershah@pmggroup-llc.com";
+  const ADMIN_EMAIL = "shershah_nawabi@pmggroup-llc.com";
 
-  const [oldAdmin] = await db.select().from(usersTable).where(eq(usersTable.email, "shershah@pmggroup.com"));
+  const [oldAdmin] = await db.select().from(usersTable).where(eq(usersTable.email, "shershah@pmggroup-llc.com"));
   if (oldAdmin) {
     const hash = oldAdmin.passwordHash || await hashPassword("PMGAdmin2024!");
     await db.update(usersTable).set({
