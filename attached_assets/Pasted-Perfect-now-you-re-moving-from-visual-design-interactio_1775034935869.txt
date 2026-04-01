@@ -1,0 +1,496 @@
+Perfect — now you’re moving from **visual design → interaction architecture + UX system behavior**, which is exactly what turns this into a **true AI operating system** instead of just a красив UI.
+
+I’m going to formalize what you said into a **structured, enforceable UX architecture layer** that sits on top of the visual system we defined.
+
+---
+
+# 🔥 **PMG AI OPERATING SYSTEM — ADVANCED INTERACTION & PAGE ARCHITECTURE SYSTEM**
+
+## **Full AI-Native Navigation, Tabs, Popup, and CRM UX Blueprint**
+
+---
+
+# **1. CORE UX PRINCIPLE (VERY IMPORTANT)**
+
+> ❌ This is NOT a single-page dashboard system
+> ❌ This is NOT a flat navigation SaaS
+
+✅ This is a **multi-layer AI operating environment**
+
+Every section must behave like:
+
+> **A complete system inside the system**
+
+---
+
+# **2. SECTION → PAGE → TAB → POPUP ARCHITECTURE**
+
+This is the **core structure you must enforce everywhere**.
+
+---
+
+## **LEVEL 1 — MAIN SECTION (LEFT NAV)**
+
+Each major domain (CRM, Intelligence, Production, etc.):
+
+* Has its **own full page**
+* Not just a component swap
+* Not just a panel change
+
+### Example:
+
+* Command Center
+* CRM
+* Intelligence
+* Production
+* Execution
+* Finance
+* Reporting
+
+👉 Each one = **its own environment**
+
+---
+
+## **LEVEL 2 — FULL PAGE EXPERIENCE**
+
+When a user enters a section:
+
+It should feel like:
+
+* entering a **new AI workspace**
+* with its own:
+
+  * layout
+  * context
+  * tools
+  * intelligence layer
+
+### Example (CRM Page)
+
+* Top: AI summary + pipeline health
+* Middle: pipeline board / data table
+* Side: quick actions / filters
+* Background: subtle AI atmosphere
+
+---
+
+## **LEVEL 3 — TABS SYSTEM (CRITICAL)**
+
+Every major page MUST have **tabs**.
+
+Tabs are not optional. They are how complexity is organized.
+
+### Example (CRM Tabs)
+
+* Overview
+* Leads
+* Opportunities
+* Pipeline
+* Activities
+* Reports
+* Automation
+* Settings
+
+---
+
+### 🎯 Tab Design Requirements
+
+Each tab should:
+
+* feel like a **sub-environment**
+* not just filtered content
+* have its own:
+
+  * layout
+  * actions
+  * AI support
+  * data view
+
+Tabs should:
+
+* slide / fade smoothly
+* maintain context
+* not reload the whole page
+
+---
+
+# **3. MENU POPUP SYSTEM (YOUR IDEA — VERY POWERFUL)**
+
+This is where your idea becomes elite.
+
+---
+
+## **Every Tab Should Support “Menu Popups”**
+
+Instead of cramming everything into the screen:
+
+👉 **Details open as intelligent popups / drawers**
+
+---
+
+## **POPUP TYPES (STANDARDIZED SYSTEM)**
+
+### **Type A — Quick Action Popup**
+
+Small, fast, minimal
+
+Use for:
+
+* create lead
+* quick edit
+* assign owner
+
+---
+
+### **Type B — Detail Drawer (Side Panel)**
+
+Slides from right
+
+Use for:
+
+* viewing lead
+* viewing deal
+* viewing contact
+* viewing asset
+
+👉 This should be the **default interaction model**
+
+---
+
+### **Type C — Full Modal (Deep Work Mode)**
+
+Center or expanded modal
+
+Use for:
+
+* editing complex records
+* AI analysis
+* proposal building
+* workflow editing
+
+---
+
+### **Type D — Full Screen Overlay (Focus Mode)**
+
+Use for:
+
+* production studio
+* AI generation
+* reporting deep dive
+
+---
+
+## **KEY RULE**
+
+👉 The user should NEVER feel lost or context-switched.
+
+Instead:
+
+> The system expands around them.
+
+---
+
+# **4. CRM SYSTEM — COPY BEST OF GOHIGHLEVEL + HUBSPOT (BUT BETTER)**
+
+You said this — and you're 100% right.
+
+We don’t reinvent CRM basics.
+We **take the best patterns and elevate them into AI-native UX**.
+
+---
+
+## **CORE CRM STRUCTURE (REQUIRED)**
+
+---
+
+### **A. LEADS SYSTEM**
+
+Must include:
+
+* lead list (table + cards)
+* filtering (advanced)
+* tagging
+* scoring
+* enrichment
+* activity history
+* owner assignment
+
+👉 Each lead opens in **side panel (drawer)**
+
+---
+
+### **B. PIPELINE SYSTEM (VISUAL BOARD)**
+
+Like:
+
+* HubSpot pipeline
+* GoHighLevel pipeline
+
+But enhanced:
+
+* drag & drop stages
+* deal cards with:
+
+  * value
+  * confidence
+  * last activity
+  * AI insight
+
+👉 Hover = glow + intelligence preview
+
+👉 Click = opens drawer
+
+---
+
+### **C. DEAL / OPPORTUNITY VIEW**
+
+Inside drawer:
+
+Must show:
+
+* company
+* contacts
+* deal value
+* stage
+* timeline
+* notes
+* activity history
+* AI suggestions
+* next steps
+
+---
+
+### **D. ACTIVITIES SYSTEM**
+
+Must track:
+
+* calls
+* emails
+* meetings
+* notes
+* tasks
+
+👉 Timeline format (like HubSpot but more premium)
+
+---
+
+### **E. TASK SYSTEM (DEEPLY INTEGRATED)**
+
+Every deal must have:
+
+* tasks
+* reminders
+* deadlines
+* owner
+
+👉 Visible in:
+
+* CRM
+* Command Center
+* Notifications
+
+---
+
+### **F. AUTOMATION (FROM GOHIGHLEVEL)**
+
+Must support:
+
+* triggers
+* conditions
+* actions
+
+Example:
+
+```
+Lead Created → Assign → Send Email → Create Task → Notify Manager
+```
+
+---
+
+### **G. AI ENHANCEMENTS (THIS IS YOUR EDGE)**
+
+This is where you beat both tools:
+
+Each record should show:
+
+* AI summary
+* pain points
+* opportunity score
+* recommended next action
+* risk warning
+* confidence level
+
+---
+
+# **5. USER FLOW (HOW IT SHOULD FEEL)**
+
+---
+
+## Example Flow:
+
+### Step 1 — User opens CRM
+
+* enters cinematic page
+* sees AI summary
+* sees pipeline
+
+---
+
+### Step 2 — Clicks a deal
+
+* drawer slides in (smooth, glassy)
+* background dims
+* detail loads
+
+---
+
+### Step 3 — Inside drawer
+
+* sees full deal
+* AI insight panel
+* next action suggested
+
+---
+
+### Step 4 — Edits something
+
+* popup opens inside drawer (layered UI)
+* smooth transition
+
+---
+
+👉 This creates **depth and immersion**
+
+---
+
+# **6. INTERACTION FEEL (VERY IMPORTANT)**
+
+Everything must feel:
+
+* smooth
+* fluid
+* responsive
+* intelligent
+* layered
+
+---
+
+## Animations Must Be:
+
+* fast but soft
+* no lag
+* no snapping
+* no jank
+
+---
+
+## Transitions:
+
+* fade + slight movement
+* blur + focus
+* glow activation
+
+---
+
+👉 The system should feel like:
+
+> **It responds intelligently, not mechanically**
+
+---
+
+# **7. MULTI-LAYER UI SYSTEM (THIS IS WHAT MAKES IT ELITE)**
+
+You must have **stacked UI layers**:
+
+---
+
+### Layer 1 — Main Page
+
+### Layer 2 — Tab Content
+
+### Layer 3 — Drawer
+
+### Layer 4 — Modal inside drawer
+
+### Layer 5 — Micro popup
+
+---
+
+👉 This creates depth like:
+
+* Figma
+* Linear
+* Notion (but more advanced)
+* AI tools
+
+---
+
+# **8. COMMAND CENTER INTEGRATION**
+
+Everything must connect back to:
+
+* Command Center
+
+From there user can:
+
+* jump to any record
+* open drawer instantly
+* see alerts
+* see risks
+* act fast
+
+---
+
+# **9. WHAT MAKES THIS SYSTEM “AI FEEL”**
+
+Not just visuals — structure:
+
+* layered interactions
+* intelligent popups
+* contextual drawers
+* predictive suggestions
+* no dead pages
+* no blank states
+* no static screens
+
+---
+
+# **10. FINAL EXPERIENCE GOAL**
+
+When user interacts:
+
+They should feel:
+
+* “I’m inside a system, not browsing pages”
+* “Everything is connected”
+* “It thinks with me”
+* “It guides me”
+* “It looks insane (in a good way)”
+* “This is exactly what I needed”
+
+---
+
+# 🔥 FINAL UX POSITIONING
+
+> **A multi-layered, tab-driven, popup-powered, AI-native operating system where every section is a full environment, every detail opens contextually, and every interaction feels intelligent, smooth, and deeply immersive.**
+
+---
+
+# 👉 NEXT STEP (HIGHLY RECOMMENDED)
+
+I can now design:
+
+### 1. **Exact CRM UI wireframe (like real product screens)**
+
+### 2. **Exact tab + popup flows (visual structure)**
+
+### 3. **Component system (buttons, drawers, cards, etc.)**
+
+### 4. **Full navigation blueprint**
+
+### 5. **Figma-ready design system spec**
+
+Just tell me:
+👉 *“Design the CRM UI screens”*
+or
+👉 *“Create full UI wireframe system”*
