@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
-import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide } from "@/components/mode-aware-wrapper";
+import { CreateCampaignForm } from "@/components/forms/create-campaign-form";
 import {
   Megaphone, Plus, BarChart3, Calendar, Search, DollarSign,
   Users, TrendingUp, Sparkles, MousePointerClick
@@ -28,8 +29,9 @@ const tabs = [
 
 export default function Marketing() {
   const [activeTab, setActiveTab] = useState("campaigns");
+  const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const { data: campaigns } = useListCampaigns();
-  const { isHuman, isHybrid, isAuto } = useAiModeContext();
+  const { isHuman } = useAiModeContext();
   const campaignList = (campaigns ?? []) as any[];
 
   const totalLeads = campaignList.reduce((s: number, c: any) => s + (c.leadsGenerated ?? c.leads_generated ?? 0), 0);
@@ -52,7 +54,7 @@ export default function Marketing() {
         title="Marketing & Campaigns"
         subtitle="Campaign management, content calendar, channel strategy, and performance analytics"
         icon={<Megaphone className="h-5 w-5" />}
-        actions={<Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />New Campaign</Button>}
+        actions={<Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateCampaign(true)}><Plus className="h-4 w-4 mr-2" />New Campaign</Button>}
       />
 
       <ModeIndicatorBanner />
@@ -144,6 +146,13 @@ export default function Marketing() {
                 </GlassCard>
               );
             })}
+            {campaignList.length === 0 && (
+              <GlassCard className="py-12 flex flex-col items-center gap-3">
+                <Megaphone className="h-12 w-12 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No campaigns yet</p>
+                <Button className="btn-premium text-white text-sm rounded-lg" onClick={() => setShowCreateCampaign(true)}><Plus className="h-4 w-4 mr-2" />Create First Campaign</Button>
+              </GlassCard>
+            )}
           </div>
         )}
 
@@ -229,6 +238,8 @@ export default function Marketing() {
         )}
       </motion.div>
       </ModeAwareWrapper>
+
+      <CreateCampaignForm open={showCreateCampaign} onOpenChange={setShowCreateCampaign} />
     </div>
   );
 }

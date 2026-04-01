@@ -587,6 +587,65 @@ export function useSops(category?: string) {
   });
 }
 
+export function useUpdateTaskMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      apiFetch<any>(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => { invalidateEntity(qc, "tasks"); qc.invalidateQueries({ queryKey: ["command-center"] }); },
+  });
+}
+
+export function useUpdateDocumentMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      apiFetch<any>(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => { invalidateEntity(qc, "documents"); },
+  });
+}
+
+export function useCreateCommunicationMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch<any>("/communications", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { invalidateEntity(qc, "communications"); },
+  });
+}
+
+export function useInvoices() {
+  return useQuery({
+    queryKey: ["invoices"],
+    queryFn: () => apiFetch<any[]>("/invoices"),
+  });
+}
+
+export function useCreateInvoiceMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch<any>("/invoices", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { invalidateEntity(qc, "invoices"); },
+  });
+}
+
+export function useContracts() {
+  return useQuery({
+    queryKey: ["contracts"],
+    queryFn: () => apiFetch<any[]>("/contracts"),
+  });
+}
+
+export function useCreateContractMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch<any>("/contracts", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { invalidateEntity(qc, "contracts"); },
+  });
+}
+
 export function useCreateSop() {
   const qc = useQueryClient();
   return useMutation({

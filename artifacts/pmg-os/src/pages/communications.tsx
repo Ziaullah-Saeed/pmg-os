@@ -9,8 +9,14 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
-import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
+import { useCreateCommunicationMut } from "@/hooks/use-api";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide } from "@/components/mode-aware-wrapper";
 import {
   MessagesSquare, Phone, Video, Mail, ArrowUpRight, ArrowDownLeft,
   Clock, Plus, Sparkles, Bot, User, Headphones, AlertCircle,
@@ -24,12 +30,17 @@ const tabs = [
   { id: "meeting-support", label: "Mode C: Meeting", icon: <Headphones className="h-3.5 w-3.5" /> },
 ];
 
+const defaultLogForm = { subject: "", type: "call", direction: "outbound", duration: "", sentiment: "neutral", outcome: "follow_up", summary: "", nextSteps: "" };
+
 export default function Communications() {
   const [activeMode, setActiveMode] = useState("log");
   const [selectedComm, setSelectedComm] = useState<any>(null);
+  const [showLogDialog, setShowLogDialog] = useState(false);
+  const [logForm, setLogForm] = useState(defaultLogForm);
   const { data: communications } = useListCommunications();
   const { data: leads } = useListLeads();
-  const { isHuman, isHybrid, isAuto } = useAiModeContext();
+  const { isHuman } = useAiModeContext();
+  const createComm = useCreateCommunicationMut();
   const commList = (communications ?? []) as any[];
   const leadList = (leads ?? []) as any[];
 
@@ -44,13 +55,31 @@ export default function Communications() {
   const meetings = commList.filter((c: any) => c.type === "meeting").length;
   const positive = commList.filter((c: any) => c.sentiment === "positive").length;
 
+  function handleLogSubmit() {
+    createComm.mutate({
+      subject: logForm.subject,
+      type: logForm.type,
+      direction: logForm.direction,
+      duration: logForm.duration ? Number(logForm.duration) : undefined,
+      sentiment: logForm.sentiment,
+      outcome: logForm.outcome,
+      summary: logForm.summary || undefined,
+      nextSteps: logForm.nextSteps || undefined,
+    }, {
+      onSuccess: () => {
+        setShowLogDialog(false);
+        setLogForm(defaultLogForm);
+      },
+    });
+  }
+
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
         title="Communication Intelligence"
         subtitle="AI-powered calling, meeting support, and communication coaching"
         icon={<MessagesSquare className="h-5 w-5" />}
-        actions={<Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />Log Communication</Button>}
+        actions={<Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg" onClick={() => setShowLogDialog(true)}><Plus className="h-4 w-4 mr-2" />Log Communication</Button>}
       />
 
       <ModeIndicatorBanner />
@@ -124,6 +153,7 @@ export default function Communications() {
               <GlassCard className="py-12 flex flex-col items-center gap-3">
                 <MessagesSquare className="h-12 w-12 text-muted-foreground/30" />
                 <p className="text-sm text-muted-foreground">No communications logged yet</p>
+                <Button className="btn-premium text-white text-sm rounded-lg" onClick={() => setShowLogDialog(true)}><Plus className="h-4 w-4 mr-2" />Log First Communication</Button>
               </GlassCard>
             )}
           </div>
@@ -281,6 +311,87 @@ export default function Communications() {
           </div>
         )}
       </DetailDrawer>
+
+      <Dialog open={showLogDialog} onOpenChange={setShowLogDialog}>
+        <DialogContent className="glass-card border-white/10 max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Log Communication</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs">Subject</Label>
+              <Input className="glass-input mt-1" value={logForm.subject} onChange={(e) => setLogForm(f => ({ ...f, subject: e.target.value }))} placeholder="Call with prospect..." />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Type</Label>
+                <Select value={logForm.type} onValueChange={(v) => setLogForm(f => ({ ...f, type: v }))}>
+                  <SelectTrigger className="glass-input mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="call">Call</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="meeting">Meeting</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Direction</Label>
+                <Select value={logForm.direction} onValueChange={(v) => setLogForm(f => ({ ...f, direction: v }))}>
+                  <SelectTrigger className="glass-input mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="outbound">Outbound</SelectItem>
+                    <SelectItem value="inbound">Inbound</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Duration (min)</Label>
+                <Input className="glass-input mt-1" type="number" value={logForm.duration} onChange={(e) => setLogForm(f => ({ ...f, duration: e.target.value }))} placeholder="15" />
+              </div>
+              <div>
+                <Label className="text-xs">Sentiment</Label>
+                <Select value={logForm.sentiment} onValueChange={(v) => setLogForm(f => ({ ...f, sentiment: v }))}>
+                  <SelectTrigger className="glass-input mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="positive">Positive</SelectItem>
+                    <SelectItem value="neutral">Neutral</SelectItem>
+                    <SelectItem value="negative">Negative</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Outcome</Label>
+                <Select value={logForm.outcome} onValueChange={(v) => setLogForm(f => ({ ...f, outcome: v }))}>
+                  <SelectTrigger className="glass-input mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="follow_up">Follow Up</SelectItem>
+                    <SelectItem value="meeting_booked">Meeting Booked</SelectItem>
+                    <SelectItem value="interested">Interested</SelectItem>
+                    <SelectItem value="not_interested">Not Interested</SelectItem>
+                    <SelectItem value="no_answer">No Answer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Summary</Label>
+              <Textarea className="glass-input mt-1" rows={2} value={logForm.summary} onChange={(e) => setLogForm(f => ({ ...f, summary: e.target.value }))} placeholder="Key discussion points..." />
+            </div>
+            <div>
+              <Label className="text-xs">Next Steps</Label>
+              <Input className="glass-input mt-1" value={logForm.nextSteps} onChange={(e) => setLogForm(f => ({ ...f, nextSteps: e.target.value }))} placeholder="Schedule follow-up call..." />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button className="btn-glass text-foreground flex-1 rounded-lg" onClick={() => setShowLogDialog(false)}>Cancel</Button>
+              <Button className="btn-premium text-white flex-1 rounded-lg" onClick={handleLogSubmit} disabled={!logForm.subject || createComm.isPending}>
+                {createComm.isPending ? "Saving..." : "Log Communication"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

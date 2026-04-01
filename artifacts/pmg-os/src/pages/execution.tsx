@@ -10,7 +10,9 @@ import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
-import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
+import { useUpdateTaskMut } from "@/hooks/use-api";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide } from "@/components/mode-aware-wrapper";
+import { CreateTaskForm } from "@/components/forms/create-task-form";
 import {
   Zap, CheckCircle2, Clock, AlertTriangle, Plus, LayoutGrid,
   List, ArrowRight
@@ -28,8 +30,10 @@ const tabs = [
 export default function Execution() {
   const [activeTab, setActiveTab] = useState("kanban");
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [showCreateTask, setShowCreateTask] = useState(false);
   const { data: tasks } = useListTasks();
-  const { isHuman, isHybrid, isAuto } = useAiModeContext();
+  const { isHuman } = useAiModeContext();
+  const updateTask = useUpdateTaskMut();
   const taskList = (tasks ?? []) as any[];
 
   const total = taskList.length;
@@ -38,13 +42,19 @@ export default function Execution() {
   const completed = taskList.filter((t: any) => t.status === "completed").length;
   const critical = taskList.filter((t: any) => t.priority === "critical" && t.status !== "completed").length;
 
+  function handleTransition(task: any, newStatus: string) {
+    updateTask.mutate({ id: task.id, data: { status: newStatus } }, {
+      onSuccess: () => setSelectedTask(null),
+    });
+  }
+
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
         title="Execution & Operations"
         subtitle="Task management, workflows, checklists, and operational monitoring"
         icon={<Zap className="h-5 w-5" />}
-        actions={<Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Plus className="h-4 w-4 mr-2" />New Task</Button>}
+        actions={<Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateTask(true)}><Plus className="h-4 w-4 mr-2" />New Task</Button>}
       />
 
       <ModeIndicatorBanner />
@@ -123,7 +133,7 @@ export default function Execution() {
                           <StatusBadge variant={task.priority === "critical" ? "critical" : task.priority === "high" ? "warning" : "pending"} label={task.priority} />
                           <Badge variant="outline" className="text-[9px] capitalize">{task.domain}</Badge>
                         </div>
-                        {task.assignee && <span className="text-[9px] text-muted-foreground">{task.assignee}</span>}
+                        {(task.assignee || task.assignedTo || task.assigned_to) && <span className="text-[9px] text-muted-foreground">{task.assignee || task.assignedTo || task.assigned_to}</span>}
                       </div>
                     </GlassCard>
                   ))}
@@ -174,8 +184,8 @@ export default function Execution() {
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <Button className="btn-glass text-crimson text-xs px-3 py-1.5 rounded-lg">Reject</Button>
-                      <Button className="bg-success hover:bg-success/90 text-white text-xs px-3 py-1.5 rounded-lg">Approve</Button>
+                      <Button className="btn-glass text-crimson text-xs px-3 py-1.5 rounded-lg" onClick={() => handleTransition(task, "cancelled")}>Reject</Button>
+                      <Button className="bg-success hover:bg-success/90 text-white text-xs px-3 py-1.5 rounded-lg" onClick={() => handleTransition(task, "in_progress")}>Approve</Button>
                     </div>
                   </div>
                 ))
@@ -211,28 +221,45 @@ export default function Execution() {
             {selectedTask.description && (
               <GlassCard><p className="text-xs font-semibold mb-1">Description</p><p className="text-sm text-muted-foreground">{selectedTask.description}</p></GlassCard>
             )}
-            <div>
-              <h4 className="section-header mb-2">Checklist</h4>
-              <div className="space-y-1.5">
-                {["Review requirements", "Execute task", "Verify output", "Get approval"].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm p-2 rounded-lg glass-surface">
-                    <div className="w-3.5 h-3.5 rounded border border-border" />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {(selectedTask.assignee || selectedTask.assignedTo || selectedTask.assigned_to) && (
+              <GlassCard><p className="text-xs font-semibold mb-1">Assigned To</p><p className="text-sm text-muted-foreground">{selectedTask.assignee || selectedTask.assignedTo || selectedTask.assigned_to}</p></GlassCard>
+            )}
+            {selectedTask.dueDate && (
+              <GlassCard><p className="text-xs font-semibold mb-1">Due Date</p><p className="text-sm text-muted-foreground">{new Date(selectedTask.dueDate || selectedTask.due_date).toLocaleDateString()}</p></GlassCard>
+            )}
             {selectedTask.status !== "completed" && (
               <div className="flex gap-2">
-                <Button className="btn-glass text-foreground flex-1 text-sm rounded-lg"><AlertTriangle className="h-4 w-4 mr-2" />Block</Button>
-                <Button className="btn-premium text-white flex-1 text-sm rounded-lg"><ArrowRight className="h-4 w-4 mr-2" />
+                <Button
+                  className="btn-glass text-crimson flex-1 text-sm rounded-lg"
+                  onClick={() => handleTransition(selectedTask, "blocked")}
+                  disabled={updateTask.isPending}
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />Block
+                </Button>
+                <Button
+                  className="btn-premium text-white flex-1 text-sm rounded-lg"
+                  onClick={() => handleTransition(selectedTask, selectedTask.status === "pending" ? "in_progress" : selectedTask.status === "in_progress" ? "completed" : "in_progress")}
+                  disabled={updateTask.isPending}
+                >
+                  <ArrowRight className="h-4 w-4 mr-2" />
                   {selectedTask.status === "pending" ? "Start" : selectedTask.status === "in_progress" ? "Complete" : "Reopen"}
                 </Button>
               </div>
             )}
+            {selectedTask.status === "completed" && (
+              <Button
+                className="btn-glass text-foreground w-full text-sm rounded-lg"
+                onClick={() => handleTransition(selectedTask, "pending")}
+                disabled={updateTask.isPending}
+              >
+                Reopen Task
+              </Button>
+            )}
           </div>
         )}
       </DetailDrawer>
+
+      <CreateTaskForm open={showCreateTask} onOpenChange={setShowCreateTask} />
     </div>
   );
 }

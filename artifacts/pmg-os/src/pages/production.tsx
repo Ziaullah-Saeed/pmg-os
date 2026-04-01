@@ -10,13 +10,15 @@ import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
-import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
+import { useUpdateDocumentMut } from "@/hooks/use-api";
+import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide } from "@/components/mode-aware-wrapper";
 import {
   Palette, FileText, CheckCircle2, Clock, Edit, Plus, Eye,
   RotateCcw, ArrowRight, Sparkles, History, Ban
 } from "lucide-react";
 
 const lifecycleStages = ["generate", "preview", "review", "revise", "approve", "finalize"] as const;
+const statusForStage: Record<string, string> = { generate: "draft", preview: "draft", review: "in_review", revise: "draft", approve: "approved", finalize: "published" };
 
 function mapDocStatus(status: string): string {
   if (status === "draft") return "generate";
@@ -24,6 +26,12 @@ function mapDocStatus(status: string): string {
   if (status === "approved") return "approve";
   if (status === "published") return "finalize";
   return "generate";
+}
+
+function nextStage(current: string): string | null {
+  const idx = lifecycleStages.indexOf(current as any);
+  if (idx >= 0 && idx < lifecycleStages.length - 1) return lifecycleStages[idx + 1];
+  return null;
 }
 
 const tabs = [
@@ -36,17 +44,39 @@ export default function Production() {
   const [activeTab, setActiveTab] = useState("queue");
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const { data: documents } = useListDocuments();
-  const { isHuman, isHybrid, isAuto } = useAiModeContext();
+  const { isHuman } = useAiModeContext();
+  const updateDoc = useUpdateDocumentMut();
   const docList = (documents ?? []) as any[];
 
   const enriched = docList.map((d) => ({ ...d, lifecycle: mapDocStatus(d.status) }));
   const byStage = lifecycleStages.reduce((acc, s) => { acc[s] = enriched.filter((d) => d.lifecycle === s); return acc; }, {} as Record<string, any[]>);
 
+  function handleAdvance(doc: any) {
+    const next = nextStage(doc.lifecycle);
+    if (!next) return;
+    const newStatus = statusForStage[next] || "draft";
+    updateDoc.mutate({ id: doc.id, data: { status: newStatus } }, {
+      onSuccess: () => setSelectedDoc(null),
+    });
+  }
+
+  function handleReject(doc: any) {
+    updateDoc.mutate({ id: doc.id, data: { status: "draft" } }, {
+      onSuccess: () => setSelectedDoc(null),
+    });
+  }
+
+  function handleRevise(doc: any) {
+    updateDoc.mutate({ id: doc.id, data: { status: "draft" } }, {
+      onSuccess: () => setSelectedDoc(null),
+    });
+  }
+
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
         title="Production Studio"
-        subtitle="Asset lifecycle management: Generate → Preview → Review → Revise → Approve → Finalize"
+        subtitle="Asset lifecycle management: Generate > Preview > Review > Revise > Approve > Finalize"
         icon={<Palette className="h-5 w-5" />}
         actions={
           <div className="flex gap-2">
@@ -184,7 +214,7 @@ export default function Production() {
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge variant={doc.lifecycle === "finalize" ? "human-approved" : "draft"} label={doc.lifecycle} />
-                    <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg"><RotateCcw className="h-3 w-3 mr-1" />Revert</Button>
+                    <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg" onClick={() => handleRevise(doc)} disabled={updateDoc.isPending}><RotateCcw className="h-3 w-3 mr-1" />Revert</Button>
                   </div>
                 </div>
               ))}
@@ -227,11 +257,13 @@ export default function Production() {
               {selectedDoc.content && (
                 <GlassCard><p className="text-xs font-semibold mb-1">Content</p><p className="text-sm text-muted-foreground">{selectedDoc.content}</p></GlassCard>
               )}
-              <div className="flex gap-2">
-                <Button className="btn-glass text-foreground flex-1 text-sm rounded-lg"><Ban className="h-3 w-3 mr-1" />Reject</Button>
-                <Button className="btn-glass text-foreground flex-1 text-sm rounded-lg"><RotateCcw className="h-3 w-3 mr-1" />Revise</Button>
-                <Button className="btn-premium text-white flex-1 text-sm rounded-lg"><ArrowRight className="h-3 w-3 mr-1" />Advance</Button>
-              </div>
+              {selectedDoc.lifecycle !== "finalize" && (
+                <div className="flex gap-2">
+                  <Button className="btn-glass text-crimson flex-1 text-sm rounded-lg" onClick={() => handleReject(selectedDoc)} disabled={updateDoc.isPending}><Ban className="h-3 w-3 mr-1" />Reject</Button>
+                  <Button className="btn-glass text-foreground flex-1 text-sm rounded-lg" onClick={() => handleRevise(selectedDoc)} disabled={updateDoc.isPending}><RotateCcw className="h-3 w-3 mr-1" />Revise</Button>
+                  <Button className="btn-premium text-white flex-1 text-sm rounded-lg" onClick={() => handleAdvance(selectedDoc)} disabled={updateDoc.isPending}><ArrowRight className="h-3 w-3 mr-1" />Advance</Button>
+                </div>
+              )}
             </div>
           );
         })()}
