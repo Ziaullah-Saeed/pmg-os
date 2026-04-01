@@ -1,0 +1,207 @@
+PART 18 — CRM, SALES, CLOSING & REVENUE PIPELINE DOMAIN
+
+This domain must be among the strongest operational layers in the platform because it governs revenue movement. It must understand sales not merely as data entry, but as progression through stages of commercial momentum, trust formation, decision support, and opportunity conversion.
+
+It must support:
+
+lead acceptance
+opportunity creation
+deal progression
+stage transitions
+activity logging
+follow-ups
+meeting records
+proposal status
+contract status
+owner assignment
+handoff tracking
+stale opportunity detection
+close probability awareness
+post-close transition into delivery
+
+This domain must understand revenue flow, not just contact management. It should preserve context from prospecting through qualification, outreach, meetings, proposals, negotiations, close, and transition.
+
+The CRM layer must help the company answer:
+
+Where is revenue likely to come from?
+What deals are healthy?
+What deals are stalled?
+What action is needed to move a deal?
+What activities matter most right now?
+Where is follow-up missing?
+Which opportunities are becoming stale?
+Which handoffs are incomplete?
+
+This domain must support operational discipline and leadership visibility simultaneously.
+
+PART 19 — CRM STRUCTURE AND MODELS
+
+The CRM architecture must support three operating modes while preserving PMG visibility and control. The system must be capable of functioning natively while also accommodating optional external CRM modes where needed.
+
+The intended structure is:
+
+Default / Preferred
+
+PMG Internal CRM
+
+low cost
+fully integrated
+PMG-native
+preferred for most internal and client use cases
+Optional
+
+GoHighLevel
+
+Optional
+
+HubSpot
+
+Inside the CRM domain, there must be two structurally separate tabs or environments:
+
+A. PMG CRM
+
+For PMG internal operations, including:
+
+PMG leads
+PMG opportunities
+PMG deals
+PMG stages
+PMG tasks
+PMG internal client oversight
+B. Client CRM
+
+For client-facing CRM contexts, including:
+
+client-specific CRM instances
+client pipelines
+client records
+CRM mode selector
+deployment visibility
+continuity in routing and reporting
+
+PMG must retain:
+
+visibility
+control
+reporting oversight
+continuity across CRM modes
+awareness of handoff and ownership
+
+The architecture must ensure that use of optional CRMs does not fracture PMG’s control layer. External flexibility must not come at the cost of supervisory blindness.
+
+PART 20 — COMMUNICATION INTELLIGENCE, CALLING & MEETING SUPPORT DOMAIN
+
+This domain must go far beyond a standard phone dialer or meeting notes tool. It must function as a communication intelligence environment capable of improving how PMG prepares for, conducts, and follows up on sales conversations and meetings.
+
+It must support three distinct operating modes:
+
+Mode A — AI-Led Calling
+
+Where AI supports or manages calls within defined boundaries, including:
+
+call eligibility logic
+qualification logic
+conversation flow logic
+objection handling within safe limits
+booking logic
+logging
+disposition mapping
+CRM updates
+next-step generation
+Mode B — Human-Led Cold Calling with AI Guidance
+
+Where the human remains the active caller, while AI supplies:
+
+company context
+lead context
+likely pain summary
+objection map
+opening suggestions
+tone guidance
+next-best phrase suggestions
+meeting ask timing guidance
+exit guidance
+objection-response options
+Mode C — Human-Led Zoom / Meeting / Closing Support
+
+Where the human remains the closer or meeting lead, but AI supports through:
+
+transcription
+objection detection
+interest signal detection
+hesitation detection
+need analysis
+answer suggestions
+emphasis suggestions
+next-step recommendations
+follow-up draft generation
+meeting summary generation
+CRM update assistance
+
+This domain must integrate tightly with:
+
+CRM
+booking logic
+reporting
+archive
+follow-up workflows
+revenue movement
+
+Communication is one of the highest-leverage moments in the system. This domain must therefore improve preparation, confidence, relevance, follow-through, and conversion quality.
+
+PART 21 — HUMAN + AI COMMUNICATION COORDINATION
+
+This domain must be governed by a central principle: AI exists to amplify human effectiveness, not merely replace voice actions. The purpose of communication intelligence is not to strip out the human role where trust and judgment matter. It is to make the human operator sharper, faster, more aware, and better supported.
+
+Accordingly:
+
+AI-led calls are one operating mode
+AI-guided human calls are another
+AI-guided human meetings and closes are another
+
+The system must improve:
+
+confidence
+consistency
+objection handling
+situational awareness
+preparation quality
+communication follow-through
+post-meeting execution discipline
+
+This domain should feel like a world-class strategist beside the operator. It should reduce improvisational weakness, lost context, poor note retention, and missed opportunities for better responses.
+
+At the same time, it must preserve human authenticity. Communication support must not turn meetings into robotic scripts. It must enhance human judgment while preserving natural, trust-building interaction.
+
+PART 22 — FINANCE DOMAIN
+
+The finance domain must be robust enough to support real operational use. It must not be symbolic. It must enable visibility into revenue movement, billing, payment status, cost awareness, and financial risk.
+
+It must support:
+
+quotations
+estimates
+invoices
+receipts
+payment records
+outstanding balance tracking
+expense logs
+profitability snapshots
+cost tracking
+usage billing awareness
+time-based billing support
+tax-ready export support
+internal revenue visibility
+client financial state visibility
+
+The finance layer must answer:
+
+What was billed?
+What was paid?
+What remains outstanding?
+What is profitable?
+What is costing money?
+What is becoming financially risky?
+What needs follow-up?
+
+This domain must integrate meaningfully with CRM, delivery, reporting, and archive functions. Financial data should not live in a disconnected corner. It must be part of the company’s actual operating visibility.
