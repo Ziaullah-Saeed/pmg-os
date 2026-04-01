@@ -194,3 +194,32 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(214 52% 25% / 0.5);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(214 52% 25% / 0.8);
+}
+
+@layer utilities {
+  .glass-card {
+    backdrop-filter: blur(12px);
+    background: hsl(214 65% 11% / 0.6);
+    border: 1px solid hsl(214 52% 25% / 0.5);
+  }
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(0 72% 51% / 0.15), 0 0 40px hsl(0 72% 51% / 0.05);
+  }
+  .gradient-border {
+    border-image: linear-gradient(to right, hsl(0 72% 51% / 0.5), hsl(214 52% 40% / 0.5)) 1;
+  }
+}

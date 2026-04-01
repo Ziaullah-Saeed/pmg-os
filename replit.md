@@ -37,19 +37,25 @@ artifacts-monorepo/
 └── package.json
 ```
 
-## Domains (11 Modules)
+## Domains (11 Modules) — Full Operational Workspaces
 
-1. **Command Center** (`/`) - Cross-domain dashboard with KPIs, pipeline chart, activity feed
-2. **Intelligence** (`/intelligence`) - Company tracking, contact mapping, fit scoring
-3. **Outreach** (`/outreach`) - Lead pipeline, scoring, pain points, next actions
-4. **Marketing** (`/marketing`) - Campaign management with budget tracking, impressions, conversions
-5. **Production** (`/production`) - Asset queue, document status tracking
-6. **CRM Pipeline** (`/crm`) - Kanban board with discovery/qualification/proposal/negotiation stages
-7. **Communications** (`/communications`) - Call logs, meetings, emails with sentiment analysis
-8. **Execution** (`/execution`) - Task management with priority and status tracking
-9. **Finance & Legal** (`/finance`) - Revenue analysis, weighted projections, legal documents
-10. **Reports & Archive** (`/reports`) - Document repository with tagging and categories
-11. **System** (`/system`) - Health monitoring, module status, platform info
+1. **Command Center** (`/`) - 4-tab executive control surface (Executive, Operations, System Health, Exceptions), KPI cards, Revenue Projection chart, Pipeline by Stage pie chart, top deals, stale deal detection, quick actions
+2. **Intelligence** (`/intelligence`) - 4-tab (Company Intelligence, Decision Maker Map, ICP Analysis, Competitor Watch), ICP Builder dialog, company detail modal, fit scoring, pain point analysis, authority mapping
+3. **Outreach** (`/outreach`) - 3-tab (Lead Pipeline, Outbound Sequences, Qualification), lead detail modal, create lead form, qualification checklists, CRM handoff, filterable lead pipeline with priority-color borders
+4. **Marketing** (`/marketing`) - 4-tab (Campaigns, Analytics, Content Calendar, SEO & Topics), campaign cards with budget bars, performance chart, content calendar, topic clustering, create campaign dialog
+5. **Production** (`/production`) - 3-tab (Asset Queue, Kanban Board, Version History), 6-stage lifecycle (Generate→Preview→Review→Revise→Approve→Finalize), asset detail modal with stage progression, create asset dialog
+6. **CRM Pipeline** (`/crm`) - Dual PMG/Client tabs, kanban board (5 stages), deal detail modal with timeline, create deal dialog, stage transition buttons, stale deal detection
+7. **Communications** (`/communications`) - 4-tab (Communication Log, Mode A: AI-Led Calling, Mode B: AI-Guided Cold Call, Mode C: Meeting Support), coaching sidebar, call queue, disposition mapping, meeting AI co-pilot
+8. **Execution** (`/execution`) - 3-tab (Kanban, List View, Approvals), 4-column kanban (Pending/In Progress/Completed/Blocked), task detail modal with checklists, approval routing
+9. **Finance & Legal** (`/finance`) - 4-tab (Financial Overview, Invoices, Quotations, Legal), Revenue vs Expenses chart, expense breakdown, invoice/quotation management, legal templates (NDA/MSA/SOW/DPA), create invoice dialog
+10. **Reports & Archive** (`/reports`) - 2-tab (Reports, Document Archive), executive + operational reports with AI summary, searchable/filterable document repository
+11. **System** (`/system`) - 4-tab (System Overview, Permissions, Audit Trail, Integrations), 11-module status grid, RBAC with 4 roles + permission matrix, audit log, integration management panel
+
+## UI Libraries
+
+- framer-motion (page transitions, hover effects)
+- recharts (charts and data visualization)
+- shadcn/ui (Card, Badge, Tabs, Dialog, Select, Input, Label, Button, Progress, Textarea, Checkbox)
 
 ## Database Schema (9 tables)
 
