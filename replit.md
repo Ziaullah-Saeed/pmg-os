@@ -16,6 +16,7 @@ PMG Group OS is an AI-native enterprise business operating system for PMG Group 
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **AI**: OpenAI via Replit AI Integrations proxy (gpt-4o-mini, no API key needed)
 
 ## Structure
 
@@ -23,6 +24,14 @@ PMG Group OS is an AI-native enterprise business operating system for PMG Group 
 artifacts-monorepo/
 ├── artifacts/
 │   ├── api-server/         # Express API server (port 8080)
+│   │   └── src/services/   # Core engine services
+│   │       ├── wallet-service.ts     # Wallet balance, charges, funding
+│   │       ├── ai-service.ts         # Real AI calls (enrich, score, outreach, reports)
+│   │       ├── ai-mode-service.ts    # Global/per-workflow AI mode management
+│   │       ├── notification-service.ts # System notifications
+│   │       ├── state-machine.ts      # Entity lifecycle state machines
+│   │       ├── knowledge-service.ts  # Knowledge library CRUD
+│   │       └── ghl-service.ts        # GoHighLevel integration
 │   ├── pmg-os/             # React frontend (dark-first enterprise UI)
 │   └── mockup-sandbox/     # Design component previews
 ├── lib/
@@ -30,6 +39,10 @@ artifacts-monorepo/
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
+│       └── src/schema/
+│           ├── wallet.ts           # wallet + wallet_transactions tables
+│           ├── ai_mode_settings.ts # ai_mode_settings + notifications + knowledge_entries tables
+│           └── ... (23+ tables total)
 ├── scripts/                # Utility scripts
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
@@ -37,115 +50,116 @@ artifacts-monorepo/
 └── package.json
 ```
 
-## Domains (11 Modules) — Full Operational Workspaces
+## Core Engine (Real AI OS — Not a Shell)
 
-1. **Command Center** (`/`) - 5-tab executive control surface (Executive, Operations, System Health, Exceptions, AI Activity), KPI cards with glow accents, Revenue Projection AreaChart, Pipeline Distribution PieChart, top deals, stale deal detection, quick actions
-2. **Intelligence** (`/intelligence`) - 6-tab (Company Intelligence, Decision Maker Map, ICP Analysis, Competitor Watch, Pain Analysis, Positioning), ICP profiles, company detail drawer, fit scoring with ConfidenceMeter, pain point mapping, authority mapping
-3. **Outreach** (`/outreach`) - 3-tab (Lead Pipeline, Outbound Sequences, Qualification), lead detail drawer, filterable pipeline, qualification checklists, CRM handoff buttons, confidence scoring
-4. **Marketing** (`/marketing`) - 4-tab (Campaigns, Analytics, Content Calendar, SEO & Topics), campaign cards with budget bars, BarChart performance comparison, content calendar, topic clustering with authority scores
-5. **Production** (`/production`) - 3-tab (Asset Queue, Kanban Board, Version History), mandatory 6-stage lifecycle (Generate→Preview→Review→Revise→Approve→Finalize), asset detail drawer with stage progression
-6. **CRM Pipeline** (`/crm`) - Dual PMG/Client CRM tabs, 4-column kanban board, deal detail drawer with stage progression bar, stale deal detection, Client CRM placeholder (GoHighLevel/HubSpot)
-7. **Communications** (`/communications`) - 4-tab (Communication Log, Mode A: AI-Led, Mode B: AI-Guided, Mode C: Meeting), coaching sidebar, call queue, disposition mapping, meeting AI co-pilot with signal detection
-8. **Execution** (`/execution`) - 3-tab (Kanban, List View, Approvals), 4-column kanban (Pending/In Progress/Completed/Blocked), task detail drawer with checklists, approval routing
-9. **Finance & Legal** (`/finance`) - 4-tab (Financial Overview, Invoices, Quotations, Legal), Revenue vs Expenses BarChart, expense breakdown, invoice/quotation management, legal templates (NDA/MSA/SOW/DPA), legal boundary notice
-10. **Reports & Archive** (`/reports`) - 2-tab (Reports, Document Archive), dual Executive + Operational reports with AI summary, searchable/filterable document repository with category/text filtering
-11. **System** (`/system`) - 5-tab (System Overview, Permissions, Audit Trail, Integrations, AI Control), 11-module status grid, RBAC with 4 roles + full permission matrix, audit log, integration management, AI mode control center
+### Wallet System
+- Per-action cost tracking with configurable tool costs
+- Auto-deduction on every AI call
+- Fund wallet via API
+- Full transaction history
 
-## Premium UI Component Library
+### AI Integration (Real AI via Replit Proxy)
+- `enrichLead()` — company profiling, cybersecurity maturity, deal potential
+- `scoreLead()` — 0-100 scoring with HOT/WARM/COLD tier
+- `generateOutreachDraft()` — personalized outreach per channel
+- `summarizeRecord()` — business record summarization
+- `generateReport()` — AI-generated domain reports
+- `suggestNextAction()` — next-action recommendations
+- Every AI call: logged to ai_runs, charged to wallet, respects AI mode
 
-All pages use a consistent premium component library:
+### Dual-Mode System
+- **AI Autonomous** (default) — 24/7 autonomous operation
+- **Hybrid** — AI + human review for confidence < 70%
+- **Human Controlled** — manual control only
+- Global toggle + per-workflow overrides (14 workflow types)
+- Confidence-based handoff with notification generation
 
-- **PageHeader** - Domain title with icon, subtitle, action buttons
-- **GlassCard** - Glassmorphic card with blur, inner glow, gradient borders. Variants: default, interactive, alert-warning. Glow options: crimson, blue, success, gold
-- **KpiCard** - Executive KPI display with icon, accent colors (crimson, blue, gold, success)
-- **PremiumTabs** - Smooth tab system with icons, active state glow
-- **StatusBadge** - Semantic status chips (active, pending, draft, critical, success, warning, ai-executed, human-required, human-approved, human-assisted, awaiting-review, manually-completed, ai-recommended)
-- **ConfidenceMeter** - Visual percentage bar with color gradient
-- **DetailDrawer** - Slide-out panel with backdrop blur, badge support, width variants
+### State Machines
+- Lead: new→enriched→scored→qualified→routing→routed→active→closed
+- Opportunity: discovery→qualification→proposal→negotiation→closing→won/lost
+- Approval: draft→pending→approved/rejected/revision_requested
+- Asset: draft→review→approved→published→archived
+- Contract: draft→review→negotiation→approved→active→terminated
+- Task: pending→in_progress→completed/blocked/cancelled
 
-## Design System
+### CRM Lead Routing
+- PMG Internal / GoHighLevel / Both / Hold
+- Auto-routing on state transition
+- Activity logging per route decision
 
-- Cinematic glassmorphic dark-first theme forced via `class="dark"` on HTML element
-- Crimson red primary: `0 72% 51%`
-- Navy blue cards: `214 65% 11%`
-- Deep background: `222 47% 5%`
-- Golden Yellow accent: `45 93% 47%`
-- 4-layer depth system: atmosphere, shell, glass surfaces, highlight/AI signal
-- Font: Inter (Google Fonts)
-- CSS classes: `glass-card`, `glass-surface`, `glass-border`, `btn-premium`, `btn-glass`, `gradient-text-crimson`, `gradient-text-gold`, `kpi-label`, `kpi-value`, `section-header`, `confidence-bar`/`confidence-fill`, `status-dot-active`
-- Framer Motion: `motion.div` with `initial/animate/whileHover/layoutId`
+### Knowledge Library
+- Auto-populates from AI enrichments, scoring, reports
+- Searchable by category, content, title
+- Usage tracking for AI context
 
-## UI Libraries
+### Notification System
+- Real-time notifications on state changes, AI actions, errors
+- Notification bell in header with unread count
+- Mark read/dismiss/mark all read
 
-- framer-motion (page transitions, hover effects)
-- recharts (AreaChart, BarChart, PieChart)
-- shadcn/ui (Card, Badge, Tabs, Dialog, Select, Input, Label, Button, Progress, Textarea, Checkbox, Skeleton)
+## API Routes
 
-## Database Schema (9 core tables + 12 expansion tables)
+### Core Engine Routes
+- `GET /api/wallet/balance` — current wallet balance
+- `GET /api/wallet/transactions` — transaction history
+- `POST /api/wallet/fund` — add funds
+- `GET /api/ai-mode/global` — current AI mode
+- `PUT /api/ai-mode/global` — set AI mode
+- `GET /api/ai-mode/workflows` — per-workflow modes
+- `PUT /api/ai-mode/workflows/:key` — override workflow mode
+- `GET /api/notifications` — list notifications
+- `GET /api/notifications/unread-count` — unread count
+- `PUT /api/notifications/:id/read` — mark read
+- `PUT /api/notifications/read-all` — mark all read
+- `DELETE /api/notifications/:id` — dismiss
+- `POST /api/ai/enrich-lead` — AI lead enrichment
+- `POST /api/ai/score-lead` — AI lead scoring
+- `POST /api/ai/generate-outreach` — AI outreach draft
+- `POST /api/ai/summarize` — AI record summary
+- `POST /api/ai/generate-report` — AI report generation
+- `POST /api/ai/suggest-action` — AI next action suggestion
+- `GET /api/state-machines/:entityType` — get state machine config
+- `GET /api/state-machines/:entityType/transitions/:state` — valid transitions
+- `GET /api/knowledge` — knowledge library
+- `GET /api/knowledge/search?q=` — search knowledge
+- `POST /api/knowledge` — add knowledge entry
+- `GET /api/dashboard/command-center` — command center data
 
-Core: companies, contacts, leads, opportunities, activities, campaigns, tasks, documents, communications
-Expansion: users, roles, permissions, audit_events, approvals, invoices, payments, expenses, contracts, legal_documents, assets, quality_issues, archive_items, ai_runs, integrations, outreach_sequences
+### CRUD Routes (all entities)
+- Companies, Contacts, Leads, Opportunities, Activities, Campaigns, Tasks, Documents, Communications, Approvals, Assets, Contracts, Invoices, etc.
+- Leads have additional: `POST /api/leads/:id/route`, `GET /api/leads/:id/activities`, `GET /api/leads/:id/ai-runs`
 
-## TypeScript & Composite Projects
+## Domains (11 Modules)
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references.
+1. **Command Center** (`/`) — Executive dashboard, real computed KPIs, wallet balance, AI activity
+2. **Intelligence** (`/intelligence`) — Company analysis, ICP profiles, competitor watch
+3. **Outreach** (`/outreach`) — Lead pipeline, outbound sequences
+4. **Marketing** (`/marketing`) — Campaigns, analytics, content calendar
+5. **Production** (`/production`) — Asset lifecycle with approval gates
+6. **CRM Pipeline** (`/crm`) — Leads tab (with AI enrichment), Pipeline, Client CRM
+7. **Communications** (`/communications`) — Communication log, AI-led/guided modes
+8. **Execution** (`/execution`) — Task kanban, approvals
+9. **Finance & Legal** (`/finance`) — Financial overview, invoices, legal
+10. **Reports & Archive** (`/reports`) — AI-generated reports, archive
+11. **System** (`/system`) — AI mode settings, integrations, audit
 
-- **Always typecheck from the root** — run `pnpm run typecheck`
-- **`emitDeclarationOnly`** — only `.d.ts` files during typecheck; JS bundling by esbuild/vite
+## Frontend Components
 
-## Key Commands
+### Custom Hooks (`artifacts/pmg-os/src/hooks/use-api.ts`)
+Manual React Query hooks for all new engine APIs (wallet, AI mode, notifications, command center, AI actions, state machines, knowledge, lead CRUD/routing)
 
-- `pnpm run build` — typecheck + build all
-- `pnpm run typecheck` — tsc --build --emitDeclarationOnly
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks/schemas
-- `pnpm --filter @workspace/db run push` — push schema to DB
-- `pnpm --filter @workspace/api-server run dev` — run API server
-- `pnpm --filter @workspace/pmg-os run dev` — run frontend
+### Key Components
+- `AiModeToggle` — sidebar AI mode selector (3 modes)
+- `WalletDisplay` — sidebar wallet balance indicator
+- `NotificationBell` — header notification dropdown
+- `CreateLeadForm` — modal form that triggers AI auto-enrichment + scoring
 
-## API Endpoints
+## Important Notes
 
-All routes prefixed with `/api`:
-- `GET /api/healthz` - Health check
-- `GET /api/dashboard/summary` - Dashboard KPIs
-- `GET /api/dashboard/pipeline` - Pipeline summary
-- `GET /api/dashboard/recent-activity` - Recent activities
-- CRUD for core: companies, contacts, leads, opportunities, activities, campaigns, tasks, documents, communications
-- CRUD for expansion: approvals, assets, audit-events (read/create only), ai-runs (read/create only), archive-items, contracts, invoices, payments (read/create only), expenses, integrations, outreach-sequences, quality-issues, reports, users
-- Date fields validated via `parseDate()` helper — returns 400 for invalid dates
-- All list endpoints support `?status=`, `?domain=`, `?type=`, `?limit=`, `?offset=` query filters
-
-## Packages
-
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes in `src/routes/` use `@workspace/api-zod` for validation and `@workspace/db` for persistence.
-
-### `artifacts/pmg-os` (`@workspace/pmg-os`)
-
-React + Vite frontend. Pages in `src/pages/`, shared layout in `src/components/layout/`. Uses `@workspace/api-client-react` for data fetching. Premium components in `src/components/ui/`.
-
-### `lib/db` (`@workspace/db`)
-
-Drizzle ORM with PostgreSQL. Schema files in `src/schema/`. Production migrations handled by Replit on publish.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-OpenAPI 3.1 spec + Orval codegen config. Generates into `api-client-react` and `api-zod`.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client.
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas for request/response validation.
-
-## Development Notes
-
-- API field names use camelCase: fitScore, painPoints, confidenceScore, isDecisionMaker, authorityLevel, leadsGenerated, targetAudience
-- Non-mutating sorts: always use `[...arr].sort(...)` not `arr.sort(...)`
-- Dark theme forced via `class="dark"` on html element
-- Button patterns: `btn-premium` (crimson gradient), `btn-glass` (glassmorphic)
-- All pages: use `max-w-[1600px] mx-auto w-full space-y-6` as root container
-- Install packages: `cd artifacts/pmg-os && pnpm add [package]`
+- `parseDate()` from `artifacts/api-server/src/lib/parse-date.ts` for date conversions
 - DB push: `pnpm --filter @workspace/db run push`
+- API server on port 8080; Dark theme via `class="dark"` on html element
+- Non-mutating sorts: `[...arr].sort(...)` not `arr.sort(...)`
+- lib/api-zod/src/index.ts only exports `./generated/api` (removed types to fix duplicate conflicts)
+- AI env vars: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` (auto-provisioned)
+- DB lib is composite TS — run `cd lib/db && npx tsc --build` after schema changes

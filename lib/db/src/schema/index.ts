@@ -19,3 +19,5 @@ export * from "./ai_runs";
 export * from "./integrations";
 export * from "./outreach_sequences";
 export * from "./reports";
+export * from "./wallet";
+export * from "./ai_mode_settings";

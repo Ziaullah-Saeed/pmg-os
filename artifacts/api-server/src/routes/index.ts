@@ -22,11 +22,23 @@ import outreachSequencesRouter from "./outreach-sequences";
 import qualityIssuesRouter from "./quality-issues";
 import reportsRouter from "./reports";
 import usersRouter from "./users";
+import walletRouter from "./wallet";
+import aiModeRouter from "./ai-mode";
+import notificationsRouter from "./notifications";
+import aiRouter from "./ai";
+import stateMachineRouter from "./state-machine";
+import knowledgeRouter from "./knowledge";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(dashboardRouter);
+router.use("/wallet", walletRouter);
+router.use("/ai-mode", aiModeRouter);
+router.use("/notifications", notificationsRouter);
+router.use("/ai", aiRouter);
+router.use("/state-machines", stateMachineRouter);
+router.use("/knowledge", knowledgeRouter);
 router.use(companiesRouter);
 router.use(contactsRouter);
 router.use(leadsRouter);

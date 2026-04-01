@@ -8,9 +8,15 @@ import { PremiumTabs } from "@/components/ui/premium-tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  useAiMode, useSetAiMode, useWorkflowModes, useSetWorkflowMode,
+  useWalletBalance, useWalletTransactions, useCommandCenter
+} from "@/hooks/use-api";
 import {
   Settings, CheckCircle2, Database, Shield, Server, Users,
-  Lock, Eye, Activity, Clock, Globe, Cpu, Bot
+  Lock, Eye, Activity, Clock, Globe, Cpu, Bot, Wallet, Zap,
+  TrendingUp, AlertTriangle
 } from "lucide-react";
 
 const roles = [
@@ -18,15 +24,6 @@ const roles = [
   { role: "Admin", desc: "Domain management, approval rights, financial access", users: 2, color: "text-warning" },
   { role: "Manager", desc: "Team oversight, task assignment, reporting access", users: 3, color: "text-info" },
   { role: "User", desc: "Task execution, limited visibility, no admin access", users: 5, color: "text-muted-foreground" },
-];
-
-const auditEntries = [
-  { action: "Lead qualified", user: "System AI", domain: "outreach", time: "2 min ago", type: "auto" },
-  { action: "Invoice created: INV-002", user: "Admin", domain: "finance", time: "15 min ago", type: "manual" },
-  { action: "Campaign launched: Q2 Push", user: "Marketing Manager", domain: "marketing", time: "1 hour ago", type: "manual" },
-  { action: "Asset approved: Hero Banner", user: "Creative Director", domain: "production", time: "2 hours ago", type: "approval" },
-  { action: "Opportunity stage changed", user: "Sales Rep", domain: "crm", time: "3 hours ago", type: "manual" },
-  { action: "System health check passed", user: "System", domain: "system", time: "4 hours ago", type: "auto" },
 ];
 
 const modules = [
@@ -43,31 +40,60 @@ const modules = [
   { name: "System Core", domain: "system", uptime: "100%" },
 ];
 
+const workflowLabels: Record<string, string> = {
+  lead_qualification: "Lead Qualification",
+  content_generation: "Content Generation",
+  proposal_creation: "Proposal Creation",
+  deal_progression: "Deal Progression",
+  invoice_generation: "Invoice Generation",
+  legal_review: "Legal Review",
+  lead_enrichment: "Lead Enrichment",
+  lead_scoring: "Lead Scoring",
+  outreach_drafting: "Outreach Drafting",
+  report_generation: "Report Generation",
+  task_assignment: "Task Assignment",
+  campaign_optimization: "Campaign Optimization",
+  asset_review: "Asset Review",
+  communication_analysis: "Communication Analysis",
+};
+
 const tabs = [
   { id: "overview", label: "System Overview", icon: <Server className="h-3.5 w-3.5" /> },
+  { id: "ai-control", label: "AI Control", icon: <Bot className="h-3.5 w-3.5" /> },
   { id: "permissions", label: "Permissions", icon: <Shield className="h-3.5 w-3.5" /> },
   { id: "audit", label: "Audit Trail", icon: <Activity className="h-3.5 w-3.5" /> },
   { id: "integrations", label: "Integrations", icon: <Globe className="h-3.5 w-3.5" /> },
-  { id: "ai-control", label: "AI Control", icon: <Bot className="h-3.5 w-3.5" /> },
 ];
 
 export default function System() {
   const [activeTab, setActiveTab] = useState("overview");
   const { data: health } = useHealthCheck();
+  const { data: aiMode } = useAiMode();
+  const setAiMode = useSetAiMode();
+  const { data: workflows } = useWorkflowModes();
+  const setWorkflowMode = useSetWorkflowMode();
+  const { data: wallet } = useWalletBalance();
+  const { data: transactions } = useWalletTransactions(20);
+  const { data: cmdCenter } = useCommandCenter();
+
+  const currentMode = aiMode?.mode ?? "hybrid";
+  const workflowList = (workflows ?? []) as any[];
+  const txList = (transactions ?? []) as any[];
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
         title="System Core & Governance"
-        subtitle="Permissions, governance, audit trails, integrations, and system health"
+        subtitle="AI control, permissions, governance, audit trails, integrations, and system health"
         icon={<Settings className="h-5 w-5" />}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KpiCard label="API Status" value={health?.status === "ok" ? "Healthy" : "Checking..."} icon={<Server className="h-4 w-4" />} accent="success" />
-        <KpiCard label="Database" value="Connected" icon={<Database className="h-4 w-4" />} accent="success" />
-        <KpiCard label="Modules Active" value={modules.length} icon={<Cpu className="h-4 w-4" />} accent="blue" />
-        <KpiCard label="Permission Roles" value={roles.length} icon={<Shield className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="AI Mode" value={currentMode === "ai_autonomous" ? "Autonomous" : currentMode === "human_controlled" ? "Human" : "Hybrid"} icon={<Bot className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="Wallet Balance" value={`$${(wallet?.balance ?? 0).toFixed(2)}`} icon={<Wallet className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="AI Runs Today" value={cmdCenter?.aiRunsToday ?? 0} icon={<Zap className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Modules Active" value={modules.length} icon={<Cpu className="h-4 w-4" />} accent="success" />
       </div>
 
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
@@ -104,7 +130,7 @@ export default function System() {
                     { label: "Architecture", value: "AI-Native Enterprise OS" },
                     { label: "Frontend", value: "React 19 + Vite + TailwindCSS" },
                     { label: "Backend", value: "Express 5 + PostgreSQL + Drizzle" },
-                    { label: "AI Engine", value: "Ready for activation" },
+                    { label: "AI Engine", value: "OpenAI GPT-4o-mini (Active)" },
                     { label: "Environment", value: "Development" },
                   ].map((item) => (
                     <div key={item.label} className="p-2 rounded-lg glass-surface">
@@ -120,10 +146,10 @@ export default function System() {
                 <div className="px-5 pb-4 space-y-2">
                   {[
                     { label: "API Response Time", value: "<50ms" },
-                    { label: "Database Connections", value: "3/20" },
-                    { label: "Memory Usage", value: "45%" },
+                    { label: "Database", value: health?.status === "ok" ? "Connected" : "Checking..." },
+                    { label: "AI Engine", value: "Active (GPT-4o-mini)" },
                     { label: "Uptime", value: "99.9%" },
-                    { label: "Last Backup", value: "6 hours ago" },
+                    { label: "Active Workflows", value: `${workflowList.length} configured` },
                     { label: "Error Rate", value: "0.01%" },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center justify-between p-2 rounded-lg glass-surface">
@@ -134,6 +160,135 @@ export default function System() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "ai-control" && (
+          <div className="space-y-6">
+            <GlassCard glow="blue" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                <Bot className="h-4 w-4 text-info" />
+                <h3 className="text-sm font-semibold">Global AI Mode</h3>
+                <StatusBadge
+                  variant={currentMode === "ai_autonomous" ? "ai-executed" : currentMode === "human_controlled" ? "human-required" : "human-assisted"}
+                  label={currentMode === "ai_autonomous" ? "AI Autonomous" : currentMode === "human_controlled" ? "Human Controlled" : "Hybrid Mode"}
+                />
+              </div>
+              <div className="px-5 pb-4 space-y-4">
+                <p className="text-sm text-muted-foreground">Configure how the AI engine operates across all domains.</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {[
+                    { mode: "ai_autonomous", label: "AI Autonomous", desc: "24/7 autonomous operation. AI handles all workflows.", icon: <Bot className="h-5 w-5" />, color: "border-green-500/30 bg-green-500/5" },
+                    { mode: "hybrid", label: "Hybrid", desc: "AI operates with human review for confidence < 70%.", icon: <Users className="h-5 w-5" />, color: "border-blue-500/30 bg-blue-500/5" },
+                    { mode: "human_controlled", label: "Human Controlled", desc: "Manual control only. AI provides suggestions.", icon: <Shield className="h-5 w-5" />, color: "border-amber-500/30 bg-amber-500/5" },
+                  ].map((m) => (
+                    <button
+                      key={m.mode}
+                      onClick={() => setAiMode.mutate(m.mode)}
+                      className={`p-4 rounded-lg border text-left transition-all ${
+                        currentMode === m.mode
+                          ? `${m.color} ring-1 ring-white/20`
+                          : "border-white/5 bg-white/[0.02] hover:bg-white/5"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        {m.icon}
+                        <span className="text-sm font-semibold">{m.label}</span>
+                        {currentMode === m.mode && <CheckCircle2 className="h-4 w-4 text-green-400 ml-auto" />}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">{m.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Per-Workflow AI Mode Overrides</h3>
+                <Badge variant="outline" className="text-[10px]">{workflowList.length} workflows</Badge>
+              </div>
+              <div className="px-5 pb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {workflowList.map((wf: any) => (
+                  <div key={wf.workflowKey} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div>
+                      <p className="text-sm font-medium">{workflowLabels[wf.workflowKey] ?? wf.workflowKey}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {wf.mode === "ai_autonomous" ? "Fully automated" : wf.mode === "human_controlled" ? "Manual only" : "AI + human review"}
+                      </p>
+                    </div>
+                    <Select value={wf.mode} onValueChange={(v) => setWorkflowMode.mutate({ key: wf.workflowKey, mode: v })}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs bg-white/5 border-white/10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ai_autonomous">AI Autonomous</SelectItem>
+                        <SelectItem value="hybrid">Hybrid</SelectItem>
+                        <SelectItem value="human_controlled">Human Controlled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+                {workflowList.length === 0 && (
+                  <div className="col-span-2 py-6 text-center text-sm text-muted-foreground">
+                    No workflow overrides configured. All workflows use global mode.
+                  </div>
+                )}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-amber-400" />
+                  <h3 className="text-sm font-semibold">AI Wallet</h3>
+                  <span className="ml-auto text-lg font-bold text-green-400">${(wallet?.balance ?? 0).toFixed(2)}</span>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  <p className="text-xs text-muted-foreground mb-3">Every AI action deducts from the wallet. Fund as needed.</p>
+                  {txList.slice(0, 8).map((tx: any, i: number) => (
+                    <div key={tx.id ?? i} className="flex items-center justify-between p-2 rounded-lg glass-surface">
+                      <div>
+                        <p className="text-xs font-medium">{tx.description}</p>
+                        <p className="text-[10px] text-muted-foreground">{new Date(tx.createdAt).toLocaleString()}</p>
+                      </div>
+                      <span className={`text-xs font-bold tabular-nums ${Number(tx.amount) < 0 ? "text-red-400" : "text-green-400"}`}>
+                        {Number(tx.amount) < 0 ? "" : "+"}${Number(tx.amount).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                  {txList.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4">No transactions yet</p>
+                  )}
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Recent AI Activity</h3>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {(cmdCenter?.recentAiRuns ?? []).slice(0, 8).map((run: any, i: number) => (
+                    <div key={run.id ?? i} className="flex items-center justify-between p-2 rounded-lg glass-surface">
+                      <div>
+                        <p className="text-xs font-medium capitalize">{(run.runType ?? "").replace(/_/g, " ")}</p>
+                        <p className="text-[10px] text-muted-foreground">{run.model} &bull; {run.durationMs}ms</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {run.confidenceScore && (
+                          <Badge variant="outline" className="text-[9px]">{Math.round(run.confidenceScore * 100)}%</Badge>
+                        )}
+                        <span className="text-[10px] text-muted-foreground">{new Date(run.createdAt).toLocaleTimeString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {(!cmdCenter?.recentAiRuns || cmdCenter.recentAiRuns.length === 0) && (
+                    <p className="text-xs text-muted-foreground text-center py-4">No AI runs yet. Create a lead to trigger AI.</p>
+                  )}
                 </div>
               </GlassCard>
             </div>
@@ -208,23 +363,32 @@ export default function System() {
 
         {activeTab === "audit" && (
           <GlassCard className="p-0 overflow-hidden">
-            <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Audit Trail</h3></div>
+            <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Audit Trail</h3>
+              <Badge variant="outline" className="text-[10px]">{cmdCenter?.activitiesToday ?? 0} activities today</Badge>
+            </div>
             <div className="px-5 pb-4 space-y-2">
-              {auditEntries.map((entry, i) => (
+              {(cmdCenter?.recentAiRuns ?? []).map((run: any, i: number) => (
                 <div key={i} className="flex items-center justify-between p-3 rounded-lg glass-surface">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${entry.type === "auto" ? "bg-info" : entry.type === "approval" ? "bg-success" : "bg-warning"}`} />
+                    <div className="w-2 h-2 rounded-full shrink-0 bg-info" />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium">{entry.action}</p>
-                      <p className="text-[10px] text-muted-foreground">{entry.user} &bull; {entry.domain}</p>
+                      <p className="text-sm font-medium capitalize">{(run.runType ?? "").replace(/_/g, " ")}</p>
+                      <p className="text-[10px] text-muted-foreground">AI System &bull; {run.model}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-3">
-                    <StatusBadge variant={entry.type === "auto" ? "ai-executed" : entry.type === "approval" ? "human-approved" : "manually-completed"} label={entry.type} />
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{entry.time}</span>
+                    <StatusBadge variant="ai-executed" label="AI" />
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(run.createdAt).toLocaleString()}</span>
                   </div>
                 </div>
               ))}
+              {(!cmdCenter?.recentAiRuns || cmdCenter.recentAiRuns.length === 0) && (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  <Activity className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  No audit entries yet. Actions will appear here as the system is used.
+                </div>
+              )}
             </div>
           </GlassCard>
         )}
@@ -234,10 +398,10 @@ export default function System() {
             <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Integration Management</h3></div>
             <div className="px-5 pb-4 space-y-2">
               {[
+                { name: "OpenAI / GPT-4o-mini", status: "ready", desc: "AI intelligence engine (Replit proxy)" },
                 { name: "GoHighLevel", status: "available", desc: "Client CRM integration (sub-account)" },
-                { name: "OpenAI / GPT-4o", status: "ready", desc: "AI intelligence engine" },
                 { name: "ElevenLabs", status: "available", desc: "Voice AI for calling" },
-                { name: "Slack", status: "ready", desc: "Reporting & communication surface" },
+                { name: "Slack", status: "available", desc: "Reporting & communication surface" },
                 { name: "Stripe", status: "available", desc: "Payment processing" },
                 { name: "Google Calendar", status: "available", desc: "Meeting scheduling" },
                 { name: "LinkedIn", status: "available", desc: "Social selling & outreach" },
@@ -255,39 +419,6 @@ export default function System() {
               ))}
             </div>
           </GlassCard>
-        )}
-
-        {activeTab === "ai-control" && (
-          <div className="space-y-6">
-            <GlassCard glow="blue" className="p-0 overflow-hidden">
-              <div className="px-5 pt-4 pb-3 flex items-center gap-2">
-                <Bot className="h-4 w-4 text-info" />
-                <h3 className="text-sm font-semibold">AI Mode Control Center</h3>
-                <StatusBadge variant="ai-executed" label="Hybrid Mode Active" />
-              </div>
-              <div className="px-5 pb-4 space-y-4">
-                <p className="text-sm text-muted-foreground">Configure AI autonomous vs. human-assisted modes globally and per-workflow.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    { workflow: "Lead Qualification", mode: "AI Autonomous", confidence: 85 },
-                    { workflow: "Content Generation", mode: "AI Autonomous", confidence: 90 },
-                    { workflow: "Proposal Creation", mode: "Human Assisted", confidence: 70 },
-                    { workflow: "Deal Progression", mode: "Human Required", confidence: 60 },
-                    { workflow: "Invoice Generation", mode: "AI Autonomous", confidence: 95 },
-                    { workflow: "Legal Review", mode: "Human Required", confidence: 40 },
-                  ].map((wf) => (
-                    <div key={wf.workflow} className="flex items-center justify-between p-3 rounded-lg glass-surface">
-                      <div>
-                        <p className="text-sm font-medium">{wf.workflow}</p>
-                        <p className="text-[10px] text-muted-foreground">Confidence: {wf.confidence}%</p>
-                      </div>
-                      <StatusBadge variant={wf.mode === "AI Autonomous" ? "ai-executed" : wf.mode === "Human Assisted" ? "human-assisted" : "human-required"} label={wf.mode} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </GlassCard>
-          </div>
         )}
       </motion.div>
     </div>

@@ -1,14 +1,15 @@
 import { Router, type IRouter } from "express";
-import { count, sum, eq } from "drizzle-orm";
-import { db, companiesTable, contactsTable, leadsTable, opportunitiesTable, campaignsTable, tasksTable } from "@workspace/db";
+import { count, sum, eq, desc, sql, gte } from "drizzle-orm";
+import { db, companiesTable, contactsTable, leadsTable, opportunitiesTable, campaignsTable, tasksTable, activitiesTable, aiRunsTable, walletTransactionsTable, notificationsTable } from "@workspace/db";
 import {
   GetDashboardSummaryResponse,
   GetPipelineSummaryResponse,
   GetRecentActivityQueryParams,
   GetRecentActivityResponse,
 } from "@workspace/api-zod";
-import { activitiesTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { getWalletBalance } from "../services/wallet-service";
+import { getGlobalMode } from "../services/ai-mode-service";
+import { getUnreadCount } from "../services/notification-service";
 
 const router: IRouter = Router();
 
@@ -23,10 +24,16 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
   const [pipelineVal] = await db.select({ total: sum(opportunitiesTable.value) }).from(opportunitiesTable);
 
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const monthlyRevenue = months.map((month) => ({
-    month,
-    value: Math.floor(Math.random() * 50000) + 10000,
-  }));
+  const currentYear = new Date().getFullYear();
+  const monthlyRevenue = [];
+  for (let i = 0; i < 12; i++) {
+    const startDate = new Date(currentYear, i, 1);
+    const endDate = new Date(currentYear, i + 1, 1);
+    const [monthData] = await db.select({ total: sum(opportunitiesTable.value) })
+      .from(opportunitiesTable)
+      .where(sql`${opportunitiesTable.stage} = 'won' AND ${opportunitiesTable.createdAt} >= ${startDate} AND ${opportunitiesTable.createdAt} < ${endDate}`);
+    monthlyRevenue.push({ month: months[i], value: Number(monthData?.total || 0) });
+  }
 
   const summary = {
     totalCompanies: companiesCount.count,
@@ -84,6 +91,43 @@ router.get("/dashboard/recent-activity", async (req, res): Promise<void> => {
     .orderBy(desc(activitiesTable.createdAt))
     .limit(limit);
   res.json(GetRecentActivityResponse.parse(activities));
+});
+
+router.get("/dashboard/command-center", async (_req, res): Promise<void> => {
+  try {
+    const wallet = await getWalletBalance();
+    const aiMode = await getGlobalMode();
+    const unreadNotifications = await getUnreadCount();
+
+    const [aiRunsToday] = await db.select({ count: count() }).from(aiRunsTable)
+      .where(gte(aiRunsTable.createdAt, new Date(new Date().setHours(0, 0, 0, 0))));
+
+    const [activitiesToday] = await db.select({ count: count() }).from(activitiesTable)
+      .where(gte(activitiesTable.createdAt, new Date(new Date().setHours(0, 0, 0, 0))));
+
+    const recentAiRuns = await db.select().from(aiRunsTable)
+      .orderBy(desc(aiRunsTable.createdAt)).limit(10);
+
+    const pendingTasks = await db.select({ count: count() }).from(tasksTable)
+      .where(eq(tasksTable.status, "pending"));
+
+    const recentNotifications = await db.select().from(notificationsTable)
+      .where(eq(notificationsTable.isDismissed, false))
+      .orderBy(desc(notificationsTable.createdAt)).limit(10);
+
+    res.json({
+      walletBalance: wallet.balance,
+      aiMode,
+      unreadNotifications,
+      aiRunsToday: aiRunsToday.count,
+      activitiesToday: activitiesToday.count,
+      pendingTasks: pendingTasks[0].count,
+      recentAiRuns,
+      recentNotifications,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

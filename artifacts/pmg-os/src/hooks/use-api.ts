@@ -1,0 +1,372 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    ...options,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  if (res.status === 204 || res.headers.get("content-length") === "0") {
+    return undefined as T;
+  }
+  return res.json();
+}
+
+export function useWalletBalance() {
+  return useQuery({
+    queryKey: ["wallet", "balance"],
+    queryFn: () => apiFetch<{ balance: number; id: number }>("/wallet/balance"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useWalletTransactions(limit = 50) {
+  return useQuery({
+    queryKey: ["wallet", "transactions", limit],
+    queryFn: () => apiFetch<any[]>(`/wallet/transactions?limit=${limit}`),
+  });
+}
+
+export function useFundWallet() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (amount: number) => apiFetch<{ balance: number }>("/wallet/fund", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+    },
+  });
+}
+
+export function useAiMode() {
+  return useQuery({
+    queryKey: ["ai-mode", "global"],
+    queryFn: () => apiFetch<{ mode: string }>("/ai-mode/global"),
+  });
+}
+
+export function useSetAiMode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (mode: string) => apiFetch<{ mode: string }>("/ai-mode/global", {
+      method: "PUT",
+      body: JSON.stringify({ mode }),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ai-mode"] });
+      qc.invalidateQueries({ queryKey: ["command-center"] });
+    },
+  });
+}
+
+export function useWorkflowModes() {
+  return useQuery({
+    queryKey: ["ai-mode", "workflows"],
+    queryFn: () => apiFetch<any[]>("/ai-mode/workflows"),
+  });
+}
+
+export function useSetWorkflowMode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ key, mode }: { key: string; mode: string }) =>
+      apiFetch<any>(`/ai-mode/workflows/${key}`, {
+        method: "PUT",
+        body: JSON.stringify({ mode }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ai-mode"] });
+    },
+  });
+}
+
+export function useNotifications(limit = 50) {
+  return useQuery({
+    queryKey: ["notifications", limit],
+    queryFn: () => apiFetch<any[]>(`/notifications?limit=${limit}`),
+    refetchInterval: 15000,
+  });
+}
+
+export function useUnreadCount() {
+  return useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: () => apiFetch<{ count: number }>("/notifications/unread-count"),
+    refetchInterval: 15000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<{ success: boolean }>(`/notifications/${id}/read`, { method: "PUT" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useMarkAllRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<{ success: boolean }>("/notifications/read-all", { method: "PUT" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useDismissNotification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<{ success: boolean }>(`/notifications/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useCommandCenter() {
+  return useQuery({
+    queryKey: ["command-center"],
+    queryFn: () => apiFetch<{
+      walletBalance: number;
+      aiMode: string;
+      unreadNotifications: number;
+      aiRunsToday: number;
+      activitiesToday: number;
+      pendingTasks: number;
+      recentAiRuns: any[];
+      recentNotifications: any[];
+    }>("/dashboard/command-center"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useAiEnrichLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { id: number; name: string; email?: string; company?: string; source?: string }) =>
+      apiFetch<{ enrichment: string; confidence: number; runId: number }>("/ai/enrich-lead", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+      qc.invalidateQueries({ queryKey: ["command-center"] });
+    },
+  });
+}
+
+export function useAiScoreLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { id: number; name: string; email?: string; company?: string; source?: string; enrichmentData?: string }) =>
+      apiFetch<{ score: number; tier: string; reasoning: string; confidence: number; runId: number }>("/ai/score-lead", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+    },
+  });
+}
+
+export function useAiGenerateOutreach() {
+  return useMutation({
+    mutationFn: (params: { leadName: string; company?: string; context: string; channel: string }) =>
+      apiFetch<{ draft: string; confidence: number; runId: number }>("/ai/generate-outreach", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
+  });
+}
+
+export function useAiGenerateReport() {
+  return useMutation({
+    mutationFn: (params: { domain: string; reportType: string; data?: Record<string, unknown> }) =>
+      apiFetch<{ report: string; confidence: number; runId: number }>("/ai/generate-report", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
+  });
+}
+
+export function useAiSuggestAction() {
+  return useMutation({
+    mutationFn: (params: { entityType: string; entityId: number; currentStage: string; data?: Record<string, unknown> }) =>
+      apiFetch<{ suggestion: string; confidence: number; runId: number }>("/ai/suggest-action", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
+  });
+}
+
+export function useStateMachine(entityType: string) {
+  return useQuery({
+    queryKey: ["state-machines", entityType],
+    queryFn: () => apiFetch<{
+      entityType: string;
+      states: string[];
+      initialState: string;
+      transitions: Record<string, string[]>;
+      terminalStates: string[];
+    }>(`/state-machines/${entityType}`),
+    enabled: !!entityType,
+  });
+}
+
+export function useRouteLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, destination }: { id: number; destination: string }) =>
+      apiFetch<any>(`/leads/${id}/route`, {
+        method: "POST",
+        body: JSON.stringify({ destination }),
+      }),
+    onSuccess: () => {
+      invalidateEntity(qc, "leads");
+    },
+  });
+}
+
+export function useLeadActivities(leadId: number) {
+  return useQuery({
+    queryKey: ["leads", leadId, "activities"],
+    queryFn: () => apiFetch<any[]>(`/leads/${leadId}/activities`),
+    enabled: !!leadId,
+  });
+}
+
+export function useLeadAiRuns(leadId: number) {
+  return useQuery({
+    queryKey: ["leads", leadId, "ai-runs"],
+    queryFn: () => apiFetch<any[]>(`/leads/${leadId}/ai-runs`),
+    enabled: !!leadId,
+  });
+}
+
+export function useKnowledgeLibrary(limit = 100) {
+  return useQuery({
+    queryKey: ["knowledge", limit],
+    queryFn: () => apiFetch<any[]>(`/knowledge?limit=${limit}`),
+  });
+}
+
+export function useSearchKnowledge(query: string) {
+  return useQuery({
+    queryKey: ["knowledge", "search", query],
+    queryFn: () => apiFetch<any[]>(`/knowledge/search?q=${encodeURIComponent(query)}`),
+    enabled: query.length > 2,
+  });
+}
+
+function invalidateEntity(qc: ReturnType<typeof useQueryClient>, entity: string) {
+  qc.invalidateQueries({ queryKey: [entity] });
+  qc.invalidateQueries({ queryKey: [`/api/${entity}`] });
+}
+
+export function useCreateLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch<any>("/leads", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      invalidateEntity(qc, "leads");
+      qc.invalidateQueries({ queryKey: ["command-center"] });
+    },
+  });
+}
+
+export function useUpdateLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      apiFetch<any>(`/leads/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      invalidateEntity(qc, "leads");
+    },
+  });
+}
+
+export function useDeleteLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiFetch<void>(`/leads/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      invalidateEntity(qc, "leads");
+    },
+  });
+}
+
+export function useCreateCompanyMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch<any>("/companies", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      invalidateEntity(qc, "companies");
+    },
+  });
+}
+
+export function useCreateContactMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch<any>("/contacts", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      invalidateEntity(qc, "contacts");
+    },
+  });
+}
+
+export function useCreateOpportunityMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch<any>("/opportunities", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      invalidateEntity(qc, "opportunities");
+    },
+  });
+}
+
+export function useCreateTaskMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch<any>("/tasks", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      invalidateEntity(qc, "tasks");
+    },
+  });
+}

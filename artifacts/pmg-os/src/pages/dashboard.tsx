@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useGetDashboardSummary, useGetPipelineSummary, useGetRecentActivity, useHealthCheck, useListTasks, useListOpportunities, useListCampaigns, useListLeads } from "@workspace/api-client-react";
+import { useCommandCenter, useWalletBalance } from "@/hooks/use-api";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
@@ -55,6 +56,8 @@ export default function Dashboard() {
   const { data: opportunities } = useListOpportunities();
   const { data: campaigns } = useListCampaigns();
   const { data: leads } = useListLeads();
+  const { data: cmdCenter } = useCommandCenter();
+  const { data: wallet } = useWalletBalance();
 
   const taskList = (tasks ?? []) as any[];
   const oppList = (opportunities ?? []) as any[];
@@ -466,24 +469,57 @@ export default function Dashboard() {
           </div>
         )}
 
-        {activeView === "ai-activity" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <KpiCard label="AI Tasks Today" value="0" icon={<Bot className="h-4 w-4" />} accent="blue" />
-              <KpiCard label="Tokens Used" value="0" icon={<Zap className="h-4 w-4" />} accent="gold" />
-              <KpiCard label="Avg Confidence" value="—" icon={<Target className="h-4 w-4" />} />
-            </div>
+        {activeView === "ai-activity" && (() => {
+          const aiRuns = (cmdCenter?.recentAiRuns ?? []) as any[];
+          const totalTokens = aiRuns.reduce((s: number, r: any) => s + (r.tokensUsed ?? 0), 0);
+          const avgConf = aiRuns.length ? Math.round(aiRuns.reduce((s: number, r: any) => s + (r.confidenceScore ?? 0), 0) / aiRuns.length * 100) : 0;
+          return (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KpiCard label="AI Runs Today" value={cmdCenter?.aiRunsToday ?? 0} icon={<Bot className="h-4 w-4" />} accent="blue" />
+                <KpiCard label="Tokens Used" value={totalTokens.toLocaleString()} icon={<Zap className="h-4 w-4" />} accent="gold" />
+                <KpiCard label="Avg Confidence" value={avgConf > 0 ? `${avgConf}%` : "—"} icon={<Target className="h-4 w-4" />} />
+                <KpiCard label="Wallet Balance" value={`$${(wallet?.balance ?? 0).toFixed(2)}`} icon={<DollarSign className="h-4 w-4" />} accent="success" />
+              </div>
 
-            <GlassCard className="py-12 flex flex-col items-center gap-3">
-              <Bot className="h-12 w-12 text-info/50" />
-              <p className="text-lg font-semibold">AI Engine Ready</p>
-              <p className="text-sm text-muted-foreground text-center max-w-md">
-                The AI engine is ready for activation. AI activity logs, generation history, and confidence metrics will appear here once operational.
-              </p>
-              <StatusBadge variant="ai-executed" label="Hybrid Mode Active" />
-            </GlassCard>
-          </div>
-        )}
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Recent AI Runs</h3>
+                  <StatusBadge
+                    variant={cmdCenter?.aiMode === "ai_autonomous" ? "ai-executed" : cmdCenter?.aiMode === "human_controlled" ? "human-required" : "human-assisted"}
+                    label={cmdCenter?.aiMode === "ai_autonomous" ? "Autonomous" : cmdCenter?.aiMode === "human_controlled" ? "Human" : "Hybrid"}
+                  />
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {aiRuns.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <Bot className="h-10 w-10 mx-auto mb-2 text-info/30" />
+                      <p className="text-sm text-muted-foreground">No AI runs yet. Create a lead to trigger AI enrichment and scoring.</p>
+                    </div>
+                  ) : (
+                    aiRuns.map((run: any) => (
+                      <div key={run.id} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                        <div className="flex items-center gap-3">
+                          <Bot className="h-4 w-4 text-info" />
+                          <div>
+                            <p className="text-sm font-medium capitalize">{(run.runType ?? "").replace(/_/g, " ")}</p>
+                            <p className="text-[10px] text-muted-foreground">{run.model} &bull; {run.durationMs}ms &bull; {run.tokensUsed ?? 0} tokens</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {run.confidenceScore && (
+                            <ConfidenceMeter score={Math.round(run.confidenceScore * 100)} size="sm" />
+                          )}
+                          <span className="text-[10px] text-muted-foreground">{new Date(run.createdAt).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </GlassCard>
+            </div>
+          );
+        })()}
       </motion.div>
     </div>
   );
