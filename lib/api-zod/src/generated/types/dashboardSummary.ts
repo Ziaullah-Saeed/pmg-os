@@ -3,22 +3,18 @@
  * Do not edit manually.
  * Api
  * PMG Group OS API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
-import type { DashboardSummaryLeadsByStatus } from "./dashboardSummaryLeadsByStatus";
-import type { DashboardSummaryOpportunitiesByStage } from "./dashboardSummaryOpportunitiesByStage";
-import type { RevenueDataPoint } from "./revenueDataPoint";
+import type { DashboardSummaryMonthlyRevenueItem } from "./dashboardSummaryMonthlyRevenueItem";
 
 export interface DashboardSummary {
   totalCompanies: number;
   totalContacts: number;
   totalLeads: number;
   totalOpportunities: number;
-  totalPipelineValue: number;
-  activeCampaigns: number;
-  pendingTasks: number;
-  recentCommunications: number;
-  leadsByStatus: DashboardSummaryLeadsByStatus;
-  opportunitiesByStage: DashboardSummaryOpportunitiesByStage;
-  revenueByMonth: RevenueDataPoint[];
+  totalActivities: number;
+  totalCampaigns: number;
+  totalTasks: number;
+  pipelineValue: number;
+  monthlyRevenue?: DashboardSummaryMonthlyRevenueItem[];
 }

@@ -164,10 +164,10 @@ export default function Dashboard() {
                 <div className="px-2 pb-4">
                   {isLoadingSummary ? (
                     <Skeleton className="h-[260px] w-full bg-muted/10" />
-                  ) : summary?.revenueByMonth ? (
+                  ) : summary?.monthlyRevenue ? (
                     <div className="h-[260px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={summary.revenueByMonth}>
+                        <AreaChart data={summary.monthlyRevenue}>
                           <defs>
                             <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="hsl(0, 72%, 51%)" stopOpacity={0.3} />

@@ -3,16 +3,18 @@
  * Do not edit manually.
  * Api
  * PMG Group OS API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
+  timestamp: zod.coerce.date(),
+  uptime: zod.number().optional(),
+  database: zod.string().optional(),
 });
 
 /**
@@ -23,18 +25,18 @@ export const GetDashboardSummaryResponse = zod.object({
   totalContacts: zod.number(),
   totalLeads: zod.number(),
   totalOpportunities: zod.number(),
-  totalPipelineValue: zod.number(),
-  activeCampaigns: zod.number(),
-  pendingTasks: zod.number(),
-  recentCommunications: zod.number(),
-  leadsByStatus: zod.record(zod.string(), zod.number()),
-  opportunitiesByStage: zod.record(zod.string(), zod.number()),
-  revenueByMonth: zod.array(
-    zod.object({
-      month: zod.string(),
-      value: zod.number(),
-    }),
-  ),
+  totalActivities: zod.number(),
+  totalCampaigns: zod.number(),
+  totalTasks: zod.number(),
+  pipelineValue: zod.number(),
+  monthlyRevenue: zod
+    .array(
+      zod.object({
+        month: zod.string(),
+        value: zod.number(),
+      }),
+    )
+    .optional(),
 });
 
 /**
@@ -51,8 +53,6 @@ export const GetPipelineSummaryResponse = zod.object({
   ),
   totalValue: zod.number(),
   totalDeals: zod.number(),
-  avgDealSize: zod.number(),
-  winRate: zod.number(),
 });
 
 /**
@@ -967,10 +967,13 @@ export const DeleteDocumentParams = zod.object({
 /**
  * @summary List communication logs
  */
+export const listCommunicationsQueryLimitDefault = 50;
+
 export const ListCommunicationsQueryParams = zod.object({
   type: zod.coerce.string().optional(),
   contactId: zod.coerce.number().optional(),
   companyId: zod.coerce.number().optional(),
+  limit: zod.coerce.number().default(listCommunicationsQueryLimitDefault),
 });
 
 export const ListCommunicationsResponseItem = zod.object({
@@ -1000,7 +1003,7 @@ export const ListCommunicationsResponse = zod.array(
 );
 
 /**
- * @summary Log a communication
+ * @summary Create a communication log
  */
 export const CreateCommunicationBody = zod.object({
   type: zod.string(),
@@ -1022,7 +1025,7 @@ export const CreateCommunicationBody = zod.object({
 });
 
 /**
- * @summary Get a communication log
+ * @summary Get a communication
  */
 export const GetCommunicationParams = zod.object({
   id: zod.coerce.number(),
@@ -1049,4 +1052,1582 @@ export const GetCommunicationResponse = zod.object({
   scheduledAt: zod.coerce.date().nullish(),
   completedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List users
+ */
+export const ListUsersQueryParams = zod.object({
+  role: zod.coerce.string().optional(),
+  department: zod.coerce.string().optional(),
+  isActive: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListUsersResponseItem = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  name: zod.string(),
+  role: zod.string(),
+  avatarUrl: zod.string().nullish(),
+  department: zod.string().nullish(),
+  title: zod.string().nullish(),
+  isActive: zod.boolean(),
+  lastLoginAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListUsersResponse = zod.array(ListUsersResponseItem);
+
+/**
+ * @summary Create a user
+ */
+export const CreateUserBody = zod.object({
+  email: zod.string(),
+  name: zod.string(),
+  role: zod.string().optional(),
+  avatarUrl: zod.string().optional(),
+  department: zod.string().optional(),
+  title: zod.string().optional(),
+  isActive: zod.boolean().optional(),
+});
+
+/**
+ * @summary Get a user
+ */
+export const GetUserParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetUserResponse = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  name: zod.string(),
+  role: zod.string(),
+  avatarUrl: zod.string().nullish(),
+  department: zod.string().nullish(),
+  title: zod.string().nullish(),
+  isActive: zod.boolean(),
+  lastLoginAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update a user
+ */
+export const UpdateUserParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateUserBody = zod.object({
+  email: zod.string().optional(),
+  name: zod.string().optional(),
+  role: zod.string().optional(),
+  avatarUrl: zod.string().optional(),
+  department: zod.string().optional(),
+  title: zod.string().optional(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdateUserResponse = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  name: zod.string(),
+  role: zod.string(),
+  avatarUrl: zod.string().nullish(),
+  department: zod.string().nullish(),
+  title: zod.string().nullish(),
+  isActive: zod.boolean(),
+  lastLoginAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List approvals
+ */
+export const ListApprovalsQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  domain: zod.coerce.string().optional(),
+  entityType: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListApprovalsResponseItem = zod.object({
+  id: zod.number(),
+  entityType: zod.string(),
+  entityId: zod.number(),
+  domain: zod.string(),
+  status: zod.string(),
+  requestedBy: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  priority: zod.string(),
+  reason: zod.string().nullish(),
+  rejectionReason: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  requestedAt: zod.coerce.date(),
+  reviewedAt: zod.coerce.date().nullish(),
+  expiresAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListApprovalsResponse = zod.array(ListApprovalsResponseItem);
+
+/**
+ * @summary Create an approval request
+ */
+export const CreateApprovalBody = zod.object({
+  entityType: zod.string(),
+  entityId: zod.number(),
+  domain: zod.string(),
+  status: zod.string().optional(),
+  requestedBy: zod.string().optional(),
+  reviewedBy: zod.string().optional(),
+  priority: zod.string().optional(),
+  reason: zod.string().optional(),
+  rejectionReason: zod.string().optional(),
+  notes: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  expiresAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get an approval
+ */
+export const GetApprovalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetApprovalResponse = zod.object({
+  id: zod.number(),
+  entityType: zod.string(),
+  entityId: zod.number(),
+  domain: zod.string(),
+  status: zod.string(),
+  requestedBy: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  priority: zod.string(),
+  reason: zod.string().nullish(),
+  rejectionReason: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  requestedAt: zod.coerce.date(),
+  reviewedAt: zod.coerce.date().nullish(),
+  expiresAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update an approval
+ */
+export const UpdateApprovalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateApprovalBody = zod.object({
+  entityType: zod.string().optional(),
+  entityId: zod.number().optional(),
+  domain: zod.string().optional(),
+  status: zod.string().optional(),
+  requestedBy: zod.string().optional(),
+  reviewedBy: zod.string().optional(),
+  priority: zod.string().optional(),
+  reason: zod.string().optional(),
+  rejectionReason: zod.string().optional(),
+  notes: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  expiresAt: zod.string().optional(),
+});
+
+export const UpdateApprovalResponse = zod.object({
+  id: zod.number(),
+  entityType: zod.string(),
+  entityId: zod.number(),
+  domain: zod.string(),
+  status: zod.string(),
+  requestedBy: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  priority: zod.string(),
+  reason: zod.string().nullish(),
+  rejectionReason: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  requestedAt: zod.coerce.date(),
+  reviewedAt: zod.coerce.date().nullish(),
+  expiresAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List production assets
+ */
+export const ListAssetsQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  type: zod.coerce.string().optional(),
+  category: zod.coerce.string().optional(),
+  lifecycleStage: zod.coerce.string().optional(),
+  domain: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListAssetsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  type: zod.string(),
+  category: zod.string(),
+  status: zod.string(),
+  lifecycleStage: zod.string(),
+  content: zod.string().nullish(),
+  previewUrl: zod.string().nullish(),
+  finalUrl: zod.string().nullish(),
+  version: zod.number(),
+  parentId: zod.number().nullish(),
+  domain: zod.string().nullish(),
+  campaignId: zod.number().nullish(),
+  createdBy: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  approvedBy: zod.string().nullish(),
+  rejectionReason: zod.string().nullish(),
+  reviewNotes: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  generatedByAi: zod.string().nullish(),
+  publishedAt: zod.coerce.date().nullish(),
+  archivedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListAssetsResponse = zod.array(ListAssetsResponseItem);
+
+/**
+ * @summary Create a production asset
+ */
+export const CreateAssetBody = zod.object({
+  title: zod.string(),
+  type: zod.string(),
+  category: zod.string(),
+  status: zod.string().optional(),
+  lifecycleStage: zod.string().optional(),
+  content: zod.string().optional(),
+  previewUrl: zod.string().optional(),
+  finalUrl: zod.string().optional(),
+  version: zod.number().optional(),
+  parentId: zod.number().optional(),
+  domain: zod.string().optional(),
+  campaignId: zod.number().optional(),
+  createdBy: zod.string().optional(),
+  reviewedBy: zod.string().optional(),
+  approvedBy: zod.string().optional(),
+  rejectionReason: zod.string().optional(),
+  reviewNotes: zod.string().optional(),
+  tags: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  generatedByAi: zod.string().optional(),
+  publishedAt: zod.string().optional(),
+  archivedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get an asset
+ */
+export const GetAssetParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAssetResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  type: zod.string(),
+  category: zod.string(),
+  status: zod.string(),
+  lifecycleStage: zod.string(),
+  content: zod.string().nullish(),
+  previewUrl: zod.string().nullish(),
+  finalUrl: zod.string().nullish(),
+  version: zod.number(),
+  parentId: zod.number().nullish(),
+  domain: zod.string().nullish(),
+  campaignId: zod.number().nullish(),
+  createdBy: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  approvedBy: zod.string().nullish(),
+  rejectionReason: zod.string().nullish(),
+  reviewNotes: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  generatedByAi: zod.string().nullish(),
+  publishedAt: zod.coerce.date().nullish(),
+  archivedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update an asset
+ */
+export const UpdateAssetParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAssetBody = zod.object({
+  title: zod.string().optional(),
+  type: zod.string().optional(),
+  category: zod.string().optional(),
+  status: zod.string().optional(),
+  lifecycleStage: zod.string().optional(),
+  content: zod.string().optional(),
+  previewUrl: zod.string().optional(),
+  finalUrl: zod.string().optional(),
+  version: zod.number().optional(),
+  parentId: zod.number().optional(),
+  domain: zod.string().optional(),
+  campaignId: zod.number().optional(),
+  createdBy: zod.string().optional(),
+  reviewedBy: zod.string().optional(),
+  approvedBy: zod.string().optional(),
+  rejectionReason: zod.string().optional(),
+  reviewNotes: zod.string().optional(),
+  tags: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  generatedByAi: zod.string().optional(),
+  publishedAt: zod.string().optional(),
+  archivedAt: zod.string().optional(),
+});
+
+export const UpdateAssetResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  type: zod.string(),
+  category: zod.string(),
+  status: zod.string(),
+  lifecycleStage: zod.string(),
+  content: zod.string().nullish(),
+  previewUrl: zod.string().nullish(),
+  finalUrl: zod.string().nullish(),
+  version: zod.number(),
+  parentId: zod.number().nullish(),
+  domain: zod.string().nullish(),
+  campaignId: zod.number().nullish(),
+  createdBy: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  approvedBy: zod.string().nullish(),
+  rejectionReason: zod.string().nullish(),
+  reviewNotes: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  generatedByAi: zod.string().nullish(),
+  publishedAt: zod.coerce.date().nullish(),
+  archivedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List audit events
+ */
+export const ListAuditEventsQueryParams = zod.object({
+  domain: zod.coerce.string().optional(),
+  eventType: zod.coerce.string().optional(),
+  severity: zod.coerce.string().optional(),
+  actorType: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListAuditEventsResponseItem = zod.object({
+  id: zod.number(),
+  eventType: zod.string(),
+  domain: zod.string(),
+  entityType: zod.string().nullish(),
+  entityId: zod.number().nullish(),
+  action: zod.string(),
+  description: zod.string(),
+  actor: zod.string().nullish(),
+  actorType: zod.string().nullish(),
+  severity: zod.string(),
+  metadata: zod.object({}).passthrough().nullish(),
+  ipAddress: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListAuditEventsResponse = zod.array(ListAuditEventsResponseItem);
+
+/**
+ * @summary Log an audit event
+ */
+export const CreateAuditEventBody = zod.object({
+  eventType: zod.string(),
+  domain: zod.string(),
+  entityType: zod.string().optional(),
+  entityId: zod.number().optional(),
+  action: zod.string(),
+  description: zod.string(),
+  actor: zod.string().optional(),
+  actorType: zod.string().optional(),
+  severity: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  ipAddress: zod.string().optional(),
+});
+
+/**
+ * @summary Get an audit event
+ */
+export const GetAuditEventParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAuditEventResponse = zod.object({
+  id: zod.number(),
+  eventType: zod.string(),
+  domain: zod.string(),
+  entityType: zod.string().nullish(),
+  entityId: zod.number().nullish(),
+  action: zod.string(),
+  description: zod.string(),
+  actor: zod.string().nullish(),
+  actorType: zod.string().nullish(),
+  severity: zod.string(),
+  metadata: zod.object({}).passthrough().nullish(),
+  ipAddress: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List AI generation runs
+ */
+export const ListAiRunsQueryParams = zod.object({
+  domain: zod.coerce.string().optional(),
+  status: zod.coerce.string().optional(),
+  runType: zod.coerce.string().optional(),
+  model: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListAiRunsResponseItem = zod.object({
+  id: zod.number(),
+  runType: zod.string(),
+  domain: zod.string(),
+  entityType: zod.string().nullish(),
+  entityId: zod.number().nullish(),
+  model: zod.string().nullish(),
+  prompt: zod.string().nullish(),
+  output: zod.string().nullish(),
+  status: zod.string(),
+  confidenceScore: zod.number().nullish(),
+  tokensUsed: zod.number().nullish(),
+  costEstimate: zod.number().nullish(),
+  reviewRequired: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  reviewedAt: zod.coerce.date().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  error: zod.string().nullish(),
+  durationMs: zod.number().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListAiRunsResponse = zod.array(ListAiRunsResponseItem);
+
+/**
+ * @summary Log an AI run
+ */
+export const CreateAiRunBody = zod.object({
+  runType: zod.string(),
+  domain: zod.string(),
+  entityType: zod.string().optional(),
+  entityId: zod.number().optional(),
+  model: zod.string().optional(),
+  prompt: zod.string().optional(),
+  output: zod.string().optional(),
+  status: zod.string().optional(),
+  confidenceScore: zod.number().optional(),
+  tokensUsed: zod.number().optional(),
+  costEstimate: zod.number().optional(),
+  reviewRequired: zod.string().optional(),
+  reviewedBy: zod.string().optional(),
+  reviewedAt: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  error: zod.string().optional(),
+  durationMs: zod.number().optional(),
+});
+
+/**
+ * @summary Get an AI run
+ */
+export const GetAiRunParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAiRunResponse = zod.object({
+  id: zod.number(),
+  runType: zod.string(),
+  domain: zod.string(),
+  entityType: zod.string().nullish(),
+  entityId: zod.number().nullish(),
+  model: zod.string().nullish(),
+  prompt: zod.string().nullish(),
+  output: zod.string().nullish(),
+  status: zod.string(),
+  confidenceScore: zod.number().nullish(),
+  tokensUsed: zod.number().nullish(),
+  costEstimate: zod.number().nullish(),
+  reviewRequired: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  reviewedAt: zod.coerce.date().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  error: zod.string().nullish(),
+  durationMs: zod.number().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List archive items
+ */
+export const ListArchiveItemsQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  domain: zod.coerce.string().optional(),
+  category: zod.coerce.string().optional(),
+  sourceType: zod.coerce.string().optional(),
+  accessLevel: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListArchiveItemsResponseItem = zod.object({
+  id: zod.number(),
+  sourceType: zod.string(),
+  sourceId: zod.number().nullish(),
+  domain: zod.string(),
+  title: zod.string(),
+  category: zod.string(),
+  content: zod.string().nullish(),
+  summary: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  version: zod.number(),
+  status: zod.string(),
+  accessLevel: zod.string(),
+  owner: zod.string().nullish(),
+  clientId: zod.number().nullish(),
+  retentionPolicy: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  archivedBy: zod.string().nullish(),
+  expiresAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListArchiveItemsResponse = zod.array(ListArchiveItemsResponseItem);
+
+/**
+ * @summary Create an archive item
+ */
+export const CreateArchiveItemBody = zod.object({
+  sourceType: zod.string(),
+  sourceId: zod.number().optional(),
+  domain: zod.string(),
+  title: zod.string(),
+  category: zod.string(),
+  content: zod.string().optional(),
+  summary: zod.string().optional(),
+  tags: zod.string().optional(),
+  version: zod.number().optional(),
+  status: zod.string().optional(),
+  accessLevel: zod.string().optional(),
+  owner: zod.string().optional(),
+  clientId: zod.number().optional(),
+  retentionPolicy: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  archivedBy: zod.string().optional(),
+  expiresAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get an archive item
+ */
+export const GetArchiveItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetArchiveItemResponse = zod.object({
+  id: zod.number(),
+  sourceType: zod.string(),
+  sourceId: zod.number().nullish(),
+  domain: zod.string(),
+  title: zod.string(),
+  category: zod.string(),
+  content: zod.string().nullish(),
+  summary: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  version: zod.number(),
+  status: zod.string(),
+  accessLevel: zod.string(),
+  owner: zod.string().nullish(),
+  clientId: zod.number().nullish(),
+  retentionPolicy: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  archivedBy: zod.string().nullish(),
+  expiresAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update an archive item
+ */
+export const UpdateArchiveItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateArchiveItemBody = zod.object({
+  sourceType: zod.string().optional(),
+  sourceId: zod.number().optional(),
+  domain: zod.string().optional(),
+  title: zod.string().optional(),
+  category: zod.string().optional(),
+  content: zod.string().optional(),
+  summary: zod.string().optional(),
+  tags: zod.string().optional(),
+  version: zod.number().optional(),
+  status: zod.string().optional(),
+  accessLevel: zod.string().optional(),
+  owner: zod.string().optional(),
+  clientId: zod.number().optional(),
+  retentionPolicy: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  archivedBy: zod.string().optional(),
+  expiresAt: zod.string().optional(),
+});
+
+export const UpdateArchiveItemResponse = zod.object({
+  id: zod.number(),
+  sourceType: zod.string(),
+  sourceId: zod.number().nullish(),
+  domain: zod.string(),
+  title: zod.string(),
+  category: zod.string(),
+  content: zod.string().nullish(),
+  summary: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  version: zod.number(),
+  status: zod.string(),
+  accessLevel: zod.string(),
+  owner: zod.string().nullish(),
+  clientId: zod.number().nullish(),
+  retentionPolicy: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  archivedBy: zod.string().nullish(),
+  expiresAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List contracts
+ */
+export const ListContractsQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  type: zod.coerce.string().optional(),
+  companyId: zod.coerce.number().optional(),
+  reviewStatus: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListContractsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  type: zod.string(),
+  companyId: zod.number().nullish(),
+  status: zod.string(),
+  version: zod.number(),
+  content: zod.string().nullish(),
+  templateId: zod.string().nullish(),
+  reviewStatus: zod.string(),
+  requiresHumanReview: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  approvedBy: zod.string().nullish(),
+  signerName: zod.string().nullish(),
+  signedAt: zod.coerce.date().nullish(),
+  effectiveDate: zod.coerce.date().nullish(),
+  expirationDate: zod.coerce.date().nullish(),
+  renewalDate: zod.coerce.date().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  notes: zod.string().nullish(),
+  createdBy: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListContractsResponse = zod.array(ListContractsResponseItem);
+
+/**
+ * @summary Create a contract
+ */
+export const CreateContractBody = zod.object({
+  title: zod.string(),
+  type: zod.string(),
+  companyId: zod.number().optional(),
+  status: zod.string().optional(),
+  version: zod.number().optional(),
+  content: zod.string().optional(),
+  templateId: zod.string().optional(),
+  reviewStatus: zod.string().optional(),
+  requiresHumanReview: zod.string().optional(),
+  reviewedBy: zod.string().optional(),
+  approvedBy: zod.string().optional(),
+  signerName: zod.string().optional(),
+  signedAt: zod.string().optional(),
+  effectiveDate: zod.string().optional(),
+  expirationDate: zod.string().optional(),
+  renewalDate: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  notes: zod.string().optional(),
+  createdBy: zod.string().optional(),
+});
+
+/**
+ * @summary Get a contract
+ */
+export const GetContractParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetContractResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  type: zod.string(),
+  companyId: zod.number().nullish(),
+  status: zod.string(),
+  version: zod.number(),
+  content: zod.string().nullish(),
+  templateId: zod.string().nullish(),
+  reviewStatus: zod.string(),
+  requiresHumanReview: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  approvedBy: zod.string().nullish(),
+  signerName: zod.string().nullish(),
+  signedAt: zod.coerce.date().nullish(),
+  effectiveDate: zod.coerce.date().nullish(),
+  expirationDate: zod.coerce.date().nullish(),
+  renewalDate: zod.coerce.date().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  notes: zod.string().nullish(),
+  createdBy: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update a contract
+ */
+export const UpdateContractParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateContractBody = zod.object({
+  title: zod.string().optional(),
+  type: zod.string().optional(),
+  companyId: zod.number().optional(),
+  status: zod.string().optional(),
+  version: zod.number().optional(),
+  content: zod.string().optional(),
+  templateId: zod.string().optional(),
+  reviewStatus: zod.string().optional(),
+  requiresHumanReview: zod.string().optional(),
+  reviewedBy: zod.string().optional(),
+  approvedBy: zod.string().optional(),
+  signerName: zod.string().optional(),
+  signedAt: zod.string().optional(),
+  effectiveDate: zod.string().optional(),
+  expirationDate: zod.string().optional(),
+  renewalDate: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  notes: zod.string().optional(),
+  createdBy: zod.string().optional(),
+});
+
+export const UpdateContractResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  type: zod.string(),
+  companyId: zod.number().nullish(),
+  status: zod.string(),
+  version: zod.number(),
+  content: zod.string().nullish(),
+  templateId: zod.string().nullish(),
+  reviewStatus: zod.string(),
+  requiresHumanReview: zod.string().nullish(),
+  reviewedBy: zod.string().nullish(),
+  approvedBy: zod.string().nullish(),
+  signerName: zod.string().nullish(),
+  signedAt: zod.coerce.date().nullish(),
+  effectiveDate: zod.coerce.date().nullish(),
+  expirationDate: zod.coerce.date().nullish(),
+  renewalDate: zod.coerce.date().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  notes: zod.string().nullish(),
+  createdBy: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List invoices
+ */
+export const ListInvoicesQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  type: zod.coerce.string().optional(),
+  companyId: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListInvoicesResponseItem = zod.object({
+  id: zod.number(),
+  invoiceNumber: zod.string(),
+  companyId: zod.number().nullish(),
+  type: zod.string(),
+  status: zod.string(),
+  amount: zod.number().nullish(),
+  taxAmount: zod.number().nullish(),
+  totalAmount: zod.number().nullish(),
+  currency: zod.string(),
+  dueDate: zod.coerce.date().nullish(),
+  paidAt: zod.coerce.date().nullish(),
+  lineItems: zod.object({}).passthrough().nullish(),
+  notes: zod.string().nullish(),
+  terms: zod.string().nullish(),
+  issuedBy: zod.string().nullish(),
+  issuedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListInvoicesResponse = zod.array(ListInvoicesResponseItem);
+
+/**
+ * @summary Create an invoice
+ */
+export const CreateInvoiceBody = zod.object({
+  invoiceNumber: zod.string(),
+  companyId: zod.number().optional(),
+  type: zod.string().optional(),
+  status: zod.string().optional(),
+  amount: zod.number().optional(),
+  taxAmount: zod.number().optional(),
+  totalAmount: zod.number().optional(),
+  currency: zod.string().optional(),
+  dueDate: zod.string().optional(),
+  paidAt: zod.string().optional(),
+  lineItems: zod.object({}).passthrough().optional(),
+  notes: zod.string().optional(),
+  terms: zod.string().optional(),
+  issuedBy: zod.string().optional(),
+  issuedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get an invoice
+ */
+export const GetInvoiceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetInvoiceResponse = zod.object({
+  id: zod.number(),
+  invoiceNumber: zod.string(),
+  companyId: zod.number().nullish(),
+  type: zod.string(),
+  status: zod.string(),
+  amount: zod.number().nullish(),
+  taxAmount: zod.number().nullish(),
+  totalAmount: zod.number().nullish(),
+  currency: zod.string(),
+  dueDate: zod.coerce.date().nullish(),
+  paidAt: zod.coerce.date().nullish(),
+  lineItems: zod.object({}).passthrough().nullish(),
+  notes: zod.string().nullish(),
+  terms: zod.string().nullish(),
+  issuedBy: zod.string().nullish(),
+  issuedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update an invoice
+ */
+export const UpdateInvoiceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateInvoiceBody = zod.object({
+  invoiceNumber: zod.string().optional(),
+  companyId: zod.number().optional(),
+  type: zod.string().optional(),
+  status: zod.string().optional(),
+  amount: zod.number().optional(),
+  taxAmount: zod.number().optional(),
+  totalAmount: zod.number().optional(),
+  currency: zod.string().optional(),
+  dueDate: zod.string().optional(),
+  paidAt: zod.string().optional(),
+  lineItems: zod.object({}).passthrough().optional(),
+  notes: zod.string().optional(),
+  terms: zod.string().optional(),
+  issuedBy: zod.string().optional(),
+  issuedAt: zod.string().optional(),
+});
+
+export const UpdateInvoiceResponse = zod.object({
+  id: zod.number(),
+  invoiceNumber: zod.string(),
+  companyId: zod.number().nullish(),
+  type: zod.string(),
+  status: zod.string(),
+  amount: zod.number().nullish(),
+  taxAmount: zod.number().nullish(),
+  totalAmount: zod.number().nullish(),
+  currency: zod.string(),
+  dueDate: zod.coerce.date().nullish(),
+  paidAt: zod.coerce.date().nullish(),
+  lineItems: zod.object({}).passthrough().nullish(),
+  notes: zod.string().nullish(),
+  terms: zod.string().nullish(),
+  issuedBy: zod.string().nullish(),
+  issuedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List payments
+ */
+export const ListPaymentsQueryParams = zod.object({
+  invoiceId: zod.coerce.number().optional(),
+  status: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListPaymentsResponseItem = zod.object({
+  id: zod.number(),
+  invoiceId: zod.number().nullish(),
+  amount: zod.number(),
+  method: zod.string().nullish(),
+  reference: zod.string().nullish(),
+  status: zod.string(),
+  paidAt: zod.coerce.date().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListPaymentsResponse = zod.array(ListPaymentsResponseItem);
+
+/**
+ * @summary Create a payment
+ */
+export const CreatePaymentBody = zod.object({
+  invoiceId: zod.number().optional(),
+  amount: zod.number(),
+  method: zod.string().optional(),
+  reference: zod.string().optional(),
+  status: zod.string().optional(),
+  paidAt: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Get a payment
+ */
+export const GetPaymentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetPaymentResponse = zod.object({
+  id: zod.number(),
+  invoiceId: zod.number().nullish(),
+  amount: zod.number(),
+  method: zod.string().nullish(),
+  reference: zod.string().nullish(),
+  status: zod.string(),
+  paidAt: zod.coerce.date().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List expenses
+ */
+export const ListExpensesQueryParams = zod.object({
+  category: zod.coerce.string().optional(),
+  status: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListExpensesResponseItem = zod.object({
+  id: zod.number(),
+  category: zod.string(),
+  description: zod.string(),
+  amount: zod.number(),
+  vendor: zod.string().nullish(),
+  status: zod.string(),
+  receiptUrl: zod.string().nullish(),
+  approvedBy: zod.string().nullish(),
+  paidAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListExpensesResponse = zod.array(ListExpensesResponseItem);
+
+/**
+ * @summary Create an expense
+ */
+export const CreateExpenseBody = zod.object({
+  category: zod.string(),
+  description: zod.string(),
+  amount: zod.number(),
+  vendor: zod.string().optional(),
+  status: zod.string().optional(),
+  receiptUrl: zod.string().optional(),
+  approvedBy: zod.string().optional(),
+  paidAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get an expense
+ */
+export const GetExpenseParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetExpenseResponse = zod.object({
+  id: zod.number(),
+  category: zod.string(),
+  description: zod.string(),
+  amount: zod.number(),
+  vendor: zod.string().nullish(),
+  status: zod.string(),
+  receiptUrl: zod.string().nullish(),
+  approvedBy: zod.string().nullish(),
+  paidAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update an expense
+ */
+export const UpdateExpenseParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateExpenseBody = zod.object({
+  category: zod.string().optional(),
+  description: zod.string().optional(),
+  amount: zod.number().optional(),
+  vendor: zod.string().optional(),
+  status: zod.string().optional(),
+  receiptUrl: zod.string().optional(),
+  approvedBy: zod.string().optional(),
+  paidAt: zod.string().optional(),
+});
+
+export const UpdateExpenseResponse = zod.object({
+  id: zod.number(),
+  category: zod.string(),
+  description: zod.string(),
+  amount: zod.number(),
+  vendor: zod.string().nullish(),
+  status: zod.string(),
+  receiptUrl: zod.string().nullish(),
+  approvedBy: zod.string().nullish(),
+  paidAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List integrations
+ */
+export const ListIntegrationsQueryParams = zod.object({
+  type: zod.coerce.string().optional(),
+  provider: zod.coerce.string().optional(),
+  status: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListIntegrationsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  type: zod.string(),
+  provider: zod.string(),
+  status: zod.string(),
+  isActive: zod.boolean(),
+  config: zod.object({}).passthrough().nullish(),
+  credentials: zod.object({}).passthrough().nullish(),
+  syncFrequency: zod.string().nullish(),
+  lastSyncAt: zod.coerce.date().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListIntegrationsResponse = zod.array(ListIntegrationsResponseItem);
+
+/**
+ * @summary Create an integration
+ */
+export const CreateIntegrationBody = zod.object({
+  name: zod.string(),
+  type: zod.string(),
+  provider: zod.string(),
+  status: zod.string().optional(),
+  isActive: zod.boolean().optional(),
+  config: zod.object({}).passthrough().optional(),
+  credentials: zod.object({}).passthrough().optional(),
+  syncFrequency: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+});
+
+/**
+ * @summary Get an integration
+ */
+export const GetIntegrationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetIntegrationResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  type: zod.string(),
+  provider: zod.string(),
+  status: zod.string(),
+  isActive: zod.boolean(),
+  config: zod.object({}).passthrough().nullish(),
+  credentials: zod.object({}).passthrough().nullish(),
+  syncFrequency: zod.string().nullish(),
+  lastSyncAt: zod.coerce.date().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update an integration
+ */
+export const UpdateIntegrationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateIntegrationBody = zod.object({
+  name: zod.string().optional(),
+  type: zod.string().optional(),
+  provider: zod.string().optional(),
+  status: zod.string().optional(),
+  isActive: zod.boolean().optional(),
+  config: zod.object({}).passthrough().optional(),
+  credentials: zod.object({}).passthrough().optional(),
+  syncFrequency: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+});
+
+export const UpdateIntegrationResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  type: zod.string(),
+  provider: zod.string(),
+  status: zod.string(),
+  isActive: zod.boolean(),
+  config: zod.object({}).passthrough().nullish(),
+  credentials: zod.object({}).passthrough().nullish(),
+  syncFrequency: zod.string().nullish(),
+  lastSyncAt: zod.coerce.date().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List outreach sequences
+ */
+export const ListOutreachSequencesQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  type: zod.coerce.string().optional(),
+  channel: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListOutreachSequencesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  type: zod.string(),
+  status: zod.string(),
+  channel: zod.string(),
+  steps: zod.object({}).passthrough().nullish(),
+  targetAudience: zod.string().nullish(),
+  totalEnrolled: zod.number(),
+  totalResponded: zod.number(),
+  totalConverted: zod.number(),
+  cadenceRules: zod.object({}).passthrough().nullish(),
+  safetyControls: zod.object({}).passthrough().nullish(),
+  owner: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListOutreachSequencesResponse = zod.array(
+  ListOutreachSequencesResponseItem,
+);
+
+/**
+ * @summary Create an outreach sequence
+ */
+export const CreateOutreachSequenceBody = zod.object({
+  name: zod.string(),
+  type: zod.string(),
+  status: zod.string().optional(),
+  channel: zod.string(),
+  steps: zod.object({}).passthrough().optional(),
+  targetAudience: zod.string().optional(),
+  totalEnrolled: zod.number().optional(),
+  totalResponded: zod.number().optional(),
+  totalConverted: zod.number().optional(),
+  cadenceRules: zod.object({}).passthrough().optional(),
+  safetyControls: zod.object({}).passthrough().optional(),
+  owner: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Get an outreach sequence
+ */
+export const GetOutreachSequenceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetOutreachSequenceResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  type: zod.string(),
+  status: zod.string(),
+  channel: zod.string(),
+  steps: zod.object({}).passthrough().nullish(),
+  targetAudience: zod.string().nullish(),
+  totalEnrolled: zod.number(),
+  totalResponded: zod.number(),
+  totalConverted: zod.number(),
+  cadenceRules: zod.object({}).passthrough().nullish(),
+  safetyControls: zod.object({}).passthrough().nullish(),
+  owner: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update an outreach sequence
+ */
+export const UpdateOutreachSequenceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateOutreachSequenceBody = zod.object({
+  name: zod.string().optional(),
+  type: zod.string().optional(),
+  status: zod.string().optional(),
+  channel: zod.string().optional(),
+  steps: zod.object({}).passthrough().optional(),
+  targetAudience: zod.string().optional(),
+  totalEnrolled: zod.number().optional(),
+  totalResponded: zod.number().optional(),
+  totalConverted: zod.number().optional(),
+  cadenceRules: zod.object({}).passthrough().optional(),
+  safetyControls: zod.object({}).passthrough().optional(),
+  owner: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateOutreachSequenceResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  type: zod.string(),
+  status: zod.string(),
+  channel: zod.string(),
+  steps: zod.object({}).passthrough().nullish(),
+  targetAudience: zod.string().nullish(),
+  totalEnrolled: zod.number(),
+  totalResponded: zod.number(),
+  totalConverted: zod.number(),
+  cadenceRules: zod.object({}).passthrough().nullish(),
+  safetyControls: zod.object({}).passthrough().nullish(),
+  owner: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List quality issues
+ */
+export const ListQualityIssuesQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  domain: zod.coerce.string().optional(),
+  severity: zod.coerce.string().optional(),
+  entityType: zod.coerce.string().optional(),
+  assignedTo: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListQualityIssuesResponseItem = zod.object({
+  id: zod.number(),
+  entityType: zod.string(),
+  entityId: zod.number(),
+  domain: zod.string(),
+  issueType: zod.string(),
+  severity: zod.string(),
+  status: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  resolution: zod.string().nullish(),
+  reportedBy: zod.string().nullish(),
+  assignedTo: zod.string().nullish(),
+  resolvedBy: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  resolvedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListQualityIssuesResponse = zod.array(
+  ListQualityIssuesResponseItem,
+);
+
+/**
+ * @summary Create a quality issue
+ */
+export const CreateQualityIssueBody = zod.object({
+  entityType: zod.string(),
+  entityId: zod.number(),
+  domain: zod.string(),
+  issueType: zod.string(),
+  severity: zod.string().optional(),
+  status: zod.string().optional(),
+  title: zod.string(),
+  description: zod.string().optional(),
+  resolution: zod.string().optional(),
+  reportedBy: zod.string().optional(),
+  assignedTo: zod.string().optional(),
+  resolvedBy: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  resolvedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get a quality issue
+ */
+export const GetQualityIssueParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetQualityIssueResponse = zod.object({
+  id: zod.number(),
+  entityType: zod.string(),
+  entityId: zod.number(),
+  domain: zod.string(),
+  issueType: zod.string(),
+  severity: zod.string(),
+  status: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  resolution: zod.string().nullish(),
+  reportedBy: zod.string().nullish(),
+  assignedTo: zod.string().nullish(),
+  resolvedBy: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  resolvedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update a quality issue
+ */
+export const UpdateQualityIssueParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateQualityIssueBody = zod.object({
+  entityType: zod.string().optional(),
+  entityId: zod.number().optional(),
+  domain: zod.string().optional(),
+  issueType: zod.string().optional(),
+  severity: zod.string().optional(),
+  status: zod.string().optional(),
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  resolution: zod.string().optional(),
+  reportedBy: zod.string().optional(),
+  assignedTo: zod.string().optional(),
+  resolvedBy: zod.string().optional(),
+  metadata: zod.object({}).passthrough().optional(),
+  resolvedAt: zod.string().optional(),
+});
+
+export const UpdateQualityIssueResponse = zod.object({
+  id: zod.number(),
+  entityType: zod.string(),
+  entityId: zod.number(),
+  domain: zod.string(),
+  issueType: zod.string(),
+  severity: zod.string(),
+  status: zod.string(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  resolution: zod.string().nullish(),
+  reportedBy: zod.string().nullish(),
+  assignedTo: zod.string().nullish(),
+  resolvedBy: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().nullish(),
+  resolvedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List reports
+ */
+export const ListReportsQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  domain: zod.coerce.string().optional(),
+  type: zod.coerce.string().optional(),
+  format: zod.coerce.string().optional(),
+  generationType: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const ListReportsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  type: zod.string(),
+  domain: zod.string(),
+  format: zod.string(),
+  status: zod.string(),
+  content: zod.string().nullish(),
+  summary: zod.string().nullish(),
+  data: zod.object({}).passthrough().nullish(),
+  generatedBy: zod.string().nullish(),
+  generationType: zod.string(),
+  scheduledFor: zod.coerce.date().nullish(),
+  deliveredAt: zod.coerce.date().nullish(),
+  deliveryChannel: zod.string().nullish(),
+  recipients: zod.string().nullish(),
+  period: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListReportsResponse = zod.array(ListReportsResponseItem);
+
+/**
+ * @summary Create a report
+ */
+export const CreateReportBody = zod.object({
+  title: zod.string(),
+  type: zod.string(),
+  domain: zod.string(),
+  format: zod.string().optional(),
+  status: zod.string().optional(),
+  content: zod.string().optional(),
+  summary: zod.string().optional(),
+  data: zod.object({}).passthrough().optional(),
+  generatedBy: zod.string().optional(),
+  generationType: zod.string().optional(),
+  scheduledFor: zod.string().optional(),
+  deliveredAt: zod.string().optional(),
+  deliveryChannel: zod.string().optional(),
+  recipients: zod.string().optional(),
+  period: zod.string().optional(),
+  tags: zod.string().optional(),
+});
+
+/**
+ * @summary Get a report
+ */
+export const GetReportParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetReportResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  type: zod.string(),
+  domain: zod.string(),
+  format: zod.string(),
+  status: zod.string(),
+  content: zod.string().nullish(),
+  summary: zod.string().nullish(),
+  data: zod.object({}).passthrough().nullish(),
+  generatedBy: zod.string().nullish(),
+  generationType: zod.string(),
+  scheduledFor: zod.coerce.date().nullish(),
+  deliveredAt: zod.coerce.date().nullish(),
+  deliveryChannel: zod.string().nullish(),
+  recipients: zod.string().nullish(),
+  period: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update a report
+ */
+export const UpdateReportParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateReportBody = zod.object({
+  title: zod.string().optional(),
+  type: zod.string().optional(),
+  domain: zod.string().optional(),
+  format: zod.string().optional(),
+  status: zod.string().optional(),
+  content: zod.string().optional(),
+  summary: zod.string().optional(),
+  data: zod.object({}).passthrough().optional(),
+  generatedBy: zod.string().optional(),
+  generationType: zod.string().optional(),
+  scheduledFor: zod.string().optional(),
+  deliveredAt: zod.string().optional(),
+  deliveryChannel: zod.string().optional(),
+  recipients: zod.string().optional(),
+  period: zod.string().optional(),
+  tags: zod.string().optional(),
+});
+
+export const UpdateReportResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  type: zod.string(),
+  domain: zod.string(),
+  format: zod.string(),
+  status: zod.string(),
+  content: zod.string().nullish(),
+  summary: zod.string().nullish(),
+  data: zod.object({}).passthrough().nullish(),
+  generatedBy: zod.string().nullish(),
+  generationType: zod.string(),
+  scheduledFor: zod.coerce.date().nullish(),
+  deliveredAt: zod.coerce.date().nullish(),
+  deliveryChannel: zod.string().nullish(),
+  recipients: zod.string().nullish(),
+  period: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
 });

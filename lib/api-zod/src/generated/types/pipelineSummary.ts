@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * PMG Group OS API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { PipelineStage } from "./pipelineStage";
 
@@ -11,6 +11,4 @@ export interface PipelineSummary {
   stages: PipelineStage[];
   totalValue: number;
   totalDeals: number;
-  avgDealSize: number;
-  winRate: number;
 }

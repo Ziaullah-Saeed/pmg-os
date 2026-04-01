@@ -3,33 +3,30 @@
  * Do not edit manually.
  * Api
  * PMG Group OS API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
+  timestamp: string;
+  uptime?: number;
+  database?: string;
 }
 
-export type DashboardSummaryLeadsByStatus = { [key: string]: number };
-
-export type DashboardSummaryOpportunitiesByStage = { [key: string]: number };
-
-export interface RevenueDataPoint {
+export type DashboardSummaryMonthlyRevenueItem = {
   month: string;
   value: number;
-}
+};
 
 export interface DashboardSummary {
   totalCompanies: number;
   totalContacts: number;
   totalLeads: number;
   totalOpportunities: number;
-  totalPipelineValue: number;
-  activeCampaigns: number;
-  pendingTasks: number;
-  recentCommunications: number;
-  leadsByStatus: DashboardSummaryLeadsByStatus;
-  opportunitiesByStage: DashboardSummaryOpportunitiesByStage;
-  revenueByMonth: RevenueDataPoint[];
+  totalActivities: number;
+  totalCampaigns: number;
+  totalTasks: number;
+  pipelineValue: number;
+  monthlyRevenue?: DashboardSummaryMonthlyRevenueItem[];
 }
 
 export interface PipelineStage {
@@ -43,8 +40,6 @@ export interface PipelineSummary {
   stages: PipelineStage[];
   totalValue: number;
   totalDeals: number;
-  avgDealSize: number;
-  winRate: number;
 }
 
 export interface Company {
@@ -533,6 +528,947 @@ export interface CreateCommunicationBody {
   completedAt?: string;
 }
 
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  department?: string | null;
+  /** @nullable */
+  title?: string | null;
+  isActive: boolean;
+  /** @nullable */
+  lastLoginAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateUserBody {
+  email: string;
+  name: string;
+  role?: string;
+  avatarUrl?: string;
+  department?: string;
+  title?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateUserBody {
+  email?: string;
+  name?: string;
+  role?: string;
+  avatarUrl?: string;
+  department?: string;
+  title?: string;
+  isActive?: boolean;
+}
+
+/**
+ * @nullable
+ */
+export type ApprovalMetadata = { [key: string]: unknown } | null;
+
+export interface Approval {
+  id: number;
+  entityType: string;
+  entityId: number;
+  domain: string;
+  status: string;
+  /** @nullable */
+  requestedBy?: string | null;
+  /** @nullable */
+  reviewedBy?: string | null;
+  priority: string;
+  /** @nullable */
+  reason?: string | null;
+  /** @nullable */
+  rejectionReason?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  metadata?: ApprovalMetadata;
+  requestedAt: string;
+  /** @nullable */
+  reviewedAt?: string | null;
+  /** @nullable */
+  expiresAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateApprovalBodyMetadata = { [key: string]: unknown };
+
+export interface CreateApprovalBody {
+  entityType: string;
+  entityId: number;
+  domain: string;
+  status?: string;
+  requestedBy?: string;
+  reviewedBy?: string;
+  priority?: string;
+  reason?: string;
+  rejectionReason?: string;
+  notes?: string;
+  metadata?: CreateApprovalBodyMetadata;
+  expiresAt?: string;
+}
+
+export type UpdateApprovalBodyMetadata = { [key: string]: unknown };
+
+export interface UpdateApprovalBody {
+  entityType?: string;
+  entityId?: number;
+  domain?: string;
+  status?: string;
+  requestedBy?: string;
+  reviewedBy?: string;
+  priority?: string;
+  reason?: string;
+  rejectionReason?: string;
+  notes?: string;
+  metadata?: UpdateApprovalBodyMetadata;
+  expiresAt?: string;
+}
+
+/**
+ * @nullable
+ */
+export type AssetMetadata = { [key: string]: unknown } | null;
+
+export interface Asset {
+  id: number;
+  title: string;
+  type: string;
+  category: string;
+  status: string;
+  lifecycleStage: string;
+  /** @nullable */
+  content?: string | null;
+  /** @nullable */
+  previewUrl?: string | null;
+  /** @nullable */
+  finalUrl?: string | null;
+  version: number;
+  /** @nullable */
+  parentId?: number | null;
+  /** @nullable */
+  domain?: string | null;
+  /** @nullable */
+  campaignId?: number | null;
+  /** @nullable */
+  createdBy?: string | null;
+  /** @nullable */
+  reviewedBy?: string | null;
+  /** @nullable */
+  approvedBy?: string | null;
+  /** @nullable */
+  rejectionReason?: string | null;
+  /** @nullable */
+  reviewNotes?: string | null;
+  /** @nullable */
+  tags?: string | null;
+  /** @nullable */
+  metadata?: AssetMetadata;
+  /** @nullable */
+  generatedByAi?: string | null;
+  /** @nullable */
+  publishedAt?: string | null;
+  /** @nullable */
+  archivedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateAssetBodyMetadata = { [key: string]: unknown };
+
+export interface CreateAssetBody {
+  title: string;
+  type: string;
+  category: string;
+  status?: string;
+  lifecycleStage?: string;
+  content?: string;
+  previewUrl?: string;
+  finalUrl?: string;
+  version?: number;
+  parentId?: number;
+  domain?: string;
+  campaignId?: number;
+  createdBy?: string;
+  reviewedBy?: string;
+  approvedBy?: string;
+  rejectionReason?: string;
+  reviewNotes?: string;
+  tags?: string;
+  metadata?: CreateAssetBodyMetadata;
+  generatedByAi?: string;
+  publishedAt?: string;
+  archivedAt?: string;
+}
+
+export type UpdateAssetBodyMetadata = { [key: string]: unknown };
+
+export interface UpdateAssetBody {
+  title?: string;
+  type?: string;
+  category?: string;
+  status?: string;
+  lifecycleStage?: string;
+  content?: string;
+  previewUrl?: string;
+  finalUrl?: string;
+  version?: number;
+  parentId?: number;
+  domain?: string;
+  campaignId?: number;
+  createdBy?: string;
+  reviewedBy?: string;
+  approvedBy?: string;
+  rejectionReason?: string;
+  reviewNotes?: string;
+  tags?: string;
+  metadata?: UpdateAssetBodyMetadata;
+  generatedByAi?: string;
+  publishedAt?: string;
+  archivedAt?: string;
+}
+
+/**
+ * @nullable
+ */
+export type AuditEventMetadata = { [key: string]: unknown } | null;
+
+export interface AuditEvent {
+  id: number;
+  eventType: string;
+  domain: string;
+  /** @nullable */
+  entityType?: string | null;
+  /** @nullable */
+  entityId?: number | null;
+  action: string;
+  description: string;
+  /** @nullable */
+  actor?: string | null;
+  /** @nullable */
+  actorType?: string | null;
+  severity: string;
+  /** @nullable */
+  metadata?: AuditEventMetadata;
+  /** @nullable */
+  ipAddress?: string | null;
+  createdAt: string;
+}
+
+export type CreateAuditEventBodyMetadata = { [key: string]: unknown };
+
+export interface CreateAuditEventBody {
+  eventType: string;
+  domain: string;
+  entityType?: string;
+  entityId?: number;
+  action: string;
+  description: string;
+  actor?: string;
+  actorType?: string;
+  severity?: string;
+  metadata?: CreateAuditEventBodyMetadata;
+  ipAddress?: string;
+}
+
+/**
+ * @nullable
+ */
+export type AiRunMetadata = { [key: string]: unknown } | null;
+
+export interface AiRun {
+  id: number;
+  runType: string;
+  domain: string;
+  /** @nullable */
+  entityType?: string | null;
+  /** @nullable */
+  entityId?: number | null;
+  /** @nullable */
+  model?: string | null;
+  /** @nullable */
+  prompt?: string | null;
+  /** @nullable */
+  output?: string | null;
+  status: string;
+  /** @nullable */
+  confidenceScore?: number | null;
+  /** @nullable */
+  tokensUsed?: number | null;
+  /** @nullable */
+  costEstimate?: number | null;
+  /** @nullable */
+  reviewRequired?: string | null;
+  /** @nullable */
+  reviewedBy?: string | null;
+  /** @nullable */
+  reviewedAt?: string | null;
+  /** @nullable */
+  metadata?: AiRunMetadata;
+  /** @nullable */
+  error?: string | null;
+  /** @nullable */
+  durationMs?: number | null;
+  createdAt: string;
+}
+
+export type CreateAiRunBodyMetadata = { [key: string]: unknown };
+
+export interface CreateAiRunBody {
+  runType: string;
+  domain: string;
+  entityType?: string;
+  entityId?: number;
+  model?: string;
+  prompt?: string;
+  output?: string;
+  status?: string;
+  confidenceScore?: number;
+  tokensUsed?: number;
+  costEstimate?: number;
+  reviewRequired?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  metadata?: CreateAiRunBodyMetadata;
+  error?: string;
+  durationMs?: number;
+}
+
+/**
+ * @nullable
+ */
+export type ArchiveItemMetadata = { [key: string]: unknown } | null;
+
+export interface ArchiveItem {
+  id: number;
+  sourceType: string;
+  /** @nullable */
+  sourceId?: number | null;
+  domain: string;
+  title: string;
+  category: string;
+  /** @nullable */
+  content?: string | null;
+  /** @nullable */
+  summary?: string | null;
+  /** @nullable */
+  tags?: string | null;
+  version: number;
+  status: string;
+  accessLevel: string;
+  /** @nullable */
+  owner?: string | null;
+  /** @nullable */
+  clientId?: number | null;
+  /** @nullable */
+  retentionPolicy?: string | null;
+  /** @nullable */
+  metadata?: ArchiveItemMetadata;
+  /** @nullable */
+  archivedBy?: string | null;
+  /** @nullable */
+  expiresAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateArchiveItemBodyMetadata = { [key: string]: unknown };
+
+export interface CreateArchiveItemBody {
+  sourceType: string;
+  sourceId?: number;
+  domain: string;
+  title: string;
+  category: string;
+  content?: string;
+  summary?: string;
+  tags?: string;
+  version?: number;
+  status?: string;
+  accessLevel?: string;
+  owner?: string;
+  clientId?: number;
+  retentionPolicy?: string;
+  metadata?: CreateArchiveItemBodyMetadata;
+  archivedBy?: string;
+  expiresAt?: string;
+}
+
+export type UpdateArchiveItemBodyMetadata = { [key: string]: unknown };
+
+export interface UpdateArchiveItemBody {
+  sourceType?: string;
+  sourceId?: number;
+  domain?: string;
+  title?: string;
+  category?: string;
+  content?: string;
+  summary?: string;
+  tags?: string;
+  version?: number;
+  status?: string;
+  accessLevel?: string;
+  owner?: string;
+  clientId?: number;
+  retentionPolicy?: string;
+  metadata?: UpdateArchiveItemBodyMetadata;
+  archivedBy?: string;
+  expiresAt?: string;
+}
+
+/**
+ * @nullable
+ */
+export type ContractMetadata = { [key: string]: unknown } | null;
+
+export interface Contract {
+  id: number;
+  title: string;
+  type: string;
+  /** @nullable */
+  companyId?: number | null;
+  status: string;
+  version: number;
+  /** @nullable */
+  content?: string | null;
+  /** @nullable */
+  templateId?: string | null;
+  reviewStatus: string;
+  /** @nullable */
+  requiresHumanReview?: string | null;
+  /** @nullable */
+  reviewedBy?: string | null;
+  /** @nullable */
+  approvedBy?: string | null;
+  /** @nullable */
+  signerName?: string | null;
+  /** @nullable */
+  signedAt?: string | null;
+  /** @nullable */
+  effectiveDate?: string | null;
+  /** @nullable */
+  expirationDate?: string | null;
+  /** @nullable */
+  renewalDate?: string | null;
+  /** @nullable */
+  metadata?: ContractMetadata;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateContractBodyMetadata = { [key: string]: unknown };
+
+export interface CreateContractBody {
+  title: string;
+  type: string;
+  companyId?: number;
+  status?: string;
+  version?: number;
+  content?: string;
+  templateId?: string;
+  reviewStatus?: string;
+  requiresHumanReview?: string;
+  reviewedBy?: string;
+  approvedBy?: string;
+  signerName?: string;
+  signedAt?: string;
+  effectiveDate?: string;
+  expirationDate?: string;
+  renewalDate?: string;
+  metadata?: CreateContractBodyMetadata;
+  notes?: string;
+  createdBy?: string;
+}
+
+export type UpdateContractBodyMetadata = { [key: string]: unknown };
+
+export interface UpdateContractBody {
+  title?: string;
+  type?: string;
+  companyId?: number;
+  status?: string;
+  version?: number;
+  content?: string;
+  templateId?: string;
+  reviewStatus?: string;
+  requiresHumanReview?: string;
+  reviewedBy?: string;
+  approvedBy?: string;
+  signerName?: string;
+  signedAt?: string;
+  effectiveDate?: string;
+  expirationDate?: string;
+  renewalDate?: string;
+  metadata?: UpdateContractBodyMetadata;
+  notes?: string;
+  createdBy?: string;
+}
+
+/**
+ * @nullable
+ */
+export type InvoiceLineItems = { [key: string]: unknown } | null;
+
+export interface Invoice {
+  id: number;
+  invoiceNumber: string;
+  /** @nullable */
+  companyId?: number | null;
+  type: string;
+  status: string;
+  /** @nullable */
+  amount?: number | null;
+  /** @nullable */
+  taxAmount?: number | null;
+  /** @nullable */
+  totalAmount?: number | null;
+  currency: string;
+  /** @nullable */
+  dueDate?: string | null;
+  /** @nullable */
+  paidAt?: string | null;
+  /** @nullable */
+  lineItems?: InvoiceLineItems;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  terms?: string | null;
+  /** @nullable */
+  issuedBy?: string | null;
+  /** @nullable */
+  issuedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateInvoiceBodyLineItems = { [key: string]: unknown };
+
+export interface CreateInvoiceBody {
+  invoiceNumber: string;
+  companyId?: number;
+  type?: string;
+  status?: string;
+  amount?: number;
+  taxAmount?: number;
+  totalAmount?: number;
+  currency?: string;
+  dueDate?: string;
+  paidAt?: string;
+  lineItems?: CreateInvoiceBodyLineItems;
+  notes?: string;
+  terms?: string;
+  issuedBy?: string;
+  issuedAt?: string;
+}
+
+export type UpdateInvoiceBodyLineItems = { [key: string]: unknown };
+
+export interface UpdateInvoiceBody {
+  invoiceNumber?: string;
+  companyId?: number;
+  type?: string;
+  status?: string;
+  amount?: number;
+  taxAmount?: number;
+  totalAmount?: number;
+  currency?: string;
+  dueDate?: string;
+  paidAt?: string;
+  lineItems?: UpdateInvoiceBodyLineItems;
+  notes?: string;
+  terms?: string;
+  issuedBy?: string;
+  issuedAt?: string;
+}
+
+export interface Payment {
+  id: number;
+  /** @nullable */
+  invoiceId?: number | null;
+  amount: number;
+  /** @nullable */
+  method?: string | null;
+  /** @nullable */
+  reference?: string | null;
+  status: string;
+  /** @nullable */
+  paidAt?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface CreatePaymentBody {
+  invoiceId?: number;
+  amount: number;
+  method?: string;
+  reference?: string;
+  status?: string;
+  paidAt?: string;
+  notes?: string;
+}
+
+export interface Expense {
+  id: number;
+  category: string;
+  description: string;
+  amount: number;
+  /** @nullable */
+  vendor?: string | null;
+  status: string;
+  /** @nullable */
+  receiptUrl?: string | null;
+  /** @nullable */
+  approvedBy?: string | null;
+  /** @nullable */
+  paidAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateExpenseBody {
+  category: string;
+  description: string;
+  amount: number;
+  vendor?: string;
+  status?: string;
+  receiptUrl?: string;
+  approvedBy?: string;
+  paidAt?: string;
+}
+
+export interface UpdateExpenseBody {
+  category?: string;
+  description?: string;
+  amount?: number;
+  vendor?: string;
+  status?: string;
+  receiptUrl?: string;
+  approvedBy?: string;
+  paidAt?: string;
+}
+
+/**
+ * @nullable
+ */
+export type IntegrationConfig = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type IntegrationCredentials = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type IntegrationMetadata = { [key: string]: unknown } | null;
+
+export interface Integration {
+  id: number;
+  name: string;
+  type: string;
+  provider: string;
+  status: string;
+  isActive: boolean;
+  /** @nullable */
+  config?: IntegrationConfig;
+  /** @nullable */
+  credentials?: IntegrationCredentials;
+  /** @nullable */
+  syncFrequency?: string | null;
+  /** @nullable */
+  lastSyncAt?: string | null;
+  /** @nullable */
+  metadata?: IntegrationMetadata;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateIntegrationBodyConfig = { [key: string]: unknown };
+
+export type CreateIntegrationBodyCredentials = { [key: string]: unknown };
+
+export type CreateIntegrationBodyMetadata = { [key: string]: unknown };
+
+export interface CreateIntegrationBody {
+  name: string;
+  type: string;
+  provider: string;
+  status?: string;
+  isActive?: boolean;
+  config?: CreateIntegrationBodyConfig;
+  credentials?: CreateIntegrationBodyCredentials;
+  syncFrequency?: string;
+  metadata?: CreateIntegrationBodyMetadata;
+}
+
+export type UpdateIntegrationBodyConfig = { [key: string]: unknown };
+
+export type UpdateIntegrationBodyCredentials = { [key: string]: unknown };
+
+export type UpdateIntegrationBodyMetadata = { [key: string]: unknown };
+
+export interface UpdateIntegrationBody {
+  name?: string;
+  type?: string;
+  provider?: string;
+  status?: string;
+  isActive?: boolean;
+  config?: UpdateIntegrationBodyConfig;
+  credentials?: UpdateIntegrationBodyCredentials;
+  syncFrequency?: string;
+  metadata?: UpdateIntegrationBodyMetadata;
+}
+
+/**
+ * @nullable
+ */
+export type OutreachSequenceSteps = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type OutreachSequenceCadenceRules = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type OutreachSequenceSafetyControls = { [key: string]: unknown } | null;
+
+export interface OutreachSequence {
+  id: number;
+  name: string;
+  type: string;
+  status: string;
+  channel: string;
+  /** @nullable */
+  steps?: OutreachSequenceSteps;
+  /** @nullable */
+  targetAudience?: string | null;
+  totalEnrolled: number;
+  totalResponded: number;
+  totalConverted: number;
+  /** @nullable */
+  cadenceRules?: OutreachSequenceCadenceRules;
+  /** @nullable */
+  safetyControls?: OutreachSequenceSafetyControls;
+  /** @nullable */
+  owner?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateOutreachSequenceBodySteps = { [key: string]: unknown };
+
+export type CreateOutreachSequenceBodyCadenceRules = { [key: string]: unknown };
+
+export type CreateOutreachSequenceBodySafetyControls = {
+  [key: string]: unknown;
+};
+
+export interface CreateOutreachSequenceBody {
+  name: string;
+  type: string;
+  status?: string;
+  channel: string;
+  steps?: CreateOutreachSequenceBodySteps;
+  targetAudience?: string;
+  totalEnrolled?: number;
+  totalResponded?: number;
+  totalConverted?: number;
+  cadenceRules?: CreateOutreachSequenceBodyCadenceRules;
+  safetyControls?: CreateOutreachSequenceBodySafetyControls;
+  owner?: string;
+  notes?: string;
+}
+
+export type UpdateOutreachSequenceBodySteps = { [key: string]: unknown };
+
+export type UpdateOutreachSequenceBodyCadenceRules = { [key: string]: unknown };
+
+export type UpdateOutreachSequenceBodySafetyControls = {
+  [key: string]: unknown;
+};
+
+export interface UpdateOutreachSequenceBody {
+  name?: string;
+  type?: string;
+  status?: string;
+  channel?: string;
+  steps?: UpdateOutreachSequenceBodySteps;
+  targetAudience?: string;
+  totalEnrolled?: number;
+  totalResponded?: number;
+  totalConverted?: number;
+  cadenceRules?: UpdateOutreachSequenceBodyCadenceRules;
+  safetyControls?: UpdateOutreachSequenceBodySafetyControls;
+  owner?: string;
+  notes?: string;
+}
+
+/**
+ * @nullable
+ */
+export type QualityIssueMetadata = { [key: string]: unknown } | null;
+
+export interface QualityIssue {
+  id: number;
+  entityType: string;
+  entityId: number;
+  domain: string;
+  issueType: string;
+  severity: string;
+  status: string;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  resolution?: string | null;
+  /** @nullable */
+  reportedBy?: string | null;
+  /** @nullable */
+  assignedTo?: string | null;
+  /** @nullable */
+  resolvedBy?: string | null;
+  /** @nullable */
+  metadata?: QualityIssueMetadata;
+  /** @nullable */
+  resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateQualityIssueBodyMetadata = { [key: string]: unknown };
+
+export interface CreateQualityIssueBody {
+  entityType: string;
+  entityId: number;
+  domain: string;
+  issueType: string;
+  severity?: string;
+  status?: string;
+  title: string;
+  description?: string;
+  resolution?: string;
+  reportedBy?: string;
+  assignedTo?: string;
+  resolvedBy?: string;
+  metadata?: CreateQualityIssueBodyMetadata;
+  resolvedAt?: string;
+}
+
+export type UpdateQualityIssueBodyMetadata = { [key: string]: unknown };
+
+export interface UpdateQualityIssueBody {
+  entityType?: string;
+  entityId?: number;
+  domain?: string;
+  issueType?: string;
+  severity?: string;
+  status?: string;
+  title?: string;
+  description?: string;
+  resolution?: string;
+  reportedBy?: string;
+  assignedTo?: string;
+  resolvedBy?: string;
+  metadata?: UpdateQualityIssueBodyMetadata;
+  resolvedAt?: string;
+}
+
+/**
+ * @nullable
+ */
+export type ReportData = { [key: string]: unknown } | null;
+
+export interface Report {
+  id: number;
+  title: string;
+  type: string;
+  domain: string;
+  format: string;
+  status: string;
+  /** @nullable */
+  content?: string | null;
+  /** @nullable */
+  summary?: string | null;
+  /** @nullable */
+  data?: ReportData;
+  /** @nullable */
+  generatedBy?: string | null;
+  generationType: string;
+  /** @nullable */
+  scheduledFor?: string | null;
+  /** @nullable */
+  deliveredAt?: string | null;
+  /** @nullable */
+  deliveryChannel?: string | null;
+  /** @nullable */
+  recipients?: string | null;
+  /** @nullable */
+  period?: string | null;
+  /** @nullable */
+  tags?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateReportBodyData = { [key: string]: unknown };
+
+export interface CreateReportBody {
+  title: string;
+  type: string;
+  domain: string;
+  format?: string;
+  status?: string;
+  content?: string;
+  summary?: string;
+  data?: CreateReportBodyData;
+  generatedBy?: string;
+  generationType?: string;
+  scheduledFor?: string;
+  deliveredAt?: string;
+  deliveryChannel?: string;
+  recipients?: string;
+  period?: string;
+  tags?: string;
+}
+
+export type UpdateReportBodyData = { [key: string]: unknown };
+
+export interface UpdateReportBody {
+  title?: string;
+  type?: string;
+  domain?: string;
+  format?: string;
+  status?: string;
+  content?: string;
+  summary?: string;
+  data?: UpdateReportBodyData;
+  generatedBy?: string;
+  generationType?: string;
+  scheduledFor?: string;
+  deliveredAt?: string;
+  deliveryChannel?: string;
+  recipients?: string;
+  period?: string;
+  tags?: string;
+}
+
 export type GetRecentActivityParams = {
   limit?: number;
 };
@@ -589,4 +1525,126 @@ export type ListCommunicationsParams = {
   type?: string;
   contactId?: number;
   companyId?: number;
+  limit?: number;
+};
+
+export type ListUsersParams = {
+  role?: string;
+  department?: string;
+  isActive?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListApprovalsParams = {
+  status?: string;
+  domain?: string;
+  entityType?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListAssetsParams = {
+  status?: string;
+  type?: string;
+  category?: string;
+  lifecycleStage?: string;
+  domain?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListAuditEventsParams = {
+  domain?: string;
+  eventType?: string;
+  severity?: string;
+  actorType?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListAiRunsParams = {
+  domain?: string;
+  status?: string;
+  runType?: string;
+  model?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListArchiveItemsParams = {
+  status?: string;
+  domain?: string;
+  category?: string;
+  sourceType?: string;
+  accessLevel?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListContractsParams = {
+  status?: string;
+  type?: string;
+  companyId?: number;
+  reviewStatus?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListInvoicesParams = {
+  status?: string;
+  type?: string;
+  companyId?: number;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListPaymentsParams = {
+  invoiceId?: number;
+  status?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListExpensesParams = {
+  category?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListIntegrationsParams = {
+  type?: string;
+  provider?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListOutreachSequencesParams = {
+  status?: string;
+  type?: string;
+  channel?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListQualityIssuesParams = {
+  status?: string;
+  domain?: string;
+  severity?: string;
+  entityType?: string;
+  assignedTo?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListReportsParams = {
+  status?: string;
+  domain?: string;
+  type?: string;
+  format?: string;
+  generationType?: string;
+  limit?: number;
+  offset?: number;
 };

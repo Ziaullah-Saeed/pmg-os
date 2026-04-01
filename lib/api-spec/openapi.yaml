@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.1.0
+  version: 0.2.0
   description: PMG Group OS API specification
 servers:
   - url: /api
@@ -29,6 +29,34 @@ tags:
     description: Document & archive management
   - name: communications
     description: Communication logs
+  - name: users
+    description: User & role management
+  - name: approvals
+    description: Approval workflows
+  - name: assets
+    description: Production assets & lifecycle
+  - name: audit-events
+    description: Audit trail
+  - name: ai-runs
+    description: AI generation logs
+  - name: archive-items
+    description: Archive & knowledge memory
+  - name: contracts
+    description: Legal contracts
+  - name: invoices
+    description: Invoice management
+  - name: payments
+    description: Payment tracking
+  - name: expenses
+    description: Expense management
+  - name: integrations
+    description: Integration management
+  - name: outreach-sequences
+    description: Outreach sequences & cadences
+  - name: quality-issues
+    description: Quality management
+  - name: reports
+    description: Reporting system
 
 paths:
   /healthz:
@@ -36,7 +64,6 @@ paths:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -858,9 +885,14 @@ paths:
           in: query
           schema:
             type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
       responses:
         "200":
-          description: List of communication logs
+          description: List of communications
           content:
             application/json:
               schema:
@@ -870,7 +902,7 @@ paths:
     post:
       operationId: createCommunication
       tags: [communications]
-      summary: Log a communication
+      summary: Create a communication log
       requestBody:
         required: true
         content:
@@ -879,7 +911,7 @@ paths:
               $ref: "#/components/schemas/CreateCommunicationBody"
       responses:
         "201":
-          description: Created communication log
+          description: Created communication
           content:
             application/json:
               schema:
@@ -889,7 +921,7 @@ paths:
     get:
       operationId: getCommunication
       tags: [communications]
-      summary: Get a communication log
+      summary: Get a communication
       parameters:
         - name: id
           in: path
@@ -904,6 +936,1303 @@ paths:
               schema:
                 $ref: "#/components/schemas/Communication"
 
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: department
+          in: query
+          schema:
+            type: string
+        - name: isActive
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /approvals:
+    get:
+      operationId: listApprovals
+      tags: [approvals]
+      summary: List approvals
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: domain
+          in: query
+          schema:
+            type: string
+        - name: entityType
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of approvals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Approval"
+    post:
+      operationId: createApproval
+      tags: [approvals]
+      summary: Create an approval request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApprovalBody"
+      responses:
+        "201":
+          description: Created approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Approval"
+
+  /approvals/{id}:
+    get:
+      operationId: getApproval
+      tags: [approvals]
+      summary: Get an approval
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approval details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Approval"
+    patch:
+      operationId: updateApproval
+      tags: [approvals]
+      summary: Update an approval
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateApprovalBody"
+      responses:
+        "200":
+          description: Updated approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Approval"
+
+  /assets:
+    get:
+      operationId: listAssets
+      tags: [assets]
+      summary: List production assets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: lifecycleStage
+          in: query
+          schema:
+            type: string
+        - name: domain
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
+    post:
+      operationId: createAsset
+      tags: [assets]
+      summary: Create a production asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetBody"
+      responses:
+        "201":
+          description: Created asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+
+  /assets/{id}:
+    get:
+      operationId: getAsset
+      tags: [assets]
+      summary: Get an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Asset details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+    patch:
+      operationId: updateAsset
+      tags: [assets]
+      summary: Update an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssetBody"
+      responses:
+        "200":
+          description: Updated asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+
+  /audit-events:
+    get:
+      operationId: listAuditEvents
+      tags: [audit-events]
+      summary: List audit events
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+        - name: eventType
+          in: query
+          schema:
+            type: string
+        - name: severity
+          in: query
+          schema:
+            type: string
+        - name: actorType
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of audit events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEvent"
+    post:
+      operationId: createAuditEvent
+      tags: [audit-events]
+      summary: Log an audit event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAuditEventBody"
+      responses:
+        "201":
+          description: Created audit event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditEvent"
+
+  /audit-events/{id}:
+    get:
+      operationId: getAuditEvent
+      tags: [audit-events]
+      summary: Get an audit event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Audit event details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditEvent"
+
+  /ai-runs:
+    get:
+      operationId: listAiRuns
+      tags: [ai-runs]
+      summary: List AI generation runs
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: runType
+          in: query
+          schema:
+            type: string
+        - name: model
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of AI runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AiRun"
+    post:
+      operationId: createAiRun
+      tags: [ai-runs]
+      summary: Log an AI run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAiRunBody"
+      responses:
+        "201":
+          description: Created AI run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiRun"
+
+  /ai-runs/{id}:
+    get:
+      operationId: getAiRun
+      tags: [ai-runs]
+      summary: Get an AI run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: AI run details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiRun"
+
+  /archive-items:
+    get:
+      operationId: listArchiveItems
+      tags: [archive-items]
+      summary: List archive items
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: domain
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: sourceType
+          in: query
+          schema:
+            type: string
+        - name: accessLevel
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of archive items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ArchiveItem"
+    post:
+      operationId: createArchiveItem
+      tags: [archive-items]
+      summary: Create an archive item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateArchiveItemBody"
+      responses:
+        "201":
+          description: Created archive item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArchiveItem"
+
+  /archive-items/{id}:
+    get:
+      operationId: getArchiveItem
+      tags: [archive-items]
+      summary: Get an archive item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Archive item details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArchiveItem"
+    patch:
+      operationId: updateArchiveItem
+      tags: [archive-items]
+      summary: Update an archive item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateArchiveItemBody"
+      responses:
+        "200":
+          description: Updated archive item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArchiveItem"
+
+  /contracts:
+    get:
+      operationId: listContracts
+      tags: [contracts]
+      summary: List contracts
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: companyId
+          in: query
+          schema:
+            type: integer
+        - name: reviewStatus
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of contracts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contract"
+    post:
+      operationId: createContract
+      tags: [contracts]
+      summary: Create a contract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContractBody"
+      responses:
+        "201":
+          description: Created contract
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+
+  /contracts/{id}:
+    get:
+      operationId: getContract
+      tags: [contracts]
+      summary: Get a contract
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contract details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+    patch:
+      operationId: updateContract
+      tags: [contracts]
+      summary: Update a contract
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContractBody"
+      responses:
+        "200":
+          description: Updated contract
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+
+  /invoices:
+    get:
+      operationId: listInvoices
+      tags: [invoices]
+      summary: List invoices
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: companyId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invoice"
+    post:
+      operationId: createInvoice
+      tags: [invoices]
+      summary: Create an invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceBody"
+      responses:
+        "201":
+          description: Created invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /invoices/{id}:
+    get:
+      operationId: getInvoice
+      tags: [invoices]
+      summary: Get an invoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+    patch:
+      operationId: updateInvoice
+      tags: [invoices]
+      summary: Update an invoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInvoiceBody"
+      responses:
+        "200":
+          description: Updated invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+
+  /payments:
+    get:
+      operationId: listPayments
+      tags: [payments]
+      summary: List payments
+      parameters:
+        - name: invoiceId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+    post:
+      operationId: createPayment
+      tags: [payments]
+      summary: Create a payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentBody"
+      responses:
+        "201":
+          description: Created payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments/{id}:
+    get:
+      operationId: getPayment
+      tags: [payments]
+      summary: Get a payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /expenses:
+    get:
+      operationId: listExpenses
+      tags: [expenses]
+      summary: List expenses
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Expense"
+    post:
+      operationId: createExpense
+      tags: [expenses]
+      summary: Create an expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExpenseBody"
+      responses:
+        "201":
+          description: Created expense
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+
+  /expenses/{id}:
+    get:
+      operationId: getExpense
+      tags: [expenses]
+      summary: Get an expense
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Expense details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+    patch:
+      operationId: updateExpense
+      tags: [expenses]
+      summary: Update an expense
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateExpenseBody"
+      responses:
+        "200":
+          description: Updated expense
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+
+  /integrations:
+    get:
+      operationId: listIntegrations
+      tags: [integrations]
+      summary: List integrations
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: provider
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of integrations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Integration"
+    post:
+      operationId: createIntegration
+      tags: [integrations]
+      summary: Create an integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIntegrationBody"
+      responses:
+        "201":
+          description: Created integration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integration"
+
+  /integrations/{id}:
+    get:
+      operationId: getIntegration
+      tags: [integrations]
+      summary: Get an integration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Integration details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integration"
+    patch:
+      operationId: updateIntegration
+      tags: [integrations]
+      summary: Update an integration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateIntegrationBody"
+      responses:
+        "200":
+          description: Updated integration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integration"
+
+  /outreach-sequences:
+    get:
+      operationId: listOutreachSequences
+      tags: [outreach-sequences]
+      summary: List outreach sequences
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: channel
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of outreach sequences
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OutreachSequence"
+    post:
+      operationId: createOutreachSequence
+      tags: [outreach-sequences]
+      summary: Create an outreach sequence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOutreachSequenceBody"
+      responses:
+        "201":
+          description: Created outreach sequence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachSequence"
+
+  /outreach-sequences/{id}:
+    get:
+      operationId: getOutreachSequence
+      tags: [outreach-sequences]
+      summary: Get an outreach sequence
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Outreach sequence details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachSequence"
+    patch:
+      operationId: updateOutreachSequence
+      tags: [outreach-sequences]
+      summary: Update an outreach sequence
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOutreachSequenceBody"
+      responses:
+        "200":
+          description: Updated outreach sequence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutreachSequence"
+
+  /quality-issues:
+    get:
+      operationId: listQualityIssues
+      tags: [quality-issues]
+      summary: List quality issues
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: domain
+          in: query
+          schema:
+            type: string
+        - name: severity
+          in: query
+          schema:
+            type: string
+        - name: entityType
+          in: query
+          schema:
+            type: string
+        - name: assignedTo
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of quality issues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QualityIssue"
+    post:
+      operationId: createQualityIssue
+      tags: [quality-issues]
+      summary: Create a quality issue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateQualityIssueBody"
+      responses:
+        "201":
+          description: Created quality issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityIssue"
+
+  /quality-issues/{id}:
+    get:
+      operationId: getQualityIssue
+      tags: [quality-issues]
+      summary: Get a quality issue
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Quality issue details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityIssue"
+    patch:
+      operationId: updateQualityIssue
+      tags: [quality-issues]
+      summary: Update a quality issue
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateQualityIssueBody"
+      responses:
+        "200":
+          description: Updated quality issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityIssue"
+
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: List reports
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: domain
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: format
+          in: query
+          schema:
+            type: string
+        - name: generationType
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+    post:
+      operationId: createReport
+      tags: [reports]
+      summary: Create a report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReportBody"
+      responses:
+        "201":
+          description: Created report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+
+  /reports/{id}:
+    get:
+      operationId: getReport
+      tags: [reports]
+      summary: Get a report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Report details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+    patch:
+      operationId: updateReport
+      tags: [reports]
+      summary: Update a report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateReportBody"
+      responses:
+        "200":
+          description: Updated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+
 components:
   schemas:
     HealthStatus:
@@ -911,8 +2240,16 @@ components:
       properties:
         status:
           type: string
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+        database:
+          type: string
       required:
         - status
+        - timestamp
 
     DashboardSummary:
       type: object
@@ -925,49 +2262,35 @@ components:
           type: integer
         totalOpportunities:
           type: integer
-        totalPipelineValue:
+        totalActivities:
+          type: integer
+        totalCampaigns:
+          type: integer
+        totalTasks:
+          type: integer
+        pipelineValue:
           type: number
-        activeCampaigns:
-          type: integer
-        pendingTasks:
-          type: integer
-        recentCommunications:
-          type: integer
-        leadsByStatus:
-          type: object
-          additionalProperties:
-            type: integer
-        opportunitiesByStage:
-          type: object
-          additionalProperties:
-            type: integer
-        revenueByMonth:
+        monthlyRevenue:
           type: array
           items:
-            $ref: "#/components/schemas/RevenueDataPoint"
+            type: object
+            properties:
+              month:
+                type: string
+              value:
+                type: number
+            required:
+              - month
+              - value
       required:
         - totalCompanies
         - totalContacts
         - totalLeads
         - totalOpportunities
-        - totalPipelineValue
-        - activeCampaigns
-        - pendingTasks
-        - recentCommunications
-        - leadsByStatus
-        - opportunitiesByStage
-        - revenueByMonth
-
-    RevenueDataPoint:
-      type: object
-      properties:
-        month:
-          type: string
-        value:
-          type: number
-      required:
-        - month
-        - value
+        - totalActivities
+        - totalCampaigns
+        - totalTasks
+        - pipelineValue
 
     PipelineSummary:
       type: object
@@ -980,16 +2303,10 @@ components:
           type: number
         totalDeals:
           type: integer
-        avgDealSize:
-          type: number
-        winRate:
-          type: number
       required:
         - stages
         - totalValue
         - totalDeals
-        - avgDealSize
-        - winRate
 
     PipelineStage:
       type: object
@@ -1881,3 +3198,1520 @@ components:
       required:
         - type
         - direction
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
+        title:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        lastLoginAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - name
+        - role
+        - isActive
+        - createdAt
+        - updatedAt
+
+    CreateUserBody:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        avatarUrl:
+          type: string
+        department:
+          type: string
+        title:
+          type: string
+        isActive:
+          type: boolean
+      required:
+        - email
+        - name
+
+    UpdateUserBody:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        avatarUrl:
+          type: string
+        department:
+          type: string
+        title:
+          type: string
+        isActive:
+          type: boolean
+
+    Approval:
+      type: object
+      properties:
+        id:
+          type: integer
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        domain:
+          type: string
+        status:
+          type: string
+        requestedBy:
+          type: ["string", "null"]
+        reviewedBy:
+          type: ["string", "null"]
+        priority:
+          type: string
+        reason:
+          type: ["string", "null"]
+        rejectionReason:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        metadata:
+          type: ["object", "null"]
+        requestedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: ["string", "null"]
+          format: date-time
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - entityType
+        - entityId
+        - domain
+        - status
+        - priority
+        - requestedAt
+        - createdAt
+        - updatedAt
+
+    CreateApprovalBody:
+      type: object
+      properties:
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        domain:
+          type: string
+        status:
+          type: string
+        requestedBy:
+          type: string
+        reviewedBy:
+          type: string
+        priority:
+          type: string
+        reason:
+          type: string
+        rejectionReason:
+          type: string
+        notes:
+          type: string
+        metadata:
+          type: object
+        expiresAt:
+          type: string
+      required:
+        - entityType
+        - entityId
+        - domain
+
+    UpdateApprovalBody:
+      type: object
+      properties:
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        domain:
+          type: string
+        status:
+          type: string
+        requestedBy:
+          type: string
+        reviewedBy:
+          type: string
+        priority:
+          type: string
+        reason:
+          type: string
+        rejectionReason:
+          type: string
+        notes:
+          type: string
+        metadata:
+          type: object
+        expiresAt:
+          type: string
+
+    Asset:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        type:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+        lifecycleStage:
+          type: string
+        content:
+          type: ["string", "null"]
+        previewUrl:
+          type: ["string", "null"]
+        finalUrl:
+          type: ["string", "null"]
+        version:
+          type: integer
+        parentId:
+          type: ["integer", "null"]
+        domain:
+          type: ["string", "null"]
+        campaignId:
+          type: ["integer", "null"]
+        createdBy:
+          type: ["string", "null"]
+        reviewedBy:
+          type: ["string", "null"]
+        approvedBy:
+          type: ["string", "null"]
+        rejectionReason:
+          type: ["string", "null"]
+        reviewNotes:
+          type: ["string", "null"]
+        tags:
+          type: ["string", "null"]
+        metadata:
+          type: ["object", "null"]
+        generatedByAi:
+          type: ["string", "null"]
+        publishedAt:
+          type: ["string", "null"]
+          format: date-time
+        archivedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - type
+        - category
+        - status
+        - lifecycleStage
+        - version
+        - createdAt
+        - updatedAt
+
+    CreateAssetBody:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+        lifecycleStage:
+          type: string
+        content:
+          type: string
+        previewUrl:
+          type: string
+        finalUrl:
+          type: string
+        version:
+          type: integer
+        parentId:
+          type: integer
+        domain:
+          type: string
+        campaignId:
+          type: integer
+        createdBy:
+          type: string
+        reviewedBy:
+          type: string
+        approvedBy:
+          type: string
+        rejectionReason:
+          type: string
+        reviewNotes:
+          type: string
+        tags:
+          type: string
+        metadata:
+          type: object
+        generatedByAi:
+          type: string
+        publishedAt:
+          type: string
+        archivedAt:
+          type: string
+      required:
+        - title
+        - type
+        - category
+
+    UpdateAssetBody:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+        lifecycleStage:
+          type: string
+        content:
+          type: string
+        previewUrl:
+          type: string
+        finalUrl:
+          type: string
+        version:
+          type: integer
+        parentId:
+          type: integer
+        domain:
+          type: string
+        campaignId:
+          type: integer
+        createdBy:
+          type: string
+        reviewedBy:
+          type: string
+        approvedBy:
+          type: string
+        rejectionReason:
+          type: string
+        reviewNotes:
+          type: string
+        tags:
+          type: string
+        metadata:
+          type: object
+        generatedByAi:
+          type: string
+        publishedAt:
+          type: string
+        archivedAt:
+          type: string
+
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        eventType:
+          type: string
+        domain:
+          type: string
+        entityType:
+          type: ["string", "null"]
+        entityId:
+          type: ["integer", "null"]
+        action:
+          type: string
+        description:
+          type: string
+        actor:
+          type: ["string", "null"]
+        actorType:
+          type: ["string", "null"]
+        severity:
+          type: string
+        metadata:
+          type: ["object", "null"]
+        ipAddress:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - eventType
+        - domain
+        - action
+        - description
+        - severity
+        - createdAt
+
+    CreateAuditEventBody:
+      type: object
+      properties:
+        eventType:
+          type: string
+        domain:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        action:
+          type: string
+        description:
+          type: string
+        actor:
+          type: string
+        actorType:
+          type: string
+        severity:
+          type: string
+        metadata:
+          type: object
+        ipAddress:
+          type: string
+      required:
+        - eventType
+        - domain
+        - action
+        - description
+
+    AiRun:
+      type: object
+      properties:
+        id:
+          type: integer
+        runType:
+          type: string
+        domain:
+          type: string
+        entityType:
+          type: ["string", "null"]
+        entityId:
+          type: ["integer", "null"]
+        model:
+          type: ["string", "null"]
+        prompt:
+          type: ["string", "null"]
+        output:
+          type: ["string", "null"]
+        status:
+          type: string
+        confidenceScore:
+          type: ["number", "null"]
+        tokensUsed:
+          type: ["integer", "null"]
+        costEstimate:
+          type: ["number", "null"]
+        reviewRequired:
+          type: ["string", "null"]
+        reviewedBy:
+          type: ["string", "null"]
+        reviewedAt:
+          type: ["string", "null"]
+          format: date-time
+        metadata:
+          type: ["object", "null"]
+        error:
+          type: ["string", "null"]
+        durationMs:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - runType
+        - domain
+        - status
+        - createdAt
+
+    CreateAiRunBody:
+      type: object
+      properties:
+        runType:
+          type: string
+        domain:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        model:
+          type: string
+        prompt:
+          type: string
+        output:
+          type: string
+        status:
+          type: string
+        confidenceScore:
+          type: number
+        tokensUsed:
+          type: integer
+        costEstimate:
+          type: number
+        reviewRequired:
+          type: string
+        reviewedBy:
+          type: string
+        reviewedAt:
+          type: string
+        metadata:
+          type: object
+        error:
+          type: string
+        durationMs:
+          type: integer
+      required:
+        - runType
+        - domain
+
+    ArchiveItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        sourceType:
+          type: string
+        sourceId:
+          type: ["integer", "null"]
+        domain:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        content:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        tags:
+          type: ["string", "null"]
+        version:
+          type: integer
+        status:
+          type: string
+        accessLevel:
+          type: string
+        owner:
+          type: ["string", "null"]
+        clientId:
+          type: ["integer", "null"]
+        retentionPolicy:
+          type: ["string", "null"]
+        metadata:
+          type: ["object", "null"]
+        archivedBy:
+          type: ["string", "null"]
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sourceType
+        - domain
+        - title
+        - category
+        - version
+        - status
+        - accessLevel
+        - createdAt
+        - updatedAt
+
+    CreateArchiveItemBody:
+      type: object
+      properties:
+        sourceType:
+          type: string
+        sourceId:
+          type: integer
+        domain:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        content:
+          type: string
+        summary:
+          type: string
+        tags:
+          type: string
+        version:
+          type: integer
+        status:
+          type: string
+        accessLevel:
+          type: string
+        owner:
+          type: string
+        clientId:
+          type: integer
+        retentionPolicy:
+          type: string
+        metadata:
+          type: object
+        archivedBy:
+          type: string
+        expiresAt:
+          type: string
+      required:
+        - sourceType
+        - domain
+        - title
+        - category
+
+    UpdateArchiveItemBody:
+      type: object
+      properties:
+        sourceType:
+          type: string
+        sourceId:
+          type: integer
+        domain:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        content:
+          type: string
+        summary:
+          type: string
+        tags:
+          type: string
+        version:
+          type: integer
+        status:
+          type: string
+        accessLevel:
+          type: string
+        owner:
+          type: string
+        clientId:
+          type: integer
+        retentionPolicy:
+          type: string
+        metadata:
+          type: object
+        archivedBy:
+          type: string
+        expiresAt:
+          type: string
+
+    Contract:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        type:
+          type: string
+        companyId:
+          type: ["integer", "null"]
+        status:
+          type: string
+        version:
+          type: integer
+        content:
+          type: ["string", "null"]
+        templateId:
+          type: ["string", "null"]
+        reviewStatus:
+          type: string
+        requiresHumanReview:
+          type: ["string", "null"]
+        reviewedBy:
+          type: ["string", "null"]
+        approvedBy:
+          type: ["string", "null"]
+        signerName:
+          type: ["string", "null"]
+        signedAt:
+          type: ["string", "null"]
+          format: date-time
+        effectiveDate:
+          type: ["string", "null"]
+          format: date-time
+        expirationDate:
+          type: ["string", "null"]
+          format: date-time
+        renewalDate:
+          type: ["string", "null"]
+          format: date-time
+        metadata:
+          type: ["object", "null"]
+        notes:
+          type: ["string", "null"]
+        createdBy:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - type
+        - status
+        - version
+        - reviewStatus
+        - createdAt
+        - updatedAt
+
+    CreateContractBody:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+        companyId:
+          type: integer
+        status:
+          type: string
+        version:
+          type: integer
+        content:
+          type: string
+        templateId:
+          type: string
+        reviewStatus:
+          type: string
+        requiresHumanReview:
+          type: string
+        reviewedBy:
+          type: string
+        approvedBy:
+          type: string
+        signerName:
+          type: string
+        signedAt:
+          type: string
+        effectiveDate:
+          type: string
+        expirationDate:
+          type: string
+        renewalDate:
+          type: string
+        metadata:
+          type: object
+        notes:
+          type: string
+        createdBy:
+          type: string
+      required:
+        - title
+        - type
+
+    UpdateContractBody:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+        companyId:
+          type: integer
+        status:
+          type: string
+        version:
+          type: integer
+        content:
+          type: string
+        templateId:
+          type: string
+        reviewStatus:
+          type: string
+        requiresHumanReview:
+          type: string
+        reviewedBy:
+          type: string
+        approvedBy:
+          type: string
+        signerName:
+          type: string
+        signedAt:
+          type: string
+        effectiveDate:
+          type: string
+        expirationDate:
+          type: string
+        renewalDate:
+          type: string
+        metadata:
+          type: object
+        notes:
+          type: string
+        createdBy:
+          type: string
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        invoiceNumber:
+          type: string
+        companyId:
+          type: ["integer", "null"]
+        type:
+          type: string
+        status:
+          type: string
+        amount:
+          type: ["number", "null"]
+        taxAmount:
+          type: ["number", "null"]
+        totalAmount:
+          type: ["number", "null"]
+        currency:
+          type: string
+        dueDate:
+          type: ["string", "null"]
+          format: date-time
+        paidAt:
+          type: ["string", "null"]
+          format: date-time
+        lineItems:
+          type: ["object", "null"]
+        notes:
+          type: ["string", "null"]
+        terms:
+          type: ["string", "null"]
+        issuedBy:
+          type: ["string", "null"]
+        issuedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - invoiceNumber
+        - type
+        - status
+        - currency
+        - createdAt
+        - updatedAt
+
+    CreateInvoiceBody:
+      type: object
+      properties:
+        invoiceNumber:
+          type: string
+        companyId:
+          type: integer
+        type:
+          type: string
+        status:
+          type: string
+        amount:
+          type: number
+        taxAmount:
+          type: number
+        totalAmount:
+          type: number
+        currency:
+          type: string
+        dueDate:
+          type: string
+        paidAt:
+          type: string
+        lineItems:
+          type: object
+        notes:
+          type: string
+        terms:
+          type: string
+        issuedBy:
+          type: string
+        issuedAt:
+          type: string
+      required:
+        - invoiceNumber
+
+    UpdateInvoiceBody:
+      type: object
+      properties:
+        invoiceNumber:
+          type: string
+        companyId:
+          type: integer
+        type:
+          type: string
+        status:
+          type: string
+        amount:
+          type: number
+        taxAmount:
+          type: number
+        totalAmount:
+          type: number
+        currency:
+          type: string
+        dueDate:
+          type: string
+        paidAt:
+          type: string
+        lineItems:
+          type: object
+        notes:
+          type: string
+        terms:
+          type: string
+        issuedBy:
+          type: string
+        issuedAt:
+          type: string
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        invoiceId:
+          type: ["integer", "null"]
+        amount:
+          type: number
+        method:
+          type: ["string", "null"]
+        reference:
+          type: ["string", "null"]
+        status:
+          type: string
+        paidAt:
+          type: ["string", "null"]
+          format: date-time
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - amount
+        - status
+        - createdAt
+
+    CreatePaymentBody:
+      type: object
+      properties:
+        invoiceId:
+          type: integer
+        amount:
+          type: number
+        method:
+          type: string
+        reference:
+          type: string
+        status:
+          type: string
+        paidAt:
+          type: string
+        notes:
+          type: string
+      required:
+        - amount
+
+    Expense:
+      type: object
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        vendor:
+          type: ["string", "null"]
+        status:
+          type: string
+        receiptUrl:
+          type: ["string", "null"]
+        approvedBy:
+          type: ["string", "null"]
+        paidAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - category
+        - description
+        - amount
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateExpenseBody:
+      type: object
+      properties:
+        category:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        vendor:
+          type: string
+        status:
+          type: string
+        receiptUrl:
+          type: string
+        approvedBy:
+          type: string
+        paidAt:
+          type: string
+      required:
+        - category
+        - description
+        - amount
+
+    UpdateExpenseBody:
+      type: object
+      properties:
+        category:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        vendor:
+          type: string
+        status:
+          type: string
+        receiptUrl:
+          type: string
+        approvedBy:
+          type: string
+        paidAt:
+          type: string
+
+    Integration:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        provider:
+          type: string
+        status:
+          type: string
+        isActive:
+          type: boolean
+        config:
+          type: ["object", "null"]
+        credentials:
+          type: ["object", "null"]
+        syncFrequency:
+          type: ["string", "null"]
+        lastSyncAt:
+          type: ["string", "null"]
+          format: date-time
+        metadata:
+          type: ["object", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - type
+        - provider
+        - status
+        - isActive
+        - createdAt
+        - updatedAt
+
+    CreateIntegrationBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        provider:
+          type: string
+        status:
+          type: string
+        isActive:
+          type: boolean
+        config:
+          type: object
+        credentials:
+          type: object
+        syncFrequency:
+          type: string
+        metadata:
+          type: object
+      required:
+        - name
+        - type
+        - provider
+
+    UpdateIntegrationBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        provider:
+          type: string
+        status:
+          type: string
+        isActive:
+          type: boolean
+        config:
+          type: object
+        credentials:
+          type: object
+        syncFrequency:
+          type: string
+        metadata:
+          type: object
+
+    OutreachSequence:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        channel:
+          type: string
+        steps:
+          type: ["object", "null"]
+        targetAudience:
+          type: ["string", "null"]
+        totalEnrolled:
+          type: integer
+        totalResponded:
+          type: integer
+        totalConverted:
+          type: integer
+        cadenceRules:
+          type: ["object", "null"]
+        safetyControls:
+          type: ["object", "null"]
+        owner:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - type
+        - status
+        - channel
+        - totalEnrolled
+        - totalResponded
+        - totalConverted
+        - createdAt
+        - updatedAt
+
+    CreateOutreachSequenceBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        channel:
+          type: string
+        steps:
+          type: object
+        targetAudience:
+          type: string
+        totalEnrolled:
+          type: integer
+        totalResponded:
+          type: integer
+        totalConverted:
+          type: integer
+        cadenceRules:
+          type: object
+        safetyControls:
+          type: object
+        owner:
+          type: string
+        notes:
+          type: string
+      required:
+        - name
+        - type
+        - channel
+
+    UpdateOutreachSequenceBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        channel:
+          type: string
+        steps:
+          type: object
+        targetAudience:
+          type: string
+        totalEnrolled:
+          type: integer
+        totalResponded:
+          type: integer
+        totalConverted:
+          type: integer
+        cadenceRules:
+          type: object
+        safetyControls:
+          type: object
+        owner:
+          type: string
+        notes:
+          type: string
+
+    QualityIssue:
+      type: object
+      properties:
+        id:
+          type: integer
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        domain:
+          type: string
+        issueType:
+          type: string
+        severity:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        resolution:
+          type: ["string", "null"]
+        reportedBy:
+          type: ["string", "null"]
+        assignedTo:
+          type: ["string", "null"]
+        resolvedBy:
+          type: ["string", "null"]
+        metadata:
+          type: ["object", "null"]
+        resolvedAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - entityType
+        - entityId
+        - domain
+        - issueType
+        - severity
+        - status
+        - title
+        - createdAt
+        - updatedAt
+
+    CreateQualityIssueBody:
+      type: object
+      properties:
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        domain:
+          type: string
+        issueType:
+          type: string
+        severity:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        resolution:
+          type: string
+        reportedBy:
+          type: string
+        assignedTo:
+          type: string
+        resolvedBy:
+          type: string
+        metadata:
+          type: object
+        resolvedAt:
+          type: string
+      required:
+        - entityType
+        - entityId
+        - domain
+        - issueType
+        - title
+
+    UpdateQualityIssueBody:
+      type: object
+      properties:
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        domain:
+          type: string
+        issueType:
+          type: string
+        severity:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        resolution:
+          type: string
+        reportedBy:
+          type: string
+        assignedTo:
+          type: string
+        resolvedBy:
+          type: string
+        metadata:
+          type: object
+        resolvedAt:
+          type: string
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        type:
+          type: string
+        domain:
+          type: string
+        format:
+          type: string
+        status:
+          type: string
+        content:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        data:
+          type: ["object", "null"]
+        generatedBy:
+          type: ["string", "null"]
+        generationType:
+          type: string
+        scheduledFor:
+          type: ["string", "null"]
+          format: date-time
+        deliveredAt:
+          type: ["string", "null"]
+          format: date-time
+        deliveryChannel:
+          type: ["string", "null"]
+        recipients:
+          type: ["string", "null"]
+        period:
+          type: ["string", "null"]
+        tags:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - type
+        - domain
+        - format
+        - status
+        - generationType
+        - createdAt
+        - updatedAt
+
+    CreateReportBody:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+        domain:
+          type: string
+        format:
+          type: string
+        status:
+          type: string
+        content:
+          type: string
+        summary:
+          type: string
+        data:
+          type: object
+        generatedBy:
+          type: string
+        generationType:
+          type: string
+        scheduledFor:
+          type: string
+        deliveredAt:
+          type: string
+        deliveryChannel:
+          type: string
+        recipients:
+          type: string
+        period:
+          type: string
+        tags:
+          type: string
+      required:
+        - title
+        - type
+        - domain
+
+    UpdateReportBody:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+        domain:
+          type: string
+        format:
+          type: string
+        status:
+          type: string
+        content:
+          type: string
+        summary:
+          type: string
+        data:
+          type: object
+        generatedBy:
+          type: string
+        generationType:
+          type: string
+        scheduledFor:
+          type: string
+        deliveredAt:
+          type: string
+        deliveryChannel:
+          type: string
+        recipients:
+          type: string
+        period:
+          type: string
+        tags:
+          type: string
