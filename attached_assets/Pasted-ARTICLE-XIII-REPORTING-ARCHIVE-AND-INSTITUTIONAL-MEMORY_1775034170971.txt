@@ -1,0 +1,152 @@
+ARTICLE XIII — REPORTING, ARCHIVE, AND INSTITUTIONAL MEMORY
+Section 13.01 — Reporting as Core Infrastructure
+
+Reporting must exist as a first-class architectural layer and may not be deferred as a late-stage cosmetic feature.
+
+The System must support both:
+
+executive / leadership reporting
+technical / operational reporting
+
+for all major domains and material workflows.
+
+Section 13.02 — Reporting Duty
+
+Reports must explain:
+
+what happened
+what changed
+what matters
+what requires attention
+what next decision or action is indicated
+
+Reporting that merely restates raw activity without interpretive value shall be considered insufficient.
+
+Section 13.03 — Archive and Memory Duty
+
+The System shall preserve searchable, permission-aware, categorized business memory across contracts, SOPs, finance records, proposals, call logs, meeting summaries, CRM history, quality records, reports, assets, and internal documents.
+
+The archive must function as durable institutional memory, not as an unstructured storage bucket.
+
+ARTICLE XIV — PERMISSIONS, GOVERNANCE, AND CONTROL INFRASTRUCTURE
+Section 14.01 — Permission Levels
+
+The System shall enforce, at minimum, four principal permission levels:
+
+Super Admin
+Admin
+Manager
+User
+Section 14.02 — Behavioral Consequences of Permissions
+
+Permissions must shape actual system behavior, including but not limited to:
+
+page access
+module access
+action rights
+approval rights
+publishing authority
+financial visibility
+archive visibility
+reporting visibility
+system controls
+governance settings
+integration control
+
+Permissions that only hide interface elements, while leaving business behavior materially uncontrolled, shall be insufficient.
+
+Section 14.03 — Core Governance Requirements
+
+The System Core domain must provide:
+
+secrets management
+environment control
+integration supervision
+audit trails
+backup logic
+recovery awareness
+dependency visibility
+incident awareness
+alerting
+operational supervision
+
+This is the trust layer of the System and must be treated accordingly.
+
+ARTICLE XV — UX, PRESENTATION, AND ENTERPRISE OPERABILITY
+Section 15.01 — Interface Standard
+
+The System must present itself as an advanced AI-native operating environment characterized by premium control, clarity, authority, and reduced cognitive burden.
+
+The experience must feel:
+
+premium
+controlled
+minimal but powerful
+futuristic where appropriate
+serious enough for enterprise reliance
+Section 15.02 — Responsiveness and Accessibility
+
+The System must function credibly across desktop, laptop, tablet, and mobile environments, with proper layout adaptation, touch sensitivity where relevant, readable hierarchy, controlled modal behavior, and accessibility-conscious interactions.
+
+A visually attractive interface that fails under operational use shall not meet constitutional standards.
+
+ARTICLE XVI — TECHNOLOGY, DELIVERY, AND READINESS
+Section 16.01 — Technology Standard
+
+The System shall be built using modern, enterprise-capable technologies consistent with the underlying directive, including the identified frontend, state, design, AI, and backend patterns stated in the source specification.
+
+Technology choices must support:
+
+production readiness
+security
+maintainability
+modularity
+observability
+scalability
+controlled iteration
+Section 16.02 — Delivery Standard
+
+The Company expressly rejects delivery of a system that is nominally complete but operationally fragile. The required standard is that the platform be:
+
+production-grade
+stable
+supervisable
+reportable
+auditable
+maintainable
+credible for real business use
+
+Basic broken flows, weak role handling, hidden errors, and incomplete governance are not acceptable as normal post-launch conditions.
+
+ARTICLE XVII — NON-NEGOTIABLE FINAL MANDATE
+Section 17.01 — Foundational Completeness Requirement
+
+No foundational layer may be left materially shallow if it belongs to the operating system core. This includes, without limitation:
+
+reporting
+archive
+permissions
+governance
+workflow continuity
+AI quality
+operational visibility
+approval structures
+role-based control
+system supervision
+Section 17.02 — Prohibited End State
+
+The System must not conclude as:
+
+a prototype
+a superficial dashboard
+a collection of disconnected tools
+a partially intelligent app
+a collection of loosely governed modules
+a visually strong but operationally weak platform
+Section 17.03 — Required End State
+
+The required end state is:
+
+A complete AI-powered company operating inside software.
+
+This phrase shall be understood as the governing outcome standard for the initiative. The System must be sufficiently integrated, intelligent, controlled, traceable, reportable, and operationally serious to deserve that description.
