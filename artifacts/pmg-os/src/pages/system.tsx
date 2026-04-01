@@ -65,9 +65,45 @@ const workflowLabels: Record<string, string> = {
 const tabs = [
   { id: "overview", label: "System Overview", icon: <Server className="h-3.5 w-3.5" /> },
   { id: "ai-control", label: "AI Control", icon: <Bot className="h-3.5 w-3.5" /> },
-  { id: "permissions", label: "Permissions", icon: <Shield className="h-3.5 w-3.5" /> },
+  { id: "users", label: "Users & Permissions", icon: <Users className="h-3.5 w-3.5" /> },
   { id: "audit", label: "Audit Trail", icon: <Activity className="h-3.5 w-3.5" /> },
   { id: "integrations", label: "Integrations", icon: <Globe className="h-3.5 w-3.5" /> },
+  { id: "channels", label: "Channel Connectors", icon: <PlugZap className="h-3.5 w-3.5" /> },
+];
+
+const channelConnectors = [
+  { name: "LinkedIn Profile", category: "Social", status: "available", icon: "🔗", syncMethod: "oauth" },
+  { name: "LinkedIn Company Page", category: "Social", status: "available", icon: "🏢", syncMethod: "oauth" },
+  { name: "LinkedIn Sales Navigator", category: "Prospecting", status: "available", icon: "🎯", syncMethod: "manual" },
+  { name: "LinkedIn Ads", category: "Paid", status: "available", icon: "📢", syncMethod: "oauth" },
+  { name: "Facebook Page", category: "Social", status: "available", icon: "📘", syncMethod: "oauth" },
+  { name: "Meta Ads Manager", category: "Paid", status: "available", icon: "📊", syncMethod: "oauth" },
+  { name: "Instagram Business", category: "Social", status: "available", icon: "📷", syncMethod: "oauth" },
+  { name: "X / Twitter", category: "Social", status: "available", icon: "🐦", syncMethod: "oauth" },
+  { name: "YouTube", category: "Social", status: "available", icon: "▶️", syncMethod: "oauth" },
+  { name: "TikTok", category: "Social", status: "available", icon: "🎵", syncMethod: "oauth" },
+  { name: "Google Ads", category: "Paid", status: "available", icon: "🔍", syncMethod: "oauth" },
+  { name: "Google Business Profile", category: "Social", status: "available", icon: "📍", syncMethod: "oauth" },
+  { name: "Apollo.io", category: "Prospecting", status: "available", icon: "🚀", syncMethod: "api_key" },
+  { name: "Clay", category: "Prospecting", status: "available", icon: "🧱", syncMethod: "api_key" },
+  { name: "Hunter.io", category: "Prospecting", status: "available", icon: "📧", syncMethod: "api_key" },
+  { name: "Ocean.io", category: "Prospecting", status: "available", icon: "🌊", syncMethod: "api_key" },
+  { name: "PMG Website", category: "Website", status: "available", icon: "🌐", syncMethod: "webhook" },
+  { name: "Landing Pages", category: "Website", status: "available", icon: "📄", syncMethod: "webhook" },
+  { name: "Email Provider", category: "Communication", status: "available", icon: "✉️", syncMethod: "api_key" },
+  { name: "SMS Provider", category: "Communication", status: "available", icon: "💬", syncMethod: "api_key" },
+  { name: "VoIP / Calling", category: "Communication", status: "available", icon: "📞", syncMethod: "api_key" },
+  { name: "Calendar (Google/Outlook)", category: "Communication", status: "available", icon: "📅", syncMethod: "oauth" },
+  { name: "Webinar Platform", category: "Website", status: "available", icon: "🎤", syncMethod: "api_key" },
+  { name: "Chatbot / Widget", category: "Website", status: "available", icon: "🤖", syncMethod: "webhook" },
+];
+
+const userPermissions = [
+  "Command Center", "Intelligence", "Outreach", "Marketing", "Production",
+  "Execution", "CRM Pipeline", "Communications", "Finance & Legal",
+  "Reports & Archive", "System Admin", "AI Mode Control", "Wallet Access",
+  "Integration Management", "User Management", "Publishing Rights",
+  "Approval Authority", "Manual Integration"
 ];
 
 export default function System() {
@@ -262,22 +298,48 @@ export default function System() {
                   <h3 className="text-sm font-semibold">AI Wallet</h3>
                   <span className="ml-auto text-lg font-bold text-green-400">${(wallet?.balance ?? 0).toFixed(2)}</span>
                 </div>
-                <div className="px-5 pb-4 space-y-2">
-                  <p className="text-xs text-muted-foreground mb-3">Every AI action deducts from the wallet. Fund as needed.</p>
-                  {txList.slice(0, 8).map((tx: any, i: number) => (
-                    <div key={tx.id ?? i} className="flex items-center justify-between p-2 rounded-lg glass-surface">
-                      <div>
-                        <p className="text-xs font-medium">{tx.description}</p>
-                        <p className="text-[10px] text-muted-foreground">{new Date(tx.createdAt).toLocaleString()}</p>
-                      </div>
-                      <span className={`text-xs font-bold tabular-nums ${Number(tx.amount) < 0 ? "text-red-400" : "text-green-400"}`}>
-                        {Number(tx.amount) < 0 ? "" : "+"}${Number(tx.amount).toFixed(2)}
-                      </span>
+                <div className="px-5 pb-4 space-y-3">
+                  {(wallet?.balance ?? 0) < 100 && (
+                    <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                      <p className="text-[11px] text-red-300">Low balance alert — wallet below $100. Fund soon to avoid service interruption.</p>
                     </div>
-                  ))}
-                  {txList.length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-4">No transactions yet</p>
                   )}
+
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Per-Provider Spend</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { provider: "OpenAI GPT-4o-mini", spent: txList.filter((t: any) => Number(t.amount) < 0).reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0) * 0.7, color: "text-green-400" },
+                        { provider: "AI Enrichment", spent: txList.filter((t: any) => Number(t.amount) < 0).reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0) * 0.2, color: "text-blue-400" },
+                        { provider: "AI Scoring", spent: txList.filter((t: any) => Number(t.amount) < 0).reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0) * 0.08, color: "text-yellow-400" },
+                        { provider: "Report Gen", spent: txList.filter((t: any) => Number(t.amount) < 0).reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0) * 0.02, color: "text-crimson" },
+                      ].map((p) => (
+                        <div key={p.provider} className="p-2 rounded-lg glass-surface">
+                          <p className={`text-xs font-bold tabular-nums ${p.color}`}>${p.spent.toFixed(2)}</p>
+                          <p className="text-[9px] text-muted-foreground">{p.provider}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Recent Transactions</p>
+                    {txList.slice(0, 6).map((tx: any, i: number) => (
+                      <div key={tx.id ?? i} className="flex items-center justify-between p-2 rounded-lg glass-surface mb-1">
+                        <div>
+                          <p className="text-xs font-medium">{tx.description}</p>
+                          <p className="text-[10px] text-muted-foreground">{new Date(tx.createdAt).toLocaleString()}</p>
+                        </div>
+                        <span className={`text-xs font-bold tabular-nums ${Number(tx.amount) < 0 ? "text-red-400" : "text-green-400"}`}>
+                          {Number(tx.amount) < 0 ? "" : "+"}${Number(tx.amount).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                    {txList.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-4">No transactions yet</p>
+                    )}
+                  </div>
                 </div>
               </GlassCard>
 
@@ -310,12 +372,65 @@ export default function System() {
           </div>
         )}
 
-        {activeTab === "permissions" && (
+        {activeTab === "users" && (
           <div className="space-y-6">
             <GlassCard className="p-0 overflow-hidden">
               <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">User Management</h3>
+                <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"><Users className="h-3 w-3 mr-1" />Add User</Button>
+              </div>
+              <div className="px-5 pb-4">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/5 text-muted-foreground uppercase tracking-wider">
+                      <th className="text-left py-2 px-2">User</th>
+                      <th className="text-left py-2 px-2">Role</th>
+                      <th className="text-left py-2 px-2">Department</th>
+                      <th className="text-left py-2 px-2">Status</th>
+                      <th className="text-left py-2 px-2">AI Privileges</th>
+                      <th className="text-left py-2 px-2">Last Active</th>
+                      <th className="text-left py-2 px-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { name: "SherShah K.", email: "shershah@pmggroup.io", role: "Super Admin", dept: "Executive", status: "active", aiPriv: "Full", lastActive: "Now" },
+                      { name: "Sarah M.", email: "sarah@pmggroup.io", role: "Admin", dept: "Sales", status: "active", aiPriv: "Full", lastActive: "2h ago" },
+                      { name: "Marcus T.", email: "marcus@pmggroup.io", role: "Manager", dept: "Marketing", status: "active", aiPriv: "Hybrid Only", lastActive: "1d ago" },
+                      { name: "James R.", email: "james@pmggroup.io", role: "User", dept: "Operations", status: "active", aiPriv: "Read Only", lastActive: "3h ago" },
+                      { name: "Elena V.", email: "elena@pmggroup.io", role: "Manager", dept: "Production", status: "active", aiPriv: "Full", lastActive: "5h ago" },
+                    ].map((u) => (
+                      <tr key={u.email} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="py-2 px-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-crimson/20 flex items-center justify-center text-[9px] font-bold">{u.name.split(" ").map(n => n[0]).join("")}</div>
+                            <div>
+                              <p className="font-medium">{u.name}</p>
+                              <p className="text-[9px] text-muted-foreground">{u.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2 px-2"><Badge variant="outline" className={`text-[9px] ${u.role === "Super Admin" ? "border-crimson/30 text-crimson" : u.role === "Admin" ? "border-yellow-500/30 text-yellow-400" : u.role === "Manager" ? "border-blue-500/30 text-blue-400" : ""}`}>{u.role}</Badge></td>
+                        <td className="py-2 px-2 text-muted-foreground">{u.dept}</td>
+                        <td className="py-2 px-2"><div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-400" /><span className="text-green-400">Active</span></div></td>
+                        <td className="py-2 px-2"><Badge variant="outline" className="text-[9px]">{u.aiPriv}</Badge></td>
+                        <td className="py-2 px-2 text-muted-foreground">{u.lastActive}</td>
+                        <td className="py-2 px-2">
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]">Edit</Button>
+                            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]">Permissions</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Role-Based Access Control</h3>
-                <Button className="btn-glass text-foreground text-xs px-3 py-1.5 rounded-lg"><Users className="h-3 w-3 mr-1" />Manage Users</Button>
               </div>
               <div className="px-5 pb-4 space-y-3">
                 {roles.map((r) => (
@@ -347,23 +462,23 @@ export default function System() {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-border/30">
-                      <th className="text-left py-2 px-2 text-muted-foreground font-medium">Module</th>
+                      <th className="text-left py-2 px-2 text-muted-foreground font-medium">Permission</th>
                       {roles.map((r) => <th key={r.role} className={`text-center py-2 px-2 font-medium ${r.color}`}>{r.role.split(" ")[0]}</th>)}
                     </tr>
                   </thead>
                   <tbody>
-                    {["Dashboard", "Intelligence", "Outreach", "Marketing", "Production", "CRM", "Communications", "Execution", "Finance", "Reports", "System"].map((mod) => (
-                      <tr key={mod} className="border-b border-border/20">
-                        <td className="py-1.5 px-2">{mod}</td>
+                    {userPermissions.map((perm) => (
+                      <tr key={perm} className="border-b border-border/20">
+                        <td className="py-1.5 px-2">{perm}</td>
                         <td className="text-center"><CheckCircle2 className="h-3 w-3 text-success mx-auto" /></td>
                         <td className="text-center"><CheckCircle2 className="h-3 w-3 text-success mx-auto" /></td>
                         <td className="text-center">
-                          {["Dashboard", "Intelligence", "Outreach", "Marketing", "CRM", "Communications", "Execution"].includes(mod)
+                          {["Command Center", "Intelligence", "Outreach", "Marketing", "CRM Pipeline", "Communications", "Execution", "Reports & Archive"].includes(perm)
                             ? <CheckCircle2 className="h-3 w-3 text-success mx-auto" />
                             : <Eye className="h-3 w-3 text-warning mx-auto" />}
                         </td>
                         <td className="text-center">
-                          {["Dashboard", "Communications", "Execution"].includes(mod)
+                          {["Command Center", "Communications", "Execution"].includes(perm)
                             ? <Eye className="h-3 w-3 text-warning mx-auto" />
                             : <Lock className="h-3 w-3 text-muted-foreground mx-auto" />}
                         </td>
@@ -524,6 +639,103 @@ export default function System() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Tool Orchestration Engine</h3>
+                <Badge variant="outline" className="text-[10px]">Auto-Select Best Tool</Badge>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { name: "Perplexity", domain: "Research", desc: "Market research, competitor analysis" },
+                  { name: "Exa.ai", domain: "Research", desc: "Real-time web intelligence" },
+                  { name: "Surfer SEO", domain: "Marketing", desc: "SEO optimization & content scoring" },
+                  { name: "Jasper", domain: "Marketing", desc: "Content drafting & copywriting" },
+                  { name: "Brand24", domain: "Marketing", desc: "Brand sentiment monitoring" },
+                  { name: "Midjourney", domain: "Production", desc: "Visual concept generation" },
+                  { name: "ElevenLabs", domain: "Production", desc: "Voiceover & voice AI" },
+                  { name: "Luma", domain: "Production", desc: "Video generation" },
+                  { name: "Descript", domain: "Production", desc: "Video editing & post-production" },
+                  { name: "Fathom / Otter.ai", domain: "Communication", desc: "Meeting transcription & analysis" },
+                  { name: "Lavender", domain: "Outreach", desc: "Email quality optimization" },
+                  { name: "Spellbook", domain: "Legal", desc: "Contract assistance" },
+                  { name: "Ramp", domain: "Finance", desc: "Spending & financial visibility" },
+                  { name: "Make.com", domain: "Automation", desc: "Workflow automation" },
+                  { name: "Zapier Central", domain: "Automation", desc: "Cross-system automation" },
+                ].map((tool) => (
+                  <div key={tool.name} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-[8px] w-20 justify-center">{tool.domain}</Badge>
+                      <div>
+                        <p className="text-sm font-medium">{tool.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{tool.desc}</p>
+                      </div>
+                    </div>
+                    <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg">Configure</Button>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "channels" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KpiCard label="Total Channels" value={channelConnectors.length} icon={<PlugZap className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="Connected" value={0} icon={<CheckCircle2 className="h-4 w-4" />} accent="success" />
+              <KpiCard label="Available" value={channelConnectors.length} icon={<Globe className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="Manual Mode" value={channelConnectors.filter(c => c.syncMethod === "manual").length} icon={<Activity className="h-4 w-4" />} accent="gold" />
+            </div>
+
+            {["Social", "Paid", "Prospecting", "Website", "Communication"].map(category => {
+              const items = channelConnectors.filter(c => c.category === category);
+              return (
+                <GlassCard key={category} className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">{category} Channels</h3>
+                    <Badge variant="outline" className="text-[10px]">{items.length} connectors</Badge>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2">
+                    {items.map(ch => (
+                      <div key={ch.name} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">{ch.icon}</span>
+                          <div>
+                            <p className="text-sm font-medium">{ch.name}</p>
+                            <p className="text-[10px] text-muted-foreground">Sync: {ch.syncMethod === "oauth" ? "OAuth" : ch.syncMethod === "api_key" ? "API Key" : ch.syncMethod === "webhook" ? "Webhook" : "Manual"}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge variant="pending" label="Not Connected" />
+                          <div className="flex gap-1">
+                            <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg">Connect</Button>
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-muted-foreground">Manual</Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </GlassCard>
+              );
+            })}
+
+            <GlassCard>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold">Manual Integration Center</h3>
+                <Button className="btn-glass text-foreground text-xs px-3 py-1.5 rounded-lg"><Zap className="h-3 w-3 mr-1" />CSV Import</Button>
+              </div>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p>For tools that require manual connection, use this center to:</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                  {["CSV Import/Export", "Manual Field Mapping", "Manual Source Assignment", "Manual Lead Import", "Manual Sync Trigger", "Manual Attribution Correction", "Manual Channel Reconciliation", "Manual Account Refresh", "Manual Sales Tool Upload"].map(item => (
+                    <div key={item} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors text-center">
+                      <p className="text-[10px] font-medium text-white">{item}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </GlassCard>
           </div>

@@ -20,11 +20,13 @@ import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide } from "@/com
 import {
   MessagesSquare, Phone, Video, Mail, ArrowUpRight, ArrowDownLeft,
   Clock, Plus, Sparkles, Bot, User, Headphones, AlertCircle,
-  CheckCircle2, Mic
+  CheckCircle2, Mic, Brain, TrendingUp, MessageSquare, BarChart3,
+  FileText, Target, Zap, Shield
 } from "lucide-react";
 
 const tabs = [
   { id: "log", label: "Communication Log", icon: <MessagesSquare className="h-3.5 w-3.5" /> },
+  { id: "intelligence", label: "Intelligence", icon: <Brain className="h-3.5 w-3.5" /> },
   { id: "ai-calling", label: "Mode A: AI-Led", icon: <Bot className="h-3.5 w-3.5" /> },
   { id: "human-calling", label: "Mode B: AI-Guided", icon: <User className="h-3.5 w-3.5" /> },
   { id: "meeting-support", label: "Mode C: Meeting", icon: <Headphones className="h-3.5 w-3.5" /> },
@@ -156,6 +158,177 @@ export default function Communications() {
                 <Button className="btn-premium text-white text-sm rounded-lg" onClick={() => setShowLogDialog(true)}><Plus className="h-4 w-4 mr-2" />Log First Communication</Button>
               </GlassCard>
             )}
+          </div>
+        )}
+
+        {activeMode === "intelligence" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-4">
+                <GlassCard glow="blue" className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Brain className="h-4 w-4 text-info" />
+                      <h3 className="text-sm font-semibold">Meeting Transcript Viewer</h3>
+                    </div>
+                    <Badge variant="outline" className="text-[10px]">AI Analyzed</Badge>
+                  </div>
+                  <div className="px-5 pb-4 space-y-3">
+                    {commList.length > 0 ? (
+                      <div className="space-y-2">
+                        {commList.filter((c: any) => c.type === "meeting" || c.type === "call").slice(0, 3).map((comm: any, i: number) => (
+                          <div key={comm.id} className="p-3 rounded-lg glass-surface">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                {comm.type === "meeting" ? <Video className="h-3.5 w-3.5 text-info" /> : <Phone className="h-3.5 w-3.5 text-success" />}
+                                <span className="text-sm font-medium">{comm.subject}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <StatusBadge variant={comm.sentiment === "positive" ? "success" : comm.sentiment === "negative" ? "critical" : "warning"} label={comm.sentiment ?? "neutral"} />
+                                {comm.duration && <Badge variant="outline" className="text-[9px]">{comm.duration}m</Badge>}
+                              </div>
+                            </div>
+                            {comm.summary && <p className="text-xs text-muted-foreground">{comm.summary}</p>}
+                            <div className="flex gap-1 mt-2">
+                              <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2"><FileText className="h-3 w-3 mr-1" />Transcript</Button>
+                              <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2"><Brain className="h-3 w-3 mr-1" />AI Analysis</Button>
+                              <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2"><Target className="h-3 w-3 mr-1" />CRM Update</Button>
+                            </div>
+                          </div>
+                        ))}
+                        {commList.filter((c: any) => c.type === "meeting" || c.type === "call").length === 0 && (
+                          <p className="text-xs text-muted-foreground text-center py-4">No calls or meetings logged yet. Log a communication to see intelligence.</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground text-center py-4">No communications yet. Log calls or meetings to enable intelligence analysis.</p>
+                    )}
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-crimson" />
+                    <h3 className="text-sm font-semibold">Communication Analytics</h3>
+                  </div>
+                  <div className="px-5 pb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="p-3 rounded-lg glass-surface text-center">
+                        <p className="text-lg font-bold text-crimson">{positive}</p>
+                        <p className="text-[10px] text-muted-foreground">Positive Sentiment</p>
+                      </div>
+                      <div className="p-3 rounded-lg glass-surface text-center">
+                        <p className="text-lg font-bold text-warning">{commList.filter((c: any) => c.sentiment === "neutral").length}</p>
+                        <p className="text-[10px] text-muted-foreground">Neutral</p>
+                      </div>
+                      <div className="p-3 rounded-lg glass-surface text-center">
+                        <p className="text-lg font-bold text-red-400">{commList.filter((c: any) => c.sentiment === "negative").length}</p>
+                        <p className="text-[10px] text-muted-foreground">Negative</p>
+                      </div>
+                      <div className="p-3 rounded-lg glass-surface text-center">
+                        <p className="text-lg font-bold text-info">{commList.filter((c: any) => c.outcome === "meeting_booked").length}</p>
+                        <p className="text-[10px] text-muted-foreground">Meetings Booked</p>
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-info" />
+                    <h3 className="text-sm font-semibold">AI-Generated Follow-Up Drafts</h3>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2">
+                    {commList.filter((c: any) => c.outcome === "follow_up" || c.outcome === "interested").slice(0, 3).map((comm: any) => (
+                      <div key={comm.id} className="p-3 rounded-lg glass-surface">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs font-semibold">{comm.subject}</p>
+                          <Badge variant="outline" className="text-[9px] capitalize">{comm.outcome}</Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground italic">
+                          {comm.outcome === "interested"
+                            ? `"Hi [Name], great speaking with you about ${comm.subject?.toLowerCase() || "your needs"}. As discussed, I'd love to schedule a deeper dive into how PMG can help..."`
+                            : `"Following up on our ${comm.type || "conversation"} regarding ${comm.subject?.toLowerCase() || "your project"}. I wanted to share some additional resources..."`}
+                        </p>
+                        <div className="flex gap-1 mt-2">
+                          <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-crimson"><Sparkles className="h-3 w-3 mr-1" />Regenerate</Button>
+                          <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2"><Mail className="h-3 w-3 mr-1" />Send Draft</Button>
+                        </div>
+                      </div>
+                    ))}
+                    {commList.filter((c: any) => c.outcome === "follow_up" || c.outcome === "interested").length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-3">Log follow-up or interested outcomes to see AI-generated drafts.</p>
+                    )}
+                  </div>
+                </GlassCard>
+              </div>
+
+              <div className="space-y-4">
+                <GlassCard glow="crimson" className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-crimson" />
+                    <h3 className="text-xs font-semibold">Objection Detection</h3>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2">
+                    {[
+                      { objection: "Budget Concerns", frequency: 42, response: "ROI-focused case study approach", severity: "high" },
+                      { objection: "Already Have Vendor", frequency: 28, response: "Competitive differentiator pivot", severity: "high" },
+                      { objection: "Not the Right Time", frequency: 35, response: "Urgency + cost-of-delay framing", severity: "medium" },
+                      { objection: "Need Internal Buy-in", frequency: 18, response: "Decision-maker mapping + materials", severity: "medium" },
+                      { objection: "Too Complex", frequency: 12, response: "Phased rollout proposal", severity: "low" },
+                    ].map((obj) => (
+                      <div key={obj.objection} className="p-2 rounded-lg glass-surface">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-[11px] font-semibold">{obj.objection}</p>
+                          <Badge className={`text-[8px] ${obj.severity === "high" ? "bg-red-500/10 text-red-400" : obj.severity === "medium" ? "bg-yellow-500/10 text-yellow-400" : "bg-blue-500/10 text-blue-400"}`}>{obj.frequency}%</Badge>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">{obj.response}</p>
+                      </div>
+                    ))}
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-success" />
+                    <h3 className="text-xs font-semibold">Coaching Insights</h3>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2">
+                    {[
+                      { insight: "Talk-to-listen ratio improving — now 40/60", trend: "positive" },
+                      { insight: "Average call duration up 15% (more engaged)", trend: "positive" },
+                      { insight: "Follow-up rate: 78% within 24 hours", trend: "positive" },
+                      { insight: "Objection handling success rate: 62%", trend: "neutral" },
+                      { insight: "Meeting-to-proposal conversion: 45%", trend: "neutral" },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-start gap-2 p-2 rounded-lg glass-surface">
+                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${item.trend === "positive" ? "bg-green-400" : "bg-yellow-400"}`} />
+                        <p className="text-[11px]">{item.insight}</p>
+                      </div>
+                    ))}
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-info" />
+                    <h3 className="text-xs font-semibold">CRM Update Suggestions</h3>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2">
+                    {commList.slice(0, 3).map((comm: any) => (
+                      <div key={comm.id} className="p-2 rounded-lg glass-surface">
+                        <p className="text-[11px] font-medium">{comm.subject}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {comm.sentiment === "positive" ? "Update status → Warm Lead, add follow-up task" : "Add note: needs nurturing, schedule re-engagement"}
+                        </p>
+                        <Button variant="ghost" size="sm" className="h-5 text-[9px] px-1.5 mt-1 text-crimson"><Zap className="h-2.5 w-2.5 mr-0.5" />Apply</Button>
+                      </div>
+                    ))}
+                    {commList.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-2">No communications to suggest CRM updates for.</p>}
+                  </div>
+                </GlassCard>
+              </div>
+            </div>
           </div>
         )}
 

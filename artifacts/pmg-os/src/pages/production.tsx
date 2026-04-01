@@ -1,20 +1,25 @@
 import { useState } from "react";
 import { useListDocuments } from "@workspace/api-client-react";
-import { motion } from "framer-motion";
-import { PageHeader } from "@/components/ui/page-header";
+import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/ui/glass-card";
-import { KpiCard } from "@/components/ui/kpi-card";
-import { PremiumTabs } from "@/components/ui/premium-tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { useUpdateDocumentMut } from "@/hooks/use-api";
-import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide } from "@/components/mode-aware-wrapper";
+import { useToast } from "@/hooks/use-toast";
 import {
-  Palette, FileText, CheckCircle2, Clock, Edit, Plus, Eye,
-  RotateCcw, ArrowRight, Sparkles, History, Ban
+  Palette, FileText, CheckCircle2, Clock, Edit, Plus, Eye, Image, Film, Layout, Type,
+  RotateCcw, ArrowRight, Sparkles, History, Ban, Layers, Settings, Download,
+  ChevronLeft, ChevronRight, Maximize2, ZoomIn, ZoomOut, PanelLeftClose, PanelRightClose,
+  Wand2, RefreshCw, MessageSquare, Star, Folder, Search, Grid3X3, List, Monitor,
+  Smartphone, Tablet, Play, Pause, SkipForward, Volume2, Paintbrush, Shapes,
+  AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, Copy, Trash2,
+  Move, SquareDashedBottom, BookOpen, Pen, Video, Mic, Camera, Globe, FileImage,
+  PenTool, Brush, Crop, FlipHorizontal, RotateCw, Save, Upload, Send, Check
 } from "lucide-react";
 import { CreateDocumentForm } from "@/components/forms/create-document-form";
 
@@ -29,247 +34,634 @@ function mapDocStatus(status: string): string {
   return "generate";
 }
 
-function nextStage(current: string): string | null {
-  const idx = lifecycleStages.indexOf(current as any);
-  if (idx >= 0 && idx < lifecycleStages.length - 1) return lifecycleStages[idx + 1];
-  return null;
-}
+const projectTypes = [
+  { id: "design", label: "Design", icon: <Paintbrush className="h-4 w-4" />, color: "text-pink-400" },
+  { id: "deck", label: "Deck / Slides", icon: <Layout className="h-4 w-4" />, color: "text-blue-400" },
+  { id: "proposal", label: "Proposal", icon: <FileText className="h-4 w-4" />, color: "text-green-400" },
+  { id: "video", label: "Video", icon: <Film className="h-4 w-4" />, color: "text-purple-400" },
+  { id: "landing", label: "Landing Page", icon: <Globe className="h-4 w-4" />, color: "text-cyan-400" },
+  { id: "social", label: "Social Creative", icon: <Camera className="h-4 w-4" />, color: "text-orange-400" },
+  { id: "thumbnail", label: "Thumbnail", icon: <FileImage className="h-4 w-4" />, color: "text-yellow-400" },
+  { id: "script", label: "Script / Copy", icon: <Pen className="h-4 w-4" />, color: "text-emerald-400" },
+  { id: "brand", label: "Brand Asset", icon: <Star className="h-4 w-4" />, color: "text-amber-400" },
+];
 
-const tabs = [
-  { id: "queue", label: "Asset Queue", icon: <FileText className="h-3.5 w-3.5" /> },
-  { id: "board", label: "Kanban Board", icon: <Palette className="h-3.5 w-3.5" /> },
-  { id: "history", label: "Version History", icon: <History className="h-3.5 w-3.5" /> },
+const brandKit = {
+  colors: [
+    { name: "Crimson", hex: "#DC2626" },
+    { name: "Navy", hex: "#1E3A5F" },
+    { name: "Golden Yellow", hex: "#F59E0B" },
+    { name: "Dark BG", hex: "#0A1628" },
+    { name: "White", hex: "#FFFFFF" },
+    { name: "Slate", hex: "#64748B" },
+  ],
+  fonts: ["Inter", "Space Grotesk", "JetBrains Mono"],
+  sizes: ["1920×1080", "1080×1080", "1080×1920", "1200×628", "800×418"],
+};
+
+const assetTemplates = [
+  { id: "linkedin-post", name: "LinkedIn Post", size: "1200×628", type: "social" },
+  { id: "instagram-story", name: "Instagram Story", size: "1080×1920", type: "social" },
+  { id: "pitch-deck", name: "Pitch Deck", size: "1920×1080", type: "deck" },
+  { id: "one-pager", name: "One-Pager", size: "Letter", type: "proposal" },
+  { id: "email-header", name: "Email Header", size: "600×200", type: "design" },
+  { id: "youtube-thumb", name: "YouTube Thumbnail", size: "1280×720", type: "thumbnail" },
+  { id: "vsl-script", name: "VSL Script", size: "—", type: "script" },
+  { id: "brand-guide", name: "Brand Guide", size: "Letter", type: "brand" },
 ];
 
 export default function Production() {
-  const [activeTab, setActiveTab] = useState("queue");
-  const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
   const [showCreateDoc, setShowCreateDoc] = useState(false);
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+  const [rightPanel, setRightPanel] = useState<"properties" | "brand" | "layers" | "comments" | "history">("properties");
+  const [leftPanel, setLeftPanel] = useState<"projects" | "assets" | "templates">("projects");
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showReviewPanel, setShowReviewPanel] = useState(false);
   const { data: documents } = useListDocuments();
-  const { isHuman } = useAiModeContext();
+  const { isHuman, isAuto, isHybrid } = useAiModeContext();
   const updateDoc = useUpdateDocumentMut();
+  const { toast } = useToast();
   const docList = (documents ?? []) as any[];
-
   const enriched = docList.map((d) => ({ ...d, lifecycle: mapDocStatus(d.status) }));
-  const byStage = lifecycleStages.reduce((acc, s) => { acc[s] = enriched.filter((d) => d.lifecycle === s); return acc; }, {} as Record<string, any[]>);
+
+  const filtered = searchQuery
+    ? enriched.filter(d => d.title?.toLowerCase().includes(searchQuery.toLowerCase()) || d.category?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : enriched;
 
   function handleAdvance(doc: any) {
-    const next = nextStage(doc.lifecycle);
-    if (!next) return;
+    const currentIdx = lifecycleStages.indexOf(doc.lifecycle as any);
+    if (currentIdx < 0 || currentIdx >= lifecycleStages.length - 1) return;
+    const next = lifecycleStages[currentIdx + 1];
     const newStatus = statusForStage[next] || "draft";
     updateDoc.mutate({ id: doc.id, data: { status: newStatus } }, {
-      onSuccess: () => setSelectedDoc(null),
+      onSuccess: () => toast({ title: `Advanced to ${next}` }),
     });
   }
 
   function handleReject(doc: any) {
     updateDoc.mutate({ id: doc.id, data: { status: "draft" } }, {
-      onSuccess: () => setSelectedDoc(null),
-    });
-  }
-
-  function handleRevise(doc: any) {
-    updateDoc.mutate({ id: doc.id, data: { status: "draft" } }, {
-      onSuccess: () => setSelectedDoc(null),
+      onSuccess: () => toast({ title: "Sent back to drafts" }),
     });
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto w-full space-y-6">
-      <PageHeader
-        title="Production Studio"
-        subtitle="Asset lifecycle management: Generate > Preview > Review > Revise > Approve > Finalize"
-        icon={<Palette className="h-5 w-5" />}
-        actions={
-          <div className="flex gap-2">
-            <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg"><Sparkles className="h-4 w-4 mr-2" />AI Generate</Button>
-            <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateDoc(true)}><Plus className="h-4 w-4 mr-2" />Create Asset</Button>
+    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden -mx-6 -mt-6">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-[hsl(214,65%,5%)]">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Palette className="h-5 w-5 text-crimson" />
+            <h1 className="text-sm font-bold tracking-tight">Production Studio</h1>
           </div>
-        }
-      />
+          <div className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" className={`h-7 px-2 text-[10px] ${leftPanel === "projects" ? "bg-white/10" : ""}`} onClick={() => { setLeftPanel("projects"); setLeftSidebarOpen(true); }}>
+              <Folder className="h-3 w-3 mr-1" />Projects
+            </Button>
+            <Button variant="ghost" size="sm" className={`h-7 px-2 text-[10px] ${leftPanel === "assets" ? "bg-white/10" : ""}`} onClick={() => { setLeftPanel("assets"); setLeftSidebarOpen(true); }}>
+              <Image className="h-3 w-3 mr-1" />Assets
+            </Button>
+            <Button variant="ghost" size="sm" className={`h-7 px-2 text-[10px] ${leftPanel === "templates" ? "bg-white/10" : ""}`} onClick={() => { setLeftPanel("templates"); setLeftSidebarOpen(true); }}>
+              <Grid3X3 className="h-3 w-3 mr-1" />Templates
+            </Button>
+          </div>
+          {isAuto && (
+            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[9px]">
+              <Sparkles className="h-2.5 w-2.5 mr-1" />AI Auto
+            </Badge>
+          )}
+          {isHybrid && (
+            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[9px]">
+              <Wand2 className="h-2.5 w-2.5 mr-1" />Hybrid
+            </Badge>
+          )}
+        </div>
 
-      <ModeIndicatorBanner />
-
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        {lifecycleStages.map((stage) => (
-          <KpiCard key={stage} label={stage.charAt(0).toUpperCase() + stage.slice(1)} value={byStage[stage]?.length ?? 0} accent={stage === "finalize" ? "success" : stage === "review" ? "gold" : stage === "generate" ? "blue" : "default"} />
-        ))}
+        <div className="flex items-center gap-2">
+          {isAuto && (
+            <Button variant="ghost" size="sm" className="h-7 px-3 text-[10px] text-green-400 border border-green-500/30 hover:bg-green-500/10">
+              <Sparkles className="h-3 w-3 mr-1" />AI Generate
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" className="h-7 px-3 text-[10px] text-crimson border border-crimson/30 hover:bg-crimson/10" onClick={() => setShowCreateDoc(true)}>
+            <Plus className="h-3 w-3 mr-1" />New Project
+          </Button>
+          {selectedProject && (
+            <>
+              <div className="h-4 w-px bg-white/10" />
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px]" onClick={() => setShowReviewPanel(!showReviewPanel)}>
+                <MessageSquare className="h-3 w-3 mr-1" />Review
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px]" onClick={() => handleAdvance(selectedProject)} disabled={updateDoc.isPending || selectedProject.lifecycle === "finalize"}>
+                <ArrowRight className="h-3 w-3 mr-1" />Advance
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-green-400">
+                <Download className="h-3 w-3 mr-1" />Export
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      <ModeAwareWrapper
-        domain="production"
-        humanContent={
-          <div className="space-y-6">
-            <HumanWorkflowGuide title="Asset Production Workflow" steps={[
-              { id: "1", title: "Brief & Requirements", description: "Define asset type, audience, messaging, and brand guidelines", status: "current" as const, action: "Create Brief" },
-              { id: "2", title: "Draft Content", description: "Write copy, create designs, or record video — manual creation", status: "upcoming" as const },
-              { id: "3", title: "Internal Review", description: "Submit for team review, collect feedback, and address comments", status: "upcoming" as const },
-              { id: "4", title: "Revisions", description: "Apply requested changes and re-submit for approval", status: "upcoming" as const },
-              { id: "5", title: "Final Approval", description: "Get stakeholder sign-off and mark asset as finalized", status: "upcoming" as const },
-            ]} icon={<Palette className="h-5 w-5 text-blue-400" />} />
-            <GlassCard>
-              <h3 className="text-sm font-semibold mb-3">Assets in Pipeline ({docList.length})</h3>
-              <div className="space-y-2">
-                {enriched.map((doc: any) => (
-                  <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 cursor-pointer" onClick={() => setSelectedDoc(doc)}>
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">{doc.title}</p>
-                        <p className="text-[10px] text-muted-foreground">{doc.category} · Stage: {doc.lifecycle}</p>
+      {selectedProject && (
+        <div className="flex items-center gap-2 px-4 py-1.5 border-b border-white/5 bg-[hsl(214,65%,6%)]">
+          <div className="flex items-center gap-1 border-r border-white/10 pr-3">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Bold className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Italic className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Underline className="h-3 w-3" /></Button>
+          </div>
+          <div className="flex items-center gap-1 border-r border-white/10 pr-3">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><AlignLeft className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><AlignCenter className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><AlignRight className="h-3 w-3" /></Button>
+          </div>
+          <div className="flex items-center gap-1 border-r border-white/10 pr-3">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Move className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Crop className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><FlipHorizontal className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><RotateCw className="h-3 w-3" /></Button>
+          </div>
+          <div className="flex items-center gap-1 border-r border-white/10 pr-3">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Copy className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Trash2 className="h-3 w-3 text-red-400" /></Button>
+          </div>
+          <div className="flex items-center gap-1 ml-auto">
+            <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${previewDevice === "desktop" ? "bg-white/10" : ""}`} onClick={() => setPreviewDevice("desktop")}><Monitor className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${previewDevice === "tablet" ? "bg-white/10" : ""}`} onClick={() => setPreviewDevice("tablet")}><Tablet className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${previewDevice === "mobile" ? "bg-white/10" : ""}`} onClick={() => setPreviewDevice("mobile")}><Smartphone className="h-3 w-3" /></Button>
+            <div className="h-4 w-px bg-white/10 mx-1" />
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setZoomLevel(Math.max(25, zoomLevel - 25))}><ZoomOut className="h-3 w-3" /></Button>
+            <span className="text-[10px] text-muted-foreground w-8 text-center tabular-nums">{zoomLevel}%</span>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setZoomLevel(Math.min(200, zoomLevel + 25))}><ZoomIn className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setZoomLevel(100)}><Maximize2 className="h-3 w-3" /></Button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-1 overflow-hidden">
+        <AnimatePresence>
+          {leftSidebarOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 260, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              className="border-r border-white/5 bg-[hsl(214,65%,5%)] flex flex-col overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
+                <span className="text-xs font-semibold capitalize">{leftPanel}</span>
+                <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => setLeftSidebarOpen(false)}>
+                  <PanelLeftClose className="h-3 w-3" />
+                </Button>
+              </div>
+
+              <div className="px-3 py-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                  <Input
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="h-7 pl-7 text-xs bg-white/5 border-white/10"
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1">
+                {leftPanel === "projects" && filtered.map((doc) => (
+                  <div
+                    key={doc.id}
+                    onClick={() => setSelectedProject(doc)}
+                    className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors text-xs ${
+                      selectedProject?.id === doc.id ? "bg-crimson/20 border border-crimson/30" : "hover:bg-white/5"
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      doc.lifecycle === "finalize" ? "bg-green-500/20" :
+                      doc.lifecycle === "review" ? "bg-yellow-500/20" :
+                      doc.lifecycle === "approve" ? "bg-blue-500/20" :
+                      "bg-white/5"
+                    }`}>
+                      {doc.type === "video" ? <Film className="h-3.5 w-3.5" /> :
+                       doc.type === "design" ? <Paintbrush className="h-3.5 w-3.5" /> :
+                       doc.type === "proposal" ? <FileText className="h-3.5 w-3.5" /> :
+                       <FileText className="h-3.5 w-3.5" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{doc.title}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-[9px] text-muted-foreground capitalize">{doc.lifecycle}</span>
+                        <span className="text-[9px] text-muted-foreground">· v{doc.version}</span>
                       </div>
                     </div>
-                    <StatusBadge variant={doc.lifecycle === "finalize" ? "ai-approved" : doc.lifecycle === "review" ? "pending" : "ai-recommended"} label={doc.lifecycle} />
                   </div>
                 ))}
-              </div>
-            </GlassCard>
-          </div>
-        }
-      >
-      <GlassCard>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">Asset Lifecycle Pipeline</h3>
-          <StatusBadge variant="ai-executed" label="Mandatory Flow" />
-        </div>
-        <div className="flex items-center gap-1 mb-2">
-          {lifecycleStages.map((stage, i) => (
-            <div key={stage} className="flex items-center gap-1 flex-1">
-              <div className={`h-2 rounded-full flex-1 ${(byStage[stage]?.length ?? 0) > 0 ? "bg-crimson" : "bg-muted"}`} />
-              {i < lifecycleStages.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />}
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-between text-[9px] text-muted-foreground">
-          {lifecycleStages.map((s) => <span key={s} className="capitalize">{s}</span>)}
-        </div>
-      </GlassCard>
 
-      <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-
-      <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        {activeTab === "queue" && (
-          <div className="space-y-3">
-            {enriched.map((doc) => (
-              <GlassCard key={doc.id} variant="interactive" className="cursor-pointer" onClick={() => setSelectedDoc(doc)}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2 rounded-lg glass-surface shrink-0">
-                      {doc.lifecycle === "finalize" ? <CheckCircle2 className="h-4 w-4 text-success" /> :
-                       doc.lifecycle === "review" ? <Eye className="h-4 w-4 text-warning" /> :
-                       doc.lifecycle === "generate" ? <Edit className="h-4 w-4 text-info" /> :
-                       <Clock className="h-4 w-4 text-muted-foreground" />}
+                {leftPanel === "assets" && (
+                  <div className="space-y-3 px-1 pt-1">
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Media Library</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {["Brand Logos", "Product Shots", "Team Photos", "Icons Pack", "Social Covers", "Backgrounds"].map(item => (
+                          <div key={item} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors">
+                            <Image className="h-5 w-5 text-muted-foreground mb-1 mx-auto" />
+                            <p className="text-[9px] text-center truncate">{item}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm">{doc.title}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{doc.content}</p>
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Upload</p>
+                      <div className="border border-dashed border-white/20 rounded-lg p-4 text-center hover:border-crimson/40 cursor-pointer transition-colors">
+                        <Upload className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
+                        <p className="text-[10px] text-muted-foreground">Drop files or click</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-3">
-                    <Badge variant="outline" className="capitalize text-[10px]">{doc.category}</Badge>
-                    <StatusBadge variant={doc.lifecycle === "finalize" ? "human-approved" : doc.lifecycle === "review" ? "awaiting-review" : "draft"} label={doc.lifecycle} />
-                    <span className="text-xs text-muted-foreground tabular-nums">v{doc.version}</span>
-                  </div>
-                </div>
-              </GlassCard>
-            ))}
-          </div>
-        )}
+                )}
 
-        {activeTab === "board" && (
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-            {lifecycleStages.map((stage) => (
-              <div key={stage} className="space-y-2">
-                <div className="flex items-center justify-between pb-2 border-b border-border/50">
-                  <h3 className="kpi-label capitalize">{stage}</h3>
-                  <span className="text-xs px-1.5 py-0.5 rounded-full glass-surface font-medium">{byStage[stage]?.length ?? 0}</span>
-                </div>
-                {(byStage[stage] ?? []).map((doc: any) => (
-                  <GlassCard key={doc.id} variant="interactive" className="cursor-pointer !p-2.5" onClick={() => setSelectedDoc(doc)}>
-                    <p className="text-xs font-medium truncate">{doc.title}</p>
-                    <div className="flex gap-1 mt-1">
-                      <Badge variant="outline" className="text-[8px] px-1 py-0">{doc.type}</Badge>
-                      <span className="text-[8px] text-muted-foreground">v{doc.version}</span>
+                {leftPanel === "templates" && assetTemplates.map(tmpl => (
+                  <div key={tmpl.id} className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                      <Layout className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
-                  </GlassCard>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium truncate">{tmpl.name}</p>
+                      <p className="text-[9px] text-muted-foreground">{tmpl.size}</p>
+                    </div>
+                  </div>
                 ))}
-                {(!byStage[stage] || byStage[stage].length === 0) && (
-                  <div className="p-4 border border-dashed border-border/30 rounded-lg text-[10px] text-center text-muted-foreground">Empty</div>
+
+                {leftPanel === "projects" && filtered.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-xs">No projects yet</p>
+                    <Button variant="ghost" size="sm" className="mt-2 text-xs text-crimson" onClick={() => setShowCreateDoc(true)}>
+                      <Plus className="h-3 w-3 mr-1" />Create Project
+                    </Button>
+                  </div>
                 )}
               </div>
-            ))}
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {activeTab === "history" && (
-          <GlassCard className="p-0 overflow-hidden">
-            <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Version History</h3></div>
-            <div className="px-5 pb-4 space-y-2">
-              {enriched.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg glass-surface">
-                  <div className="flex items-center gap-3">
-                    <History className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">{doc.title}</p>
-                      <p className="text-[10px] text-muted-foreground">Version {doc.version} &bull; {doc.category} &bull; {doc.type}</p>
+        <div className="flex-1 flex flex-col overflow-hidden bg-[hsl(214,65%,4%)]">
+          {!leftSidebarOpen && (
+            <Button variant="ghost" size="sm" className="absolute left-2 top-1/2 z-10 h-8 w-6 p-0 bg-white/5" onClick={() => setLeftSidebarOpen(true)}>
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+          )}
+
+          {selectedProject ? (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
+                <div
+                  className={`relative bg-[hsl(214,65%,8%)] rounded-xl border border-white/10 shadow-2xl transition-all duration-300 ${
+                    previewDevice === "desktop" ? "w-full max-w-4xl aspect-video" :
+                    previewDevice === "tablet" ? "w-[600px] aspect-[3/4]" :
+                    "w-[375px] aspect-[9/16]"
+                  }`}
+                  style={{ transform: `scale(${zoomLevel / 100})` }}
+                >
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
+                    <div className="w-full max-w-md text-center space-y-4">
+                      <div className="w-16 h-16 rounded-2xl bg-crimson/20 flex items-center justify-center mx-auto">
+                        {selectedProject.type === "video" ? <Film className="h-8 w-8 text-crimson" /> :
+                         selectedProject.type === "design" ? <Paintbrush className="h-8 w-8 text-crimson" /> :
+                         <FileText className="h-8 w-8 text-crimson" />}
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold">{selectedProject.title}</h2>
+                        <p className="text-sm text-muted-foreground mt-1">{selectedProject.category} · {selectedProject.type}</p>
+                      </div>
+                      {selectedProject.content && (
+                        <div className="text-left bg-white/5 rounded-lg p-4 max-h-[200px] overflow-y-auto">
+                          <p className="text-xs text-slate-300 whitespace-pre-wrap">{selectedProject.content}</p>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-center gap-2">
+                        <StatusBadge variant={selectedProject.lifecycle === "finalize" ? "human-approved" : selectedProject.lifecycle === "review" ? "awaiting-review" : "draft"} label={selectedProject.lifecycle} />
+                        <Badge variant="outline" className="text-[10px]">v{selectedProject.version}</Badge>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge variant={doc.lifecycle === "finalize" ? "human-approved" : "draft"} label={doc.lifecycle} />
-                    <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg" onClick={() => handleRevise(doc)} disabled={updateDoc.isPending}><RotateCcw className="h-3 w-3 mr-1" />Revert</Button>
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <Badge className="bg-black/50 text-white/60 text-[8px] border-0">{previewDevice === "desktop" ? "1920×1080" : previewDevice === "tablet" ? "768×1024" : "375×812"}</Badge>
                   </div>
                 </div>
-              ))}
-            </div>
-          </GlassCard>
-        )}
-      </motion.div>
-      </ModeAwareWrapper>
-
-      <DetailDrawer open={!!selectedDoc} onClose={() => setSelectedDoc(null)} title={selectedDoc?.title} subtitle={`${selectedDoc?.type} • v${selectedDoc?.version}`}>
-        {selectedDoc && (() => {
-          const stageIdx = lifecycleStages.indexOf(selectedDoc.lifecycle);
-          return (
-            <div className="space-y-5">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 rounded-lg glass-surface text-center">
-                  <StatusBadge variant={selectedDoc.lifecycle === "finalize" ? "human-approved" : "awaiting-review"} label={selectedDoc.lifecycle} />
-                  <p className="text-[10px] text-muted-foreground mt-1">Stage</p>
-                </div>
-                <div className="p-3 rounded-lg glass-surface text-center">
-                  <p className="text-lg font-bold">v{selectedDoc.version}</p>
-                  <p className="text-[10px] text-muted-foreground">Version</p>
-                </div>
-                <div className="p-3 rounded-lg glass-surface text-center">
-                  <Badge variant="outline" className="capitalize">{selectedDoc.type}</Badge>
-                  <p className="text-[10px] text-muted-foreground mt-1">Type</p>
-                </div>
               </div>
-              <div>
-                <h4 className="section-header mb-2">Lifecycle Progress</h4>
-                <div className="flex items-center gap-1">
-                  {lifecycleStages.map((s, i) => (
-                    <div key={s} className="flex items-center gap-1 flex-1">
-                      <div className={`h-2 rounded-full flex-1 ${i <= stageIdx ? "bg-crimson" : "bg-muted"}`} />
-                      {i < lifecycleStages.length - 1 && <ArrowRight className={`h-3 w-3 shrink-0 ${i < stageIdx ? "text-crimson" : "text-muted-foreground"}`} />}
+
+              {selectedProject.type === "video" && (
+                <div className="border-t border-white/5 bg-[hsl(214,65%,5%)] px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Play className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Pause className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><SkipForward className="h-3 w-3" /></Button>
+                      <span className="text-[10px] text-muted-foreground ml-2 tabular-nums">00:00 / 01:30</span>
+                    </div>
+                    <div className="flex-1 h-1.5 bg-white/5 rounded-full relative">
+                      <div className="absolute inset-y-0 left-0 w-1/3 bg-crimson rounded-full" />
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Volume2 className="h-3 w-3" /></Button>
+                  </div>
+                  <div className="flex gap-1 mt-2 overflow-x-auto pb-1">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className={`w-16 h-10 rounded-md shrink-0 flex items-center justify-center text-[8px] ${i < 3 ? "bg-crimson/20 border border-crimson/30" : "bg-white/5 border border-white/10"}`}>
+                        Scene {i + 1}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {showReviewPanel && (
+                <div className="border-t border-white/5 bg-[hsl(214,65%,5%)] px-4 py-3 max-h-[200px] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-semibold flex items-center gap-2">
+                      <MessageSquare className="h-3.5 w-3.5 text-crimson" />Review & Comments
+                    </h3>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-red-400" onClick={() => handleReject(selectedProject)} disabled={updateDoc.isPending}>
+                        <Ban className="h-3 w-3 mr-1" />Reject
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-yellow-400" onClick={() => updateDoc.mutate({ id: selectedProject.id, data: { status: "draft" } }, { onSuccess: () => toast({ title: "Sent for revision" }) })} disabled={updateDoc.isPending}>
+                        <RotateCcw className="h-3 w-3 mr-1" />Revise
+                      </Button>
+                      <Button size="sm" className="h-6 px-2 text-[10px] btn-premium text-white" onClick={() => handleAdvance(selectedProject)} disabled={updateDoc.isPending || selectedProject.lifecycle === "finalize"}>
+                        <Check className="h-3 w-3 mr-1" />Approve
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="p-2 rounded-lg bg-white/5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-5 h-5 rounded-full bg-crimson/30 flex items-center justify-center text-[8px] font-bold">SK</div>
+                        <span className="text-[10px] font-medium">SherShah K.</span>
+                        <span className="text-[9px] text-muted-foreground ml-auto">Just now</span>
+                      </div>
+                      <p className="text-[11px] text-slate-300">Ready for review. Check brand alignment and messaging accuracy.</p>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <Input placeholder="Add review comment..." className="h-7 text-[11px] bg-white/5 border-white/10 flex-1" />
+                      <Button size="sm" className="h-7 px-3 text-[10px] btn-premium text-white"><Send className="h-3 w-3" /></Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+                <Palette className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <h2 className="text-lg font-semibold mb-1">Production Studio</h2>
+              <p className="text-sm text-muted-foreground mb-6 max-w-md">Select a project from the sidebar or create a new one to start designing, editing, and producing assets.</p>
+              <div className="flex gap-3">
+                <Button className="btn-premium text-white text-sm" onClick={() => setShowCreateDoc(true)}>
+                  <Plus className="h-4 w-4 mr-2" />New Project
+                </Button>
+                {isAuto && (
+                  <Button variant="outline" className="text-sm border-green-500/30 text-green-400 hover:bg-green-500/10">
+                    <Sparkles className="h-4 w-4 mr-2" />AI Auto-Generate
+                  </Button>
+                )}
+              </div>
+
+              <div className="mt-8 w-full max-w-2xl">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Start Templates</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {projectTypes.slice(0, 8).map(pt => (
+                    <div key={pt.id} className="p-3 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors border border-white/5 hover:border-white/10">
+                      <div className={pt.color}>{pt.icon}</div>
+                      <p className="text-xs font-medium mt-1.5">{pt.label}</p>
                     </div>
                   ))}
                 </div>
               </div>
-              {selectedDoc.content && (
-                <GlassCard><p className="text-xs font-semibold mb-1">Content</p><p className="text-sm text-muted-foreground">{selectedDoc.content}</p></GlassCard>
-              )}
-              {selectedDoc.lifecycle !== "finalize" && (
-                <div className="flex gap-2">
-                  <Button className="btn-glass text-crimson flex-1 text-sm rounded-lg" onClick={() => handleReject(selectedDoc)} disabled={updateDoc.isPending}><Ban className="h-3 w-3 mr-1" />Reject</Button>
-                  <Button className="btn-glass text-foreground flex-1 text-sm rounded-lg" onClick={() => handleRevise(selectedDoc)} disabled={updateDoc.isPending}><RotateCcw className="h-3 w-3 mr-1" />Revise</Button>
-                  <Button className="btn-premium text-white flex-1 text-sm rounded-lg" onClick={() => handleAdvance(selectedDoc)} disabled={updateDoc.isPending}><ArrowRight className="h-3 w-3 mr-1" />Advance</Button>
+
+              {enriched.length > 0 && (
+                <div className="mt-8 w-full max-w-2xl">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Lifecycle Overview</h3>
+                  <div className="grid grid-cols-6 gap-2">
+                    {lifecycleStages.map((stage) => {
+                      const count = enriched.filter(d => d.lifecycle === stage).length;
+                      return (
+                        <div key={stage} className={`p-3 rounded-lg text-center ${count > 0 ? "bg-crimson/10 border border-crimson/20" : "bg-white/5 border border-white/5"}`}>
+                          <p className="text-lg font-bold">{count}</p>
+                          <p className="text-[9px] text-muted-foreground capitalize">{stage}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
-          );
-        })()}
-      </DetailDrawer>
+          )}
+
+          {!rightSidebarOpen && selectedProject && (
+            <Button variant="ghost" size="sm" className="absolute right-2 top-1/2 z-10 h-8 w-6 p-0 bg-white/5" onClick={() => setRightSidebarOpen(true)}>
+              <ChevronLeft className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+
+        <AnimatePresence>
+          {rightSidebarOpen && selectedProject && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 280, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              className="border-l border-white/5 bg-[hsl(214,65%,5%)] flex flex-col overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
+                <div className="flex gap-0.5">
+                  {([
+                    { id: "properties", icon: <Settings className="h-3 w-3" />, label: "Props" },
+                    { id: "brand", icon: <Star className="h-3 w-3" />, label: "Brand" },
+                    { id: "layers", icon: <Layers className="h-3 w-3" />, label: "Layers" },
+                    { id: "history", icon: <History className="h-3 w-3" />, label: "History" },
+                  ] as const).map(tab => (
+                    <Button
+                      key={tab.id}
+                      variant="ghost"
+                      size="sm"
+                      className={`h-6 px-2 text-[9px] ${rightPanel === tab.id ? "bg-white/10" : ""}`}
+                      onClick={() => setRightPanel(tab.id)}
+                    >
+                      {tab.icon}
+                    </Button>
+                  ))}
+                </div>
+                <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => setRightSidebarOpen(false)}>
+                  <PanelRightClose className="h-3 w-3" />
+                </Button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+                {rightPanel === "properties" && (
+                  <>
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Project Details</p>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Title</label>
+                          <Input value={selectedProject.title} readOnly className="h-7 text-xs bg-white/5 border-white/10 mt-0.5" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Category</label>
+                          <Input value={selectedProject.category ?? ""} readOnly className="h-7 text-xs bg-white/5 border-white/10 mt-0.5" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Type</label>
+                          <Input value={selectedProject.type ?? ""} readOnly className="h-7 text-xs bg-white/5 border-white/10 mt-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Lifecycle</p>
+                      <div className="flex items-center gap-1">
+                        {lifecycleStages.map((s, i) => {
+                          const currentIdx = lifecycleStages.indexOf(selectedProject.lifecycle as any);
+                          return (
+                            <div key={s} className={`h-1.5 rounded-full flex-1 ${i <= currentIdx ? "bg-crimson" : "bg-white/10"}`} />
+                          );
+                        })}
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        {lifecycleStages.map(s => (
+                          <span key={s} className={`text-[7px] capitalize ${s === selectedProject.lifecycle ? "text-crimson font-bold" : "text-muted-foreground"}`}>{s}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Actions</p>
+                      <div className="space-y-1.5">
+                        {selectedProject.lifecycle !== "finalize" && (
+                          <>
+                            <Button className="w-full h-7 text-[10px] btn-premium text-white" onClick={() => handleAdvance(selectedProject)} disabled={updateDoc.isPending}>
+                              <ArrowRight className="h-3 w-3 mr-1" />Advance to Next Stage
+                            </Button>
+                            <Button variant="outline" className="w-full h-7 text-[10px] border-white/10" onClick={() => handleReject(selectedProject)} disabled={updateDoc.isPending}>
+                              <RotateCcw className="h-3 w-3 mr-1" />Send Back
+                            </Button>
+                          </>
+                        )}
+                        {selectedProject.lifecycle === "finalize" && (
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-green-500/10 border border-green-500/20">
+                            <CheckCircle2 className="h-4 w-4 text-green-400" />
+                            <span className="text-[10px] text-green-400 font-medium">Finalized & Published</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {isHuman && (
+                      <div>
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Manual Guide</p>
+                        <div className="space-y-1.5 text-[10px] text-slate-400">
+                          <div className="p-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                            <p className="font-medium text-blue-400 mb-1">Current: {selectedProject.lifecycle}</p>
+                            <p>1. Review asset content and brand alignment</p>
+                            <p>2. Check all required fields are complete</p>
+                            <p>3. Use "Advance" to move to next stage</p>
+                            <p>4. Use "Send Back" if revisions needed</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {rightPanel === "brand" && (
+                  <>
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Brand Colors</p>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {brandKit.colors.map(color => (
+                          <div key={color.name} className="text-center cursor-pointer group">
+                            <div
+                              className="w-full h-8 rounded-lg border border-white/10 group-hover:ring-2 ring-crimson/40 transition-all"
+                              style={{ backgroundColor: color.hex }}
+                            />
+                            <p className="text-[8px] text-muted-foreground mt-1">{color.name}</p>
+                            <p className="text-[7px] text-muted-foreground">{color.hex}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Typography</p>
+                      <div className="space-y-1.5">
+                        {brandKit.fonts.map(font => (
+                          <div key={font} className="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                            <span className="text-xs" style={{ fontFamily: font }}>{font}</span>
+                            <Badge variant="outline" className="text-[8px]">Aa</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Canvas Sizes</p>
+                      <div className="space-y-1">
+                        {brandKit.sizes.map(size => (
+                          <div key={size} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer">
+                            <span className="text-[10px]">{size}</span>
+                            <SquareDashedBottom className="h-3 w-3 text-muted-foreground" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {rightPanel === "layers" && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Layer Stack</p>
+                    <div className="space-y-1">
+                      {["Background", "Header Text", "Body Copy", "CTA Button", "Logo", "Accent Shape"].map((layer, i) => (
+                        <div key={layer} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${i === 0 ? "bg-crimson/10 border border-crimson/20" : "bg-white/5 hover:bg-white/10"} cursor-pointer`}>
+                          <Eye className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-[10px] flex-1">{layer}</span>
+                          <GlassCard className="!p-0 w-4 h-4 rounded flex items-center justify-center">
+                            <span className="text-[7px]">{6 - i}</span>
+                          </GlassCard>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {rightPanel === "history" && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Version History</p>
+                    <div className="space-y-1.5">
+                      {[
+                        { ver: `v${selectedProject.version}`, action: "Current version", time: "Now", actor: "You" },
+                        { ver: `v${Math.max(1, (selectedProject.version ?? 1) - 1)}`, action: "Previous edit", time: "2h ago", actor: isAuto ? "AI Agent" : "You" },
+                        { ver: "v1", action: "Initial draft", time: "Yesterday", actor: isAuto ? "AI Auto" : "Manual" },
+                      ].map((h, i) => (
+                        <div key={i} className="p-2 rounded-lg bg-white/5 flex items-center gap-2">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold ${i === 0 ? "bg-crimson/30" : "bg-white/10"}`}>
+                            {h.ver.replace("v", "")}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-medium">{h.action}</p>
+                            <p className="text-[8px] text-muted-foreground">{h.actor} · {h.time}</p>
+                          </div>
+                          {i > 0 && <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[8px]"><RotateCcw className="h-2.5 w-2.5" /></Button>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       <CreateDocumentForm open={showCreateDoc} onOpenChange={setShowCreateDoc} />
     </div>

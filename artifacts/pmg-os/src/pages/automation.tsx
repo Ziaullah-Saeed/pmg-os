@@ -176,43 +176,140 @@ export default function Automation() {
 
         {activeTab === "channels" && (
           <div className="space-y-6">
-            <GlassCard className="p-0 overflow-hidden">
-              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Channel Performance</h3></div>
-              <div className="px-5 pb-4 overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-white/5 text-muted-foreground">
-                      <th className="text-left py-2 px-2">Channel</th>
-                      <th className="text-right py-2 px-2">Leads</th>
-                      <th className="text-right py-2 px-2">Conversion %</th>
-                      <th className="text-right py-2 px-2">Revenue</th>
-                      <th className="text-center py-2 px-2">Trend</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {channels.map((ch) => (
-                      <tr key={ch.name} className="border-b border-white/5 hover:bg-white/[0.02]">
-                        <td className="py-2.5 px-2 font-medium">{ch.name}</td>
-                        <td className="py-2.5 px-2 text-right tabular-nums">{ch.leads}</td>
-                        <td className="py-2.5 px-2 text-right tabular-nums">{ch.conversion}%</td>
-                        <td className="py-2.5 px-2 text-right tabular-nums font-medium">${ch.revenue.toLocaleString()}</td>
-                        <td className="py-2.5 px-2 text-center">
-                          <Badge className={`text-[9px] ${ch.trend === "up" ? "bg-green-500/10 text-green-400" : ch.trend === "down" ? "bg-red-500/10 text-red-400" : "bg-white/5 text-muted-foreground"}`}>
-                            {ch.trend === "up" ? "↑" : ch.trend === "down" ? "↓" : "→"} {ch.trend}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </GlassCard>
-
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KpiCard label="Total Revenue" value={`$${channels.reduce((s, c) => s + c.revenue, 0).toLocaleString()}`} icon={<CheckCircle2 className="h-4 w-4" />} accent="crimson" />
-              <KpiCard label="Top Channel" value="Referral" icon={<Zap className="h-4 w-4" />} accent="success" />
+              <KpiCard label="Top Channel" value={[...channels].sort((a, b) => b.conversion - a.conversion)[0]?.name ?? "N/A"} icon={<Zap className="h-4 w-4" />} accent="success" />
               <KpiCard label="Avg Conversion" value={`${(channels.reduce((s, c) => s + c.conversion, 0) / channels.length).toFixed(1)}%`} icon={<Bot className="h-4 w-4" />} accent="blue" />
               <KpiCard label="Total Leads" value={channels.reduce((s, c) => s + c.leads, 0)} icon={<Clock className="h-4 w-4" />} accent="gold" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Channel Performance Matrix</h3>
+                    <Badge variant="outline" className="text-[10px]">{channels.length} Sources</Badge>
+                  </div>
+                  <div className="px-5 pb-4 overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/5 text-muted-foreground uppercase tracking-wider">
+                          <th className="text-left py-2 px-2">Channel</th>
+                          <th className="text-right py-2 px-2">Leads</th>
+                          <th className="text-right py-2 px-2">Conversion %</th>
+                          <th className="text-right py-2 px-2">Revenue</th>
+                          <th className="text-right py-2 px-2">Quality Score</th>
+                          <th className="text-center py-2 px-2">Trend</th>
+                          <th className="text-center py-2 px-2">Sync</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {channels.map((ch) => {
+                          const quality = Math.min(100, Math.round(ch.conversion * 4 + (ch.revenue / 1000)));
+                          return (
+                            <tr key={ch.name} className="border-b border-white/5 hover:bg-white/[0.02]">
+                              <td className="py-2.5 px-2 font-medium">{ch.name}</td>
+                              <td className="py-2.5 px-2 text-right tabular-nums">{ch.leads}</td>
+                              <td className="py-2.5 px-2 text-right tabular-nums">{ch.conversion}%</td>
+                              <td className="py-2.5 px-2 text-right tabular-nums font-medium">${ch.revenue.toLocaleString()}</td>
+                              <td className="py-2.5 px-2 text-right">
+                                <div className="flex items-center gap-1 justify-end">
+                                  <div className="w-12 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                    <div className={`h-full rounded-full ${quality > 75 ? "bg-green-400" : quality > 50 ? "bg-yellow-400" : "bg-red-400"}`} style={{ width: `${quality}%` }} />
+                                  </div>
+                                  <span className="text-[9px] tabular-nums w-6">{quality}</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-2 text-center">
+                                <Badge className={`text-[9px] ${ch.trend === "up" ? "bg-green-500/10 text-green-400" : ch.trend === "down" ? "bg-red-500/10 text-red-400" : "bg-white/5 text-muted-foreground"}`}>
+                                  {ch.trend === "up" ? "↑" : ch.trend === "down" ? "↓" : "→"}
+                                </Badge>
+                              </td>
+                              <td className="py-2.5 px-2 text-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-400 mx-auto" title="Healthy" />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </GlassCard>
+              </div>
+
+              <div className="space-y-4">
+                <GlassCard glow="crimson" className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-crimson" />
+                    <h3 className="text-xs font-semibold">Source Attribution Map</h3>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2">
+                    {[...channels].sort((a, b) => b.revenue - a.revenue).map((ch) => {
+                      const totalRev = channels.reduce((s, c) => s + c.revenue, 0);
+                      const pct = Math.round((ch.revenue / totalRev) * 100);
+                      return (
+                        <div key={ch.name} className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span>{ch.name}</span>
+                            <span className="font-medium">{pct}%</span>
+                          </div>
+                          <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                            <div className="h-full rounded-full bg-gradient-to-r from-crimson to-red-400" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-info" />
+                    <h3 className="text-xs font-semibold">AI Recommendations</h3>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2">
+                    {[
+                      { action: "Increase Referral investment — highest conversion (22.1%)", priority: "high" },
+                      { action: "Re-evaluate Cold Outreach — low conversion (3.2%)", priority: "high" },
+                      { action: "Scale LinkedIn presence — strong uptrend", priority: "medium" },
+                      { action: "Add Partner co-marketing to amplify 18.9% conversion", priority: "medium" },
+                      { action: "Test webinar channel — conference converts well (15.7%)", priority: "low" },
+                    ].map((rec, i) => (
+                      <div key={i} className="flex items-start gap-2 p-2 rounded-lg glass-surface">
+                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${rec.priority === "high" ? "bg-red-400" : rec.priority === "medium" ? "bg-yellow-400" : "bg-blue-400"}`} />
+                        <p className="text-[11px]">{rec.action}</p>
+                      </div>
+                    ))}
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-xs font-semibold">Manual Integration Queue</h3>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2">
+                    {[
+                      { source: "Trade Show Leads (CSV)", count: 45, status: "pending" },
+                      { source: "Webinar Attendees", count: 23, status: "pending" },
+                      { source: "Partner Referral List", count: 12, status: "imported" },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center justify-between p-2 rounded-lg glass-surface">
+                        <div>
+                          <p className="text-[11px] font-medium">{item.source}</p>
+                          <p className="text-[9px] text-muted-foreground">{item.count} records</p>
+                        </div>
+                        <Badge variant="outline" className={`text-[9px] ${item.status === "imported" ? "text-green-400 border-green-500/30" : ""}`}>
+                          {item.status}
+                        </Badge>
+                      </div>
+                    ))}
+                    <Button className="w-full btn-glass text-foreground text-xs rounded-lg mt-1">
+                      <Plus className="h-3 w-3 mr-1" />Import Manual Source
+                    </Button>
+                  </div>
+                </GlassCard>
+              </div>
             </div>
           </div>
         )}

@@ -1,0 +1,1338 @@
+PMG AI OPERATING SYSTEM — CTO MASTER EXECUTION DIRECTIVE FOR REPLIT
+Build the full system end-to-end without stopping for partial confirmation
+Do not build a UI shell. Build a real operating system.
+________________________________________
+0. EXECUTION RULE
+You are not being asked to build a dashboard, page shell, chart view, or placeholder app.
+You are being asked to build a fully integrated AI-native Business Operating System for PMG Group LLC that works as a real operating environment across acquisition, qualification, pipeline, outreach, marketing, production, execution, communication, finance, legal, reporting, archive, governance, and integrations. 
+Non-negotiable delivery rule
+You must:
+•	implement the full architecture 
+•	implement real workflows 
+•	implement real state transitions 
+•	implement real role behavior 
+•	implement real AI / human mode behavior 
+•	implement real tool orchestration 
+•	implement real wallet usage 
+•	implement real CRM routing 
+•	implement real knowledge memory 
+•	implement real testing in all modes 
+You must not:
+•	stop after partial UI 
+•	stop after page rendering 
+•	stop after CRUD 
+•	stop after sample charts 
+•	ask for confirmation after every small step 
+•	call the system complete because it visually loads 
+Build all major layers fully, then test them fully, then present completion.
+________________________________________
+1. SYSTEM PURPOSE
+This system is a greenfield operating system, not a modification of an older product. It must be designed as one coherent digital business environment and must support PMG’s growth toward a highly scalable cybersecurity / IT-focused business model with deep AI leverage, strong governance, and real operational control. 
+It must function as:
+•	business brain 
+•	workflow engine 
+•	AI execution environment 
+•	CRM and revenue engine 
+•	communication intelligence surface 
+•	production studio 
+•	governance framework 
+•	memory and archive system 
+•	reporting engine 
+•	integrations hub 
+•	wallet-funded execution environment 
+________________________________________
+2. REQUIRED THREE-MODE OPERATING MODEL
+The system must run in three true operational modes, not just a cosmetic switch. These modes must affect workflow behavior, agent authority, UI structure, approval logic, and task ownership. 
+Mode A — AI MODE / AI AUTO
+Use when the user is away or wants autonomous operation.
+Behavior
+•	AI agents perform all eligible work automatically 
+•	workflows continue 24/7 
+•	AI researches, scores, routes, drafts, schedules, monitors, follows up, logs, reports, updates library, and triggers tasks 
+•	only high-risk actions are paused for approval if policy requires it 
+UI requirements
+This mode must open a dedicated AI Auto environment showing:
+•	live AI task queue 
+•	autonomous workflows in progress 
+•	active agents 
+•	pending approvals 
+•	cost usage from wallet 
+•	system confidence indicators 
+•	escalation events 
+•	intervention-needed alerts 
+Task ownership
+•	AI owns all low-risk and medium-risk repeatable work 
+•	humans only review exception queues, legal/financial blocks, and protected approvals 
+________________________________________
+Mode B — HYBRID
+Use when AI and humans collaborate.
+Behavior
+•	AI performs research, drafts, scoring, routing, suggestions, monitoring, and repetitive execution 
+•	human performs approvals, trust-heavy communication, overrides, negotiations, and sensitive final actions 
+•	every workflow clearly distinguishes what AI did, what human did, and what is awaiting review 
+UI requirements
+This mode must open a Hybrid workspace showing:
+•	AI-completed tasks 
+•	human-assigned tasks 
+•	approval queue 
+•	task ownership split 
+•	workflow timeline with AI/Human markers 
+•	confidence-based handoff logic 
+•	next action assignments 
+Task ownership
+Each workflow must declare:
+•	AI-owned steps 
+•	human-owned steps 
+•	shared / review-required steps 
+User control
+The user must be able to approve AI autonomous continuation when they are away.
+There must be an option like:
+•	“Enable AI Auto while I am away” 
+•	“Require approval before switching to full AI Auto” 
+Hybrid must support this escalation path:
+Hybrid → user approval → AI Auto
+________________________________________
+Mode C — HUMAN / MANUAL CONTROL
+Use when the human wants direct operation.
+Behavior
+•	automation is reduced or paused based on policy 
+•	AI becomes guide / assistant / recommender rather than executor 
+•	user directly performs the work 
+UI requirements
+This mode must switch the interface to a cleaner manual-control view:
+•	less AI noise 
+•	more direct controls 
+•	more manual forms and operating tools 
+•	explicit workflow steps 
+•	section-specific manual guides 
+Manual guide requirement
+In Human mode, every domain must include a manual guide explaining:
+•	what the task is 
+•	what order to do it in 
+•	what fields are required 
+•	what outputs are created 
+•	what approvals are needed 
+•	what happens next 
+________________________________________
+3. GLOBAL MODE SYSTEM + WORKFLOW MODE SYSTEM
+The system must support:
+A. Global Mode
+A top-level operating state:
+•	AI Auto 
+•	Hybrid 
+•	Human 
+B. Workflow-Level Mode
+Each workflow must be independently configurable. Example:
+•	lead scoring = AI 
+•	outreach drafting = AI 
+•	outreach send approval = Human 
+•	proposal generation = Hybrid 
+•	closing = Human 
+•	reporting = AI 
+C. Record-Level Override
+Any specific lead, deal, production project, or report can be forced into:
+•	AI-only path 
+•	Hybrid path 
+•	Human-only path 
+________________________________________
+4. 11 DOMAIN FUNCTIONALITY — REAL WORLD WORKFLOWS
+Each domain must be fully functional, not representational.
+________________________________________
+D1 — COMMAND CENTER & EXECUTIVE CONTROL
+Purpose: executive nervous system. 
+Real functionality
+•	live business overview 
+•	AI workload overview 
+•	human intervention queue 
+•	risk queue 
+•	sync failure queue 
+•	finance alerts 
+•	production bottlenecks 
+•	stale pipeline alerts 
+•	campaign health 
+•	execution readiness 
+•	approval pressure points 
+•	system health and wallet health 
+Tasks
+•	summarize today’s operational reality 
+•	rank what matters most 
+•	surface top 10 business priorities 
+•	trigger escalation workflows 
+•	route blocked items to managers/admins 
+•	show mode status across departments 
+Workflow
+Event enters system → normalized by event bus → ranked by executive priority engine → displayed in Command Center → routed to AI queue / human queue / review queue.
+By mode
+•	AI Mode: Command Center becomes AI mission control 
+•	Hybrid: shared command / approval surface 
+•	Human: manual control board with recommendations only 
+________________________________________
+D2 — INTELLIGENCE, MARKET RESEARCH & STRATEGIC INSIGHT
+Purpose: transform market information into real targeting and strategic decision support. 
+Real functionality
+•	ICP creation 
+•	market segmentation 
+•	trust barrier analysis 
+•	competitor mapping 
+•	authority mapping 
+•	category analysis 
+•	service-fit scoring 
+•	niche opportunity scoring 
+•	market messaging gap analysis 
+Tasks
+•	generate ICPs 
+•	detect target verticals 
+•	identify buying triggers 
+•	discover urgent pain signals 
+•	produce positioning recommendations 
+•	feed intelligence into outreach and marketing 
+Workflow
+Research request / market target → search + enrichment tools → AI reasoning engine → confidence-scored intelligence artifact → stored in library → routed to outreach, marketing, CRM.
+By mode
+•	AI: continuously updates target markets and insights 
+•	Hybrid: AI researches, human approves strategy 
+•	Human: human runs research manually with AI as advisor 
+________________________________________
+D3 — OUTREACH, PROSPECTING & PIPELINE DISCOVERY
+Purpose: discover, enrich, qualify, and route leads. 
+Real functionality
+•	company discovery 
+•	contact discovery 
+•	enrichment 
+•	authority detection 
+•	contact verification 
+•	lead scoring 
+•	pain mapping 
+•	outreach angle creation 
+•	routing to PMG CRM / GHL / both / hold 
+Tasks
+•	pull companies from data tools 
+•	verify emails / contacts 
+•	score fit 
+•	identify likely decision-makers 
+•	assign next action 
+•	route qualified leads 
+Workflow
+Prospecting trigger → Apollo/Ocean/Clay/Hunter → AI scoring + qualification → routing engine → CRM destination logic → sync log + command center update + library update.
+By mode
+•	AI: autonomous discovery and routing 
+•	Hybrid: AI qualifies, human approves outreach and routing 
+•	Human: user controls prospect selection and send decisions 
+________________________________________
+D4 — MARKETING, SEO, BRAND AWARENESS & DISCOVERABILITY
+Purpose: run channel-aware marketing and authority growth. 
+Real functionality
+•	SEO strategy 
+•	content clustering 
+•	channel strategy 
+•	campaign planning 
+•	social planning 
+•	retargeting 
+•	authority content generation 
+•	discoverability tracking 
+•	brand monitoring 
+Tasks
+•	create content calendar 
+•	generate SEO briefs 
+•	generate campaign concepts 
+•	monitor sentiment and mentions 
+•	connect content to ICP pain points 
+•	track awareness-to-pipeline influence 
+Workflow
+Campaign goal → target audience → channel logic → content and asset requests → production → execution → monitoring → performance summary → knowledge library update.
+By mode
+•	AI: plans and drafts campaigns continuously 
+•	Hybrid: AI drafts, human approves strategy and publishing 
+•	Human: manual campaign execution with AI guidance 
+________________________________________
+D5 — PRODUCTION, STUDIO, BRAND & ASSET GENERATION
+Purpose: operate as a real creative studio, not an asset list. 
+UI requirement
+This domain must have a distinct interface from the rest of the system.
+It must mimic the operating feel of Canva + InVideo:
+•	canvas area 
+•	preview area 
+•	timeline / scene panel 
+•	asset sidebar 
+•	brand kit panel 
+•	text / script panel 
+•	layer controls 
+•	resize / regenerate controls 
+•	version history 
+•	review comments 
+•	approval actions 
+Real functionality
+•	design projects 
+•	deck projects 
+•	proposal projects 
+•	video projects 
+•	landing page sections 
+•	social creatives 
+•	thumbnails 
+•	scripts 
+•	voiceover generation 
+•	storyboard generation 
+•	asset packaging 
+Production workflow
+Brief → AI concept options → select concept → generate draft → preview in studio → revise/regenerate → review → approve → finalize → archive.
+By mode
+•	AI: AI builds first drafts and auto-iterates 
+•	Hybrid: AI drafts, human edits in studio 
+•	Human: human creates/edit directly with AI assist panels 
+________________________________________
+D6 — EXECUTION, OPERATIONS, PUBLISHING & WORKFLOW CONTROL
+Purpose: orchestrate work execution. 
+Real functionality
+•	workflow automation 
+•	reminders 
+•	approvals 
+•	task queues 
+•	scheduling 
+•	checklist enforcement 
+•	publishing status 
+•	failure handling 
+•	escalation routing 
+Tasks
+•	launch campaigns 
+•	assign tasks 
+•	schedule follow-ups 
+•	enforce checklists 
+•	detect blocked tasks 
+•	escalate failures 
+Workflow
+Task trigger → workflow engine → task ownership assignment → state changes → reminders / alerts → completion verification → reporting + archive update.
+By mode
+•	AI: executes repeatable workflow steps 
+•	Hybrid: AI executes, human approves exceptions 
+•	Human: manual task progression with guided steps 
+________________________________________
+D7 — CRM, SALES, CLOSING & REVENUE PIPELINE
+Purpose: full revenue operating environment. 
+UI requirement
+This domain must have a distinct CRM interface from the rest of the system and mimic the strongest functional patterns of GoHighLevel + HubSpot.
+Two toggle experiences required
+•	PMG CRM — advanced PMG-native CRM 
+•	Client Portal CRM — interface similar to GoHighLevel / HubSpot portal for client-facing operations 
+Real functionality
+•	lead records 
+•	pipeline board 
+•	opportunities 
+•	contacts 
+•	tasks 
+•	activity timeline 
+•	notes 
+•	sequences 
+•	automations 
+•	AI insights 
+•	risk flags 
+•	close probability 
+•	sync center 
+•	GHL connection 
+•	routing options 
+•	internal / external / hybrid CRM modes 
+Workflow
+Lead created → enriched → scored → routed → accepted → opportunity created → activities logged → proposal / contract progress → close / lost → reporting / memory update.
+By mode
+•	AI: autonomous scoring, routing, follow-up orchestration 
+•	Hybrid: AI manages prep, human handles critical sales moments 
+•	Human: full manual CRM operation with AI suggestions only 
+________________________________________
+D8 — COMMUNICATION INTELLIGENCE, CALLING & MEETING SUPPORT
+Purpose: improve calls, meetings, and follow-up. 
+Real functionality
+•	call support 
+•	meeting support 
+•	transcription 
+•	objection detection 
+•	interest detection 
+•	sentiment / hesitation detection 
+•	summary generation 
+•	follow-up draft generation 
+•	CRM update support 
+•	call coaching 
+Workflow
+Meeting/call begins → transcript stream → real-time analysis → summary + objections + next steps → CRM update → follow-up → library update.
+By mode
+•	AI: runs meeting intelligence autonomously 
+•	Hybrid: AI coaches and summarizes, human leads conversation 
+•	Human: manual communication with AI support off to side 
+________________________________________
+D9 — FINANCE, LEGAL, ADMINISTRATIVE & QUALITY
+Purpose: protect trust, compliance, finance, and quality. 
+Real functionality
+•	invoicing 
+•	payments 
+•	expenses 
+•	profitability 
+•	legal docs 
+•	contract review flags 
+•	SOPs 
+•	forms 
+•	admin records 
+•	QA rules 
+•	rejection reasons 
+•	quality checkpoints 
+Workflow
+Document or financial event → recorded → validated → risk/quality reviewed → approval / exception logic → reporting / archive.
+By mode
+•	AI: prepares records, flags issues, drafts summaries 
+•	Hybrid: AI drafts and flags, human approves 
+•	Human: manual control with AI review suggestions 
+________________________________________
+D10 — REPORTING, ARCHIVE, DOCUMENTATION & KNOWLEDGE MEMORY
+Purpose: explain the business and remember it. 
+Real functionality
+•	executive report generation 
+•	technical report generation 
+•	scheduled reporting 
+•	event-triggered reporting 
+•	archive storage 
+•	searchable memory 
+•	AI retrieval 
+•	campaign lessons 
+•	best-practice reuse 
+•	failed pattern detection 
+Workflow
+Business action occurs → summarized → categorized → reported → stored in archive / memory → indexed → reusable by AI and humans.
+By mode
+•	AI: auto-generates and updates reports + memory 
+•	Hybrid: AI drafts, human finalizes important reports 
+•	Human: manual report building with AI assistance 
+________________________________________
+D11 — SYSTEM CORE, GOVERNANCE, PERMISSIONS, INTEGRATIONS & INFRASTRUCTURE
+Purpose: trust layer. 
+Real functionality
+•	permissions 
+•	integrations hub 
+•	wallet management 
+•	secret storage 
+•	sync logs 
+•	observability 
+•	rate control 
+•	queue management 
+•	retries 
+•	audit logs 
+•	environment control 
+•	incident monitoring 
+Workflow
+Any action → permission check → wallet/spend check → integration gateway → execution → logs → alerting if failure.
+By mode
+•	AI: system core quietly governs autonomous work 
+•	Hybrid: stronger approval and review overlays 
+•	Human: full admin visibility and manual controls 
+________________________________________
+5. TECHNOLOGY STACK — HOW EACH TECHNOLOGY MUST WORK
+The technologies you listed must not sit idle. They must be assigned real functions. 
+Core platform
+•	Next.js / React / TypeScript: main frontend app 
+•	Tailwind + shadcn/ui + Radix + Framer Motion: premium AI-native interface 
+•	Node.js / NestJS-style modular backend: service orchestration layer 
+•	PostgreSQL: core relational business records 
+•	Redis / Upstash: queues, mode state, task cache, real-time workflow state 
+•	Supabase (Vector): auth, data layer, embeddings / vector support as needed 
+•	Object Storage: files, reports, production assets 
+•	WebSockets / real-time streaming: live dashboard, sync status, AI activity 
+•	Observability stack: logs, traces, incidents, job visibility 
+AI / memory
+•	OpenAI: reasoning, drafting, summarization, task planning 
+•	NotebookLM / Guru / internal vector memory: knowledge retrieval and documentation context 
+•	Fal.ai: inference / media-related model operations where appropriate 
+Orchestration
+•	Lindy.ai: orchestration / executive agent layer 
+•	Make.com / Zapier Central: workflow triggers, cross-system automations 
+•	Replit Agent: build/runtime automation where needed 
+•	Microsoft Copilot Studio: specialized copilots if internal role-based assistants are needed 
+Research / prospecting
+•	Perplexity / Exa / Harmonic / SciSpace: market and research inputs 
+•	Apollo / Clay / Ocean / Hunter: prospect discovery, enrichment, verification 
+•	Nooks: dialer/calling workflow support 
+Marketing
+•	Surfer SEO: SEO optimization 
+•	Jasper: content drafting 
+•	Brand24: sentiment / brand monitoring 
+Production
+•	Midjourney: visuals 
+•	ElevenLabs: voice 
+•	Luma: video generation 
+•	Descript: editing/post-production 
+CRM / communication
+•	Thunai / Gong / Conversica: sales intelligence, revenue assistant logic 
+•	Fathom / Read.ai / Otter.ai: meetings and transcripts 
+•	Lavender: outbound email quality 
+Finance / legal / quality
+•	Spellbook: contract assistance 
+•	Deel: compliance / contractor / international workflow support 
+•	Kira Systems: legal data extraction / review support 
+•	Ramp: spending and financial visibility 
+•	Grammarly / Acrolinx: quality, tone, brand language 
+•	Testim: automated QA / regression testing 
+________________________________________
+6. AGENT-TO-TECHNOLOGY OPERATING MODEL
+At minimum, the agent system must assign technologies intentionally.
+Examples
+•	Market Research Agent → Perplexity + Exa + SciSpace + OpenAI 
+•	Lead Discovery Agent → Apollo + Clay + Ocean + OpenAI 
+•	Email Verification Agent → Hunter 
+•	Lead Scoring Agent → OpenAI + internal scoring model + memory library 
+•	CRM Routing Agent → OpenAI + GHL integration + PMG CRM engine 
+•	Campaign Strategy Agent → OpenAI + Surfer + Brand24 + library 
+•	Visual Concept Agent → Midjourney + brand kit memory 
+•	Voiceover Agent → ElevenLabs 
+•	Video Draft Agent → Luma + Descript 
+•	Meeting Summary Agent → Fathom / Otter / Read.ai + OpenAI 
+•	Contract Flagging Agent → Spellbook + Kira + OpenAI 
+•	Spend Guard Agent → Ramp + wallet ledger + notification engine 
+•	Memory Update Agent → event bus + OpenAI + vector index + archive store 
+•	Workflow Automation Agent → Make + internal workflow engine + Upstash queues 
+Every agent must have:
+•	purpose 
+•	trigger 
+•	tool access 
+•	wallet policy 
+•	confidence model 
+•	fallback behavior 
+•	output schema 
+•	archive behavior 
+________________________________________
+7. WALLET EXECUTION SYSTEM
+All paid execution must route through wallet logic. 
+Required behavior
+Action requested → provider identified → estimated/actual cost calculated → wallet checked → action executed or blocked → ledger updated → UI transparency updated.
+Wallet must support
+•	current balance 
+•	reserved balance 
+•	spend history 
+•	per-provider spend 
+•	per-workflow spend 
+•	low balance warnings 
+•	hard limit thresholds 
+•	optional dummy-data mode for test runs 
+•	action logs 
+Transparency
+Every relevant UI surface must show:
+•	tool used 
+•	action performed 
+•	status 
+•	cost consumed 
+•	retry if failed 
+________________________________________
+8. CACHE REQUIREMENT FOR REPETITIVE TASKS
+A cache layer is mandatory, especially in AI and Human modes.
+What must be cached
+•	repetitive AI reasoning results where safe 
+•	repeated enrichment lookups 
+•	repeated research lookups 
+•	commonly used templates 
+•	repeated report components 
+•	manual workflow guides 
+•	frequently reused production assets 
+•	prior successful outreach structures 
+•	frequently accessed CRM summaries 
+Mode behavior
+•	AI Mode: cache used aggressively for speed and wallet savings 
+•	Hybrid: cache used for suggestions and repeated assistant tasks 
+•	Human: cache used for repetitive manual tasks, guides, and previews 
+Use Redis / Upstash plus controlled persistence rules.
+________________________________________
+9. GOHIGHLEVEL + EXTERNAL CRM REQUIREMENT
+The system must include direct support for your externally managed GHL sub-account. 
+Must include
+•	Integrations → GoHighLevel connection page 
+•	OAuth / private integration token support as appropriate 
+•	sync status 
+•	field mapping 
+•	pipeline mapping 
+•	routing options 
+•	retry queue 
+•	failure logs 
+•	external record IDs 
+•	PMG record retention even after handoff 
+Routing options
+•	Send to PMG CRM 
+•	Send to GHL 
+•	Send to both 
+•	Hold for review 
+________________________________________
+10. PRODUCTION UI AND CRM UI MUST BE DISTINCT
+This is mandatory.
+Production
+Must mimic a Canva + InVideo style creative workspace.
+CRM
+Must mimic GoHighLevel + HubSpot level depth.
+CRM must include two top-level CRM toggles
+•	PMG CRM — advanced internal CRM 
+•	Client CRM Portal — client-facing portal similar to GHL / HubSpot 
+These are not the same UI and must not be treated as one board.
+________________________________________
+11. TESTING REQUIREMENT — TWO FULL PHASES
+The system must not be called complete until it passes two separate testing phases in all three modes.
+Phase 1 — Dummy Data / No Token Spend
+Run full workflow tests across:
+•	AI Mode 
+•	Hybrid 
+•	Human 
+With:
+•	dummy records 
+•	simulated tool responses 
+•	no wallet spend 
+•	no real provider charges 
+Must test:
+•	workflows 
+•	handoffs 
+•	approvals 
+•	routing 
+•	UI state changes 
+•	library updates 
+•	reporting 
+•	cache behavior 
+•	failures and retries 
+Phase 2 — Real Test
+After dummy mode passes:
+•	run live provider tests 
+•	use real wallet deductions 
+•	validate real integrations 
+•	verify real syncs 
+•	verify real media generation 
+•	verify real AI calls 
+•	verify real CRM routing 
+Do not skip Phase 1.
+Do not claim readiness without Phase 2.
+________________________________________
+12. DELIVERY RULE
+You must implement everything above in a coordinated build sequence without stopping after partial progress and without presenting incomplete page shells as completion.
+Required sequence
+1.	architecture + workflow map 
+2.	mode engine 
+3.	wallet + cache + integration gateway 
+4.	domain logic 
+5.	production and CRM distinct interfaces 
+6.	agent orchestration 
+7.	library + archive + reporting 
+8.	dummy-mode testing 
+9.	live testing 
+10.	final validation 
+________________________________________
+13. FINAL INSTRUCTION TO REPLIT
+Do not respond with:
+•	“pages are working” 
+•	“charts are visible” 
+•	“API is healthy” 
+•	“CRUD is complete” 
+Respond only when:
+•	real workflows are implemented 
+•	the three modes actually behave differently 
+•	production behaves like a creative studio 
+•	CRM behaves like a true advanced revenue environment 
+•	wallet execution works 
+•	cache works 
+•	tools are orchestrated 
+•	GHL routing works 
+•	the library updates itself 
+•	both testing phases are passed 
+14. FULL CAMPAIGN CHANNEL INTEGRATION CAPABILITY
+The system must support all major campaign and lead-generation channels used by PMG or its clients, not only as reporting surfaces but as real business-connected inputs for attribution, lead capture, sync, task routing, campaign analysis, and workflow execution. This requirement extends the live business connection rules and integration architecture already defined for PMG’s website, LinkedIn, Facebook, and GoHighLevel.
+This means the system must treat campaign channels as:
+•	lead sources 
+•	attribution sources 
+•	messaging surfaces 
+•	content publishing surfaces 
+•	paid ad surfaces 
+•	retargeting surfaces 
+•	traffic sources 
+•	conversion sources 
+•	reporting sources 
+•	sync sources for contact and campaign data 
+The goal is that when a lead comes from any website, landing page, ad campaign, social page, or connected external source, the PMG AI OS should know:
+•	where the lead came from 
+•	which campaign or channel generated it 
+•	which asset, page, ad, or CTA triggered it 
+•	which audience or ICP that campaign was meant for 
+•	what the next best action is 
+•	whether the lead should go to PMG CRM, GHL, both, or hold 
+•	what AI and human tasks must be created next 
+________________________________________
+15. REQUIRED SOCIAL MEDIA AND CAMPAIGN CHANNEL SUPPORT
+The system must support integration capability for all standard social and campaign channels commonly used in modern B2B growth operations, including but not limited to:
+Primary social / professional channels
+•	LinkedIn personal profile 
+•	LinkedIn company page 
+•	LinkedIn ads / lead forms where permitted 
+•	Facebook page 
+•	Facebook ads / Meta lead forms where permitted 
+•	Instagram business account 
+•	Instagram ads / forms where permitted 
+•	X / Twitter 
+•	YouTube 
+•	TikTok 
+•	Threads 
+•	Google Business Profile where relevant 
+Paid / prospecting / growth channels
+•	LinkedIn Sales Navigator 
+•	LinkedIn Ads Manager 
+•	Meta Ads Manager 
+•	Google Ads 
+•	YouTube Ads 
+•	TikTok Ads 
+•	Apollo 
+•	Clay 
+•	Hunter 
+•	Ocean 
+•	any comparable standard paid or prospecting tool used by PMG or its clients 
+Communication / outreach channels
+•	email providers 
+•	SMS providers 
+•	VoIP / calling tools 
+•	dialers 
+•	calendar links 
+•	meeting-booking tools 
+Website / owned media channels
+•	PMG main website 
+•	PMG landing pages 
+•	client websites 
+•	client landing pages 
+•	embedded forms 
+•	chatbot / lead widgets 
+•	webinar registrations 
+•	downloadable assets / lead magnets 
+•	contact forms 
+•	CTA buttons 
+•	scheduling forms 
+The system must not assume only one or two channels matter.
+It must be prepared to ingest, route, and track leads from all standard modern channels used in B2B acquisition.
+________________________________________
+16. MANUAL INTEGRATION OPTION IS REQUIRED
+In addition to automated OAuth, webhook, and API connections, the system must also provide a Manual Integration Option for times when a human needs to connect, refresh, upload, reconcile, or operate a channel manually.
+This is mandatory.
+Why this matters
+Not every tool, provider, ad account, Sales Navigator flow, CRM environment, or social platform will always be available through clean automated APIs in every circumstance. Some tools require:
+•	account-level permissions 
+•	manual exports 
+•	CSV uploads 
+•	one-time token refreshes 
+•	admin reconnection 
+•	manual field mapping 
+•	periodic human review 
+•	manual attribution corrections 
+•	manual campaign linking 
+•	reconciliation of source mismatches 
+Therefore, the system must support both:
+A. Automatic integration mode
+•	OAuth connection 
+•	private integration token flow 
+•	webhook subscription 
+•	automatic sync 
+•	API-based pull/push 
+B. Manual integration mode
+•	CSV import / export 
+•	manual field mapping 
+•	manual source assignment 
+•	manual lead import 
+•	manual sync trigger 
+•	manual account refresh 
+•	manual reconnection 
+•	manual sales tool upload 
+•	manual attribution correction 
+•	manual channel reconciliation 
+This includes paid tools such as LinkedIn Sales Navigator, but is not limited to Sales Navigator. Any standard operational tool used by PMG or a client must be capable of being connected either automatically or manually.
+________________________________________
+17. INTEGRATIONS HUB MUST EXPAND TO INCLUDE CHANNEL CONNECTORS
+The Integrations Hub must include a dedicated section for Channel & Growth Integrations.
+This section must support:
+•	connection status 
+•	automatic vs manual integration mode 
+•	last successful sync 
+•	permission status 
+•	token or auth status 
+•	last manual upload 
+•	field mapping 
+•	lead source mapping 
+•	campaign source mapping 
+•	account ownership 
+•	retry / reconnect options 
+•	logs and audit visibility 
+The user should be able to connect or manage:
+•	LinkedIn 
+•	LinkedIn company page 
+•	LinkedIn Sales Navigator 
+•	Facebook page 
+•	Instagram 
+•	Meta Ads 
+•	Google Ads 
+•	YouTube 
+•	TikTok 
+•	websites 
+•	landing pages 
+•	forms 
+•	client portals 
+•	email tools 
+•	phone / SMS tools 
+•	webinar tools 
+•	any other standard growth / campaign source 
+This must be visible and manageable from a proper integration interface, not hidden behind developer-only settings.
+________________________________________
+18. WEBSITE, LANDING PAGE, AND FORM INTEGRATION CAPABILITY
+The system must support full integration capability for:
+•	PMG website 
+•	PMG landing pages 
+•	PMG campaign pages 
+•	client websites 
+•	client landing pages 
+•	lead forms 
+•	embedded widgets 
+•	popup forms 
+•	gated content forms 
+•	quote / contact request forms 
+•	booking forms 
+•	callback requests 
+•	webinar registrations 
+Lead handling requirement
+When a lead comes from any of these sources, the system must automatically capture or import:
+•	source website 
+•	source page / URL 
+•	landing page ID or campaign page ID 
+•	form name or form type 
+•	CTA source 
+•	campaign source / UTM if available 
+•	referrer source if available 
+•	timestamp 
+•	conversion action 
+•	asset downloaded or action performed 
+•	mapped campaign / ad group where available 
+•	destination workflow 
+•	CRM routing destination 
+•	AI score and confidence 
+•	next best action 
+Required behavior
+Website and landing page leads must be able to flow through:
+Lead Capture → Attribution → AI Enrichment → AI Scoring → Routing → CRM / GHL / Both / Hold → Task Creation → Reporting → Library Update
+That flow must work whether the source is:
+•	PMG-owned 
+•	client-owned 
+•	manually integrated 
+•	automatically connected 
+•	webhook-driven 
+•	import-driven 
+________________________________________
+19. SOCIAL HANDLE AND PAGE AWARENESS
+The system must allow PMG and client social properties to be recorded and connected as actual business assets.
+For each social property, the system should be able to store and manage:
+•	platform name 
+•	handle / page name 
+•	account type 
+•	account owner 
+•	connected campaigns 
+•	connected landing pages 
+•	connected forms 
+•	sync method 
+•	manual / automatic status 
+•	reporting status 
+•	lead-source eligibility 
+•	posting / monitoring permissions 
+•	attribution status 
+This should apply to PMG’s real business surfaces and future client surfaces as well.
+The operating system must know what social properties exist, who owns them, what they are used for, and whether they are actively connected.
+________________________________________
+20. CHANNEL INTELLIGENCE HUB MUST BE FULLY FUNCTIONAL
+The Channel Intelligence Hub must not be a static screen.
+It must provide:
+•	connected channel inventory 
+•	active campaign list 
+•	source attribution map 
+•	incoming leads by channel 
+•	leads by page / form / ad source 
+•	source quality scoring 
+•	sync health 
+•	manual integration queue 
+•	unresolved attribution conflicts 
+•	channel-specific reporting 
+•	top-performing sources 
+•	underperforming sources 
+•	recommended next actions 
+This hub should help PMG understand not only which channels exist, but which are working, which are failing, and what should happen next.
+________________________________________
+USER SECTION, USER DEFINITION, AND PERMISSIONS ARCHITECTURE
+21. USER SECTION IS CURRENTLY NOT FUNCTIONAL ENOUGH AND MUST BE REBUILT
+The User area must be treated as a critical system layer and not left as a placeholder or partial page.
+Right now, the user section is still not functionally complete if it cannot fully govern:
+•	user creation 
+•	user status 
+•	user assignment 
+•	permissions 
+•	per-domain access 
+•	per-action rights 
+•	approval rights 
+•	publishing rights 
+•	financial visibility 
+•	CRM visibility 
+•	archive visibility 
+•	integration access 
+•	AI mode access 
+•	wallet permissions 
+•	manual integration permissions 
+•	role changes 
+•	auditing of permission changes 
+This must be corrected.
+________________________________________
+22. DEFINE “USER” CLEARLY
+A User in the PMG AI Operating System is not just a login identity.
+A User is a role-bound operating participant inside the PMG system, with specific responsibilities, visibility, permissions, approval authority, AI interaction rights, and workflow ownership.
+Every user must have a structured profile including, at minimum:
+•	full name 
+•	email 
+•	role 
+•	department / operating function 
+•	account status 
+•	assigned domains 
+•	permission profile 
+•	approval authority level 
+•	AI mode privileges 
+•	integration privileges 
+•	CRM privileges 
+•	reporting privileges 
+•	archive privileges 
+•	wallet / spend visibility privileges 
+•	manual integration privileges 
+•	audit history 
+•	last activity 
+The system must understand a user as an operational actor, not just as a record in auth.
+________________________________________
+23. SUPER ADMIN MUST CONTROL USER PERMISSIONS
+User permissions must be explicitly controlled by the Super Admin.
+This is mandatory and must not be left to default role assumptions alone.
+The Super Admin must have a full permission management interface where they can:
+•	create users 
+•	deactivate users 
+•	change roles 
+•	assign domain access 
+•	define action rights 
+•	define approval rights 
+•	define publishing rights 
+•	define financial access 
+•	define CRM access 
+•	define archive access 
+•	define integration access 
+•	define manual integration rights 
+•	define AI mode privileges 
+•	define wallet / spend permissions 
+•	define reporting access 
+•	define user-level overrides 
+The Super Admin must be able to determine exactly what each user can and cannot do.
+________________________________________
+24. USER PERMISSION MODEL MUST BE GRANULAR
+The permission system must not be shallow.
+It must not only hide buttons.
+It must shape actual system behavior. 
+Minimum role levels
+•	Super Admin 
+•	Admin 
+•	Manager 
+•	User 
+But role labels alone are not enough
+Each user must also support granular permission selections such as:
+Domain access
+•	Command Center 
+•	Intelligence 
+•	Outreach 
+•	Marketing 
+•	Production 
+•	Execution 
+•	CRM 
+•	Communication 
+•	Finance / Legal / Admin / Quality 
+•	Reporting / Archive / Knowledge 
+•	System Core / Integrations 
+Action permissions
+•	view 
+•	create 
+•	edit 
+•	delete 
+•	assign 
+•	approve 
+•	publish 
+•	route 
+•	sync 
+•	override 
+•	export 
+•	archive 
+•	manage integrations 
+•	manage users 
+•	manage wallet 
+•	run AI autonomous actions 
+•	approve AI autonomous actions 
+•	operate manual integrations 
+Mode permissions
+•	can switch global mode 
+•	can switch workflow mode 
+•	can approve AI Auto while away 
+•	can restrict AI to Hybrid 
+•	can force Manual mode for a workflow 
+•	can review AI action logs 
+________________________________________
+25. USER MANAGEMENT PAGE MUST BE A REAL ADMIN INTERFACE
+The User section must include a true management interface with:
+•	user list 
+•	role filters 
+•	domain permission matrix 
+•	action permission matrix 
+•	approval rights view 
+•	AI privilege view 
+•	integration privilege view 
+•	activity status 
+•	audit trail of user changes 
+•	user activation / deactivation 
+•	per-user notes 
+•	per-user domain assignment 
+•	per-user workflow authority 
+This should be one of the most governance-heavy pages in the system.
+________________________________________
+26. USER-TO-WORKFLOW OWNERSHIP MUST BE DEFINED
+Every meaningful workflow must support ownership assignment to users.
+The system must be able to define:
+•	who owns the lead 
+•	who owns the opportunity 
+•	who owns the campaign 
+•	who owns the production project 
+•	who owns the report 
+•	who owns the approval 
+•	who owns the sync exception 
+•	who owns the legal review 
+•	who owns the quality review 
+This must work across AI, Hybrid, and Human modes.
+Examples
+•	In AI mode: AI owns the repeatable step, but a human owner still exists for escalation 
+•	In Hybrid mode: AI and human responsibilities are split and visible 
+•	In Human mode: human owner is primary and AI is advisory only 
+________________________________________
+27. USER-LEVEL MANUAL GUIDES IN HUMAN MODE
+In Human / Manual mode, the system must not only reduce automation; it must also help the user perform work correctly.
+Therefore, each domain must provide:
+•	user guide 
+•	task instructions 
+•	required fields 
+•	required approvals 
+•	next action logic 
+•	warnings 
+•	quality checkpoints 
+And this must respect user permissions. A user should only see manual guidance for actions they are actually allowed to perform.
+________________________________________
+28. USER AUDIT AND ACCOUNTABILITY
+Any change to users, permissions, role assignment, AI privileges, integration rights, or mode-control rights must be audited.
+The system must record:
+•	who changed it 
+•	when it changed 
+•	what changed 
+•	old value 
+•	new value 
+•	reason if provided 
+The Super Admin must be able to review this history.
+PMG AI OPERATING SYSTEM — ADVANCED CREATIVE INTELLIGENCE STACK
+________________________________________
+1. CORE PRINCIPLE
+The system must not rely on one media model or one image/video provider for all creative work.
+Instead, the platform must function as:
+A multi-provider cinematic and asset-generation orchestration system that intelligently selects the right engine for motion, realism, product visuals, brand composition, editing, and distribution-ready creative outputs.
+These technologies must be integrated into the PMG AI Operating System the same way the other tools were defined:
+not as disconnected apps, but as active production infrastructure across the relevant domains. 
+________________________________________
+2. REQUIRED ADVANCED CREATIVE TECHNOLOGIES TO ADD
+The system must also incorporate and utilize the following technologies wherever relevant:
+Cinematic & Motion Intelligence
+•	Kling API / Kling developer platform 
+•	Runway API 
+•	Luma Dream Machine / Ray 
+•	Higgsfield API / cloud tools 
+•	Fal.ai 
+High-Fidelity Product & Asset Generation
+•	Black Forest Labs / FLUX-capable API providers 
+•	Claid.ai 
+•	Flair AI 
+•	SiliconFlow 
+•	Photoroom API 
+Strategic Brand & Composition APIs
+•	Brandfetch 
+•	Recraft 
+•	Bannerbear 
+•	Kittl 
+•	Google Fonts API 
+System Core / Creative Routing Support
+•	Atlas-style unified model routing layer if implemented internally 
+•	governance / evaluation layers such as Maxim / Bifrost-style oversight if used 
+•	Supabase Vector / vector memory layer for asset retrieval and reuse 
+These tools must be treated as part of the PMG system’s creative and brand execution stack, not as optional extras.
+________________________________________
+3. DOMAIN-BASED USAGE FOR THESE NEW TOOLS
+These tools must be assigned to the correct domains in real workflows.
+________________________________________
+Production (D5) — Cinematic Creation, Asset Studio, Preview, Edit, Finalize
+Use:
+•	Kling for controlled cinematic generation where motion, shot design, or multimodal editing is needed. Kling publicly documents developer/API access for its creative models. 
+•	Runway API for video generation / creative media pipelines via official API-accessible workflows. 
+•	Luma Dream Machine / Ray for cinematic generation, shot ideation, motion-rich media, and preview-to-output workflows. Luma publicly presents Ray3 and Dream Machine as its video-generation stack. 
+•	Higgsfield where available for additional creative generation / model access through its cloud/API tooling. Higgsfield also has official client tooling. 
+•	Fal.ai for inference access and flexible model orchestration where custom or fast media pipelines are needed. 
+________________________________________
+Production (D5) — Product Visuals, Lifestyle Assets, Clean Commercial Output
+Use:
+•	Black Forest Labs / FLUX endpoints for image generation where prompt adherence, realism, and controlled visual output are required 
+•	Claid.ai for product-photo enhancement / commercial image refinement 
+•	Flair AI for staged product or brand visual composition 
+•	SiliconFlow where low-latency multimodal inference routing is useful 
+•	Photoroom API for background removal, cleanup, shadowing, and scale-friendly production operations 
+________________________________________
+Marketing (D4) — Distribution-Ready Visual Packaging
+Use:
+•	Bannerbear for template-driven social distribution assets 
+•	Kittl for layout-heavy brand compositions where available 
+•	Google Fonts API for typography consistency 
+•	Brandfetch to pull verified brand assets for company-aware creative generation 
+•	Recraft for logo/icon/vector-style generation workflows where SVG/vector-quality output is important 
+________________________________________
+System Core (D11) — Creative Routing and Asset Memory
+Use:
+•	Supabase Vector / vector retrieval layer to index and retrieve generated assets, approved brand outputs, visual references, and reusable campaign creative 
+•	Governance / evaluation layer to assess brand safety, policy safety, quality, and approval readiness before finalization 
+•	Model routing layer to decide whether the job should go to Kling, Runway, Luma, Fal, FLUX-class image generation, or a composition service 
+________________________________________
+4. WHAT EACH TECHNOLOGY SHOULD DO
+The system must use these tools with clear task boundaries.
+________________________________________
+Kling
+Use Kling when the workflow needs:
+•	cinematic text-to-video or image-to-video generation 
+•	controllable shot creation 
+•	multimodal editing / revision loops 
+•	creative video generation with a strong motion focus 
+Do not use Kling as the default for all creative jobs.
+Use it when cinematic motion logic or richer video-generation control is the right fit. Kling’s official developer documentation confirms an API/developer path for integration. 
+________________________________________
+Runway
+Use Runway when the workflow needs:
+•	video generation through a stable developer API 
+•	branded content generation pipelines 
+•	integrated media-creation workflows through official API endpoints 
+Runway’s official developer documentation confirms API-based access to models and media workflows. 
+________________________________________
+Luma Dream Machine / Ray
+Use Luma when the workflow needs:
+•	cinematic ideation 
+•	motion-rich visual storytelling 
+•	Dream Machine / Ray generation workflows 
+•	strong visual concepting for ads, narrative clips, and premium brand storytelling 
+Luma publicly positions Dream Machine and Ray as core creative-video products. 
+________________________________________
+Higgsfield
+Use Higgsfield when:
+•	the production stack needs another high-end creative generation option 
+•	model diversity is useful 
+•	the creative routing layer determines it is the best tool for a particular output type 
+Higgsfield provides cloud/API surfaces and official client tooling. 
+________________________________________
+Fal.ai
+Use Fal.ai when:
+•	the system needs fast inference 
+•	the production stack needs flexible routing to supported open or hosted model endpoints 
+•	rapid prototyping or high-throughput creative generation is required 
+________________________________________
+Black Forest Labs / FLUX-capable providers
+Use for:
+•	high-quality still image generation 
+•	detail-heavy commercial visuals 
+•	assets where prompt fidelity matters more than cinematic motion 
+________________________________________
+Claid.ai
+Use for:
+•	polished product photography outputs 
+•	enhancement of product visuals for landing pages, ads, and e-commerce-style presentation 
+________________________________________
+Flair AI
+Use for:
+•	product staging 
+•	branded visual setups 
+•	hero image generation where a composition-first interface or workflow is useful 
+________________________________________
+SiliconFlow
+Use for:
+•	lower-latency multimodal inference routing 
+•	scalable generation pipelines where supported 
+________________________________________
+Photoroom
+Use for:
+•	background removal 
+•	cleanup 
+•	batching 
+•	shadow/refinement 
+•	preparing images for ads, landing pages, and content packaging 
+________________________________________
+Brandfetch
+Use for:
+•	pulling verified logos, colors, and brand identity data 
+•	giving the AI system a reliable company-identity baseline before generation or composition 
+________________________________________
+Recraft
+Use for:
+•	logo-like graphic generation 
+•	vector / SVG-oriented workflows 
+•	clean brand iconography and scalable graphic assets 
+________________________________________
+Bannerbear
+Use for:
+•	repeatable distribution graphics 
+•	social banners 
+•	campaign image variants 
+•	template-driven marketing output 
+________________________________________
+Kittl
+Use for:
+•	layout-heavy design generation 
+•	typography-forward compositions 
+•	background/layout refinement workflows where connected 
+________________________________________
+Google Fonts API
+Use for:
+•	typography retrieval 
+•	enforcing brand-consistent font logic 
+•	dynamic template composition 
+________________________________________
+5. HOW THESE NEW TOOLS MUST WORK INSIDE THE PMG SYSTEM
+The system must not call these tools randomly.
+Instead, it must use a Creative Routing Engine.
+Flow
+Creative Request / Campaign Request / Production Task →
+System identifies output type →
+System selects the best provider →
+Provider generates draft →
+PMG Production domain receives output →
+Preview / Revise / Review / Approve / Finalize →
+Output stored in Archive + Library + Reporting context
+Examples
+•	Need a cinematic awareness ad → route to Kling / Runway / Luma depending on job type 
+•	Need a clean product hero image → route to FLUX-class generator + Claid / Flair if refinement is needed 
+•	Need 25 distribution banners → route to Bannerbear + Google Fonts + Brandfetch 
+•	Need a logo-style vector concept → route to Recraft 
+•	Need image cleanup for scale → use Photoroom 
+This must be automatic once integrations are connected.
+________________________________________
+6. AGENT-TO-TECHNOLOGY MAPPING FOR THESE NEW TOOLS
+The 112-agent system must use these technologies intentionally.
+Examples of which agents should use which tools
+Visual Concept Agent
+Uses:
+•	Black Forest Labs / FLUX provider 
+•	Midjourney 
+•	Brandfetch 
+•	Recraft
+Purpose: 
+•	produce visual concept options aligned to PMG or client brand logic 
+Cinematic Storyboarding Agent
+Uses:
+•	OpenAI 
+•	Luma 
+•	Kling 
+•	Runway
+Purpose: 
+•	convert strategic campaign goals into scene-level visual narratives 
+Ad Film Generation Agent
+Uses:
+•	Kling 
+•	Runway 
+•	Luma
+Purpose: 
+•	generate premium short-form ad or brand-story video drafts 
+Product Hero Asset Agent
+Uses:
+•	Claid 
+•	Flair 
+•	Photoroom 
+•	FLUX-class generator
+Purpose: 
+•	produce clean commercial assets and refined product/lifestyle visuals 
+Brand Identity Retrieval Agent
+Uses:
+•	Brandfetch 
+•	Google Fonts API
+Purpose: 
+•	gather verified brand basics before production begins 
+Vector Brand Asset Agent
+Uses:
+•	Recraft
+Purpose: 
+•	generate scalable icon/logo-style/vector assets 
+Distribution Graphic Agent
+Uses:
+•	Bannerbear 
+•	Kittl 
+•	Google Fonts 
+•	Brandfetch
+Purpose: 
+•	create rollout-ready banners, social posts, and branded templates 
+Creative QA Agent
+Uses:
+•	governance/evaluation layer 
+•	brand rules 
+•	PMG review logic
+Purpose: 
+•	verify whether the output is commercially safe, on-brand, and approval-ready 
+Creative Archive Agent
+Uses:
+•	Supabase Vector / memory layer
+Purpose: 
+•	store, index, tag, and retrieve approved creative outputs for reuse 
+________________________________________
+7. PRODUCTION DOMAIN MUST USE THESE TOOLS AS REAL CREATIVE INFRASTRUCTURE
+The Production domain must not merely list these providers.
+It must expose real workflows such as:
+A. Cinematic Video Workflow
+Brief → Script / Scene Logic → Storyboard → Model Selection → Draft Generation → Preview → Revise → Approve → Finalize
+B. High-Fidelity Asset Workflow
+Brand / Product Input → Identity / Style Retrieval → Draft Generation → Enhancement / Cleanup → Layout / Packaging → Review → Finalize
+C. Distribution Workflow
+Approved Asset → Template System → Channel Variants → Typography / Branding Injection → Export / Publish / Route
+These workflows must be visible to the user inside Production and must work differently by mode:
+________________________________________
+8. MODE-SPECIFIC BEHAVIOR FOR THESE NEW TOOLS
+AI Mode
+•	system picks the model automatically 
+•	system drafts assets automatically 
+•	system prepares multiple variants 
+•	system routes draft outputs into approval or auto-publish policies where allowed 
+•	system updates the library automatically 
+Hybrid Mode
+•	AI generates draft outputs 
+•	human selects/refines/approves 
+•	system clearly distinguishes AI-created vs human-revised creative work 
+•	handoff states must be visible 
+Human Mode
+•	human chooses project direction and manually drives creation 
+•	AI becomes assistant / suggestion layer 
+•	system provides manual guide for each production task 
+•	automation should not dominate the workflow 
+________________________________________
+9. WALLET EXECUTION MUST ALSO APPLY TO THESE NEW TOOLS
+These creative tools must be fully tied into the wallet system as well. 
+Examples
+•	Kling video generation → wallet deduction 
+•	Runway generation → wallet deduction 
+•	Luma generation → wallet deduction 
+•	FLUX-class image generation → wallet deduction 
+•	Claid enhancement → wallet deduction 
+•	Bannerbear batch generation → wallet deduction 
+•	Photoroom batch cleanup → wallet deduction 
+UI visibility
+The user must see:
+•	tool used 
+•	action performed 
+•	number of variants generated 
+•	success/failure 
+•	cost deducted 
+•	whether result is draft / approved / finalized 
+________________________________________
+10. FAILURE HANDLING FOR CREATIVE TOOLING
+If one provider fails:
+•	retry automatically where safe 
+•	choose fallback provider when policy allows 
+•	preserve job state 
+•	log failure reason 
+•	notify only when required 
+•	do not silently discard the task 
+The system must maintain creative job continuity, not force the user to restart manually.
+

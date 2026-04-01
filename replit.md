@@ -2,264 +2,55 @@
 
 ## Overview
 
-PMG Group OS is an AI-native enterprise business operating system for PMG Group LLC (cybersecurity/IT services agency). Built as a pnpm workspace monorepo using TypeScript. The system covers 11 integrated domains with a cinematic glassmorphic dark-first design using Crimson (#DC2626) accents, Navy Blue (#1E3A5F) foundation, and Golden Yellow elite highlights.
+PMG Group OS is an AI-native enterprise business operating system designed for PMG Group LLC, a cybersecurity and IT services agency. This monorepo system integrates 11 core business domains, providing a comprehensive solution for managing operations, client relations, and internal workflows. Its purpose is to enhance efficiency, automate tasks, and provide intelligent insights across various business functions, leveraging AI for critical operations like lead enrichment, scoring, and report generation. The project aims to consolidate disparate business processes into a unified, intelligent platform, supporting growth and operational excellence.
 
-## Stack
+## User Preferences
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **Frontend**: React 19 + Vite + TailwindCSS + shadcn/ui + Recharts + Framer Motion
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
-- **AI**: OpenAI via Replit AI Integrations proxy (gpt-4o-mini, no API key needed)
+I prefer iterative development, with a focus on delivering working software incrementally. Please ask before making major architectural changes or introducing new dependencies. I prefer clear and concise explanations, avoiding overly technical jargon where possible. For code, I appreciate well-structured, readable TypeScript with a preference for functional patterns when appropriate.
 
-## Structure
+## System Architecture
 
-```text
-artifacts-monorepo/
-├── artifacts/
-│   ├── api-server/         # Express API server (port 8080)
-│   │   └── src/services/   # Core engine services
-│   │       ├── wallet-service.ts     # Wallet balance, charges, funding
-│   │       ├── ai-service.ts         # Real AI calls (enrich, score, outreach, reports)
-│   │       ├── ai-mode-service.ts    # Global/per-workflow AI mode management
-│   │       ├── notification-service.ts # System notifications
-│   │       ├── state-machine.ts      # Entity lifecycle state machines
-│   │       ├── knowledge-service.ts  # Knowledge library CRUD
-│   │       └── ghl-service.ts        # GoHighLevel integration
-│   ├── pmg-os/             # React frontend (dark-first enterprise UI)
-│   └── mockup-sandbox/     # Design component previews
-├── lib/
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-│       └── src/schema/
-│           ├── wallet.ts           # wallet + wallet_transactions tables
-│           ├── ai_mode_settings.ts # ai_mode_settings + notifications + knowledge_entries tables
-│           └── ... (23+ tables total)
-├── scripts/                # Utility scripts
-├── pnpm-workspace.yaml
-├── tsconfig.base.json
-├── tsconfig.json
-└── package.json
-```
+PMG Group OS is built as a pnpm workspace monorepo using TypeScript (v5.9) and Node.js (v24).
 
-## Core Engine (Real AI OS — Not a Shell)
+**UI/UX Decisions:**
+The system features a cinematic glassmorphic dark-first design. The primary color palette includes Crimson (#DC2626) for accents, Navy Blue (#1E3A5F) as the foundation, and Golden Yellow for elite highlights. The frontend utilizes React 19 with Vite, TailwindCSS, shadcn/ui, Recharts, and Framer Motion for a modern, responsive user experience.
 
-### Wallet System
-- Per-action cost tracking with configurable tool costs
-- Auto-deduction on every AI call
-- Fund wallet via API
-- Full transaction history
+**Technical Implementations & Design Choices:**
 
-### AI Integration (Real AI via Replit Proxy)
-- `enrichLead()` — company profiling, cybersecurity maturity, deal potential
-- `scoreLead()` — 0-100 scoring with HOT/WARM/COLD tier
-- `generateOutreachDraft()` — personalized outreach per channel
-- `summarizeRecord()` — business record summarization
-- `generateReport()` — AI-generated domain reports
-- `suggestNextAction()` — next-action recommendations
-- Every AI call: logged to ai_runs, charged to wallet, respects AI mode
+*   **Monorepo Structure:** Organizes `api-server`, `pmg-os` (React frontend), and `mockup-sandbox` within the `artifacts` directory, alongside shared libraries for `api-spec`, `api-client-react`, `api-zod`, and `db`.
+*   **Core Engine:** Features a "Real AI OS" with services for wallet management, AI integrations, dual-mode AI operation, state machines, CRM lead routing, knowledge library, notification system, and RBAC.
+*   **Wallet System:** Tracks per-action costs for AI operations, allowing auto-deduction and funding via API, with a full transaction history.
+*   **AI Integration:** Utilizes OpenAI via Replit AI Integrations proxy for tasks such as `enrichLead()`, `scoreLead()`, `generateOutreachDraft()`, `summarizeRecord()`, `generateReport()`, and `suggestNextAction()`. All AI calls are logged and charged to the wallet, respecting the current AI mode.
+*   **Dual-Mode System:** Supports "AI Autonomous" (24/7 AI operation), "Hybrid" (AI with human review for low confidence), and "Human Controlled" (manual control with optional AI-generated guides). Global toggles and per-workflow overrides are available.
+*   **State Machines:** Manages the lifecycle of key entities (Lead, Opportunity, Approval, Asset, Contract, Task) with defined state transitions.
+*   **RBAC Middleware:** Implements role-based access control with a hierarchy (super\_admin → admin → manager → user) to secure sensitive API routes.
+*   **Global Search:** Provides cross-entity search functionality accessible via a `⌘K` shortcut on the frontend.
+*   **Automation Rules Engine:** Allows for configurable Trigger → Action rules to orchestrate tools and automate workflows.
+*   **DnD Pipeline (CRM):** Enables drag-and-drop functionality for managing deals within pipeline stages.
+*   **Entity Forms & Edit Drawers:** Standardized forms for creating and editing various entities (Lead, Opportunity, Company, Contact, Task, Campaign) with CSV export capabilities.
+*   **Agent Simulation Engine:** Simulates background agent activity, records AI runs, charges the wallet, and provides activity feeds and recommendations.
+*   **Quality Management:** Dedicated page for managing quality issues, setting quality gates, and tracking quality scores.
+*   **Admin SOP Management:** Provides an administration interface for managing Standard Operating Procedures with search, filtering, and detailed views.
+*   **UI Components:** Key frontend components include `AiModeToggle`, `WalletDisplay`, `NotificationBell`, and various `Create*Form` components that leverage AI for auto-enrichment and scoring.
+*   **API Routes:** Comprehensive set of RESTful API endpoints for managing core engine functionalities and CRUD operations across all entities.
 
-### Dual-Mode System
-- **AI Autonomous** (default) — 24/7 autonomous operation
-- **Hybrid** — AI + human review for confidence < 70%
-- **Human Controlled** — manual control only
-- Global toggle + per-workflow overrides (14 workflow types)
-- Confidence-based handoff with notification generation
+**Domains (11 Modules):**
+The system is organized into 11 distinct modules: Command Center, Intelligence, Outreach, Marketing, Production, CRM Pipeline, Communications, Execution, Finance & Legal, Reports & Archive, and System. Each module focuses on a specific business function, offering tailored features and workflows.
 
-### State Machines
-- Lead: new→enriched→scored→qualified→routing→routed→active→closed
-- Opportunity: discovery→qualification→proposal→negotiation→closing→won/lost
-- Approval: draft→pending→approved/rejected/revision_requested
-- Asset: draft→review→approved→published→archived
-- Contract: draft→review→negotiation→approved→active→terminated
-- Task: pending→in_progress→completed/blocked/cancelled
+## External Dependencies
 
-### CRM Lead Routing
-- PMG Internal / GoHighLevel / Both / Hold
-- Auto-routing on state transition
-- Activity logging per route decision
-
-### Knowledge Library
-- Auto-populates from AI enrichments, scoring, reports
-- Searchable by category, content, title
-- Usage tracking for AI context
-
-### Notification System
-- Real-time notifications on state changes, AI actions, errors
-- Notification bell in header with unread count
-- Mark read/dismiss/mark all read
-
-### RBAC Middleware
-- Role hierarchy: super_admin → admin → manager → user
-- `requireRole(minRole)` middleware on sensitive routes
-- Reads `x-user-role` header (defaults to super_admin in dev)
-
-### Global Search
-- Cross-entity search across leads, opportunities, companies, contacts
-- Accessible via `GET /api/search?q=`
-- Frontend: ⌘K keyboard shortcut in header
-
-### GoHighLevel Integration
-- Config panel in System > Integrations tab
-- CRM mode selector: PMG Internal / GoHighLevel / Both
-- Test connection, save API key/location ID, webhook URL
-- Sync engine routes: push to GHL, sync logs, retry
-
-### 112-Agent Registry
-- Full 112-agent framework across 11 domains
-- Agent status tracking (active/idle/disabled), run counts, success rates
-- API: GET /api/agents (list all), GET /api/agents/stats, GET /api/agents/domain/:domain
-- PUT /api/agents/:id/status, POST /api/agents/:id/run
-
-### Automation Rules Engine
-- Trigger → Action rules (lead.created → ai_enrich, lead.scored → notification, etc.)
-- In-memory rule storage with CRUD API
-- Tool orchestration config with 8 connected tools
-- Channel intelligence tracking (source attribution with channelSource field on leads)
-
-### DnD Pipeline (CRM)
-- Drag-and-drop deal cards between pipeline stages using @dnd-kit
-- DraggableDealCard + DroppableColumn components
-- Stage advance button in deal drawer
-- Proposal status update button
-
-### Entity Forms & Edit Drawers
-- Create forms: Lead, Opportunity, Company, Contact, Task, Campaign
-- Lead edit drawer with priority/source/notes editing
-- Opportunity edit drawer with value/probability/stage/owner/notes editing
-- CSV export buttons on Reports page (all 6 entities: leads, opportunities, companies, contacts, tasks, campaigns)
-- Export properly joins companies for display names
-
-### Agent Simulation Engine
-- Background agent simulator runs every 45s, records AI runs in DB, charges wallet per tool cost
-- Agent activity feed endpoint: GET /api/dashboard/agent-activity
-- Agent Supervisor panel in Command Center AI Activity tab (per-domain agent counts/runs/success)
-- AI Recommendations endpoint: GET /api/dashboard/ai-recommendations (analyzes pipeline/tasks/leads)
-- Intervention Queue endpoint: GET /api/dashboard/intervention-queue
-
-### Quality Management Page
-- Quality page (`/quality`): Real quality_issues DB data via useQualityIssues/useCreateQualityIssue/useUpdateQualityIssue
-- Create quality issue dialog with title, description, domain, severity, entity type fields
-- Approve/reject actions on open issues (PATCH with status + score)
-- Quality Gates tab: domain-specific quality checklists (Content Review, Asset Approval, etc.)
-- Quality Scores tab: per-domain score distribution from real data
-- Review Checklists tab: interactive checklist forms
-- CreateQualityIssueBody requires: title, entityType, entityId (number), issueType, domain
-
-### Admin SOP Management
-- Admin page (`/admin`): SOPs with search filter, expandable detail view, domain field
-- SOP create form with category + domain dropdowns, loading spinner on submit
-- Filterable SOP list with badges for category/domain, version display
-- Click-to-expand SOP detail showing full content and creation date
-- Policies, Work Instructions, Escalation Templates tabs
-
-### CRM Deal Drawer Enhancements
-- DealNotesSection: notes list + create note per entity (uses useNotes/useCreateNote)
-- DealFollowUpsSection: follow-ups with complete/create (uses useFollowUps/useCreateFollowUp/useUpdateFollowUp)
-- Both sub-components defined as standalone functions above CRM export
-
-### Notes, Follow-Ups & SOPs
-- DB tables: notes, follow_ups, sops (in lib/db/src/schema/notes.ts)
-- React Query hooks: useNotes, useCreateNote, useFollowUps, useCreateFollowUp, useUpdateFollowUp, useSops, useCreateSop
-- entityId passed as string to hooks
-
-### Intelligence — Dynamic ICP + Trust Analysis
-- ICP Analysis tab: dynamic from real leads/companies data (industries, sizes, locations, pain points)
-- Trust Barrier Analysis section with severity scores and mitigations
-- ICP Fit Analysis: companies sorted by fit score with click-to-detail
-- Competitive Advantages, Identified Gaps, Message-Market Fit analysis
-- Strategic Differentiation Matrix (PMG vs Traditional MSSPs vs Big 4)
-- AI-generated positioning insights
-
-## API Routes
-
-### Core Engine Routes
-- `GET /api/wallet/balance` — current wallet balance
-- `GET /api/wallet/transactions` — transaction history
-- `POST /api/wallet/fund` — add funds
-- `GET /api/ai-mode/global` — current AI mode
-- `PUT /api/ai-mode/global` — set AI mode
-- `GET /api/ai-mode/workflows` — per-workflow modes
-- `PUT /api/ai-mode/workflows/:key` — override workflow mode
-- `GET /api/notifications` — list notifications
-- `GET /api/notifications/unread-count` — unread count
-- `PUT /api/notifications/:id/read` — mark read
-- `PUT /api/notifications/read-all` — mark all read
-- `DELETE /api/notifications/:id` — dismiss
-- `POST /api/ai/enrich-lead` — AI lead enrichment
-- `POST /api/ai/score-lead` — AI lead scoring
-- `POST /api/ai/generate-outreach` — AI outreach draft
-- `POST /api/ai/summarize` — AI record summary
-- `POST /api/ai/generate-report` — AI report generation
-- `POST /api/ai/suggest-action` — AI next action suggestion
-- `GET /api/state-machines/:entityType` — get state machine config
-- `GET /api/state-machines/:entityType/transitions/:state` — valid transitions
-- `GET /api/knowledge` — knowledge library
-- `GET /api/knowledge/search?q=` — search knowledge
-- `POST /api/knowledge` — add knowledge entry
-- `GET /api/dashboard/command-center` — command center data
-
-### CRUD Routes (all entities)
-- Companies, Contacts, Leads, Opportunities, Activities, Campaigns, Tasks, Documents, Communications, Approvals, Assets, Contracts, Invoices, etc.
-- Leads have additional: `POST /api/leads/:id/route`, `GET /api/leads/:id/activities`, `GET /api/leads/:id/ai-runs`
-
-## Domains (11 Modules)
-
-1. **Command Center** (`/`) — Executive dashboard, real computed KPIs, wallet balance, AI activity
-2. **Intelligence** (`/intelligence`) — Company analysis, ICP profiles, competitor watch
-3. **Outreach** (`/outreach`) — Lead pipeline, outbound sequences
-4. **Marketing** (`/marketing`) — Campaigns, analytics, content calendar
-5. **Production** (`/production`) — Asset lifecycle with approval gates
-6. **CRM Pipeline** (`/crm`) — Leads tab (with AI enrichment), Pipeline, Client CRM
-7. **Communications** (`/communications`) — Communication log, AI-led/guided modes
-8. **Execution** (`/execution`) — Task kanban, approvals
-9. **Finance & Legal** (`/finance`) — Financial overview, invoices, legal
-10. **Reports & Archive** (`/reports`) — AI-generated reports, archive
-11. **System** (`/system`) — AI mode settings, integrations, audit
-
-## Frontend Components
-
-### Custom Hooks (`artifacts/pmg-os/src/hooks/use-api.ts`)
-Manual React Query hooks for all new engine APIs (wallet, AI mode, notifications, command center, AI actions, state machines, knowledge, lead CRUD/routing)
-
-### Key Components
-- `AiModeToggle` — sidebar AI mode selector (3 modes)
-- `WalletDisplay` — sidebar wallet balance indicator
-- `NotificationBell` — header notification dropdown
-- `CreateLeadForm` — modal form that triggers AI auto-enrichment + scoring
-
-## AI Mode Architecture (3 Modes)
-
-- **AI Autonomous**: Full AI agent operation, automation badges, AI-generated content
-- **Hybrid**: AI handles routine tasks, human-review items highlighted
-- **Human Controlled**: Same full functional UI as AI mode, but AI automation paused. Collapsible workflow guides appear above real content as optional step-by-step helpers
-- `ModeAwareWrapper` always renders children (real content); in Human mode, renders `humanContent` prop as a collapsible guide section above children — never replaces children
-- `ModeIndicatorBanner` shows mode status in Human/Hybrid modes
-- Dashboard uses `useAiModeContext()` directly (no wrapper) — shows same full dashboard in all modes
-
-## Form Components (artifacts/pmg-os/src/components/forms/)
-- `CreateLeadForm` — new lead with AI auto-enrich + scoring
-- `CreateCompanyForm` — new company for intelligence tracking
-- `CreateDocumentForm` — new production asset (title, category, type, content, tags)
-- `CreateTaskForm` — new task (self-wrapping Dialog, uses `open`/`onOpenChange`)
-- `CreateCampaignForm` — new campaign (self-wrapping Dialog, uses `open`/`onOpenChange`)
-- `CreateOpportunityForm` — new deal/opportunity
-- `CreateContactForm` — new contact
-
-## Important Notes
-
-- `parseDate()` from `artifacts/api-server/src/lib/parse-date.ts` for date conversions
-- DB push: `pnpm --filter @workspace/db run push`
-- API server on port 8080; Dark theme via `class="dark"` on html element
-- Non-mutating sorts: `[...arr].sort(...)` not `arr.sort(...)`
-- lib/api-zod/src/index.ts only exports `./generated/api` (removed types to fix duplicate conflicts)
-- AI env vars: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` (auto-provisioned)
-- DB lib is composite TS — run `cd lib/db && npx tsc --build` after schema changes
+*   **Monorepo Tool:** pnpm workspaces
+*   **Node.js:** v24
+*   **Package Manager:** pnpm
+*   **TypeScript:** v5.9
+*   **Frontend Libraries:** React 19, Vite, TailwindCSS, shadcn/ui, Recharts, Framer Motion
+*   **API Framework:** Express 5
+*   **Database:** PostgreSQL
+*   **ORM:** Drizzle ORM
+*   **Validation:** Zod (`zod/v4`), `drizzle-zod`
+*   **API Codegen:** Orval (from OpenAPI spec)
+*   **Build Tool:** esbuild
+*   **AI Service:** OpenAI via Replit AI Integrations proxy (gpt-4o-mini)
+*   **CRM Integration:** GoHighLevel
+*   **Drag-and-Drop:** @dnd-kit
+*   **Date Parsing:** Custom `parseDate()` utility in `artifacts/api-server/src/lib/parse-date.ts`

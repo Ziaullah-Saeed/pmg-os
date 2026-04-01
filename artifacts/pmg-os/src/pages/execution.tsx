@@ -15,7 +15,7 @@ import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide } from "@/com
 import { CreateTaskForm } from "@/components/forms/create-task-form";
 import {
   Zap, CheckCircle2, Clock, AlertTriangle, Plus, LayoutGrid,
-  List, ArrowRight
+  List, ArrowRight, Shield, Bot, Sparkles, FileText, Eye
 } from "lucide-react";
 
 const statuses = ["pending", "in_progress", "completed", "blocked"] as const;
@@ -170,33 +170,131 @@ export default function Execution() {
         )}
 
         {activeTab === "approvals" && (
-          <GlassCard className="p-0 overflow-hidden">
-            <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Pending Approvals</h3></div>
-            <div className="px-5 pb-4 space-y-2">
-              {taskList.filter((t: any) => t.status === "pending" && (t.priority === "critical" || t.priority === "high")).length > 0 ? (
-                taskList.filter((t: any) => t.status === "pending" && (t.priority === "critical" || t.priority === "high")).map((task: any) => (
-                  <div key={task.id} className="flex items-center justify-between p-3 rounded-lg glass-surface">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Clock className="h-4 w-4 text-warning shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">{task.title}</p>
-                        <p className="text-[10px] text-muted-foreground">{task.domain} &bull; {task.priority}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Button className="btn-glass text-crimson text-xs px-3 py-1.5 rounded-lg" onClick={() => handleTransition(task, "cancelled")}>Reject</Button>
-                      <Button className="bg-success hover:bg-success/90 text-white text-xs px-3 py-1.5 rounded-lg" onClick={() => handleTransition(task, "in_progress")}>Approve</Button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-8 text-center flex flex-col items-center gap-2">
-                  <CheckCircle2 className="h-8 w-8 text-success/50" />
-                  <p className="text-sm text-muted-foreground">No pending approvals</p>
-                </div>
-              )}
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-warning">{taskList.filter((t: any) => t.status === "pending" && (t.priority === "critical" || t.priority === "high")).length}</p>
+                <p className="text-[10px] text-muted-foreground">Pending Approval</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-crimson">{taskList.filter((t: any) => t.priority === "critical" && t.status === "pending").length}</p>
+                <p className="text-[10px] text-muted-foreground">Urgent</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-success">{taskList.filter((t: any) => t.status === "completed" && t.updatedAt && (Date.now() - new Date(t.updatedAt).getTime()) < 86400000).length}</p>
+                <p className="text-[10px] text-muted-foreground">Approved Today</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-info">{taskList.filter((t: any) => t.status === "blocked").length}</p>
+                <p className="text-[10px] text-muted-foreground">Escalated</p>
+              </div>
             </div>
-          </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Pending Approvals Queue</h3>
+                <Badge variant="outline" className="text-[10px]">Sorted by Urgency</Badge>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {taskList.filter((t: any) => t.status === "pending" && (t.priority === "critical" || t.priority === "high")).length > 0 ? (
+                  taskList
+                    .filter((t: any) => t.status === "pending" && (t.priority === "critical" || t.priority === "high"))
+                    .sort((a: any, b: any) => {
+                      const rank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+                      const ra = rank[a.priority] ?? 4;
+                      const rb = rank[b.priority] ?? 4;
+                      if (ra !== rb) return ra - rb;
+                      return new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime();
+                    })
+                    .map((task: any) => (
+                      <div key={task.id} className="p-3 rounded-lg glass-surface">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`p-1.5 rounded-lg ${task.priority === "critical" ? "bg-red-500/10" : "bg-yellow-500/10"}`}>
+                              {task.priority === "critical" ? <AlertTriangle className="h-4 w-4 text-red-400" /> : <Clock className="h-4 w-4 text-yellow-400" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium">{task.title}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <Badge variant="outline" className="text-[9px] capitalize">{task.domain}</Badge>
+                                <StatusBadge variant={task.priority === "critical" ? "critical" : "warning"} label={task.priority} />
+                                {task.assignedTo && <span className="text-[9px] text-muted-foreground">Assigned: {task.assignedTo}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-1.5 shrink-0 ml-3">
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setSelectedTask(task)}>
+                              <Eye className="h-3 w-3 mr-1" />Review
+                            </Button>
+                            <Button className="btn-glass text-crimson text-xs px-3 py-1.5 rounded-lg h-7" onClick={() => handleTransition(task, "blocked")}>Escalate</Button>
+                            <Button className="btn-glass text-red-400 text-xs px-3 py-1.5 rounded-lg h-7" onClick={() => handleTransition(task, "cancelled")}>Reject</Button>
+                            <Button className="bg-success hover:bg-success/90 text-white text-xs px-3 py-1.5 rounded-lg h-7" onClick={() => handleTransition(task, "in_progress")}>Approve</Button>
+                          </div>
+                        </div>
+                        {task.description && <p className="text-[10px] text-muted-foreground ml-10">{task.description}</p>}
+                      </div>
+                    ))
+                ) : (
+                  <div className="py-8 text-center flex flex-col items-center gap-2">
+                    <CheckCircle2 className="h-8 w-8 text-success/50" />
+                    <p className="text-sm text-muted-foreground">All approvals are up to date</p>
+                  </div>
+                )}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Approval Policy Configuration</h3>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { workflow: "Financial Transactions > $5,000", approver: "Super Admin", mode: "Required" },
+                    { workflow: "Campaign Launch", approver: "Admin+", mode: "AI Auto → Human Approval" },
+                    { workflow: "Client Proposal Send", approver: "Manager+", mode: "Required" },
+                    { workflow: "AI Agent Config Change", approver: "Super Admin", mode: "Required" },
+                    { workflow: "Content Publishing", approver: "Manager+", mode: "AI Auto → Auto-Approve" },
+                    { workflow: "Lead Disqualification", approver: "Any", mode: "AI Auto Only" },
+                    { workflow: "Contract Signing", approver: "Super Admin", mode: "Required" },
+                  ].map((policy, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded-lg glass-surface">
+                      <div>
+                        <p className="text-xs font-medium">{policy.workflow}</p>
+                        <p className="text-[9px] text-muted-foreground">Approver: {policy.approver}</p>
+                      </div>
+                      <Badge variant="outline" className={`text-[8px] ${policy.mode === "Required" ? "text-crimson border-crimson/30" : policy.mode.includes("Auto-Approve") ? "text-green-400 border-green-500/30" : ""}`}>{policy.mode}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-info" />
+                  <h3 className="text-sm font-semibold">Approval History</h3>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {taskList.filter((t: any) => t.status === "completed" || t.status === "in_progress").slice(0, 6).map((task: any) => (
+                    <div key={task.id} className="flex items-center justify-between p-2 rounded-lg glass-surface">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium truncate">{task.title}</p>
+                          <p className="text-[9px] text-muted-foreground">{task.domain} &bull; {new Date(task.updatedAt ?? task.createdAt ?? Date.now()).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] text-success border-success/30">{task.status === "completed" ? "Approved" : "In Review"}</Badge>
+                    </div>
+                  ))}
+                  {taskList.filter((t: any) => t.status === "completed" || t.status === "in_progress").length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-3">No approval history yet.</p>
+                  )}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
         )}
       </motion.div>
       </ModeAwareWrapper>

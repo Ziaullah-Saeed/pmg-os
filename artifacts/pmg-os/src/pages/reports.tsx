@@ -39,6 +39,8 @@ export default function Reports() {
   const [searchQuery, setSearchQuery] = useState("");
   const [knowledgeSearch, setKnowledgeSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [knowledgeCategoryFilter, setKnowledgeCategoryFilter] = useState("all");
+  const [knowledgeTimeFilter, setKnowledgeTimeFilter] = useState("all");
   const [generatingReport, setGeneratingReport] = useState<string | null>(null);
   const [generatedReport, setGeneratedReport] = useState<string | null>(null);
   const { toast } = useToast();
@@ -56,6 +58,18 @@ export default function Reports() {
   const campaignList = (campaigns ?? []) as any[];
   const taskList = (tasks ?? []) as any[];
   const knowledgeList = knowledgeSearch.length > 2 ? (searchResults ?? []) as any[] : (knowledge ?? []) as any[];
+
+  const filteredKnowledge = knowledgeList.filter((entry: any) => {
+    if (knowledgeCategoryFilter !== "all" && entry.category !== knowledgeCategoryFilter) return false;
+    if (knowledgeTimeFilter !== "all" && entry.createdAt) {
+      const now = Date.now();
+      const created = new Date(entry.createdAt).getTime();
+      const diff = now - created;
+      const limits: Record<string, number> = { "24h": 86400000, "7d": 604800000, "30d": 2592000000, "90d": 7776000000 };
+      if (limits[knowledgeTimeFilter] && diff > limits[knowledgeTimeFilter]) return false;
+    }
+    return true;
+  });
 
   const categories = [...new Set(docList.map((d: any) => d.category))];
   const filtered = docList.filter((d: any) => {
@@ -299,31 +313,74 @@ export default function Reports() {
 
         {activeTab === "knowledge" && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1 max-w-md">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[200px] max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search knowledge base..."
+                  placeholder="Search knowledge base (natural language)..."
                   className="pl-9 glass-surface border-border/50"
                   value={knowledgeSearch}
                   onChange={(e) => setKnowledgeSearch(e.target.value)}
                 />
               </div>
-              <Badge variant="outline" className="text-xs">{knowledgeList.length} entries</Badge>
+              <Select value={knowledgeCategoryFilter} onValueChange={setKnowledgeCategoryFilter}>
+                <SelectTrigger className="w-36 glass-surface border-border/50 text-xs"><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="lead_intelligence">Lead Intelligence</SelectItem>
+                  <SelectItem value="market_research">Market Research</SelectItem>
+                  <SelectItem value="competitive_analysis">Competitive Analysis</SelectItem>
+                  <SelectItem value="scoring">Scoring</SelectItem>
+                  <SelectItem value="report">Reports</SelectItem>
+                  <SelectItem value="process">Process</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={knowledgeTimeFilter} onValueChange={setKnowledgeTimeFilter}>
+                <SelectTrigger className="w-32 glass-surface border-border/50 text-xs"><SelectValue placeholder="Time" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="24h">Last 24h</SelectItem>
+                  <SelectItem value="7d">Last 7 Days</SelectItem>
+                  <SelectItem value="30d">Last 30 Days</SelectItem>
+                  <SelectItem value="90d">Last 90 Days</SelectItem>
+                </SelectContent>
+              </Select>
+              <Badge variant="outline" className="text-xs">{filteredKnowledge.length} entries</Badge>
             </div>
 
-            {knowledgeList.length === 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-crimson">{knowledgeList.length}</p>
+                <p className="text-[10px] text-muted-foreground">Total Entries</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-info">{[...new Set(knowledgeList.map((k: any) => k.category))].length}</p>
+                <p className="text-[10px] text-muted-foreground">Categories</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-success">{knowledgeList.reduce((s: number, k: any) => s + (k.usageCount ?? 0), 0)}</p>
+                <p className="text-[10px] text-muted-foreground">Total Uses</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-warning">{[...new Set(knowledgeList.map((k: any) => k.source).filter(Boolean))].length}</p>
+                <p className="text-[10px] text-muted-foreground">Sources</p>
+              </div>
+            </div>
+
+            {filteredKnowledge.length === 0 ? (
               <GlassCard className="py-12 flex flex-col items-center gap-3">
                 <BookOpen className="h-12 w-12 text-muted-foreground/30" />
                 <p className="text-lg font-semibold">Knowledge Library</p>
                 <p className="text-sm text-muted-foreground text-center max-w-md">
-                  Auto-populates from AI enrichments, scoring results, generated reports, and system activity.
-                  Create a lead to start building your knowledge base.
+                  {knowledgeList.length === 0
+                    ? "Auto-populates from AI enrichments, scoring results, generated reports, and system activity. Create a lead to start building your knowledge base."
+                    : "No entries match your current filters. Try adjusting the category or time range."
+                  }
                 </p>
               </GlassCard>
             ) : (
               <div className="space-y-2">
-                {knowledgeList.map((entry: any) => (
+                {filteredKnowledge.map((entry: any) => (
                   <GlassCard key={entry.id} variant="interactive" className="cursor-pointer">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 min-w-0">
@@ -336,10 +393,19 @@ export default function Reports() {
                             {entry.source && <Badge variant="outline" className="text-[9px]">{entry.source}</Badge>}
                             <span className="text-[10px] text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</span>
                           </div>
+                          {entry.relatedTo && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="text-[9px] text-muted-foreground">Related:</span>
+                              <Badge variant="outline" className="text-[8px]">{entry.relatedTo}</Badge>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="shrink-0 ml-3">
+                      <div className="shrink-0 ml-3 flex flex-col items-end gap-1">
                         <Badge variant="outline" className="text-[9px]">{entry.usageCount ?? 0} uses</Badge>
+                        {(entry.usageCount ?? 0) > 3 && (
+                          <Badge className="text-[8px] bg-crimson/10 text-crimson border-crimson/20">Popular</Badge>
+                        )}
                       </div>
                     </div>
                   </GlassCard>

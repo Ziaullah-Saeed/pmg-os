@@ -21,7 +21,7 @@ import {
   Briefcase, Plus, DollarSign, TrendingUp, Clock, AlertTriangle,
   ArrowRight, FileText, Phone, Calendar, ChevronRight, Bot, Target, Users,
   GripVertical, Pencil, Save, X, Loader2, Building2, User, MessageSquare,
-  CheckCircle2, Send
+  CheckCircle2, Send, Sparkles, History
 } from "lucide-react";
 import { CreateLeadForm } from "@/components/forms/create-lead-form";
 import { CreateOpportunityForm } from "@/components/forms/create-opportunity-form";
@@ -35,10 +35,19 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 const stages = ["discovery", "qualification", "proposal", "negotiation", "closed_won", "closed_lost"] as const;
 const stageLabels: Record<string, string> = { discovery: "Discovery", qualification: "Qualification", proposal: "Proposal", negotiation: "Negotiation", closed_won: "Won", closed_lost: "Lost" };
 
-const tabs = [
+const pmgTabs = [
   { id: "leads", label: "Leads", icon: <Target className="h-3.5 w-3.5" /> },
   { id: "pmg", label: "Pipeline", icon: <Briefcase className="h-3.5 w-3.5" /> },
-  { id: "client", label: "Client CRM", icon: <DollarSign className="h-3.5 w-3.5" /> },
+  { id: "routing", label: "GHL Routing", icon: <ArrowRight className="h-3.5 w-3.5" /> },
+  { id: "sequences", label: "Sequences", icon: <Clock className="h-3.5 w-3.5" /> },
+  { id: "insights", label: "AI Insights", icon: <Bot className="h-3.5 w-3.5" /> },
+];
+
+const clientTabs = [
+  { id: "contacts", label: "Contacts", icon: <Users className="h-3.5 w-3.5" /> },
+  { id: "companies", label: "Companies", icon: <Building2 className="h-3.5 w-3.5" /> },
+  { id: "deals", label: "Deals", icon: <DollarSign className="h-3.5 w-3.5" /> },
+  { id: "activities", label: "Activities", icon: <Calendar className="h-3.5 w-3.5" /> },
 ];
 
 function DraggableDealCard({ opp, isStale, onClick }: { opp: any; isStale: boolean; onClick: () => void }) {
@@ -170,6 +179,7 @@ function DealFollowUpsSection({ oppId, newFollowUp, setNewFollowUp, createFollow
 }
 
 export default function CRM() {
+  const [crmMode, setCrmMode] = useState<"pmg" | "client">("pmg");
   const [activeTab, setActiveTab] = useState("leads");
   const [selectedOpp, setSelectedOpp] = useState<any>(null);
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -184,6 +194,8 @@ export default function CRM() {
   const [newNote, setNewNote] = useState("");
   const [newFollowUp, setNewFollowUp] = useState({ title: "", dueDate: "" });
   const { toast } = useToast();
+
+  const tabs = crmMode === "pmg" ? pmgTabs : clientTabs;
   const updateOpp = useUpdateOpportunityMut();
   const updateLead = useUpdateLead();
   const createNote = useCreateNote();
@@ -218,15 +230,27 @@ export default function CRM() {
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
         title="CRM & Revenue Pipeline"
-        subtitle="Opportunity tracking, deal progression, and revenue management"
+        subtitle={crmMode === "pmg" ? "PMG Advanced CRM — Internal operating control" : "Client Portal CRM — GoHighLevel / HubSpot style"}
         icon={<Briefcase className="h-5 w-5" />}
         actions={
-          <Button
-            className="btn-premium text-white text-sm px-4 py-2 rounded-lg"
-            onClick={() => setShowCreateLead(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />New Lead
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-white/5 border border-white/10">
+              <button
+                onClick={() => { setCrmMode("pmg"); setActiveTab("leads"); }}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${crmMode === "pmg" ? "bg-crimson text-white shadow-lg" : "text-muted-foreground hover:text-white"}`}
+              >PMG CRM</button>
+              <button
+                onClick={() => { setCrmMode("client"); setActiveTab("contacts"); }}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${crmMode === "client" ? "bg-blue-600 text-white shadow-lg" : "text-muted-foreground hover:text-white"}`}
+              >Client Portal</button>
+            </div>
+            <Button
+              className="btn-premium text-white text-sm px-4 py-2 rounded-lg"
+              onClick={() => setShowCreateLead(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />New Lead
+            </Button>
+          </div>
         }
       />
 
@@ -460,21 +484,220 @@ export default function CRM() {
           </div>
         )}
 
-        {activeTab === "client" && (
+        {activeTab === "routing" && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KpiCard label="Companies" value={(companies ?? []).length} icon={<Building2 className="h-4 w-4" />} accent="crimson" />
-              <KpiCard label="Contacts" value={commList.length} icon={<User className="h-4 w-4" />} accent="blue" />
-              <KpiCard label="Active Tasks" value={taskList.filter((t: any) => t.status !== "completed").length} icon={<Calendar className="h-4 w-4" />} accent="gold" />
-              <KpiCard label="Communications" value={commList.length} icon={<Phone className="h-4 w-4" />} accent="success" />
+              <KpiCard label="Routed to PMG" value={leadList.filter((l: any) => l.status === "qualified" || l.status === "scored").length} icon={<Target className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="Routed to GHL" value={leadList.filter((l: any) => l.status === "contacted").length} icon={<Send className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="Routed to Both" value={0} icon={<Users className="h-4 w-4" />} accent="gold" />
+              <KpiCard label="Held for Review" value={leadList.filter((l: any) => l.status === "new").length} icon={<Clock className="h-4 w-4" />} accent="default" />
             </div>
-            <div className="flex gap-2">
-              <Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateCompany(true)}>
-                <Building2 className="h-4 w-4 mr-2" />New Company
-              </Button>
-              <Button className="btn-glass text-foreground text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateContact(true)}>
-                <User className="h-4 w-4 mr-2" />New Contact
-              </Button>
+
+            <GlassCard>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold flex items-center gap-2"><ArrowRight className="h-4 w-4 text-crimson" />Lead Routing Center</h3>
+                <Badge variant="outline" className="text-[10px]">GoHighLevel Connected</Badge>
+              </div>
+              <div className="space-y-2">
+                {leadList.map((lead: any) => (
+                  <div key={lead.id} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div>
+                        <p className="text-sm font-medium">{lead.companyName ?? `Lead #${lead.id}`}</p>
+                        <p className="text-[10px] text-muted-foreground">{lead.contactName} · Score: {lead.fitScore ?? "Pending"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] border border-crimson/30 text-crimson hover:bg-crimson/10"
+                        onClick={() => { routeLead.mutate({ id: lead.id, destination: "internal" }, { onSuccess: () => toast({ title: "Routed to PMG CRM" }) }); }}>
+                        PMG
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] border border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                        onClick={() => { routeLead.mutate({ id: lead.id, destination: "ghl" }, { onSuccess: () => toast({ title: "Routed to GoHighLevel" }) }); }}>
+                        GHL
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] border border-green-500/30 text-green-400 hover:bg-green-500/10"
+                        onClick={() => { routeLead.mutate({ id: lead.id, destination: "both" }, { onSuccess: () => toast({ title: "Routed to Both" }) }); }}>
+                        Both
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                        onClick={() => toast({ title: "Held for review" })}>
+                        Hold
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {leadList.length === 0 && (
+                  <div className="py-8 text-center text-muted-foreground text-xs">No leads pending routing</div>
+                )}
+              </div>
+            </GlassCard>
+
+            <GlassCard>
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><History className="h-4 w-4 text-crimson" />Sync History</h3>
+              <div className="space-y-1.5">
+                {[
+                  { time: "2 min ago", action: "Lead synced to GHL", status: "success", lead: "TechCorp Inc." },
+                  { time: "15 min ago", action: "Contact updated in GHL", status: "success", lead: "SecureNet Solutions" },
+                  { time: "1 hr ago", action: "Lead sync failed — retrying", status: "error", lead: "DataVault Systems" },
+                ].map((log, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-white/5 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-1.5 h-1.5 rounded-full ${log.status === "success" ? "bg-green-400" : "bg-red-400"}`} />
+                      <span>{log.lead}</span>
+                      <span className="text-muted-foreground">{log.action}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{log.time}</span>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "sequences" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KpiCard label="Active Sequences" value={3} icon={<Clock className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="Enrolled" value={24} icon={<Users className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="Responded" value={8} icon={<MessageSquare className="h-4 w-4" />} accent="success" />
+              <KpiCard label="Converted" value={3} icon={<CheckCircle2 className="h-4 w-4" />} accent="gold" />
+            </div>
+            <GlassCard>
+              <h3 className="text-sm font-semibold mb-4">Outreach Sequences</h3>
+              <div className="space-y-3">
+                {[
+                  { name: "Cold Outreach — Cybersecurity Decision Makers", steps: 5, enrolled: 12, responded: 4, status: "active" },
+                  { name: "Follow-Up — Demo No-Shows", steps: 3, enrolled: 6, responded: 2, status: "active" },
+                  { name: "Warm Re-engagement — Stale Pipeline", steps: 4, enrolled: 6, responded: 2, status: "paused" },
+                ].map((seq, i) => (
+                  <div key={i} className="p-4 rounded-lg glass-surface">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium">{seq.name}</h4>
+                      <Badge variant="outline" className={`text-[10px] capitalize ${seq.status === "active" ? "border-green-500/30 text-green-400" : "border-yellow-500/30 text-yellow-400"}`}>{seq.status}</Badge>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-xs">
+                      <div><span className="text-muted-foreground">Steps:</span> <span className="font-medium">{seq.steps}</span></div>
+                      <div><span className="text-muted-foreground">Enrolled:</span> <span className="font-medium">{seq.enrolled}</span></div>
+                      <div><span className="text-muted-foreground">Responded:</span> <span className="font-medium text-green-400">{seq.responded}</span></div>
+                    </div>
+                    <div className="flex items-center gap-1 mt-3">
+                      {Array.from({ length: seq.steps }).map((_, j) => (
+                        <div key={j} className={`h-1.5 rounded-full flex-1 ${j < seq.responded ? "bg-green-400" : j < seq.enrolled ? "bg-crimson" : "bg-white/10"}`} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "insights" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <GlassCard>
+                <div className="flex items-center gap-2 mb-3">
+                  <Bot className="h-4 w-4 text-green-400" />
+                  <h3 className="text-sm font-semibold">Close Probability</h3>
+                </div>
+                <div className="space-y-2">
+                  {oppList.slice(0, 5).map((opp: any) => (
+                    <div key={opp.id} className="flex items-center justify-between text-xs">
+                      <span className="truncate flex-1">{opp.title}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-crimson rounded-full" style={{ width: `${opp.probability ?? 0}%` }} />
+                        </div>
+                        <span className="text-[10px] tabular-nums w-8 text-right">{opp.probability ?? 0}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                  <h3 className="text-sm font-semibold">Risk Flags</h3>
+                </div>
+                <div className="space-y-2">
+                  {staleDeals.length > 0 ? staleDeals.slice(0, 5).map((opp: any) => (
+                    <div key={opp.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
+                      <AlertTriangle className="h-3 w-3 text-yellow-400 shrink-0" />
+                      <span className="truncate">{opp.title} — stale {Math.floor((Date.now() - new Date(opp.updatedAt).getTime()) / 86400000)}d</span>
+                    </div>
+                  )) : (
+                    <p className="text-xs text-muted-foreground">No risk flags</p>
+                  )}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Next Best Actions</h3>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { action: "Follow up with TechCorp on proposal", priority: "high" },
+                    { action: "Schedule demo for SecureNet", priority: "medium" },
+                    { action: "Send case study to DataVault", priority: "medium" },
+                    { action: "Re-engage stale leads from LinkedIn", priority: "low" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.priority === "high" ? "bg-red-400" : item.priority === "medium" ? "bg-yellow-400" : "bg-blue-400"}`} />
+                      <span>{item.action}</span>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+            <GlassCard>
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="h-4 w-4 text-crimson" />
+                <h3 className="text-sm font-semibold">AI Pipeline Summary</h3>
+              </div>
+              <div className="p-4 rounded-lg bg-white/5 text-sm text-slate-300 leading-relaxed">
+                <p>Your pipeline has <strong className="text-white">{activeDeals.length} active deals</strong> worth <strong className="gradient-text-crimson">${totalValue.toLocaleString()}</strong> total. Weighted forecast is <strong className="text-green-400">${Math.round(weightedValue).toLocaleString()}</strong>.</p>
+                {staleDeals.length > 0 && <p className="mt-2 text-yellow-400">⚠ {staleDeals.length} deal(s) have been stale for over {staleDays} days — consider follow-up or reassignment.</p>}
+                <p className="mt-2">Top conversion opportunity: <strong>{oppList[0]?.title ?? "No deals yet"}</strong> at {oppList[0]?.probability ?? 0}% probability.</p>
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "contacts" && (
+          <div className="space-y-6">
+            <div className="flex gap-2 mb-4">
+              <Button className="btn-glass text-foreground text-sm" onClick={() => setShowCreateContact(true)}><User className="h-4 w-4 mr-2" />New Contact</Button>
+            </div>
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Contact Directory</h3></div>
+              <div className="px-5 pb-4">
+                <table className="w-full text-xs">
+                  <thead><tr className="text-muted-foreground border-b border-white/5">
+                    <th className="text-left py-2 px-2">Name</th><th className="text-left py-2 px-2">Email</th><th className="text-left py-2 px-2">Company</th><th className="text-left py-2 px-2">Title</th><th className="text-left py-2 px-2">Status</th>
+                  </tr></thead>
+                  <tbody>
+                    {commList.slice(0, 20).map((c: any, i: number) => (
+                      <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="py-2 px-2 font-medium">{c.contactName ?? c.subject ?? `Contact ${i + 1}`}</td>
+                        <td className="py-2 px-2 text-muted-foreground">{c.contactEmail ?? "—"}</td>
+                        <td className="py-2 px-2 text-muted-foreground">{c.companyName ?? "—"}</td>
+                        <td className="py-2 px-2 text-muted-foreground">{c.title ?? "—"}</td>
+                        <td className="py-2 px-2"><Badge variant="outline" className="text-[9px]">Active</Badge></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "companies" && (
+          <div className="space-y-6">
+            <div className="flex gap-2 mb-4">
+              <Button className="btn-premium text-white text-sm" onClick={() => setShowCreateCompany(true)}><Building2 className="h-4 w-4 mr-2" />New Company</Button>
             </div>
             <GlassCard className="p-0 overflow-hidden">
               <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Companies</h3></div>
@@ -497,6 +720,75 @@ export default function CRM() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "deals" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KpiCard label="Pipeline Value" value={`$${totalValue.toLocaleString()}`} icon={<DollarSign className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="Active Deals" value={activeDeals.length} icon={<Briefcase className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="Won" value={oppList.filter((o: any) => o.stage === "closed_won").length} icon={<CheckCircle2 className="h-4 w-4" />} accent="success" />
+              <KpiCard label="Lost" value={oppList.filter((o: any) => o.stage === "closed_lost").length} icon={<AlertTriangle className="h-4 w-4" />} accent="default" />
+            </div>
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">All Deals</h3>
+                <Button className="btn-premium text-white text-xs px-3 py-1" onClick={() => setShowCreateDeal(true)}><Plus className="h-3 w-3 mr-1" />New Deal</Button>
+              </div>
+              <div className="px-5 pb-4">
+                <table className="w-full text-xs">
+                  <thead><tr className="text-muted-foreground border-b border-white/5">
+                    <th className="text-left py-2 px-2">Deal</th><th className="text-left py-2 px-2">Value</th><th className="text-left py-2 px-2">Stage</th><th className="text-left py-2 px-2">Probability</th><th className="text-left py-2 px-2">Owner</th>
+                  </tr></thead>
+                  <tbody>
+                    {oppList.map((opp: any) => (
+                      <tr key={opp.id} className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer" onClick={() => setSelectedOpp(opp)}>
+                        <td className="py-2 px-2 font-medium">{opp.title}</td>
+                        <td className="py-2 px-2 gradient-text-crimson font-bold">${(opp.value ?? 0).toLocaleString()}</td>
+                        <td className="py-2 px-2"><Badge variant="outline" className="text-[9px] capitalize">{stageLabels[opp.stage] ?? opp.stage}</Badge></td>
+                        <td className="py-2 px-2"><ConfidenceMeter score={opp.probability ?? 0} size="sm" /></td>
+                        <td className="py-2 px-2 text-muted-foreground">{opp.owner ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "activities" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KpiCard label="Communications" value={commList.length} icon={<Phone className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="Tasks" value={taskList.length} icon={<Calendar className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="Pending" value={taskList.filter((t: any) => t.status !== "completed").length} icon={<Clock className="h-4 w-4" />} accent="gold" />
+              <KpiCard label="Completed" value={taskList.filter((t: any) => t.status === "completed").length} icon={<CheckCircle2 className="h-4 w-4" />} accent="success" />
+            </div>
+            <GlassCard>
+              <h3 className="text-sm font-semibold mb-3">Recent Activities</h3>
+              <div className="space-y-2">
+                {commList.slice(0, 10).map((c: any) => (
+                  <div key={c.id} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${c.type === "call" ? "bg-green-500/20" : c.type === "email" ? "bg-blue-500/20" : "bg-purple-500/20"}`}>
+                      {c.type === "call" ? <Phone className="h-3.5 w-3.5 text-green-400" /> : c.type === "email" ? <MessageSquare className="h-3.5 w-3.5 text-blue-400" /> : <Calendar className="h-3.5 w-3.5 text-purple-400" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{c.subject}</p>
+                      <p className="text-[10px] text-muted-foreground">{c.summary ?? "No summary"}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <Badge variant="outline" className="text-[9px] capitalize">{c.type}</Badge>
+                      <p className="text-[9px] text-muted-foreground mt-0.5">{c.performedBy ?? c.performed_by ?? "Team"}</p>
+                    </div>
+                  </div>
+                ))}
+                {commList.length === 0 && (
+                  <div className="py-8 text-center text-muted-foreground text-xs">No activities recorded yet</div>
+                )}
               </div>
             </GlassCard>
           </div>
