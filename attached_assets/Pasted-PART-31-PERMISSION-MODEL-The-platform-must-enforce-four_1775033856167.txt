@@ -1,0 +1,169 @@
+PART 31 — PERMISSION MODEL
+
+The platform must enforce four primary permission levels:
+
+Super Admin
+Admin
+Manager
+User
+
+These roles must shape actual system behavior, not merely hide buttons. Permissioning must control:
+
+page visibility
+module visibility
+action rights
+approval rights
+publishing rights
+financial access
+archive access
+CRM visibility
+reporting visibility
+quality visibility
+system controls
+integrations
+governance settings
+
+The permissions model must be tied to workflow authority and business risk. It should govern who may generate, approve, publish, view, override, escalate, archive, and administratively control records or actions.
+
+A mature operating system cannot rely on cosmetic role distinctions. Permissions must influence how the platform behaves.
+
+PART 32 — UI / UX DESIGN SYSTEM
+
+The interface must present itself as an advanced AI-native operating environment. The user experience must feel powerful, premium, controlled, and operationally serious without becoming visually chaotic or cognitively burdensome.
+
+Visual Direction
+
+The system should feel:
+
+cinematic
+dramatic
+premium
+futuristic
+controlled
+minimal but powerful
+Color System
+
+The UI must use:
+
+Crimson for emphasis, premium accents, alerts, and high-value actions
+Navy Blue for the foundational environment
+dark-first design
+deep blacks or near-black gradients
+subtle neutrals for support
+strong contrast hierarchy
+UX Philosophy
+
+The interface must:
+
+reduce cognitive load
+avoid clutter
+surface relevance
+preserve hierarchy
+remain understandable to first-time users
+feel premium without sacrificing usability
+
+The product should feel like entering an advanced command environment for a real company. The design must reinforce authority, focus, and confidence.
+
+PART 33 — RESPONSIVE DESIGN, INTERACTION SYSTEMS & ACCESSIBILITY
+
+The platform must function effectively across:
+
+desktop
+laptop
+tablet / iPad
+mobile
+
+It must support:
+
+layout reflow
+responsive states
+touch-friendly interaction
+readable hierarchy
+strong modal and drawer behavior
+no broken panels on small screens
+keyboard-aware interaction
+accessibility-conscious behavior where applicable
+
+Interactions must include:
+
+subtle transitions
+meaningful feedback
+intelligent loading states
+clear success and failure states
+focused modal behavior
+low-friction user flow
+
+The product must feel polished and deliberate. Responsiveness must not be a late-stage patch. It is part of the operating standard.
+
+PART 34 — TECHNOLOGY STACK, SYSTEM READINESS & DELIVERY STANDARD
+
+The system must be built with modern, enterprise-grade technologies appropriate for scalability, maintainability, performance, and controlled evolution. The stack identified in the directive provides the intended starting architecture.
+
+Frontend
+React
+Next.js
+TypeScript
+TailwindCSS
+shadcn/ui
+Framer Motion
+Radix UI
+State and Data
+TanStack Query / React Query
+Zustand or equivalent
+Design System
+Figma
+design tokens
+component-driven architecture
+dark-first system design
+AI / Communication
+OpenAI / GPT-4o
+ElevenLabs
+Whisper where transcription is needed
+Backend / Service Architecture
+modular API-first architecture
+domain-separated services
+secure secret handling
+scalable environment design
+Delivery Standard
+
+This product must be built to be:
+
+production-grade
+scalable
+secure
+operationally credible
+controllable
+reportable
+auditable
+maintainable
+
+PMG does not want a system that requires endless debugging of basic flows after launch. The platform must be built for readiness, stability, supervision, visibility, and serious use.
+
+PART 35 — FINAL CREATION MANDATE
+
+This is a new system creation from zero. That principle must remain active through the full lifecycle of design, architecture, build, and rollout. Nothing foundational may be treated as optional if it belongs in the operating system core.
+
+Accordingly:
+
+no major layer may remain shallow
+no domain may remain cosmetic
+no reporting system may be an afterthought
+no archive layer may be missing
+no permission model may be weak
+no AI layer may be generic
+no workflow may be disconnected
+no business-critical function may be postponed if it belongs in the foundation
+
+The product to be built is:
+
+a real AI-powered company inside software
+
+It is not:
+
+a prototype
+a dashboard
+a loose collection of tools
+a partially intelligent application
+a stitched-together internal utility
+
+It must be a complete business operating system worthy of real operational dependency.
