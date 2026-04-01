@@ -16,6 +16,8 @@ import Finance from "@/pages/finance";
 import Reports from "@/pages/reports";
 import System from "@/pages/system";
 import Automation from "@/pages/automation";
+import Quality from "@/pages/quality";
+import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -37,6 +39,8 @@ function AppRouter() {
           <Route path="/reports" component={Reports} />
           <Route path="/system" component={System} />
           <Route path="/automation" component={Automation} />
+          <Route path="/quality" component={Quality} />
+          <Route path="/admin" component={Admin} />
           <Route component={NotFound} />
         </Switch>
       </SidebarLayout>

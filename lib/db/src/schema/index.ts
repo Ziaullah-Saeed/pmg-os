@@ -21,3 +21,4 @@ export * from "./outreach_sequences";
 export * from "./reports";
 export * from "./wallet";
 export * from "./ai_mode_settings";
+export * from "./notes";

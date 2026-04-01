@@ -32,6 +32,7 @@ import searchRouter from "./search";
 import ghlRouter from "./ghl";
 import automationRouter from "./automation";
 import agentsRouter from "./agents";
+import notesRouter from "./notes";
 
 const router: IRouter = Router();
 
@@ -68,5 +69,6 @@ router.use(outreachSequencesRouter);
 router.use(qualityIssuesRouter);
 router.use(reportsRouter);
 router.use(usersRouter);
+router.use(notesRouter);
 
 export default router;

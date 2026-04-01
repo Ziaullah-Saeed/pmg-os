@@ -14,6 +14,8 @@ import {
   Menu,
   Bot,
   Shield,
+  ShieldCheck,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Workflow,
@@ -40,6 +42,8 @@ const navItems = [
   { href: "/finance", label: "Finance & Legal", icon: Landmark, domain: "finance" },
   { href: "/reports", label: "Reports & Archive", icon: FileBox, domain: "reports" },
   { href: "/automation", label: "Automation", icon: Workflow, domain: "automation" },
+  { href: "/quality", label: "Quality", icon: ShieldCheck, domain: "quality" },
+  { href: "/admin", label: "Administrative", icon: BookOpen, domain: "admin" },
   { href: "/system", label: "System", icon: Settings, domain: "system" },
 ];
 

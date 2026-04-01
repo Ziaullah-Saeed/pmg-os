@@ -536,4 +536,64 @@ export function useRunAgent() {
   });
 }
 
+export function useNotes(entityType?: string, entityId?: string) {
+  const params = entityType && entityId ? `?entityType=${entityType}&entityId=${entityId}` : "";
+  return useQuery({
+    queryKey: ["notes", entityType, entityId],
+    queryFn: () => apiFetch<any[]>(`/notes${params}`),
+  });
+}
+
+export function useCreateNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { entityType: string; entityId: string; content: string; author?: string; domain?: string }) =>
+      apiFetch<any>("/notes", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["notes"] }); },
+  });
+}
+
+export function useFollowUps(entityType?: string, entityId?: string) {
+  const params = entityType && entityId ? `?entityType=${entityType}&entityId=${entityId}` : "";
+  return useQuery({
+    queryKey: ["follow-ups", entityType, entityId],
+    queryFn: () => apiFetch<any[]>(`/follow-ups${params}`),
+  });
+}
+
+export function useCreateFollowUp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { entityType: string; entityId: string; title: string; description?: string; dueDate: string; assignedTo?: string; domain?: string }) =>
+      apiFetch<any>("/follow-ups", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["follow-ups"] }); },
+  });
+}
+
+export function useUpdateFollowUp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      apiFetch<any>(`/follow-ups/${id}`, { method: "PUT", body: JSON.stringify({ status }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["follow-ups"] }); },
+  });
+}
+
+export function useSops(category?: string) {
+  const params = category ? `?category=${category}` : "";
+  return useQuery({
+    queryKey: ["sops", category],
+    queryFn: () => apiFetch<any[]>(`/sops${params}`),
+  });
+}
+
+export function useCreateSop() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { title: string; category: string; content: string; version?: string; domain?: string; createdBy?: string }) =>
+      apiFetch<any>("/sops", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["sops"] }); },
+  });
+}
+
 export { apiFetch };

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, companiesTable, contactsTable, leadsTable, opportunitiesTable, tasksTable, documentsTable, campaignsTable } from "@workspace/db";
-import { ilike, or, sql } from "drizzle-orm";
+import { ilike, or, sql, eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -23,9 +23,19 @@ router.get("/search", async (req, res): Promise<void> => {
       .from(contactsTable)
       .where(or(ilike(contactsTable.firstName, pattern), ilike(contactsTable.lastName, pattern), ilike(contactsTable.email, pattern)))
       .limit(limit),
-    db.select({ id: leadsTable.id, name: leadsTable.name, type: sql<string>`'lead'` })
+    db.select({
+        id: leadsTable.id,
+        name: sql<string>`COALESCE(${companiesTable.name}, 'Lead #' || ${leadsTable.id})`,
+        type: sql<string>`'lead'`,
+      })
       .from(leadsTable)
-      .where(or(ilike(leadsTable.name, pattern), ilike(leadsTable.email, pattern), ilike(leadsTable.company, pattern)))
+      .leftJoin(companiesTable, eq(leadsTable.companyId, companiesTable.id))
+      .where(or(
+        ilike(companiesTable.name, pattern),
+        ilike(leadsTable.source, pattern),
+        ilike(leadsTable.notes, pattern),
+        ilike(leadsTable.assignedTo, pattern),
+      ))
       .limit(limit),
     db.select({ id: opportunitiesTable.id, name: opportunitiesTable.title, type: sql<string>`'opportunity'` })
       .from(opportunitiesTable)

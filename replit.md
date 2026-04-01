@@ -134,7 +134,18 @@ artifacts-monorepo/
 ### Entity Forms & Edit Drawers
 - Create forms: Lead, Opportunity, Company, Contact, Task, Campaign
 - Lead edit drawer with priority/source/notes editing
-- CSV export buttons on Reports page (leads + opportunities)
+- Opportunity edit drawer with value/probability/stage/owner/notes editing
+- CSV export buttons on Reports page (all 6 entities: leads, opportunities, companies, contacts, tasks, campaigns)
+- Export properly joins companies for display names
+
+### Quality & Administrative Pages
+- Quality page (`/quality`): QA reviews, quality gates, score cards, checklists
+- Admin page (`/admin`): SOPs, policies, work instructions, escalation templates
+- Both follow dual-mode pattern with ModeIndicatorBanner + workflow guides
+
+### Notes, Follow-Ups & SOPs
+- DB tables: notes, follow_ups, sops (in lib/db/src/schema/notes.ts)
+- React Query hooks: useNotes, useCreateNote, useFollowUps, useCreateFollowUp, useUpdateFollowUp, useSops, useCreateSop
 
 ### Intelligence Positioning
 - Competitive Advantages, Identified Gaps, Message-Market Fit analysis

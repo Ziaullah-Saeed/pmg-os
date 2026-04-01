@@ -60,17 +60,25 @@ router.get("/reports/export/:entity", async (req, res): Promise<void> => {
   let headers: string[] = [];
 
   if (entity === "leads") {
-    rows = await db.select().from(leadsTable).orderBy(desc(leadsTable.createdAt)).limit(500);
-    headers = ["ID", "Company", "Contact", "Source", "Status", "Priority", "Score", "Created"];
-    rows = rows.map(r => [r.id, r.companyName ?? "", r.contactName ?? "", r.source ?? "", r.status ?? "", r.priority ?? "", r.fitScore ?? "", r.createdAt]);
+    const leadRows = await db.select({
+      id: leadsTable.id, companyName: companiesTable.name, source: leadsTable.source,
+      status: leadsTable.status, priority: leadsTable.priority, fitScore: leadsTable.fitScore,
+      assignedTo: leadsTable.assignedTo, channelSource: leadsTable.channelSource, createdAt: leadsTable.createdAt,
+    }).from(leadsTable).leftJoin(companiesTable, eq(leadsTable.companyId, companiesTable.id)).orderBy(desc(leadsTable.createdAt)).limit(500);
+    headers = ["ID", "Company", "Source", "Status", "Priority", "Score", "Assigned To", "Channel", "Created"];
+    rows = leadRows.map(r => [r.id, r.companyName ?? "", r.source ?? "", r.status ?? "", r.priority ?? "", r.fitScore ?? "", r.assignedTo ?? "", r.channelSource ?? "", r.createdAt]);
   } else if (entity === "opportunities") {
-    rows = await db.select().from(opportunitiesTable).orderBy(desc(opportunitiesTable.createdAt)).limit(500);
+    const oppRows = await db.select({
+      id: opportunitiesTable.id, title: opportunitiesTable.title, companyName: companiesTable.name,
+      value: opportunitiesTable.value, stage: opportunitiesTable.stage, probability: opportunitiesTable.probability,
+      owner: opportunitiesTable.owner, createdAt: opportunitiesTable.createdAt,
+    }).from(opportunitiesTable).leftJoin(companiesTable, eq(opportunitiesTable.companyId, companiesTable.id)).orderBy(desc(opportunitiesTable.createdAt)).limit(500);
     headers = ["ID", "Title", "Company", "Value", "Stage", "Probability", "Owner", "Created"];
-    rows = rows.map(r => [r.id, r.title ?? "", r.companyName ?? "", r.value ?? 0, r.stage ?? "", r.probability ?? 0, r.owner ?? "", r.createdAt]);
+    rows = oppRows.map(r => [r.id, r.title ?? "", r.companyName ?? "", r.value ?? 0, r.stage ?? "", r.probability ?? 0, r.owner ?? "", r.createdAt]);
   } else if (entity === "tasks") {
     rows = await db.select().from(tasksTable).orderBy(desc(tasksTable.createdAt)).limit(500);
     headers = ["ID", "Title", "Status", "Priority", "Assignee", "Due Date", "Created"];
-    rows = rows.map(r => [r.id, r.title ?? "", r.status ?? "", r.priority ?? "", r.assignee ?? "", r.dueDate ?? "", r.createdAt]);
+    rows = rows.map(r => [r.id, r.title ?? "", r.status ?? "", r.priority ?? "", r.assignedTo ?? "", r.dueDate ?? "", r.createdAt]);
   } else if (entity === "companies") {
     rows = await db.select().from(companiesTable).orderBy(desc(companiesTable.createdAt)).limit(500);
     headers = ["ID", "Name", "Industry", "Size", "Website", "Status", "Created"];

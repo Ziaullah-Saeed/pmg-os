@@ -263,6 +263,37 @@ export default function Reports() {
                 })}
               </div>
             </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                <FileDown className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Data Exports</h3>
+              </div>
+              <div className="px-5 pb-4 grid grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  { entity: "leads", label: "Leads" },
+                  { entity: "opportunities", label: "Opportunities" },
+                  { entity: "companies", label: "Companies" },
+                  { entity: "contacts", label: "Contacts" },
+                  { entity: "tasks", label: "Tasks" },
+                  { entity: "campaigns", label: "Campaigns" },
+                ].map((exp) => (
+                  <Button
+                    key={exp.entity}
+                    variant="outline"
+                    className="btn-glass text-foreground text-xs rounded-lg justify-start"
+                    onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = `${import.meta.env.VITE_API_BASE_URL || "/api"}/reports/export/${exp.entity}`;
+                      a.download = `${exp.entity}_export.csv`;
+                      a.click();
+                    }}
+                  >
+                    <Download className="h-3 w-3 mr-1.5" />{exp.label} CSV
+                  </Button>
+                ))}
+              </div>
+            </GlassCard>
           </div>
         )}
 

@@ -82,6 +82,8 @@ export default function CRM() {
   const [showCreateContact, setShowCreateContact] = useState(false);
   const [editingLead, setEditingLead] = useState(false);
   const [leadEditForm, setLeadEditForm] = useState<any>({});
+  const [editingOpp, setEditingOpp] = useState(false);
+  const [oppEditForm, setOppEditForm] = useState<any>({});
   const { toast } = useToast();
   const updateOpp = useUpdateOpportunityMut();
   const updateLead = useUpdateLead();
@@ -402,7 +404,7 @@ export default function CRM() {
 
       <DetailDrawer
         open={!!selectedOpp}
-        onClose={() => setSelectedOpp(null)}
+        onClose={() => { setSelectedOpp(null); setEditingOpp(false); }}
         title={selectedOpp?.title}
         subtitle={selectedOpp?.companyName}
         width="xl"
@@ -446,12 +448,70 @@ export default function CRM() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-muted-foreground text-xs">Service Type</span><p className="font-medium capitalize">{selectedOpp.serviceType ?? selectedOpp.service_type}</p></div>
-                <div><span className="text-muted-foreground text-xs">Owner</span><p className="font-medium">{selectedOpp.owner}</p></div>
-                <div><span className="text-muted-foreground text-xs">Proposal Status</span><StatusBadge variant={selectedOpp.proposalStatus === "accepted" ? "human-approved" : "pending"} label={selectedOpp.proposalStatus ?? selectedOpp.proposal_status} /></div>
-                <div><span className="text-muted-foreground text-xs">Stage</span><p className="font-medium capitalize">{selectedOpp.stage}</p></div>
+              <div className="flex items-center justify-end">
+                <Button
+                  variant="ghost" size="sm" className="text-xs"
+                  onClick={() => {
+                    if (editingOpp) { setEditingOpp(false); }
+                    else {
+                      setOppEditForm({ value: selectedOpp.value ?? 0, probability: selectedOpp.probability ?? 50, owner: selectedOpp.owner ?? "", notes: selectedOpp.notes ?? "", stage: selectedOpp.stage ?? "discovery" });
+                      setEditingOpp(true);
+                    }
+                  }}
+                >
+                  {editingOpp ? <><X className="h-3 w-3 mr-1" />Cancel</> : <><Pencil className="h-3 w-3 mr-1" />Edit</>}
+                </Button>
               </div>
+
+              {editingOpp ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-slate-400">Value ($)</Label>
+                      <Input type="number" value={oppEditForm.value} onChange={e => setOppEditForm((f: any) => ({ ...f, value: parseFloat(e.target.value) || 0 }))} className="bg-white/5 border-white/10 text-white h-8 text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-slate-400">Probability (%)</Label>
+                      <Input type="number" min="0" max="100" value={oppEditForm.probability} onChange={e => setOppEditForm((f: any) => ({ ...f, probability: parseInt(e.target.value) || 0 }))} className="bg-white/5 border-white/10 text-white h-8 text-xs" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-slate-400">Stage</Label>
+                    <Select value={oppEditForm.stage} onValueChange={v => setOppEditForm((f: any) => ({ ...f, stage: v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[hsl(214,65%,8%)] border-white/10">
+                        {stages.map(s => <SelectItem key={s} value={s} className="text-white capitalize">{stageLabels[s] ?? s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-slate-400">Owner</Label>
+                    <Input value={oppEditForm.owner} onChange={e => setOppEditForm((f: any) => ({ ...f, owner: e.target.value }))} className="bg-white/5 border-white/10 text-white h-8 text-xs" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-slate-400">Notes</Label>
+                    <Input value={oppEditForm.notes} onChange={e => setOppEditForm((f: any) => ({ ...f, notes: e.target.value }))} className="bg-white/5 border-white/10 text-white h-8 text-xs" />
+                  </div>
+                  <Button
+                    className="btn-premium text-white w-full text-xs rounded-lg"
+                    disabled={updateOpp.isPending}
+                    onClick={() => {
+                      updateOpp.mutate({ id: selectedOpp.id, data: oppEditForm }, {
+                        onSuccess: () => { toast({ title: "Deal Updated" }); setEditingOpp(false); setSelectedOpp(null); },
+                      });
+                    }}
+                  >
+                    {updateOpp.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}Save Changes
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-muted-foreground text-xs">Service Type</span><p className="font-medium capitalize">{selectedOpp.serviceType ?? selectedOpp.service_type}</p></div>
+                  <div><span className="text-muted-foreground text-xs">Owner</span><p className="font-medium">{selectedOpp.owner}</p></div>
+                  <div><span className="text-muted-foreground text-xs">Proposal Status</span><StatusBadge variant={selectedOpp.proposalStatus === "accepted" ? "human-approved" : "pending"} label={selectedOpp.proposalStatus ?? selectedOpp.proposal_status} /></div>
+                  <div><span className="text-muted-foreground text-xs">Stage</span><p className="font-medium capitalize">{selectedOpp.stage}</p></div>
+                </div>
+              )}
 
               {relatedComms.length > 0 && (
                 <div>
