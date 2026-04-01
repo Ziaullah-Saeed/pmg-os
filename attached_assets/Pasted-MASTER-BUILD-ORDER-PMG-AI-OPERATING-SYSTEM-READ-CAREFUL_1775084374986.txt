@@ -1,0 +1,809 @@
+MASTER BUILD ORDER — PMG AI OPERATING SYSTEM
+READ CAREFULLY AND EXECUTE FULLY
+
+You are to build the COMPLETE PMG AI Operating System as a production-grade, AI-native Business Operating System for PMG Group LLC. Do not build a dashboard shell, do not build placeholders, do not stop after partial implementation, and do not ask for approval after each small part. Build the entire system end-to-end, test it fully, and only then return with a final complete version.
+
+THIS IS A GREENFIELD SYSTEM FROM ZERO.
+It is not:
+- a redesign
+- a refactor
+- a migration
+- a patchwork app
+- a UI refresh
+- a collection of CRUD pages
+- a dashboard with charts pretending to be a system
+
+It must operate as:
+- a business brain
+- a workflow orchestration engine
+- an execution environment
+- a sales and pipeline infrastructure
+- a communication intelligence surface
+- a production studio
+- a reporting engine
+- a knowledge/memory system
+- a governance and permissions framework
+- an integrations and wallet-funded API operating environment
+
+The system is specialized for cybersecurity and IT companies. Every workflow, score, recommendation, message, asset, report, and AI behavior must reflect trust-sensitive B2B cybersecurity / IT growth environments.
+
+NON-NEGOTIABLE RULE:
+Do not stop after one domain.
+Do not stop after one page.
+Do not say “this part is built” or “this page is functional.”
+Do not ask me to review partial completion.
+Complete ALL phases, ALL domains, ALL workflows, ALL modes, ALL integrations, ALL required testing, and then return with a FINAL version.
+
+==================================================
+A. THE 11 OPERATING DOMAINS
+==================================================
+
+Build all 11 domains as true operational layers, not navigation labels:
+
+1. Command Center & Executive Control
+2. Intelligence, Market Research & Strategic Insight
+3. Outreach, Prospecting & Pipeline Discovery
+4. Marketing, SEO, Brand Awareness & Discoverability
+5. Production, Studio, Brand & Asset Generation
+6. Execution, Operations, Publishing & Workflow Control
+7. CRM, Sales, Closing & Revenue Pipeline
+8. Communication Intelligence, Calling & Meeting Support
+9. Finance, Legal, Administrative & Quality Management
+10. Reporting, Archive, Documentation & Knowledge Memory
+11. System Core, Governance, Permissions, Integrations & Infrastructure
+
+For EACH domain, fully implement:
+- domain objective
+- entities and records
+- workflows
+- state transitions
+- AI participation
+- human participation
+- permissions
+- review gates
+- reporting outputs
+- archive behavior
+- integration points
+- task ownership
+- auditability
+- role-based access
+- mode-specific behavior
+
+A domain is NOT complete because a page loads.
+A domain is complete only when real workflows, actions, states, permissions, reports, archive behavior, integrations, and AI/human behavior all work.
+
+==================================================
+B. THREE TRUE SYSTEM MODES
+==================================================
+
+Implement 3 real operating modes across the entire system:
+
+1. AI MODE / AI AUTO
+2. HYBRID
+3. HUMAN / MANUAL CONTROL
+
+These must not be cosmetic toggles.
+Each mode must change:
+- workflow ownership
+- AI authority
+- human responsibility
+- UI presentation
+- task routing
+- approval requirements
+- alerts
+- queue behavior
+- reporting labels
+- system behavior
+
+----------------------------------
+MODE 1 — AI MODE / AI AUTO
+----------------------------------
+
+Purpose:
+- for when the user is away or wants autonomous execution
+
+Behavior:
+- AI runs 24/7 on all allowed workflows
+- AI performs lead intake, enrichment, scoring, routing, message drafting, follow-up, reminders, reporting, monitoring, content drafting, production-first drafts, and operational summaries
+- AI continues the business automatically wherever policy allows
+- protected steps still require approval when legally, financially, or reputationally necessary
+
+Requirements:
+- dedicated AI Mode page
+- live AI queue
+- active AI agents
+- wallet spend visibility
+- pending human approvals
+- risk and intervention alerts
+- AI-generated task stream
+- confidence-based decision handling
+
+----------------------------------
+MODE 2 — HYBRID
+----------------------------------
+
+Purpose:
+- AI + Human collaboration
+
+Behavior:
+- AI handles repeatable structured work
+- human handles trust-heavy, judgment-heavy, sensitive, approval-heavy, legal, financial, and closing work
+- every workflow must clearly distinguish which steps are AI-owned and which are human-owned
+
+Requirements:
+- dedicated Hybrid page
+- task ownership split
+- labels:
+  - AI Executed
+  - Human Assisted
+  - Human Approved
+  - Human Required
+  - Awaiting Review
+  - AI Drafted
+  - AI Recommended
+  - Manually Completed
+- approval queue
+- handoff timeline
+- confidence-based routing:
+  High confidence → AI continues
+  Medium confidence → AI suggests review
+  Low confidence → Human Required
+
+User option required:
+- allow user to approve “AI Auto while away”
+- allow user to force selected workflows to stay Hybrid
+- allow per-workflow override
+
+----------------------------------
+MODE 3 — HUMAN / MANUAL CONTROL
+----------------------------------
+
+Purpose:
+- human leads work directly
+
+Behavior:
+- system becomes cleaner and more manual
+- AI becomes advisor, guide, summarizer, and recommender
+- human directly performs work
+- automated execution is reduced according to permissions and policy
+
+Requirements:
+- dedicated Human Mode page
+- simplified interface
+- manual operating view
+- every relevant section must contain a manual guide
+- manual guide must explain:
+  - what the task is
+  - required fields
+  - order of steps
+  - approvals needed
+  - next action
+  - warnings / quality checks
+
+==================================================
+C. CRM REQUIREMENTS — MUST MIMIC GOHIGHLEVEL + HUBSPOT DEPTH
+==================================================
+
+CRM must be one of the strongest domains.
+Do not build a simple kanban board.
+
+The CRM must include:
+- leads
+- contacts
+- opportunities
+- deals
+- activities
+- tasks
+- notes
+- meetings
+- proposal status
+- contract status
+- owner assignment
+- handoff tracking
+- stale opportunity detection
+- close probability
+- AI summary
+- confidence score
+- risk flags
+- next-best action
+- sequence / automation support
+- sync visibility
+- route history
+- reporting integration
+- archive integration
+
+Implement 2 CRM interface toggles:
+1. PMG CRM
+   - more advanced
+   - PMG-native
+   - internal operating control
+2. Client CRM
+   - similar operating feel to GoHighLevel / HubSpot portal
+   - client-facing CRM environment
+
+Implement 3 CRM routing modes:
+- PMG Internal CRM
+- GoHighLevel
+- Hybrid CRM routing
+
+GHL connection is mandatory.
+I currently use a GoHighLevel sub-account managed by another company.
+Build:
+- Integrations → GoHighLevel connection page
+- OAuth / token flow as needed
+- field mapping
+- pipeline stage mapping
+- note sync
+- lead sync
+- contact sync
+- retry queue
+- sync log
+- external record ID
+- status panel
+- test connection
+- webhook support
+- manual CSV fallback
+
+Lead routing must support:
+- Send to PMG CRM
+- Send to GoHighLevel
+- Send to Both
+- Hold for Human Review
+
+PMG must always retain:
+- full lead record
+- intelligence
+- score
+- confidence
+- source history
+- sync state
+- logs
+- reporting visibility
+
+==================================================
+D. PRODUCTION DOMAIN — MUST MIMIC CANVA + INVIDEO STYLE WORKSPACE
+==================================================
+
+Do not build Production as a file list or card grid.
+Build it as a true AI-assisted creative studio.
+
+The Production domain must have a distinct interface from the rest of the app and must mimic the operating feel of Canva + InVideo, adapted for PMG.
+
+Implement:
+- project workspace
+- preview canvas
+- asset sidebar
+- brand kit panel
+- text/script panel
+- scene/timeline panel
+- layer controls
+- resize / regenerate controls
+- comments / review layer
+- revision history
+- approval actions
+- export / finalize actions
+
+Production must support:
+- brand strategy
+- positioning language
+- messaging frameworks
+- logo systems
+- color systems
+- typography systems
+- website architecture
+- landing pages
+- funnel pages
+- one-pagers
+- sales decks
+- proposals
+- onboarding kits
+- short-form scripts
+- long-form scripts
+- webinar structures
+- VSL structures
+- thumbnails
+- storyboards
+- content packs
+- brand books
+- design books
+- delivery materials
+- video assets
+- voiceover assets
+
+Mandatory governance lifecycle:
+Generate → Preview → Review → Revise / Regenerate → Approve → Finalize
+
+No bypassing preview.
+No invisible revisions.
+No uncontrolled finalization.
+Maintain:
+- drafts
+- revisions
+- review notes
+- rejection reasons
+- approvals
+- final versions
+- timestamps
+- actors
+- rationale
+
+==================================================
+E. 112-AGENT SYSTEM
+==================================================
+
+Implement at least 112 functional agents distributed across the system.
+These are not decorative. They must perform real work.
+
+Minimum distribution:
+- D1 Command Center: 10 agents
+- D2 Intelligence: 12 agents
+- D3 Outreach: 14 agents
+- D4 Marketing: 12 agents
+- D5 Production: 14 agents
+- D6 Execution: 10 agents
+- D7 CRM/Sales: 12 agents
+- D8 Communication: 10 agents
+- D9 Finance/Legal/Admin/Quality: 8 agents
+- D10 Reporting/Archive/Memory: 6 agents
+- D11 System Core/Governance/Integrations: 4 agents
+
+Each agent must have:
+- name
+- role
+- trigger
+- domain
+- tools it can use
+- mode behavior
+- confidence rules
+- output schema
+- archive behavior
+- wallet behavior
+- fallback logic
+- audit trail
+
+==================================================
+F. TECHNOLOGY STACK — USE ALL RELEVANT TOOLS INTELLIGENTLY
+==================================================
+
+Use all relevant tools dynamically across domains.
+
+Core / orchestration / system:
+- Lindy.ai
+- Replit Agent
+- Zapier Central
+- Microsoft Copilot Studio
+- Make.com
+- Supabase (including vector capabilities)
+- Upstash / Redis
+- Fal.ai
+
+Research / intelligence:
+- Perplexity
+- Exa.ai
+- Harmonic
+- SciSpace
+
+Prospecting / enrichment:
+- Clay
+- Apollo
+- Ocean.io
+- Hunter
+- Nooks
+
+Knowledge / memory:
+- NotebookLM
+- Guru
+
+Marketing / brand:
+- Surfer SEO
+- Jasper
+- Brand24
+
+Production / media:
+- Midjourney
+- ElevenLabs
+- Luma
+- Descript
+- Kling
+- Runway
+- Higgsfield
+- Black Forest Labs / FLUX-capable providers
+- Claid.ai
+- Flair AI
+- SiliconFlow
+- Photoroom
+- Brandfetch
+- Recraft
+- Bannerbear
+- Kittl
+- Google Fonts API
+
+CRM / sales / communication:
+- Thunai AI
+- Gong
+- Conversica
+- Fathom
+- Read.ai
+- Otter.ai
+- Lavender
+
+Finance / legal / quality:
+- Spellbook
+- Deel
+- Kira Systems
+- Ramp
+- Grammarly
+- Acrolinx
+- Testim
+
+Important rule:
+Do not merely list these tools.
+Actually assign them to agents and workflows.
+The system must automatically choose the best tool for the task.
+
+==================================================
+G. TOOL ORCHESTRATION ENGINE
+==================================================
+
+Build a unified orchestration engine.
+
+Required behavior:
+User action / AI task / workflow trigger →
+System identifies best tool(s) →
+Calls API(s) →
+Processes result →
+Stores result →
+Updates workflow →
+Updates reporting →
+Updates archive/library →
+Charges wallet →
+Shows transparency in UI
+
+Examples:
+Apollo → find lead
+Hunter → verify email
+OpenAI → analyze and score
+Jasper → draft message
+Midjourney → visual
+Make → execute workflow
+CRM → store and route
+
+Another example:
+Brandfetch → collect brand assets
+FLUX-class image engine → concept images
+Bannerbear / Kittl → final distribution graphics
+Production → preview / revise / approve / finalize
+
+==================================================
+H. WALLET-BASED EXECUTION SYSTEM
+==================================================
+
+All paid usage must route through the wallet.
+
+Implement:
+- Wallet & Usage Center
+- current balance
+- recharge history
+- spend history
+- provider-by-provider usage
+- action log
+- low-balance alerts
+- thresholds
+- spend caps
+- anomaly alerts
+- per-workflow spend
+- per-provider logs
+
+Required billing flow:
+Action requested →
+provider identified →
+cost estimated/recorded →
+wallet checked →
+action allowed or blocked →
+cost deducted →
+usage logged →
+status shown in UI
+
+Every action must show:
+- tool used
+- cost spent
+- success/failure
+- AI-driven or human-triggered
+
+No repeated manual API key prompts in normal usage.
+Use authorized connection flows and secure secret storage.
+
+==================================================
+I. INTEGRATIONS — SOCIAL, WEBSITE, LANDING PAGE, CHANNELS
+==================================================
+
+Treat all business surfaces as real inputs.
+
+Integrate:
+- PMG website
+- PMG landing pages
+- client websites
+- client landing pages
+- LinkedIn profile
+- LinkedIn company page
+- LinkedIn Sales Navigator
+- LinkedIn Ads if permitted
+- Facebook page
+- Meta Ads if permitted
+- Instagram
+- X / Twitter
+- YouTube
+- TikTok
+- webinar sources
+- forms
+- widgets
+- booking forms
+- CTA buttons
+- email sources
+- SMS sources
+- calling tools
+- calendars
+
+Implement both:
+1. automatic integration
+2. manual integration option
+
+Manual integration option must support:
+- CSV import/export
+- manual mapping
+- manual source assignment
+- manual sync trigger
+- manual refresh
+- manual attribution correction
+- manual reconciliation
+
+When a lead comes from any website / landing page / ad / form / social source, capture:
+- source channel
+- source page / URL
+- form
+- CTA
+- UTM/campaign if available
+- timestamp
+- conversion event
+- routing destination
+- AI score
+- next best action
+
+==================================================
+J. USER SECTION / PERMISSIONS
+==================================================
+
+The User section is not allowed to remain partial or non-functional.
+
+Define User as:
+an operational actor in the PMG system with assigned responsibilities, domain access, action permissions, approval rights, mode privileges, integration rights, and audit history.
+
+Each user must support:
+- name
+- email
+- status
+- role
+- department / function
+- assigned domains
+- permission profile
+- approval authority
+- AI mode privileges
+- integration privileges
+- wallet privileges if allowed
+- audit history
+- last activity
+
+Role levels:
+- Super Admin
+- Admin
+- Manager
+- User
+
+Super Admin must be able to fully manage permissions.
+
+Build:
+- user management page
+- permission matrix
+- domain access matrix
+- action rights
+- approval rights
+- publishing rights
+- financial access
+- CRM access
+- archive access
+- reporting access
+- integration access
+- AI mode access
+- wallet access
+- manual integration rights
+- per-user override controls
+
+Permissions must shape actual behavior, not just hide buttons.
+
+==================================================
+K. KNOWLEDGE LIBRARY / MEMORY
+==================================================
+
+Build a structured, continuously updating intelligence library.
+
+It must store:
+- strategy
+- research
+- SOPs
+- workflows
+- market insights
+- messaging frameworks
+- outreach angles
+- campaign lessons
+- AI outputs
+- rejected outputs
+- improved outputs
+- client history
+- meeting transcripts
+- objection patterns
+- successful responses
+- reports
+- production assets
+- performance data
+- failure cases
+
+It must update automatically from:
+- CRM activity
+- meetings
+- calls
+- campaigns
+- reports
+- workflows
+- AI outputs
+- human corrections
+- approvals / rejections
+
+It must support:
+- search
+- filter
+- tags
+- time range
+- category
+- natural language retrieval
+- related-item linking
+- usage tracking
+
+AI must use this memory as context.
+Do not let AI operate blindly.
+
+==================================================
+L. CACHE SYSTEM
+==================================================
+
+Build cache for repetitive tasks in both AI and Human modes.
+
+Cache:
+- repeated research lookups
+- repeated enrichment
+- repeated summaries
+- repeated templates
+- repeated report sections
+- repeated production assets
+- repeated manual guides
+- repeated CRM summaries
+- repeated approved brand data
+
+Behavior:
+- AI mode uses cache aggressively for speed and cost savings
+- Hybrid uses cache for assistance and repeated support tasks
+- Human mode uses cache for manuals, templates, and repetitive actions
+
+==================================================
+M. TESTING — MANDATORY TWO-PHASE TESTING IN ALL 3 MODES
+==================================================
+
+Do not say complete until ALL tests pass.
+
+----------------------------------
+PHASE 1 — DUMMY DATA / NO TOKEN SPEND
+----------------------------------
+
+Run full system tests in:
+- AI Mode
+- Hybrid
+- Human
+
+Use:
+- dummy data
+- mocked provider responses
+- zero real wallet deduction
+- no real provider charges
+
+Test:
+- workflows
+- routing
+- approvals
+- handoffs
+- state changes
+- CRM sync simulation
+- production pipeline
+- library updates
+- reporting
+- permissions
+- cache
+- fallback and retries
+
+----------------------------------
+PHASE 2 — LIVE / REAL TEST
+----------------------------------
+
+After Phase 1 passes:
+- run real provider tests
+- use live integrations
+- use real wallet deductions
+- verify real CRM routing
+- verify real AI calls
+- verify real social / web lead flow
+- verify real production generation
+- verify real archive / memory updates
+- verify real reporting outputs
+
+==================================================
+N. FINAL DELIVERY REQUIREMENT
+==================================================
+
+When everything is actually complete, do NOT reply with:
+- “this part is working”
+- “this page is functional”
+- “API is healthy”
+- “charts load”
+- “partial build complete”
+
+Instead, only after ALL phases are complete, provide:
+1. the final complete version
+2. summary of all implemented domains
+3. summary of all implemented workflows
+4. proof that all 3 modes work
+5. proof that both testing phases were completed
+6. proof that wallet execution works
+7. proof that integrations work
+8. proof that CRM and Production have distinct interfaces
+9. proof that permissions work
+10. proof that library and cache work
+
+==================================================
+O. VIDEO PRESENTATION REQUIREMENT
+==================================================
+
+After the full build is complete, create a complete video presentation of the entire system.
+
+The video must explain:
+- every domain
+- every major page
+- AI Mode
+- Hybrid Mode
+- Human Mode
+- CRM operation
+- GoHighLevel routing
+- Production studio usage
+- wallet usage
+- integrations
+- reporting
+- library / memory
+- permissions
+- manual guides in Human mode
+- agent activity and orchestration
+- how the user should use the system day to day
+
+Do not skip any section.
+The video must help the user understand how to use the complete system.
+
+==================================================
+P. FINAL EXECUTION RULE
+==================================================
+
+Build everything above fully.
+Do not bypass any detail.
+Do not simplify.
+Do not stop midway.
+Do not ask for approval after each module.
+Do not present partial completion as success.
+
+Complete all domains, all workflows, all modes, all integrations, all testing, and the final video presentation.
+
+Only then return the FINAL version.
