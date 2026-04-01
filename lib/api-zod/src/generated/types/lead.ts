@@ -34,6 +34,8 @@ export interface Lead {
   /** @nullable */
   notes?: string | null;
   /** @nullable */
+  channelSource?: string | null;
+  /** @nullable */
   qualifiedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarLayout } from "@/components/layout/sidebar-layout";
+import { AiModeProvider } from "@/hooks/use-ai-mode-context";
 import Dashboard from "@/pages/dashboard";
 import Intelligence from "@/pages/intelligence";
 import Outreach from "@/pages/outreach";
@@ -19,25 +20,27 @@ import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
 
-function Router() {
+function AppRouter() {
   return (
-    <SidebarLayout>
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/intelligence" component={Intelligence} />
-        <Route path="/outreach" component={Outreach} />
-        <Route path="/marketing" component={Marketing} />
-        <Route path="/production" component={Production} />
-        <Route path="/crm" component={CRM} />
-        <Route path="/communications" component={Communications} />
-        <Route path="/execution" component={Execution} />
-        <Route path="/finance" component={Finance} />
-        <Route path="/reports" component={Reports} />
-        <Route path="/system" component={System} />
-        <Route path="/automation" component={Automation} />
-        <Route component={NotFound} />
-      </Switch>
-    </SidebarLayout>
+    <AiModeProvider>
+      <SidebarLayout>
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/intelligence" component={Intelligence} />
+          <Route path="/outreach" component={Outreach} />
+          <Route path="/marketing" component={Marketing} />
+          <Route path="/production" component={Production} />
+          <Route path="/crm" component={CRM} />
+          <Route path="/communications" component={Communications} />
+          <Route path="/execution" component={Execution} />
+          <Route path="/finance" component={Finance} />
+          <Route path="/reports" component={Reports} />
+          <Route path="/system" component={System} />
+          <Route path="/automation" component={Automation} />
+          <Route component={NotFound} />
+        </Switch>
+      </SidebarLayout>
+    </AiModeProvider>
   );
 }
 
@@ -46,7 +49,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
+          <AppRouter />
         </WouterRouter>
         <Toaster />
       </TooltipProvider>

@@ -113,11 +113,17 @@ artifacts-monorepo/
 - Test connection, save API key/location ID, webhook URL
 - Sync engine routes: push to GHL, sync logs, retry
 
+### 112-Agent Registry
+- Full 112-agent framework across 11 domains
+- Agent status tracking (active/idle/disabled), run counts, success rates
+- API: GET /api/agents (list all), GET /api/agents/stats, GET /api/agents/domain/:domain
+- PUT /api/agents/:id/status, POST /api/agents/:id/run
+
 ### Automation Rules Engine
 - Trigger → Action rules (lead.created → ai_enrich, lead.scored → notification, etc.)
 - In-memory rule storage with CRUD API
 - Tool orchestration config with 8 connected tools
-- Channel intelligence tracking (source attribution)
+- Channel intelligence tracking (source attribution with channelSource field on leads)
 
 ### DnD Pipeline (CRM)
 - Drag-and-drop deal cards between pipeline stages using @dnd-kit

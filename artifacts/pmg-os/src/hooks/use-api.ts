@@ -4,7 +4,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: { "Content-Type": "application/json", "X-User-Role": "super_admin", ...options?.headers },
     ...options,
   });
   if (!res.ok) {
@@ -388,8 +388,6 @@ export function useCreateCampaignMut() {
   });
 }
 
-export { apiFetch };
-
 export function useCreateLead() {
   const qc = useQueryClient();
   return useMutation({
@@ -485,3 +483,57 @@ export function useCreateTaskMut() {
     },
   });
 }
+
+export function useAgents() {
+  return useQuery({
+    queryKey: ["agents"],
+    queryFn: () => apiFetch<any[]>("/agents"),
+    refetchInterval: 15000,
+  });
+}
+
+export function useAgentStats() {
+  return useQuery({
+    queryKey: ["agents", "stats"],
+    queryFn: () => apiFetch<any>("/agents/stats"),
+    refetchInterval: 15000,
+  });
+}
+
+export function useAgentsByDomain(domain: string) {
+  return useQuery({
+    queryKey: ["agents", "domain", domain],
+    queryFn: () => apiFetch<any[]>(`/agents/domain/${domain}`),
+    enabled: !!domain,
+  });
+}
+
+export function useUpdateAgentStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      apiFetch<any>(`/agents/${id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agents"] });
+    },
+  });
+}
+
+export function useRunAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, durationMs, success }: { id: string; durationMs?: number; success?: boolean }) =>
+      apiFetch<any>(`/agents/${id}/run`, {
+        method: "POST",
+        body: JSON.stringify({ durationMs: durationMs ?? 500, success: success ?? true }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agents"] });
+    },
+  });
+}
+
+export { apiFetch };

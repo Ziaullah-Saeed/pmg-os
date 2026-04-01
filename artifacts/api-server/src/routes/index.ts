@@ -31,6 +31,7 @@ import knowledgeRouter from "./knowledge";
 import searchRouter from "./search";
 import ghlRouter from "./ghl";
 import automationRouter from "./automation";
+import agentsRouter from "./agents";
 
 const router: IRouter = Router();
 
@@ -45,6 +46,7 @@ router.use("/knowledge", knowledgeRouter);
 router.use(searchRouter);
 router.use(ghlRouter);
 router.use(automationRouter);
+router.use("/agents", agentsRouter);
 router.use(companiesRouter);
 router.use(contactsRouter);
 router.use(leadsRouter);

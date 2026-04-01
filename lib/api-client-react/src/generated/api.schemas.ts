@@ -181,6 +181,8 @@ export interface Lead {
   /** @nullable */
   notes?: string | null;
   /** @nullable */
+  channelSource?: string | null;
+  /** @nullable */
   qualifiedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -199,6 +201,7 @@ export interface CreateLeadBody {
   nextAction?: string;
   assignedTo?: string;
   notes?: string;
+  channelSource?: string;
 }
 
 export interface UpdateLeadBody {
@@ -214,6 +217,7 @@ export interface UpdateLeadBody {
   nextAction?: string;
   assignedTo?: string;
   notes?: string;
+  channelSource?: string;
 }
 
 export interface Opportunity {

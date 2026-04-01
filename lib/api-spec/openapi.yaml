@@ -2559,6 +2559,8 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        channelSource:
+          type: ["string", "null"]
         qualifiedAt:
           type: ["string", "null"]
           format: date-time
@@ -2603,6 +2605,8 @@ components:
           type: string
         notes:
           type: string
+        channelSource:
+          type: string
       required:
         - source
 
@@ -2632,6 +2636,8 @@ components:
         assignedTo:
           type: string
         notes:
+          type: string
+        channelSource:
           type: string
 
     Opportunity:

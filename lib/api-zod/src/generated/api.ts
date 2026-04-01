@@ -336,6 +336,7 @@ export const ListLeadsResponseItem = zod.object({
   nextAction: zod.string().nullish(),
   assignedTo: zod.string().nullish(),
   notes: zod.string().nullish(),
+  channelSource: zod.string().nullish(),
   qualifiedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
@@ -358,6 +359,7 @@ export const CreateLeadBody = zod.object({
   nextAction: zod.string().optional(),
   assignedTo: zod.string().optional(),
   notes: zod.string().optional(),
+  channelSource: zod.string().optional(),
 });
 
 /**
@@ -383,6 +385,7 @@ export const GetLeadResponse = zod.object({
   nextAction: zod.string().nullish(),
   assignedTo: zod.string().nullish(),
   notes: zod.string().nullish(),
+  channelSource: zod.string().nullish(),
   qualifiedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
@@ -408,6 +411,7 @@ export const UpdateLeadBody = zod.object({
   nextAction: zod.string().optional(),
   assignedTo: zod.string().optional(),
   notes: zod.string().optional(),
+  channelSource: zod.string().optional(),
 });
 
 export const UpdateLeadResponse = zod.object({
@@ -426,6 +430,7 @@ export const UpdateLeadResponse = zod.object({
   nextAction: zod.string().nullish(),
   assignedTo: zod.string().nullish(),
   notes: zod.string().nullish(),
+  channelSource: zod.string().nullish(),
   qualifiedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),

@@ -19,4 +19,5 @@ export interface CreateLeadBody {
   nextAction?: string;
   assignedTo?: string;
   notes?: string;
+  channelSource?: string;
 }
