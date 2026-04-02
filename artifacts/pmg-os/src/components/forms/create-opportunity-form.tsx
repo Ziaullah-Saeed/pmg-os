@@ -44,7 +44,7 @@ export function CreateOpportunityForm({ open, onClose }: Props) {
         title: form.title,
         companyId: form.companyId ? Number(form.companyId) : undefined,
         contactId: form.contactId ? Number(form.contactId) : undefined,
-        value: form.value ? Number(form.value) : undefined,
+        value: form.value ? Number(form.value) : 0,
         probability: Number(form.probability),
         stage: form.stage,
         priority: form.priority,

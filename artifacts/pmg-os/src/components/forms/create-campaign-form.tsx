@@ -14,7 +14,7 @@ interface Props { open: boolean; onOpenChange: (open: boolean) => void; }
 export function CreateCampaignForm({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const create = useCreateCampaignMut();
-  const [form, setForm] = useState({ name: "", type: "email", status: "draft", budget: "", description: "" });
+  const [form, setForm] = useState({ name: "", type: "email", channel: "email", status: "draft", budget: "", description: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +23,7 @@ export function CreateCampaignForm({ open, onOpenChange }: Props) {
       await create.mutateAsync({ ...form, budget: form.budget ? parseFloat(form.budget) : undefined });
       toast({ title: "Campaign Created" });
       onOpenChange(false);
-      setForm({ name: "", type: "email", status: "draft", budget: "", description: "" });
+      setForm({ name: "", type: "email", channel: "email", status: "draft", budget: "", description: "" });
     } catch (err: any) { toast({ title: "Error", description: err.message, variant: "destructive" }); }
   };
 
@@ -42,7 +42,18 @@ export function CreateCampaignForm({ open, onOpenChange }: Props) {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2"><Label className="text-slate-300">Channel</Label>
+              <Select value={form.channel} onValueChange={v => setForm(f => ({ ...f, channel: v }))}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[hsl(214,65%,8%)] border-white/10">
+                  {["email", "linkedin", "google_ads", "facebook", "twitter", "website", "webinar", "sms", "direct_mail"].map(c => <SelectItem key={c} value={c} className="text-white capitalize">{c.replace(/_/g, " ")}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2"><Label className="text-slate-300">Budget ($)</Label><Input type="number" value={form.budget} onChange={e => setForm(f => ({ ...f, budget: e.target.value }))} className="bg-white/5 border-white/10 text-white" placeholder="5000" /></div>
+            <div className="space-y-2"><Label className="text-slate-300">Target Audience</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="bg-white/5 border-white/10 text-white" placeholder="Enterprise IT leaders" /></div>
           </div>
           <div className="space-y-2"><Label className="text-slate-300">Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="bg-white/5 border-white/10 text-white min-h-[80px]" /></div>
           <DialogFooter className="gap-2">
