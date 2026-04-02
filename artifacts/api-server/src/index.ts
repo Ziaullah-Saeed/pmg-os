@@ -10,6 +10,9 @@ import { initAssignmentRouter } from "./services/assignment-router";
 import { initActivityTimeline } from "./services/activity-timeline";
 import { initPipelineEngine } from "./services/pipeline-engine";
 import { initLeadRouter } from "./services/lead-router";
+import { registerSequenceExecutors } from "./services/sequence-engine";
+import { registerDedupExecutors } from "./services/dedup-service";
+import { registerGHLExecutors } from "./services/ghl-service";
 
 const rawPort = process.env["PORT"];
 
@@ -38,8 +41,11 @@ server.listen(port, () => {
   initActivityTimeline();
   initPipelineEngine();
   initLeadRouter();
+  registerSequenceExecutors();
+  registerDedupExecutors();
+  registerGHLExecutors();
   initScheduler().catch(err => logger.error(err, "Scheduler init failed"));
 
   startAgentSimulation(45000);
-  logger.info("Phase 3 engines initialized: automation, approval, scheduler, assignment, activity-timeline, pipeline, lead-router");
+  logger.info("Tri-mode engines initialized: automation, approval, scheduler, assignment, activity-timeline, pipeline, lead-router, sequence, dedup");
 });

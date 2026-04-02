@@ -2,7 +2,7 @@
 
 ## Overview
 
-PMG Group OS is an AI-native enterprise business operating system designed for PMG Group LLC, a cybersecurity and IT services agency. This monorepo system integrates 11 core business domains, providing a comprehensive solution for managing operations, client relations, and internal workflows. Its purpose is to enhance efficiency, automate tasks, and provide intelligent insights across various business functions, leveraging AI for critical operations like lead enrichment, scoring, and report generation. The project aims to consolidate disparate business processes into a unified, intelligent platform, supporting growth and operational excellence.
+PMG Group OS is an AI-native enterprise business operating system for PMG Group LLC, a cybersecurity and IT services agency. This monorepo integrates 11 core business domains to provide a comprehensive solution for managing operations, client relations, and internal workflows. Its purpose is to enhance efficiency, automate tasks, and provide intelligent insights across various business functions, leveraging AI for critical operations like lead enrichment, scoring, and report generation. The project aims to consolidate disparate business processes into a unified, intelligent platform, supporting growth and operational excellence.
 
 ## User Preferences
 
@@ -10,85 +10,55 @@ I prefer iterative development, with a focus on delivering working software incr
 
 ## System Architecture
 
-PMG Group OS is built as a pnpm workspace monorepo using TypeScript (v5.9) and Node.js (v24).
+PMG Group OS is built as a pnpm workspace monorepo using TypeScript and Node.js.
 
 **UI/UX Decisions:**
-The system features a cinematic glassmorphic dark-first design. The primary color palette includes Crimson (#DC2626) for accents, Navy Blue (#1E3A5F) as the foundation, and Golden Yellow for elite highlights. The frontend utilizes React 19 with Vite, TailwindCSS, shadcn/ui, Recharts, and Framer Motion for a modern, responsive user experience.
+The system features a cinematic glassmorphic dark-first design. The primary color palette includes Crimson (#DC2626), Navy Blue (#1E3A5F), and Golden Yellow. The frontend utilizes React 19 with Vite, TailwindCSS, shadcn/ui, Recharts, and Framer Motion for a modern, responsive user experience.
 
 **Technical Implementations & Design Choices:**
 
 *   **Monorepo Structure:** Organizes `api-server`, `pmg-os` (React frontend), and `mockup-sandbox` within the `artifacts` directory, alongside shared libraries for `api-spec`, `api-client-react`, `api-zod`, and `db`.
-*   **Authentication & Sessions:** Session-based auth using `express-session` + `connect-pg-simple` (PostgreSQL-backed sessions in `user_sessions` table). Login via `/api/auth/login`, session via cookie `pmg.sid`. Default admin: `shershah_nawabi@pmggroup-llc.com` / `PMGAdmin2024!`. Any email domain accepted. Passwords hashed with bcryptjs (12 rounds). Frontend uses `AuthProvider` context + `useAuth()` hook. Unauthenticated users see a branded login page.
-*   **Permission Enforcement:** Backend middleware (`requireAuth` + `requirePermission`) checks user role + permissions on every route. Permission matrix maps HTTP method + path to required roles/permissions. Role hierarchy: super_admin (100) > admin (75) > manager (50) > user (25). Users with `["*"]` permission bypass all checks.
-*   **Core Engine:** Features a "Real AI OS" with services for wallet management, AI integrations, dual-mode AI operation, state machines, CRM lead routing, knowledge library, notification system, and RBAC.
-*   **Wallet System:** Tracks per-action costs for AI operations, allowing auto-deduction and funding via API, with a full transaction history. Low-balance ($10) and critical ($2) alerts via notifications.
-*   **AI Integration:** Utilizes OpenAI via Replit AI Integrations proxy for tasks such as `enrichLead()`, `scoreLead()`, `generateOutreachDraft()`, `summarizeRecord()`, `generateReport()`, and `suggestNextAction()`. All AI calls are logged and charged to the wallet, respecting the current AI mode.
-*   **Dual-Mode System:** Supports "AI Autonomous" (24/7 AI operation), "Hybrid" (AI with human review for low confidence), and "Human Controlled" (manual control with optional AI-generated guides). Global toggles, per-workflow overrides, and **record-level overrides** (per-lead, per-opportunity) are available. Resolution order: record → workflow → global.
-*   **Record-Level Mode Overrides:** `aiModeOverride` column on `leads` and `opportunities` tables. Set via `PUT /api/record-mode/:entityType/:entityId`. The `shouldAiAct()` function checks record-level before workflow-level before global.
-*   **Cache Layer:** In-memory LRU cache (1000 entries max) with TTL support. `cacheWrap()` for transparent caching of expensive operations. Used for AI mode settings, dashboard data, knowledge entries. Cache stats available at `/api/cache/stats`. Invalidation via pattern matching.
-*   **WebSocket/Realtime:** WebSocket server on `/ws` for live push events. Event types: notification, wallet_update, mode_change, lead_update, approval_update, system_alert. Frontend `useWebSocket()` hook auto-reconnects and invalidates React Query caches on events. Broadcasts wired into notification-service, wallet-service, and ai-mode-service.
-*   **File Upload & Storage:** Multer-based file upload to `./uploads/` directory. Endpoints: `POST /api/uploads` (single), `POST /api/uploads/multi` (up to 10 files), `GET /api/uploads/files/:filename` (serve), `GET /api/uploads` (list with filters), `DELETE /api/uploads/:id`. 25MB limit, whitelisted MIME types. Records stored in `file_uploads` table.
-*   **Audit Service:** `logAudit()` helper logs all important actions (auth, entity CRUD, mode changes, wallet operations) to `audit_events` table. Always wraps in try/catch so it never crashes callers.
-*   **State Machines:** Manages the lifecycle of key entities (Lead, Opportunity, Approval, Asset, Contract, Task) with defined state transitions.
-*   **Global Search:** Provides cross-entity search functionality accessible via a `⌘K` shortcut on the frontend.
-*   **Event Bus:** Cross-domain event system (`emit`/`subscribe`) that dispatches typed events (lead.created, task.completed, approval.approved, etc.) to all registered handlers. Wildcard subscribers supported. Event log retained for debugging. Events fire from leads, tasks, opportunities, approvals.
-*   **Automation Rules Engine:** DB-backed (`automation_rules` table) configurable Trigger → Action rules. Rules listen to event bus and execute actions (ai_enrich, ai_score, notification, create_task, set_priority, route_lead, ghl_sync, send_email). Condition evaluation with comparison operators (gte, lte, eq, neq). Execution count + error tracking per rule. Default rules seeded on startup.
-*   **Approval Workflow State Machine:** Real state transitions (draft → pending → approved/rejected/revision_requested) enforced via `validateTransition()`. On approved: notification. On rejected: notification + auto-created revision task. Events fire for each transition. Wired through event bus for cross-domain automation.
-*   **Scheduled Jobs (Cron):** node-cron-based scheduler with DB-tracked jobs (`scheduled_jobs` table). Default jobs: daily stale deal check, wallet low-balance alert (every 4h), sequence advancement (every 15min), daily summary (weekdays 6pm). Manual trigger via API. Toggle enable/disable. Execution tracking (duration, status, failures).
-*   **Outreach Sequence Execution Engine:** Step-by-step contact enrollment through outreach sequences. Tracks per-contact progress (active/paused/completed/removed). Respects cadence rules (delay days/hours between steps), safety controls (business hours, weekends, stop on reply). Auto-advances via scheduler. Steps: email, linkedin_message, sms, wait, task.
-*   **Task Auto-Assignment Router:** Event-driven auto-assignment on task creation. Domain → role mapping with round-robin selection. High-priority tasks escalated to admins. Notifications sent to assignees. Works via event bus subscriber on `task.created`.
-*   **Lead Lifecycle:** Full lifecycle from capture → enrich → score → route → convert → close. `POST /leads/:id/convert` creates opportunity from lead (auto-links company, contact, lead). `POST /leads/:id/close` closes lead as won/lost/disqualified with notes. Events fired for each transition.
-*   **Activity Timeline:** Cross-domain event recording via event bus subscription. Records 22 event types (lead, opportunity, task, approval, automation, sequence, scheduler). `GET /activities/timeline/:entityType/:entityId` returns entity-specific timeline with optional related entity activities (lead → its opportunities + tasks).
-*   **Pipeline Engine:** Auto-updates opportunity probability on stage changes (discovery:10%, qualification:25%, proposal:50%, negotiation:75%, closing:90%). Stale deal detection with configurable per-stage thresholds. Deal won/lost notifications + task creation. Pipeline automation rules seeded on startup.
-*   **Lead Routing Engine:** Score-based auto-routing on `lead.scored` event. HOT (≥80) → GHL+internal, WARM (≥50) → internal, COLD → hold. Round-robin lead assignment within team. Auto-notifications on routing.
-*   **GHL OAuth & Bidirectional Sync:** Full OAuth 2.0 flow (authorize URL, token exchange, auto-refresh before expiry). Webhook receiver (`POST /api/ghl/webhook`, unauthenticated) for GHL → PMG OS contact sync. `POST /api/ghl/pull-contacts` for bulk import. Token stored in integrations table with expiry tracking.
-*   **Contact/Company Dedup & Merge:** Duplicate detection by email/phone/name for contacts, name/website for companies. Match scoring (email=90%, name=60%, phone=70%). `GET /contacts/duplicates`, `GET /companies/duplicates`. `POST /contacts/merge`, `POST /companies/merge` — merges data, reassigns related entities (leads, opportunities, activities), marks duplicate as "merged". Auto-check on contact/company creation with duplicate notifications.
-*   **DnD Pipeline (CRM):** Enables drag-and-drop functionality for managing deals within pipeline stages.
-*   **Entity Forms & Edit Drawers:** Standardized forms for creating and editing various entities (Lead, Opportunity, Company, Contact, Task, Campaign) with CSV export capabilities.
-*   **Agent Simulation Engine:** Simulates background agent activity, records AI runs, charges the wallet, and provides activity feeds and recommendations.
-*   **Quality Management:** Dedicated page for managing quality issues, setting quality gates, and tracking quality scores.
-*   **Admin SOP Management:** Provides an administration interface for managing Standard Operating Procedures with search, filtering, and detailed views.
-*   **UI Components:** Key frontend components include `AiModeToggle`, `WalletDisplay`, `NotificationBell`, `UserProfile`, login page, and various `Create*Form` components that leverage AI for auto-enrichment and scoring.
-*   **API Routes:** Comprehensive set of RESTful API endpoints for managing core engine functionalities and CRUD operations across all entities.
+*   **Authentication & Sessions:** Session-based authentication using `express-session` with `connect-pg-simple` (PostgreSQL-backed sessions). Frontend uses `AuthProvider` context.
+*   **Permission Enforcement:** Backend middleware enforces role-based access control with a hierarchical permission system (super_admin > admin > manager > user).
+*   **Core Engine:** Features services for wallet management, AI integrations, a tri-mode AI operation system, state machines, CRM lead routing, knowledge library, notification system, and RBAC.
+*   **Wallet System:** Tracks per-action costs for AI operations with auto-deduction, funding via API, transaction history, and low-balance alerts.
+*   **AI Integration:** Utilizes OpenAI via Replit AI Integrations proxy for tasks like lead enrichment, scoring, outreach draft generation, summarization, report generation, and action suggestions. All AI calls are logged and charged to the wallet, respecting the current AI mode.
+*   **Tri-Mode System (AI/Hybrid/Human):** Supports "AI Autonomous" (fully automated), "Hybrid" (AI auto-executes high-confidence actions, queues low-confidence for review), and "Human Controlled" (everything queued for human review). Global, per-workflow, and record-level overrides are available.
+*   **Pending Actions Queue:** Stores actions requiring human review/approval, accessible via API and WebSocket.
+*   **Mode-Aware Engines:** Automated engines (e.g., automation rules, task assignment, lead routing) use `executeOrQueue()` to adapt behavior based on the active AI mode and confidence levels.
+*   **Record-Level Mode Overrides:** Allows specific records (leads, opportunities) to override global and workflow AI mode settings.
+*   **Cache Layer:** In-memory LRU cache with TTL for expensive operations and frequently accessed data.
+*   **WebSocket/Realtime:** WebSocket server for live push events such as notifications, wallet updates, and lead updates, with frontend auto-reconnection.
+*   **File Upload & Storage:** Multer-based file uploads to local storage with API endpoints for management and a 25MB limit.
+*   **Audit Service:** Logs important actions (auth, CRUD, mode changes, wallet operations) to an `audit_events` table without interrupting core processes.
+*   **State Machines:** Manages lifecycles for entities like Lead, Opportunity, Approval, Asset, Contract, and Task with defined transitions.
+*   **Global Search:** Provides cross-entity search functionality via a `⌘K` shortcut.
+*   **Event Bus:** Cross-domain event system (`emit`/`subscribe`) for typed events (e.g., `lead.created`, `task.completed`), supporting wildcard subscribers and an event log.
+*   **Automation Rules Engine:** DB-backed configurable Trigger → Action rules that listen to the event bus and execute actions based on conditions.
+*   **Approval Workflow State Machine:** Enforces real state transitions for approvals (draft → pending → approved/rejected/revision_requested) with notifications and task creation for revisions.
+*   **Scheduled Jobs (Cron):** `node-cron`-based scheduler with DB-tracked jobs for recurring tasks like stale deal checks and sequence advancement.
+*   **Outreach Sequence Execution Engine:** Manages step-by-step contact enrollment in outreach sequences, respecting cadences and safety controls.
+*   **Task Auto-Assignment Router:** Event-driven auto-assignment of tasks based on domain-role mapping and round-robin selection.
+*   **Lead Lifecycle:** Manages the full lead lifecycle from capture to close, with events fired for each transition.
+*   **Activity Timeline:** Records and displays a cross-domain timeline of 22 event types related to entities.
+*   **Pipeline Engine:** Auto-updates opportunity probabilities on stage changes, detects stale deals, and automates notifications.
+*   **Lead Routing Engine:** Score-based auto-routing of leads (HOT, WARM, COLD) with round-robin assignment and notifications.
+*   **DnD Pipeline (CRM):** Drag-and-drop functionality for managing deals within pipeline stages.
+*   **Entity Forms & Edit Drawers:** Standardized forms for entity creation and editing, with CSV export.
+*   **Agent Simulation Engine:** Simulates background agent activity, records AI runs, and charges the wallet.
+*   **Quality Management:** Dedicated page for managing quality issues and tracking quality scores.
+*   **Admin SOP Management:** Interface for managing Standard Operating Procedures.
+*   **UI Components:** Key frontend components like `AiModeToggle`, `WalletDisplay`, `NotificationBell`, and various forms leveraging AI.
+*   **API Routes:** Comprehensive RESTful API endpoints for core functionalities and CRUD operations.
 
-**Domains (11 Modules):**
-The system is organized into 11 distinct modules: Command Center, Intelligence, Outreach, Marketing, Production, CRM Pipeline, Communications, Execution, Finance & Legal, Reports & Archive, and System. Each module focuses on a specific business function, offering tailored features and workflows.
-
-## Key Files
-
-*   **Auth:** `artifacts/api-server/src/services/auth-service.ts`, `artifacts/api-server/src/middleware/auth.ts`, `artifacts/api-server/src/routes/auth.ts`
-*   **Frontend Auth:** `artifacts/pmg-os/src/hooks/use-auth.tsx`, `artifacts/pmg-os/src/pages/login.tsx`
-*   **WebSocket:** `artifacts/api-server/src/services/websocket-service.ts`, `artifacts/pmg-os/src/hooks/use-websocket.ts`
-*   **Cache:** `artifacts/api-server/src/services/cache-service.ts`, `artifacts/api-server/src/routes/cache.ts`
-*   **Record Mode:** `artifacts/api-server/src/routes/record-mode.ts`
-*   **File Uploads:** `artifacts/api-server/src/routes/uploads.ts`
-*   **Audit:** `artifacts/api-server/src/services/audit-service.ts`
-*   **Wallet:** `artifacts/api-server/src/services/wallet-service.ts`
-*   **AI Mode:** `artifacts/api-server/src/services/ai-mode-service.ts`
-*   **Notifications:** `artifacts/api-server/src/services/notification-service.ts`
-*   **Event Bus:** `artifacts/api-server/src/services/event-bus.ts`
-*   **Automation Engine:** `artifacts/api-server/src/services/automation-engine.ts`, `artifacts/api-server/src/routes/automation.ts`
-*   **Approval Engine:** `artifacts/api-server/src/services/approval-engine.ts`
-*   **Scheduler:** `artifacts/api-server/src/services/scheduler-service.ts`, `artifacts/api-server/src/routes/scheduler.ts`
-*   **Sequence Engine:** `artifacts/api-server/src/services/sequence-engine.ts`, `artifacts/api-server/src/routes/sequence-enrollments.ts`
-*   **Assignment Router:** `artifacts/api-server/src/services/assignment-router.ts`
-*   **Activity Timeline:** `artifacts/api-server/src/services/activity-timeline.ts`
-*   **Pipeline Engine:** `artifacts/api-server/src/services/pipeline-engine.ts`
-*   **Lead Router:** `artifacts/api-server/src/services/lead-router.ts`
-*   **Dedup Service:** `artifacts/api-server/src/services/dedup-service.ts`
-
-## DB Commands
-
-*   Push schema: `pnpm --filter @workspace/db run push`
-*   API server port: 8080
+**Domains (11 Modules):** Command Center, Intelligence, Outreach, Marketing, Production, CRM Pipeline, Communications, Execution, Finance & Legal, Reports & Archive, and System.
 
 ## External Dependencies
 
 *   **Monorepo Tool:** pnpm workspaces
 *   **Node.js:** v24
-*   **Package Manager:** pnpm
 *   **TypeScript:** v5.9
-*   **Frontend Libraries:** React 19, Vite, TailwindCSS, shadcn/ui, Recharts, Framer Motion
+*   **Frontend:** React 19, Vite, TailwindCSS, shadcn/ui, Recharts, Framer Motion
 *   **API Framework:** Express 5
 *   **Database:** PostgreSQL
 *   **ORM:** Drizzle ORM
@@ -97,9 +67,7 @@ The system is organized into 11 distinct modules: Command Center, Intelligence, 
 *   **File Upload:** multer
 *   **Scheduler:** node-cron
 *   **Validation:** Zod (`zod/v4`), `drizzle-zod`
-*   **API Codegen:** Orval (from OpenAPI spec)
-*   **Build Tool:** esbuild
-*   **AI Service:** OpenAI via Replit AI Integrations proxy (gpt-4o-mini)
+*   **API Codegen:** Orval
+*   **AI Service:** OpenAI via Replit AI Integrations proxy
 *   **CRM Integration:** GoHighLevel
 *   **Drag-and-Drop:** @dnd-kit
-*   **Date Parsing:** Custom `parseDate()` utility in `artifacts/api-server/src/lib/parse-date.ts`

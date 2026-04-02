@@ -3,6 +3,7 @@ import { eq, and, lte, sql } from "drizzle-orm";
 import { emit } from "./event-bus";
 import { createNotification } from "./notification-service";
 import { logAudit } from "./audit-service";
+import { executeOrQueue, registerActionExecutor } from "./mode-action-service";
 
 type SequenceStep = {
   type: string;
@@ -74,7 +75,7 @@ export async function enrollContact(params: {
   return { success: true, enrollmentId: enrollment.id };
 }
 
-async function executeStep(enrollment: any, sequence: any): Promise<void> {
+async function directExecuteStep(enrollment: any, sequence: any): Promise<void> {
   const steps = (sequence.steps as SequenceStep[]) ?? [];
   const step = steps[enrollment.currentStepIndex];
   if (!step) return;
@@ -209,6 +210,51 @@ async function executeStep(enrollment: any, sequence: any): Promise<void> {
   }
 }
 
+async function modeAwareExecuteStep(enrollment: any, sequence: any): Promise<void> {
+  const steps = (sequence.steps as SequenceStep[]) ?? [];
+  const step = steps[enrollment.currentStepIndex];
+  if (!step) return;
+
+  const workflowKey = step.type === "email" || step.type === "sms" || step.type === "linkedin_message"
+    ? "outreach_send"
+    : "task_creation";
+
+  const result = await executeOrQueue({
+    actionType: "sequence_step",
+    workflowKey,
+    entityType: "sequence",
+    entityId: enrollment.sequenceId,
+    title: `Sequence Step: ${step.type} to ${enrollment.contactEmail}`,
+    description: `Step ${enrollment.currentStepIndex + 1}/${steps.length} (${step.type}) for ${enrollment.contactName ?? enrollment.contactEmail} in sequence "${sequence.name}"`,
+    confidence: 80,
+    options: [
+      { id: "approve", label: "Send Now", description: `Execute ${step.type} step as configured`, isAiRecommended: true },
+      { id: "edit", label: "Edit Before Sending", description: "Review and edit the message before sending" },
+      { id: "delay", label: "Delay 24h", description: "Postpone this step by 24 hours" },
+      { id: "skip", label: "Skip Step", description: "Skip this step and advance to the next one" },
+    ],
+    aiRecommendation: `Send ${step.type} to ${enrollment.contactEmail} as scheduled`,
+    aiParts: "AI generates personalized message content, determines optimal send time based on business hours, evaluates safety controls",
+    humanParts: "Review message content, approve or edit before sending, choose to delay or skip",
+    metadata: {
+      enrollmentId: enrollment.id,
+      sequenceId: enrollment.sequenceId,
+      sequenceName: sequence.name,
+      stepIndex: enrollment.currentStepIndex,
+      stepType: step.type,
+      contactEmail: enrollment.contactEmail,
+      contactName: enrollment.contactName,
+    },
+    executeAction: async () => {
+      await directExecuteStep(enrollment, sequence);
+    },
+  });
+
+  if (result.queued) {
+    console.log(`[SequenceEngine] Step ${enrollment.currentStepIndex + 1} queued for ${result.mode} review`);
+  }
+}
+
 export async function advanceSequences(): Promise<{ processed: number; errors: number }> {
   const due = await db.select().from(sequenceEnrollmentsTable)
     .where(and(
@@ -225,7 +271,7 @@ export async function advanceSequences(): Promise<{ processed: number; errors: n
     if (!sequence || sequence.status !== "active") continue;
 
     try {
-      await executeStep(enrollment, sequence);
+      await modeAwareExecuteStep(enrollment, sequence);
       processed++;
     } catch (err) {
       console.error(`[SequenceEngine] Error advancing enrollment ${enrollment.id}:`, err);
@@ -238,6 +284,26 @@ export async function advanceSequences(): Promise<{ processed: number; errors: n
   }
   return { processed, errors };
 }
+
+function registerSequenceExecutors(): void {
+  registerActionExecutor("sequence_step", async (metadata, option) => {
+    if (option === "approve" || option === "edit") {
+      const [enrollment] = await db.select().from(sequenceEnrollmentsTable)
+        .where(eq(sequenceEnrollmentsTable.id, metadata.enrollmentId));
+      const [sequence] = await db.select().from(outreachSequencesTable)
+        .where(eq(outreachSequencesTable.id, metadata.sequenceId));
+      if (enrollment && sequence) {
+        await directExecuteStep(enrollment, sequence);
+      }
+    } else if (option === "delay") {
+      await db.update(sequenceEnrollmentsTable).set({
+        nextStepAt: new Date(Date.now() + 86400000),
+      }).where(eq(sequenceEnrollmentsTable.id, metadata.enrollmentId));
+    }
+  });
+}
+
+export { registerSequenceExecutors };
 
 export async function pauseEnrollment(enrollmentId: number): Promise<boolean> {
   const [e] = await db.select().from(sequenceEnrollmentsTable).where(eq(sequenceEnrollmentsTable.id, enrollmentId));

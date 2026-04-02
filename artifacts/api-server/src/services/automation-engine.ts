@@ -4,10 +4,59 @@ import { subscribe, type EventPayload } from "./event-bus";
 import { createNotification } from "./notification-service";
 import { logAudit } from "./audit-service";
 import { broadcast } from "./websocket-service";
+import { executeOrQueue, registerActionExecutor } from "./mode-action-service";
 
 type ActionConfig = Record<string, unknown>;
 
-async function executeAction(actionType: string, config: ActionConfig, payload: EventPayload): Promise<void> {
+const ACTION_WORKFLOW_MAP: Record<string, string> = {
+  notification: "task_creation",
+  create_task: "task_creation",
+  set_priority: "lead_scoring",
+  ai_enrich: "lead_scoring",
+  ai_score: "lead_scoring",
+  route_lead: "lead_routing",
+  ghl_sync: "lead_routing",
+  send_email: "outreach_send",
+  update_field: "task_creation",
+  archive: "task_creation",
+};
+
+const ACTION_MODE_LABELS: Record<string, { aiParts: string; humanParts: string }> = {
+  ai_enrich: {
+    aiParts: "AI analyzes company data, identifies industry, estimates deal potential, assesses cybersecurity maturity",
+    humanParts: "Review enrichment accuracy, validate company details, confirm deal potential estimate",
+  },
+  ai_score: {
+    aiParts: "AI evaluates lead fit score (0-100) based on company profile, budget potential, decision-maker likelihood",
+    humanParts: "Review and approve/adjust the AI-generated score before it's applied to the lead",
+  },
+  create_task: {
+    aiParts: "AI determines task title, priority, domain, and optimal assignee based on workload",
+    humanParts: "Review task details, confirm or modify assignment, approve task creation",
+  },
+  set_priority: {
+    aiParts: "AI recommends priority level based on lead score, engagement history, and deal potential",
+    humanParts: "Review recommendation and confirm or override priority setting",
+  },
+  route_lead: {
+    aiParts: "AI determines routing destination (GHL/internal/hold) based on score tier and availability",
+    humanParts: "Review routing decision, confirm destination, select assignee if applicable",
+  },
+  ghl_sync: {
+    aiParts: "AI maps lead fields to GHL format and prepares sync payload",
+    humanParts: "Review field mapping, confirm data accuracy, approve sync to GoHighLevel",
+  },
+  send_email: {
+    aiParts: "AI generates personalized email content based on lead profile and engagement context",
+    humanParts: "Review email draft, edit content if needed, approve sending",
+  },
+  notification: {
+    aiParts: "System generates notification content automatically",
+    humanParts: "N/A — notifications are informational",
+  },
+};
+
+async function directExecuteAction(actionType: string, config: ActionConfig, payload: EventPayload): Promise<void> {
   switch (actionType) {
     case "notification": {
       await createNotification({
@@ -44,38 +93,30 @@ async function executeAction(actionType: string, config: ActionConfig, payload: 
       break;
     }
     case "ai_enrich": {
-      try {
-        if (payload.entityType === "lead" && payload.entityId) {
-          const { enrichLead } = await import("./ai-service");
-          const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, payload.entityId));
-          if (lead) {
-            const { companiesTable } = await import("@workspace/db");
-            const companyName = lead.companyId
-              ? (await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, lead.companyId)))[0]?.name
-              : undefined;
-            await enrichLead({ id: lead.id, name: companyName ?? `Lead #${lead.id}`, source: lead.source });
-          }
+      if (payload.entityType === "lead" && payload.entityId) {
+        const { enrichLead } = await import("./ai-service");
+        const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, payload.entityId));
+        if (lead) {
+          const { companiesTable } = await import("@workspace/db");
+          const companyName = lead.companyId
+            ? (await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, lead.companyId)))[0]?.name
+            : undefined;
+          await enrichLead({ id: lead.id, name: companyName ?? `Lead #${lead.id}`, source: lead.source });
         }
-      } catch (e) {
-        console.error("[AutomationEngine] ai_enrich failed:", e);
       }
       break;
     }
     case "ai_score": {
-      try {
-        if (payload.entityType === "lead" && payload.entityId) {
-          const { scoreLead } = await import("./ai-service");
-          const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, payload.entityId));
-          if (lead) {
-            const { companiesTable } = await import("@workspace/db");
-            const companyName = lead.companyId
-              ? (await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, lead.companyId)))[0]?.name
-              : undefined;
-            await scoreLead({ id: lead.id, name: companyName ?? `Lead #${lead.id}`, source: lead.source });
-          }
+      if (payload.entityType === "lead" && payload.entityId) {
+        const { scoreLead } = await import("./ai-service");
+        const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, payload.entityId));
+        if (lead) {
+          const { companiesTable } = await import("@workspace/db");
+          const companyName = lead.companyId
+            ? (await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, lead.companyId)))[0]?.name
+            : undefined;
+          await scoreLead({ id: lead.id, name: companyName ?? `Lead #${lead.id}`, source: lead.source });
         }
-      } catch (e) {
-        console.error("[AutomationEngine] ai_score failed:", e);
       }
       break;
     }
@@ -89,20 +130,16 @@ async function executeAction(actionType: string, config: ActionConfig, payload: 
       break;
     }
     case "ghl_sync": {
-      try {
-        if (payload.entityType === "lead" && payload.entityId) {
-          const { pushLeadToGHL } = await import("./ghl-service");
-          const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, payload.entityId));
-          if (lead) {
-            const { companiesTable } = await import("@workspace/db");
-            const companyName = lead.companyId
-              ? (await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, lead.companyId)))[0]?.name
-              : undefined;
-            await pushLeadToGHL({ id: lead.id, name: companyName ?? `Lead #${lead.id}`, company: companyName, source: lead.source });
-          }
+      if (payload.entityType === "lead" && payload.entityId) {
+        const { pushLeadToGHL } = await import("./ghl-service");
+        const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, payload.entityId));
+        if (lead) {
+          const { companiesTable } = await import("@workspace/db");
+          const companyName = lead.companyId
+            ? (await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, lead.companyId)))[0]?.name
+            : undefined;
+          await pushLeadToGHL({ id: lead.id, name: companyName ?? `Lead #${lead.id}`, company: companyName, source: lead.source });
         }
-      } catch (e) {
-        console.error("[AutomationEngine] ghl_sync failed:", e);
       }
       break;
     }
@@ -129,6 +166,56 @@ async function executeAction(actionType: string, config: ActionConfig, payload: 
     }
     default:
       console.warn(`[AutomationEngine] Unknown action type: ${actionType}`);
+  }
+}
+
+async function modeAwareExecuteAction(actionType: string, config: ActionConfig, payload: EventPayload, ruleName: string): Promise<void> {
+  const workflowKey = ACTION_WORKFLOW_MAP[actionType] ?? "task_creation";
+  const modeLabels = ACTION_MODE_LABELS[actionType] ?? { aiParts: "Automated execution", humanParts: "Review and confirm" };
+
+  const options = [
+    { id: "approve", label: "Approve & Execute", description: `Execute ${actionType} as AI recommends`, isAiRecommended: true },
+    { id: "skip", label: "Skip This Action", description: `Skip ${actionType} for ${payload.entityType} #${payload.entityId}` },
+  ];
+
+  if (actionType === "ai_score") {
+    options.splice(1, 0, { id: "manual_score", label: "Set Score Manually", description: "Enter a manual score instead of AI scoring" });
+  }
+  if (actionType === "route_lead") {
+    options.splice(1, 0,
+      { id: "route_ghl", label: "Route to GHL", description: "Send lead to GoHighLevel" },
+      { id: "route_internal", label: "Route Internally", description: "Assign lead to internal team" },
+      { id: "route_hold", label: "Hold", description: "Place lead on hold" },
+    );
+  }
+  if (actionType === "set_priority") {
+    options.splice(1, 0,
+      { id: "priority_critical", label: "Set Critical", description: "Override priority to critical" },
+      { id: "priority_high", label: "Set High", description: "Override priority to high" },
+      { id: "priority_medium", label: "Set Medium", description: "Override priority to medium" },
+    );
+  }
+
+  const result = await executeOrQueue({
+    actionType: `automation_${actionType}`,
+    workflowKey,
+    entityType: payload.entityType,
+    entityId: payload.entityId,
+    title: `${ruleName}: ${actionType}`,
+    description: `Automation rule "${ruleName}" wants to execute "${actionType}" on ${payload.entityType} #${payload.entityId}`,
+    confidence: 80,
+    options,
+    aiRecommendation: `Execute ${actionType} as configured by rule "${ruleName}"`,
+    aiParts: modeLabels.aiParts,
+    humanParts: modeLabels.humanParts,
+    metadata: { actionType, config, payload: { entityType: payload.entityType, entityId: payload.entityId, domain: payload.domain, data: payload.data }, ruleName },
+    executeAction: async () => {
+      await directExecuteAction(actionType, config, payload);
+    },
+  });
+
+  if (result.queued) {
+    console.log(`[AutomationEngine] Action "${actionType}" queued for ${result.mode} review (pending #${result.pendingActionId})`);
   }
 }
 
@@ -165,7 +252,7 @@ async function processEvent(event: string, payload: EventPayload): Promise<void>
 
       const actions = rule.actions as Array<{ type: string; config: ActionConfig }>;
       for (const action of actions) {
-        await executeAction(action.type, action.config, payload);
+        await modeAwareExecuteAction(action.type, action.config, payload, rule.name);
       }
 
       await db.update(automationRulesTable).set({
@@ -193,6 +280,72 @@ async function processEvent(event: string, payload: EventPayload): Promise<void>
       }).where(eq(automationRulesTable.id, rule.id));
     }
   }
+}
+
+function registerAutomationExecutors(): void {
+  registerActionExecutor("automation_ai_enrich", async (metadata, option) => {
+    if (option === "approve" || option === "execute") {
+      await directExecuteAction("ai_enrich", metadata.config, metadata.payload);
+    }
+  });
+
+  registerActionExecutor("automation_ai_score", async (metadata, option) => {
+    if (option === "approve" || option === "execute") {
+      await directExecuteAction("ai_score", metadata.config, metadata.payload);
+    } else if (option === "manual_score" && metadata.payload.entityType === "lead" && metadata.payload.entityId) {
+      await db.update(leadsTable).set({ fitScore: 50 }).where(eq(leadsTable.id, metadata.payload.entityId));
+      await createNotification({
+        type: "manual_score_set",
+        severity: "info",
+        title: "Manual Score Applied",
+        message: `Lead #${metadata.payload.entityId} scored manually — set to 50 (default). Adjust in lead details.`,
+        domain: "crm",
+        entityType: "lead",
+        entityId: metadata.payload.entityId,
+        actor: "automation_engine",
+      });
+    }
+  });
+
+  registerActionExecutor("automation_create_task", async (metadata, option) => {
+    if (option === "approve") {
+      await directExecuteAction("create_task", metadata.config, metadata.payload);
+    }
+  });
+
+  registerActionExecutor("automation_set_priority", async (metadata, option) => {
+    const config = { ...metadata.config };
+    if (option.startsWith("priority_")) {
+      config.priority = option.replace("priority_", "");
+    }
+    await directExecuteAction("set_priority", config, metadata.payload);
+  });
+
+  registerActionExecutor("automation_route_lead", async (metadata, option) => {
+    const config = { ...metadata.config };
+    if (option === "route_ghl") config.destination = "ghl";
+    else if (option === "route_internal") config.destination = "internal";
+    else if (option === "route_hold") config.destination = "hold";
+    await directExecuteAction("route_lead", config, metadata.payload);
+  });
+
+  registerActionExecutor("automation_ghl_sync", async (metadata, option) => {
+    if (option === "approve") {
+      await directExecuteAction("ghl_sync", metadata.config, metadata.payload);
+    }
+  });
+
+  registerActionExecutor("automation_send_email", async (metadata, option) => {
+    if (option === "approve") {
+      await directExecuteAction("send_email", metadata.config, metadata.payload);
+    }
+  });
+
+  registerActionExecutor("automation_notification", async (metadata, option) => {
+    if (option === "approve") {
+      await directExecuteAction("notification", metadata.config, metadata.payload);
+    }
+  });
 }
 
 export async function seedDefaultRules(): Promise<void> {
@@ -254,7 +407,8 @@ export async function seedDefaultRules(): Promise<void> {
 }
 
 export function initAutomationEngine(): void {
+  registerAutomationExecutors();
   subscribe("*", processEvent);
   seedDefaultRules().catch(console.error);
-  console.log("[AutomationEngine] Initialized — listening for all events");
+  console.log("[AutomationEngine] Initialized — tri-mode aware, listening for all events");
 }

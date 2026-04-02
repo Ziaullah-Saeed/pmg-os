@@ -371,41 +371,66 @@ export async function getValidAccessToken(): Promise<string | null> {
   return config.oauth.accessToken;
 }
 
-export async function handleGHLWebhook(event: string, payload: any): Promise<{ processed: boolean }> {
+async function directProcessWebhook(event: string, ghlContact: any): Promise<void> {
+  const email = ghlContact.email;
+  if (email) {
+    const [existing] = await db.select().from(contactsTable).where(eq(contactsTable.email, email));
+    if (existing) {
+      await db.update(contactsTable).set({
+        firstName: ghlContact.firstName ?? existing.firstName,
+        lastName: ghlContact.lastName ?? existing.lastName,
+        phone: ghlContact.phone ?? existing.phone,
+      }).where(eq(contactsTable.id, existing.id));
+    } else {
+      await db.insert(contactsTable).values({
+        firstName: ghlContact.firstName ?? "Unknown",
+        lastName: ghlContact.lastName ?? "",
+        email,
+        phone: ghlContact.phone,
+        status: "active",
+      });
+    }
+  }
+
+  await logAudit({
+    eventType: "ghl_webhook_processed",
+    domain: "integration",
+    action: event.toLowerCase(),
+    description: `GHL webhook: ${event} for ${email ?? "unknown contact"}`,
+    actor: "ghl_webhook",
+    actorType: "system",
+    metadata: { ghlEvent: event, email },
+  });
+}
+
+export async function handleGHLWebhook(event: string, payload: any): Promise<{ processed: boolean; queued?: boolean }> {
   try {
     if (event === "ContactCreate" || event === "ContactUpdate") {
       const ghlContact = payload;
       const email = ghlContact.email;
-      if (email) {
-        const [existing] = await db.select().from(contactsTable).where(eq(contactsTable.email, email));
-        if (existing) {
-          await db.update(contactsTable).set({
-            firstName: ghlContact.firstName ?? existing.firstName,
-            lastName: ghlContact.lastName ?? existing.lastName,
-            phone: ghlContact.phone ?? existing.phone,
-          }).where(eq(contactsTable.id, existing.id));
-        } else {
-          await db.insert(contactsTable).values({
-            firstName: ghlContact.firstName ?? "Unknown",
-            lastName: ghlContact.lastName ?? "",
-            email,
-            phone: ghlContact.phone,
-            status: "active",
-          });
-        }
-      }
 
-      await logAudit({
-        eventType: "ghl_webhook_processed",
-        domain: "integration",
-        action: event.toLowerCase(),
-        description: `GHL webhook: ${event} for ${email ?? "unknown contact"}`,
-        actor: "ghl_webhook",
-        actorType: "system",
-        metadata: { ghlEvent: event, email },
+      const { executeOrQueue } = await import("./mode-action-service");
+      const result = await executeOrQueue({
+        actionType: "ghl_webhook_sync",
+        workflowKey: "lead_routing",
+        entityType: "contact",
+        title: `GHL Sync: ${event} — ${email ?? "unknown"}`,
+        description: `GoHighLevel ${event} webhook received for ${ghlContact.firstName ?? ""} ${ghlContact.lastName ?? ""} (${email ?? "no email"}). This will ${event === "ContactCreate" ? "create" : "update"} the contact in PMG OS.`,
+        confidence: 90,
+        options: [
+          { id: "approve", label: "Sync Contact", description: `${event === "ContactCreate" ? "Create" : "Update"} contact from GHL data`, isAiRecommended: true },
+          { id: "skip", label: "Ignore", description: "Don't sync this contact" },
+        ],
+        aiRecommendation: `Sync ${event === "ContactCreate" ? "new" : "updated"} contact from GHL`,
+        aiParts: "System receives GHL webhook, maps contact fields (name, email, phone), detects existing records by email",
+        humanParts: "Review incoming GHL contact data, confirm sync into PMG OS, approve or reject",
+        metadata: { event, ghlContact },
+        executeAction: async () => {
+          await directProcessWebhook(event, ghlContact);
+        },
       });
 
-      return { processed: true };
+      return { processed: result.executed, queued: result.queued };
     }
 
     return { processed: false };
@@ -470,4 +495,14 @@ export async function pullContactsFromGHL(limit: number = 50): Promise<{
   } catch (err: any) {
     return { imported: 0, errors: [err.message] };
   }
+}
+
+export function registerGHLExecutors(): void {
+  const { registerActionExecutor } = require("./mode-action-service");
+
+  registerActionExecutor("ghl_webhook_sync", async (metadata: any, option: string) => {
+    if (option === "approve") {
+      await directProcessWebhook(metadata.event, metadata.ghlContact);
+    }
+  });
 }

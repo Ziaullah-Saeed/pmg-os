@@ -116,6 +116,9 @@ router.get("/dashboard/command-center", async (_req, res): Promise<void> => {
       .where(eq(notificationsTable.isDismissed, false))
       .orderBy(desc(notificationsTable.createdAt)).limit(10);
 
+    const { getPendingCount } = await import("../services/mode-action-service");
+    const pendingActions = await getPendingCount();
+
     res.json({
       walletBalance: wallet.balance,
       aiMode,
@@ -123,6 +126,7 @@ router.get("/dashboard/command-center", async (_req, res): Promise<void> => {
       aiRunsToday: aiRunsToday.count,
       activitiesToday: activitiesToday.count,
       pendingTasks: pendingTasks[0].count,
+      pendingActions,
       recentAiRuns,
       recentNotifications,
     });

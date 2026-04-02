@@ -2,6 +2,7 @@ import { db, contactsTable, companiesTable, leadsTable, opportunitiesTable, acti
 import { eq, and, ne, ilike, or, sql } from "drizzle-orm";
 import { logAudit } from "./audit-service";
 import { createNotification } from "./notification-service";
+import { executeOrQueue, registerActionExecutor } from "./mode-action-service";
 
 type DuplicateMatch = {
   id: number;
@@ -123,7 +124,7 @@ export async function findCompanyDuplicates(companyId?: number): Promise<Array<{
   return results;
 }
 
-export async function mergeContacts(primaryId: number, duplicateId: number): Promise<{ success: boolean; error?: string }> {
+async function directMergeContacts(primaryId: number, duplicateId: number): Promise<{ success: boolean; error?: string }> {
   const [primary] = await db.select().from(contactsTable).where(eq(contactsTable.id, primaryId));
   const [duplicate] = await db.select().from(contactsTable).where(eq(contactsTable.id, duplicateId));
   if (!primary || !duplicate) return { success: false, error: "One or both contacts not found" };
@@ -174,7 +175,7 @@ export async function mergeContacts(primaryId: number, duplicateId: number): Pro
   return { success: true };
 }
 
-export async function mergeCompanies(primaryId: number, duplicateId: number): Promise<{ success: boolean; error?: string }> {
+async function directMergeCompanies(primaryId: number, duplicateId: number): Promise<{ success: boolean; error?: string }> {
   const [primary] = await db.select().from(companiesTable).where(eq(companiesTable.id, primaryId));
   const [duplicate] = await db.select().from(companiesTable).where(eq(companiesTable.id, duplicateId));
   if (!primary || !duplicate) return { success: false, error: "One or both companies not found" };
@@ -231,36 +232,144 @@ export async function mergeCompanies(primaryId: number, duplicateId: number): Pr
   return { success: true };
 }
 
+export async function mergeContacts(primaryId: number, duplicateId: number): Promise<{ success: boolean; error?: string; queued?: boolean; pendingActionId?: number }> {
+  const [primary] = await db.select().from(contactsTable).where(eq(contactsTable.id, primaryId));
+  const [duplicate] = await db.select().from(contactsTable).where(eq(contactsTable.id, duplicateId));
+  if (!primary || !duplicate) return { success: false, error: "One or both contacts not found" };
+
+  const result = await executeOrQueue({
+    actionType: "merge_contacts",
+    workflowKey: "lead_scoring",
+    entityType: "contact",
+    entityId: primaryId,
+    title: `Merge: ${duplicate.firstName} ${duplicate.lastName} → ${primary.firstName} ${primary.lastName}`,
+    description: `Merge contact "${duplicate.firstName} ${duplicate.lastName}" (#${duplicateId}) into "${primary.firstName} ${primary.lastName}" (#${primaryId}). All related leads, opportunities, and activities will be reassigned.`,
+    confidence: 85,
+    options: [
+      { id: "approve", label: "Merge Now", description: "Merge duplicate into primary contact", isAiRecommended: true },
+      { id: "swap", label: "Swap Primary", description: `Make #${duplicateId} the primary instead` },
+      { id: "skip", label: "Keep Both", description: "Cancel merge, keep both contacts" },
+    ],
+    aiRecommendation: `Merge #${duplicateId} into #${primaryId} — reassign all related entities`,
+    aiParts: "AI identifies duplicates by email (90%), name (60%), phone (70%) matching, determines primary record, prepares field merge strategy",
+    humanParts: "Review duplicate match, confirm which record is primary, verify fields to merge, approve or cancel merge",
+    metadata: { primaryId, duplicateId },
+    executeAction: async () => {
+      await directMergeContacts(primaryId, duplicateId);
+    },
+  });
+
+  if (result.queued) {
+    return { success: true, queued: true, pendingActionId: result.pendingActionId };
+  }
+  return { success: result.executed };
+}
+
+export async function mergeCompanies(primaryId: number, duplicateId: number): Promise<{ success: boolean; error?: string; queued?: boolean; pendingActionId?: number }> {
+  const [primary] = await db.select().from(companiesTable).where(eq(companiesTable.id, primaryId));
+  const [duplicate] = await db.select().from(companiesTable).where(eq(companiesTable.id, duplicateId));
+  if (!primary || !duplicate) return { success: false, error: "One or both companies not found" };
+
+  const result = await executeOrQueue({
+    actionType: "merge_companies",
+    workflowKey: "lead_scoring",
+    entityType: "company",
+    entityId: primaryId,
+    title: `Merge: ${duplicate.name} → ${primary.name}`,
+    description: `Merge company "${duplicate.name}" (#${duplicateId}) into "${primary.name}" (#${primaryId}). All contacts, leads, opportunities, and activities will be reassigned.`,
+    confidence: 85,
+    options: [
+      { id: "approve", label: "Merge Now", description: "Merge duplicate into primary company", isAiRecommended: true },
+      { id: "swap", label: "Swap Primary", description: `Make "${duplicate.name}" the primary` },
+      { id: "skip", label: "Keep Both", description: "Cancel merge, keep both companies" },
+    ],
+    aiRecommendation: `Merge "${duplicate.name}" into "${primary.name}"`,
+    aiParts: "AI identifies duplicates by name (85%) and website (80%) matching, determines primary record by data completeness",
+    humanParts: "Review duplicate match, confirm which company is primary, approve or cancel merge",
+    metadata: { primaryId, duplicateId },
+    executeAction: async () => {
+      await directMergeCompanies(primaryId, duplicateId);
+    },
+  });
+
+  if (result.queued) {
+    return { success: true, queued: true, pendingActionId: result.pendingActionId };
+  }
+  return { success: result.executed };
+}
+
 export async function checkDuplicatesOnCreate(entityType: "contact" | "company", entityId: number): Promise<void> {
   try {
     if (entityType === "contact") {
       const dupes = await findContactDuplicates(entityId);
       if (dupes.length > 0 && dupes[0].duplicates.length > 0) {
         const topMatch = dupes[0].duplicates[0];
-        await createNotification({
-          type: "duplicate_detected",
-          severity: "warning",
-          title: "Potential Duplicate Contact",
-          message: `Contact #${entityId} may be a duplicate of #${topMatch.id} (${topMatch.matchScore}% match: ${topMatch.matchReasons.join(", ")})`,
-          domain: "crm",
+
+        await executeOrQueue({
+          actionType: "auto_dedup_contact",
+          workflowKey: "lead_scoring",
           entityType: "contact",
           entityId,
-          actor: "dedup_service",
+          title: `Duplicate Contact Detected: #${entityId} matches #${topMatch.id}`,
+          description: `New contact #${entityId} is a potential duplicate of #${topMatch.id} (${topMatch.matchScore}% match: ${topMatch.matchReasons.join(", ")})`,
+          confidence: topMatch.matchScore,
+          options: [
+            { id: "approve", label: "Auto-Merge", description: `Merge #${entityId} into #${topMatch.id}`, isAiRecommended: topMatch.matchScore >= 90 },
+            { id: "review", label: "Review Manually", description: "Open both contacts for manual comparison" },
+            { id: "skip", label: "Keep Both", description: "Mark as not a duplicate" },
+          ],
+          aiRecommendation: topMatch.matchScore >= 90 ? `Auto-merge — high confidence (${topMatch.matchScore}%)` : `Review recommended — moderate confidence (${topMatch.matchScore}%)`,
+          aiParts: "AI scans for duplicates on creation using email, name, and phone matching algorithms",
+          humanParts: "Review match confidence, compare records side-by-side, decide to merge or keep both",
+          metadata: { entityId, duplicateId: topMatch.id, matchScore: topMatch.matchScore, matchReasons: topMatch.matchReasons },
+          executeAction: async () => {
+            await createNotification({
+              type: "duplicate_detected",
+              severity: "warning",
+              title: "Potential Duplicate Contact",
+              message: `Contact #${entityId} may be a duplicate of #${topMatch.id} (${topMatch.matchScore}% match: ${topMatch.matchReasons.join(", ")})`,
+              domain: "crm",
+              entityType: "contact",
+              entityId,
+              actor: "dedup_service",
+            });
+          },
         });
       }
     } else {
       const dupes = await findCompanyDuplicates(entityId);
       if (dupes.length > 0 && dupes[0].duplicates.length > 0) {
         const topMatch = dupes[0].duplicates[0];
-        await createNotification({
-          type: "duplicate_detected",
-          severity: "warning",
-          title: "Potential Duplicate Company",
-          message: `Company #${entityId} may be a duplicate of #${topMatch.id} (${topMatch.matchScore}% match: ${topMatch.matchReasons.join(", ")})`,
-          domain: "crm",
+
+        await executeOrQueue({
+          actionType: "auto_dedup_company",
+          workflowKey: "lead_scoring",
           entityType: "company",
           entityId,
-          actor: "dedup_service",
+          title: `Duplicate Company Detected: #${entityId} matches #${topMatch.id}`,
+          description: `New company #${entityId} is a potential duplicate of #${topMatch.id} (${topMatch.matchScore}% match: ${topMatch.matchReasons.join(", ")})`,
+          confidence: topMatch.matchScore,
+          options: [
+            { id: "approve", label: "Auto-Merge", description: `Merge #${entityId} into #${topMatch.id}`, isAiRecommended: topMatch.matchScore >= 90 },
+            { id: "review", label: "Review Manually", description: "Open both companies for manual comparison" },
+            { id: "skip", label: "Keep Both", description: "Mark as not a duplicate" },
+          ],
+          aiRecommendation: topMatch.matchScore >= 90 ? `Auto-merge — high confidence (${topMatch.matchScore}%)` : `Review recommended`,
+          aiParts: "AI scans for duplicate companies on creation using name and website matching",
+          humanParts: "Review match confidence, compare records, decide to merge or keep both",
+          metadata: { entityId, duplicateId: topMatch.id, matchScore: topMatch.matchScore, matchReasons: topMatch.matchReasons },
+          executeAction: async () => {
+            await createNotification({
+              type: "duplicate_detected",
+              severity: "warning",
+              title: "Potential Duplicate Company",
+              message: `Company #${entityId} may be a duplicate of #${topMatch.id} (${topMatch.matchScore}% match: ${topMatch.matchReasons.join(", ")})`,
+              domain: "crm",
+              entityType: "company",
+              entityId,
+              actor: "dedup_service",
+            });
+          },
         });
       }
     }
@@ -268,3 +377,35 @@ export async function checkDuplicatesOnCreate(entityType: "contact" | "company",
     console.error("[DedupService] Check failed:", err);
   }
 }
+
+function registerDedupExecutors(): void {
+  registerActionExecutor("merge_contacts", async (metadata, option) => {
+    if (option === "approve") {
+      await directMergeContacts(metadata.primaryId, metadata.duplicateId);
+    } else if (option === "swap") {
+      await directMergeContacts(metadata.duplicateId, metadata.primaryId);
+    }
+  });
+
+  registerActionExecutor("merge_companies", async (metadata, option) => {
+    if (option === "approve") {
+      await directMergeCompanies(metadata.primaryId, metadata.duplicateId);
+    } else if (option === "swap") {
+      await directMergeCompanies(metadata.duplicateId, metadata.primaryId);
+    }
+  });
+
+  registerActionExecutor("auto_dedup_contact", async (metadata, option) => {
+    if (option === "approve") {
+      await directMergeContacts(metadata.duplicateId, metadata.entityId);
+    }
+  });
+
+  registerActionExecutor("auto_dedup_company", async (metadata, option) => {
+    if (option === "approve") {
+      await directMergeCompanies(metadata.duplicateId, metadata.entityId);
+    }
+  });
+}
+
+export { registerDedupExecutors };

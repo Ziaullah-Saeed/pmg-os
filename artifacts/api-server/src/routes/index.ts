@@ -42,6 +42,7 @@ import recordModeRouter from "./record-mode";
 import schedulerRouter from "./scheduler";
 import eventBusRouter from "./event-bus";
 import sequenceEnrollmentsRouter from "./sequence-enrollments";
+import pendingActionsRouter from "./pending-actions";
 
 const router: IRouter = Router();
 
@@ -112,5 +113,6 @@ router.use(recordModeRouter);
 router.use("/scheduler", schedulerRouter);
 router.use("/event-bus", eventBusRouter);
 router.use("/sequence-enrollments", sequenceEnrollmentsRouter);
+router.use(pendingActionsRouter);
 
 export default router;

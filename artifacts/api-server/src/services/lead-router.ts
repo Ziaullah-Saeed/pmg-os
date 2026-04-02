@@ -4,6 +4,7 @@ import { subscribe, emit } from "./event-bus";
 import { pushLeadToGHL, getGHLConfig } from "./ghl-service";
 import { createNotification } from "./notification-service";
 import { logAudit } from "./audit-service";
+import { executeOrQueue, registerActionExecutor } from "./mode-action-service";
 
 const ROUTING_RULES = {
   HOT: { threshold: 80, destination: "both" as const, autoAssign: true },
@@ -35,19 +36,12 @@ async function findLeadAssignee(domain: string = "crm"): Promise<string | null> 
   return candidates[idx].name;
 }
 
-async function autoRouteOnScore(_event: string, payload: any): Promise<void> {
-  if (payload.entityType !== "lead" || !payload.entityId) return;
-
-  const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, payload.entityId));
+async function directRouteLead(leadId: number, destination: string, assignee: string | null): Promise<void> {
+  const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, leadId));
   if (!lead) return;
 
-  if (lead.status === "routed" || lead.status === "active" || lead.status === "closed_won" || lead.status === "closed_lost") return;
-
-  const tier = getScoreTier(lead.fitScore);
-  const rule = ROUTING_RULES[tier];
-
   let ghlResult = null;
-  if (rule.destination === "both" || rule.destination === "ghl") {
+  if (destination === "both" || destination === "ghl") {
     const config = await getGHLConfig();
     if (config?.apiKey) {
       ghlResult = await pushLeadToGHL({
@@ -59,31 +53,28 @@ async function autoRouteOnScore(_event: string, payload: any): Promise<void> {
     }
   }
 
-  let assignee = lead.assignedTo;
-  if (rule.autoAssign && !assignee) {
-    assignee = await findLeadAssignee();
-  }
-
-  const newStatus = rule.destination === "hold" ? "hold" : "routed";
+  const newStatus = destination === "hold" ? "hold" : "routed";
   await db.update(leadsTable).set({
     status: newStatus,
-    assignedTo: assignee,
+    assignedTo: assignee ?? lead.assignedTo,
   }).where(eq(leadsTable.id, lead.id));
+
+  const tier = getScoreTier(lead.fitScore);
 
   await db.insert(activitiesTable).values({
     action: "lead_auto_routed",
-    description: `Auto-routed: ${tier} lead → ${rule.destination}${assignee ? ` (assigned to ${assignee})` : ""}`,
+    description: `Auto-routed: ${tier} lead → ${destination}${assignee ? ` (assigned to ${assignee})` : ""}`,
     entityType: "lead",
     entityId: lead.id,
     performedBy: "lead_router",
-    metadata: JSON.stringify({ tier, destination: rule.destination, score: lead.fitScore, assignee, ghlResult }),
+    metadata: JSON.stringify({ tier, destination, score: lead.fitScore, assignee, ghlResult }),
   });
 
   await createNotification({
     type: "lead_routed",
     severity: tier === "HOT" ? "warning" : "info",
     title: `${tier} Lead Routed`,
-    message: `Lead #${lead.id} (score: ${lead.fitScore}) auto-routed to ${rule.destination}${assignee ? ` — assigned to ${assignee}` : ""}`,
+    message: `Lead #${lead.id} (score: ${lead.fitScore}) routed to ${destination}${assignee ? ` — assigned to ${assignee}` : ""}`,
     domain: "crm",
     entityType: "lead",
     entityId: lead.id,
@@ -96,25 +87,82 @@ async function autoRouteOnScore(_event: string, payload: any): Promise<void> {
     domain: "crm",
     actor: "lead_router",
     actorType: "system",
-    data: { tier, destination: rule.destination, score: lead.fitScore, assignee },
+    data: { tier, destination, score: lead.fitScore, assignee },
   });
 
   await logAudit({
     eventType: "lead_auto_routed",
     domain: "crm",
     action: `lead_routed_${tier.toLowerCase()}`,
-    description: `Lead #${lead.id} auto-routed as ${tier} to ${rule.destination}`,
+    description: `Lead #${lead.id} routed as ${tier} to ${destination}`,
     entityType: "lead",
     entityId: lead.id,
     actor: "lead_router",
     actorType: "system",
-    metadata: { tier, score: lead.fitScore, destination: rule.destination },
+    metadata: { tier, score: lead.fitScore, destination },
+  });
+}
+
+async function autoRouteOnScore(_event: string, payload: any): Promise<void> {
+  if (payload.entityType !== "lead" || !payload.entityId) return;
+
+  const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, payload.entityId));
+  if (!lead) return;
+
+  if (lead.status === "routed" || lead.status === "active" || lead.status === "closed_won" || lead.status === "closed_lost") return;
+
+  const tier = getScoreTier(lead.fitScore);
+  const rule = ROUTING_RULES[tier];
+  const suggestedAssignee = rule.autoAssign && !lead.assignedTo ? await findLeadAssignee() : lead.assignedTo;
+
+  const result = await executeOrQueue({
+    actionType: "lead_routing",
+    workflowKey: "lead_routing",
+    entityType: "lead",
+    entityId: lead.id,
+    title: `Route ${tier} Lead #${lead.id}`,
+    description: `Lead #${lead.id} scored ${lead.fitScore} (${tier}). Recommended destination: ${rule.destination}${suggestedAssignee ? `, assign to ${suggestedAssignee}` : ""}`,
+    confidence: lead.fitScore ? Math.min(lead.fitScore + 10, 95) : 50,
+    options: [
+      { id: "approve", label: `Route to ${rule.destination}${suggestedAssignee ? ` → ${suggestedAssignee}` : ""}`, description: "Accept AI routing recommendation", isAiRecommended: true },
+      { id: "route_ghl", label: "Route to GoHighLevel", description: "Send lead to GHL CRM only" },
+      { id: "route_internal", label: "Route Internally", description: "Keep lead internal, assign to team" },
+      { id: "route_hold", label: "Hold", description: "Place on hold for further review" },
+      { id: "skip", label: "Skip Routing", description: "Don't route this lead now" },
+    ],
+    aiRecommendation: `Route ${tier} lead to ${rule.destination}${suggestedAssignee ? `, assign to ${suggestedAssignee}` : ""}`,
+    aiParts: "AI scores lead (0-100), determines tier (HOT/WARM/COLD), selects routing destination based on score thresholds, picks assignee via round-robin",
+    humanParts: "Review lead score and tier, confirm or override routing destination, select assignee, approve or hold lead",
+    metadata: { leadId: lead.id, score: lead.fitScore, tier, suggestedDestination: rule.destination, suggestedAssignee },
+    executeAction: async () => {
+      await directRouteLead(lead.id, rule.destination, suggestedAssignee);
+    },
+  });
+
+  if (result.queued) {
+    console.log(`[LeadRouter] Lead #${lead.id} routing queued for ${result.mode} review`);
+  }
+}
+
+function registerLeadRoutingExecutors(): void {
+  registerActionExecutor("lead_routing", async (metadata, option) => {
+    const { leadId, suggestedAssignee } = metadata;
+    if (option === "approve") {
+      await directRouteLead(leadId, metadata.suggestedDestination, suggestedAssignee);
+    } else if (option === "route_ghl") {
+      await directRouteLead(leadId, "ghl", suggestedAssignee);
+    } else if (option === "route_internal") {
+      await directRouteLead(leadId, "internal", suggestedAssignee);
+    } else if (option === "route_hold") {
+      await directRouteLead(leadId, "hold", null);
+    }
   });
 }
 
 export function initLeadRouter(): void {
+  registerLeadRoutingExecutors();
   subscribe("lead.scored", autoRouteOnScore);
-  console.log("[LeadRouter] Initialized — auto-routing leads on score");
+  console.log("[LeadRouter] Initialized — tri-mode lead routing");
 }
 
 export { getScoreTier, findLeadAssignee, ROUTING_RULES };
