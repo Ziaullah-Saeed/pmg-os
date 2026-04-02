@@ -653,6 +653,95 @@ export function useRunAgent() {
   });
 }
 
+export function useFullAgents() {
+  return useQuery({
+    queryKey: ["agents", "full"],
+    queryFn: () => apiFetch<any[]>("/agents/full"),
+    refetchInterval: 15000,
+  });
+}
+
+export function useEnhancedAgents() {
+  return useQuery({
+    queryKey: ["agents", "enhanced"],
+    queryFn: () => apiFetch<any[]>("/agents/enhanced"),
+  });
+}
+
+export function useAgentProfile(id: string) {
+  return useQuery({
+    queryKey: ["agents", "profile", id],
+    queryFn: () => apiFetch<any>(`/agents/${id}/full`),
+    enabled: !!id,
+  });
+}
+
+export function useOrchestrationStats() {
+  return useQuery({
+    queryKey: ["orchestration", "stats"],
+    queryFn: () => apiFetch<any>("/agents/orchestration/stats"),
+    refetchInterval: 10000,
+  });
+}
+
+export function useOrchestrationActive() {
+  return useQuery({
+    queryKey: ["orchestration", "active"],
+    queryFn: () => apiFetch<any[]>("/agents/orchestration/active"),
+    refetchInterval: 5000,
+  });
+}
+
+export function useOrchestrationCompleted(limit = 50) {
+  return useQuery({
+    queryKey: ["orchestration", "completed", limit],
+    queryFn: () => apiFetch<any[]>(`/agents/orchestration/completed?limit=${limit}`),
+    refetchInterval: 10000,
+  });
+}
+
+export function useSelectProvider() {
+  return useMutation({
+    mutationFn: (data: { taskType: string; domain: string; preferences?: any }) =>
+      apiFetch<any[]>("/agents/orchestration/select-provider", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  });
+}
+
+export function useOrchestrateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { agentId: string; taskType: string; input?: any; priority?: string; preferences?: any }) =>
+      apiFetch<any>("/agents/orchestration/execute", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["orchestration"] });
+      qc.invalidateQueries({ queryKey: ["agents"] });
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+    },
+  });
+}
+
+export function useExecuteAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input?: any }) =>
+      apiFetch<any>(`/agents/${id}/execute`, {
+        method: "POST",
+        body: JSON.stringify({ input: input ?? {} }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agents"] });
+      qc.invalidateQueries({ queryKey: ["orchestration"] });
+      qc.invalidateQueries({ queryKey: ["wallet"] });
+    },
+  });
+}
+
 export function useNotes(entityType?: string, entityId?: string) {
   const params = entityType && entityId ? `?entityType=${entityType}&entityId=${entityId}` : "";
   return useQuery({

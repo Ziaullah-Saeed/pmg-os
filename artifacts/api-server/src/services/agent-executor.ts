@@ -1,11 +1,12 @@
 import { db, aiRunsTable, activitiesTable } from "@workspace/db";
 import { chargeWallet } from "./wallet-service";
-import { getAllAgents, updateAgentStatus, recordAgentRun, getAgent, type AgentDefinition } from "./agent-registry";
+import { getAllAgents, updateAgentStatus, recordAgentRun, getAgent, getEnhancedAgent, type AgentDefinition } from "./agent-registry";
 import { getGlobalMode } from "./ai-mode-service";
 import { executeChain, getTool, type ToolDefinition } from "./tool-chain-service";
 import { classifyConfidence } from "./confidence-handoff-service";
 import { createNotification } from "./notification-service";
 import { broadcast } from "./websocket-service";
+import { orchestrate } from "./orchestration-engine";
 
 const AGENT_TOOL_MAP: Record<string, { tools: string[]; chains?: string[]; runType: string; domain: string }> = {
   "lead-enrich": { tools: ["enrich_lead"], chains: ["lead_qualification"], runType: "enrichment", domain: "outreach" },
@@ -86,94 +87,49 @@ export async function executeAgent(agentId: string, input?: Record<string, any>)
   }
 
   const mapping = AGENT_TOOL_MAP[agentId];
-  if (!mapping) {
-    return executeSimulatedAgent(agent, mapping?.runType ?? "generic", mapping?.domain ?? agent.domain);
+  const enhanced = getEnhancedAgent(agentId);
+
+  if (!mapping && !enhanced) {
+    return executeSimulatedAgent(agent, "generic", agent.domain);
   }
+
+  const runType = mapping?.runType ?? "orchestrated";
+  const domain = mapping?.domain ?? agent.domain;
 
   updateAgentStatus(agentId, "running");
   const startTime = Date.now();
 
   try {
-    const chargeResult = await chargeWallet({
-      tool: `agent-${agentId}`,
-      domain: mapping.domain,
-      action: mapping.runType,
-      description: `${agent.name}: executing ${mapping.runType}`,
+    const orchResult = await orchestrate({
+      agentId,
+      taskType: runType,
+      input: input ?? {},
+      preferences: {},
     });
-
-    let output: any;
-    let confidence = 75;
-
-    if (mapping.chains && mapping.chains.length > 0) {
-      const chainResult = await executeChain(mapping.chains[0], input ?? {}, {
-        workflowKey: mapping.domain,
-        triModeAware: mode === "hybrid",
-      });
-      output = chainResult.finalOutput;
-      confidence = chainResult.success ? 80 : 40;
-    } else if (mapping.tools.length > 0) {
-      const tool = getTool(mapping.tools[0]);
-      if (tool) {
-        output = await tool.execute(input ?? {});
-        confidence = output?.confidence ?? 75;
-      } else {
-        return executeSimulatedAgent(agent, mapping.runType, mapping.domain);
-      }
-    }
 
     const durationMs = Date.now() - startTime;
-    const handoff = classifyConfidence(confidence);
-
-    await db.insert(aiRunsTable).values({
-      runType: mapping.runType,
-      domain: mapping.domain,
-      model: MODEL_LABEL,
-      prompt: `Agent ${agent.name} executed ${mapping.runType}`,
-      output: typeof output === "string" ? output.slice(0, 2000) : JSON.stringify(output).slice(0, 2000),
-      status: "completed",
-      confidenceScore: confidence,
-      tokensUsed: typeof output === "string" ? output.length : JSON.stringify(output).length,
-      costEstimate: (chargeResult as any)?.charged ?? 0,
-      durationMs,
-      reviewRequired: handoff.requiresHuman ? "yes" : "no",
-    });
-
-    await db.insert(activitiesTable).values({
-      entityType: "agent",
-      action: `${agent.name} — ${mapping.runType}`,
-      description: `Real execution: ${mapping.runType} completed (confidence: ${confidence}%, tier: ${handoff.tier})`,
-      performedBy: agent.name,
-      metadata: JSON.stringify({ agentId, domain: mapping.domain, confidence, handoffTier: handoff.tier, real: true }),
-    });
-
-    recordAgentRun(agentId, durationMs, true);
-
-    if (handoff.tier === "LOW") {
-      await createNotification({
-        type: "agent_low_confidence",
-        severity: "warning",
-        title: `${agent.name}: Low Confidence Result`,
-        message: `${mapping.runType} returned ${confidence}% confidence — human review needed`,
-        domain: mapping.domain,
-        actor: agent.name,
-      });
-    }
+    const handoff = classifyConfidence(orchResult.confidence);
 
     broadcast("agent_execution", {
       agentId,
       agentName: agent.name,
-      runType: mapping.runType,
-      confidence,
+      runType,
+      confidence: orchResult.confidence,
       handoffTier: handoff.tier,
       durationMs,
+      provider: orchResult.provider,
+      fallbacksUsed: orchResult.fallbacksUsed,
+      orchestrated: true,
     });
 
     return {
       success: true,
-      output,
-      confidence,
+      output: orchResult.output,
+      confidence: orchResult.confidence,
       handoffTier: handoff.tier,
       durationMs,
+      provider: orchResult.provider,
+      fallbacksUsed: orchResult.fallbacksUsed,
     };
   } catch (err: any) {
     const durationMs = Date.now() - startTime;
@@ -182,10 +138,10 @@ export async function executeAgent(agentId: string, input?: Record<string, any>)
 
     await db.insert(activitiesTable).values({
       entityType: "agent",
-      action: `${agent.name} — ${mapping.runType} (failed)`,
-      description: `Execution failed: ${err.message}`,
+      action: `${agent.name} — ${runType} (failed)`,
+      description: `Orchestrated execution failed: ${err.message}`,
       performedBy: agent.name,
-      metadata: JSON.stringify({ agentId, domain: mapping.domain, error: err.message, real: true }),
+      metadata: JSON.stringify({ agentId, domain, error: err.message, orchestrated: true }),
     });
 
     return { success: false, durationMs, error: err.message };

@@ -142,3 +142,51 @@ Phase 5 transforms Production into a true AI creative studio with intelligent mu
 - Audit logs include provider attribution
 - WebSocket broadcasts include creativeProvider field
 - Archive/restore with full audit trail and notifications
+
+## Phase 6: Tool Orchestration + Agent System (Completed)
+
+Phase 6 makes agents real with an orchestration engine, provider selection/fallback, execution pipeline, result processing, and audit/archive.
+
+**Orchestration Engine (`orchestration-engine.ts`):**
+- 8-step pipeline: provider_selection → wallet_charge → execution → result_processing → confidence_check → archive → audit_log → reporting
+- Dynamic provider scoring based on task type, domain match, and preferences
+- Fallback chains: if primary provider fails, tries alternatives automatically
+- Wallet integration: charges per-run based on provider cost
+- Result processing with output validation against agent's `outputStructure`
+- Confidence classification (auto_approve, human_review, escalate tiers)
+- Full audit logging to `audit_events` and `ai_runs` tables
+- WebSocket broadcast events for orchestration start/complete/fail
+- Active task tracking and completed task history
+
+**Enhanced Agent Registry (`agent-registry.ts`):**
+- All 112 agents have full `EnhancedAgentDefinition`: purpose, trigger (event/schedule/manual/threshold/chain), domain, toolAccess, confidenceModel (minConfidence, escalateBelow, autoApproveAbove, method), outputStructure (format, requiredFields), walletBehavior (maxChargePerRun, budgetPool, chargeOnFailure), fallbackBehavior (strategy, maxRetries), archiveBehavior (autoArchive, retentionDays, archiveCategory)
+- `getFullAgentProfile(id)` and `getAllFullAgentProfiles()` combine base + enhanced definitions
+
+**Agent Executor (`agent-executor.ts`):**
+- Calls `orchestrate()` instead of direct tool execution for all mapped agents
+- Dynamic provider selection via orchestration engine
+
+**New API Endpoints (`agents.ts`):**
+- `GET /agents/full` — all agents with full profiles (base + enhanced)
+- `GET /agents/enhanced` — all enhanced definitions
+- `GET /agents/:id/full` — single agent full profile
+- `GET /agents/:id/enhanced` — single enhanced definition
+- `GET /agents/orchestration/stats` — orchestration statistics (active, completed, failed, avgConfidence, totalCost, providerUsage, domainUsage)
+- `GET /agents/orchestration/active` — currently running orchestration tasks
+- `GET /agents/orchestration/completed?limit=N` — completed orchestration history
+- `GET /agents/orchestration/task/:id` — specific task details
+- `POST /agents/orchestration/select-provider` — provider selection with scoring
+- `POST /agents/orchestration/execute` — trigger orchestrated agent execution
+
+**Frontend Hooks (9 new in `use-api.ts`):**
+- `useFullAgents`, `useEnhancedAgents`, `useFullAgent(id)`, `useEnhancedAgent(id)`
+- `useOrchestrationStats`, `useOrchestrationActive`, `useOrchestrationCompleted(limit)`
+- `useExecuteAgent`, `useSelectProvider`
+
+**Agents Orchestration Page (`/agents`):**
+- 4-tab layout: Agent Overview, Orchestration, Domain View, Execution Log
+- Agent Overview: filterable agent grid (by domain), detail panel with trigger/tool access/confidence model/wallet/fallback/archive/output, execute/pause controls, domain distribution sidebar
+- Orchestration: pipeline KPIs, active task tracker with step visualization, 8-step pipeline architecture diagram, provider usage grid
+- Domain View: 11 domain cards with agent counts, running/paused status, success rates
+- Execution Log: chronological completed/failed executions with confidence/provider/duration/cost
+- Sidebar navigation: "Agent Orchestration" link with Cpu icon

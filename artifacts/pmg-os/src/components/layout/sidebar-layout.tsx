@@ -21,6 +21,7 @@ import {
   Workflow,
   User,
   ArrowLeftRight,
+  Cpu,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ const navItems = [
   { href: "/automation", label: "Automation", icon: Workflow, domain: "automation" },
   { href: "/quality", label: "Quality", icon: ShieldCheck, domain: "quality" },
   { href: "/admin", label: "Administrative", icon: BookOpen, domain: "admin" },
+  { href: "/agents", label: "Agent Orchestration", icon: Cpu, domain: "agents" },
   { href: "/system", label: "System", icon: Settings, domain: "system" },
 ];
 
