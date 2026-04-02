@@ -1141,4 +1141,86 @@ export function useChannelHealth() {
   });
 }
 
+export function useCreativeProviders() {
+  return useQuery({
+    queryKey: ["creative-providers"],
+    queryFn: () => apiFetch<{ providers: any[]; total: number; categories: string[] }>("/ai/production/creative-providers"),
+    staleTime: 60000,
+  });
+}
+
+export function useCreativeProvidersByAssetType(assetType: string) {
+  return useQuery({
+    queryKey: ["creative-providers", "asset-type", assetType],
+    queryFn: () => apiFetch<{ providers: any[]; total: number }>(`/ai/production/creative-providers/asset-type/${assetType}`),
+    enabled: !!assetType,
+    staleTime: 60000,
+  });
+}
+
+export function useCreativeRoute() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { assetType: string; qualityPreference?: string; speedPreference?: string; budgetSensitive?: boolean; specificProvider?: string; needsAudio?: boolean; needsEditing?: boolean }) =>
+      apiFetch<any>("/ai/production/creative-route", { method: "POST", body: JSON.stringify(data), headers: { "Content-Type": "application/json" } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["creative-route"] }),
+  });
+}
+
+export function useAICreativeRoute() {
+  return useMutation({
+    mutationFn: (data: { assetType: string; prompt: string; brandContext?: string }) =>
+      apiFetch<any>("/ai/production/ai-route", { method: "POST", body: JSON.stringify(data), headers: { "Content-Type": "application/json" } }),
+  });
+}
+
+export function useGenerateAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { type: string; title: string; prompt: string; category?: string; domain?: string; campaignId?: number; brandKitId?: number; aspectRatio?: string; durationSeconds?: number; providerId?: string; qualityPreference?: string; speedPreference?: string }) =>
+      apiFetch<any>("/ai/production/generate", { method: "POST", body: JSON.stringify(data), headers: { "Content-Type": "application/json" } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["documents"] }); qc.invalidateQueries({ queryKey: ["assets"] }); },
+  });
+}
+
+export function useArchiveAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (assetId: number) =>
+      apiFetch<any>(`/ai/production/${assetId}/archive`, { method: "POST", headers: { "Content-Type": "application/json" } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["documents"] }); qc.invalidateQueries({ queryKey: ["archived-assets"] }); },
+  });
+}
+
+export function useArchivedAssets() {
+  return useQuery({
+    queryKey: ["archived-assets"],
+    queryFn: () => apiFetch<{ assets: any[]; total: number }>("/ai/production/archive"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useRestoreAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (assetId: number) =>
+      apiFetch<any>(`/ai/production/${assetId}/restore`, { method: "POST", headers: { "Content-Type": "application/json" } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["documents"] }); qc.invalidateQueries({ queryKey: ["archived-assets"] }); },
+  });
+}
+
+export function useAIReviewAsset() {
+  return useMutation({
+    mutationFn: (assetId: number) =>
+      apiFetch<any>(`/ai/production/${assetId}/ai-review`, { method: "POST", headers: { "Content-Type": "application/json" } }),
+  });
+}
+
+export function useDesignBrief() {
+  return useMutation({
+    mutationFn: (data: { type: string; objective: string; targetAudience?: string; keyMessages?: string[]; references?: string[] }) =>
+      apiFetch<any>("/ai/production/design-brief", { method: "POST", body: JSON.stringify(data), headers: { "Content-Type": "application/json" } }),
+  });
+}
+
 export { apiFetch };

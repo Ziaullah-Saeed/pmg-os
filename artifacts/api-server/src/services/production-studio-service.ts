@@ -8,6 +8,11 @@ import { emit } from "./event-bus";
 import { validateTransition } from "./state-machine";
 import { transitionApproval } from "./approval-engine";
 
+import {
+  CREATIVE_PROVIDERS, routeCreativeTask, getProviderById, getProvidersForAssetType,
+  getAIRoutingRecommendation, type CreativeProvider, type RoutingRecommendation
+} from "./creative-providers";
+
 export type AssetType = "image" | "video" | "social_post" | "email_template" | "landing_page" | "proposal" | "deck" | "script" | "banner" | "logo" | "infographic" | "whitepaper" | "case_study" | "blog_post";
 export type MediaProvider = "replit_image" | "replit_video" | "ai_text" | "template_engine";
 
@@ -98,8 +103,18 @@ export async function generateAsset(params: {
   aspectRatio?: string;
   durationSeconds?: number;
   actor?: string;
-}): Promise<{ asset: Asset; provider: MediaProvider; generationResult: any }> {
+  providerId?: string;
+  qualityPreference?: string;
+  speedPreference?: string;
+}): Promise<{ asset: Asset; provider: MediaProvider; generationResult: any; routing: RoutingRecommendation }> {
   const route = routeCreativeRequest(params.type);
+
+  const routing = routeCreativeTask(params.type, {
+    specificProvider: params.providerId,
+    qualityPreference: (params.qualityPreference as any) ?? undefined,
+    speedPreference: (params.speedPreference as any) ?? undefined,
+    needsAudio: params.type === "video" || params.type === "script",
+  });
   let brandKit: BrandKit | null = null;
   if (params.brandKitId) {
     brandKit = await getBrandKit(params.brandKitId);
@@ -144,10 +159,20 @@ export async function generateAsset(params: {
     generatedByAi: "yes",
     metadata: {
       provider: route.provider,
+      creativeProvider: routing.primary.id,
+      creativeProviderName: routing.primary.name,
       brandKitId: brandKit?.id,
       prompt: params.prompt,
       aspectRatio: params.aspectRatio,
       route: route.description,
+      routing: {
+        primaryProvider: routing.primary.id,
+        reason: routing.reason,
+        estimatedCredits: routing.estimatedCredits,
+        estimatedTime: routing.estimatedTime,
+        pipeline: routing.pipeline.map(s => ({ step: s.step, provider: s.provider.id, action: s.action })),
+        alternatives: routing.alternatives.map(a => a.id),
+      },
     },
   }).returning();
 
@@ -155,7 +180,7 @@ export async function generateAsset(params: {
     eventType: "asset_generated",
     domain: "production",
     action: "generate_asset",
-    description: `Generated ${params.type} asset "${params.title}" via ${route.provider}`,
+    description: `Generated ${params.type} asset "${params.title}" via ${routing.primary.name} (${route.provider})`,
     entityType: "asset",
     entityId: asset.id,
     actor: params.actor ?? "ai_system",
@@ -174,7 +199,7 @@ export async function generateAsset(params: {
     actor: params.actor ?? "ai_system",
   });
 
-  broadcast("asset_generated", { assetId: asset.id, type: params.type, title: params.title, provider: route.provider });
+  broadcast("asset_generated", { assetId: asset.id, type: params.type, title: params.title, provider: route.provider, creativeProvider: routing.primary.id });
 
   await emit("asset.generated", {
     entityType: "asset",
@@ -182,11 +207,80 @@ export async function generateAsset(params: {
     domain: "production",
     actor: params.actor ?? "ai_system",
     actorType: "ai",
-    data: { type: params.type, provider: route.provider, title: params.title },
+    data: { type: params.type, provider: route.provider, creativeProvider: routing.primary.id, title: params.title },
   });
 
-  return { asset, provider: route.provider, generationResult };
+  return { asset, provider: route.provider, generationResult, routing };
 }
+
+export async function archiveAsset(assetId: number, actor: string): Promise<Asset | null> {
+  const [asset] = await db.select().from(assetsTable).where(eq(assetsTable.id, assetId));
+  if (!asset) return null;
+
+  const [updated] = await db.update(assetsTable).set({
+    status: "archived",
+    lifecycleStage: "archived",
+    metadata: { ...(asset.metadata as any ?? {}), archivedAt: new Date().toISOString(), archivedBy: actor },
+  }).where(eq(assetsTable.id, assetId)).returning();
+
+  await logAudit({
+    eventType: "asset_archived",
+    domain: "production",
+    action: "archive_asset",
+    description: `Asset "${asset.title}" archived by ${actor}`,
+    entityType: "asset",
+    entityId: assetId,
+    actor,
+    actorType: "human",
+  });
+
+  await createNotification({
+    type: "asset_archived",
+    severity: "info",
+    title: `Asset Archived: ${asset.title}`,
+    message: `${asset.type} asset moved to archive`,
+    domain: "production",
+    entityType: "asset",
+    entityId: assetId,
+    actor,
+  });
+
+  broadcast("asset_archived", { assetId, title: asset.title });
+
+  return updated;
+}
+
+export async function getArchivedAssets(): Promise<Asset[]> {
+  return db.select().from(assetsTable)
+    .where(eq(assetsTable.status, "archived"))
+    .orderBy(desc(assetsTable.updatedAt));
+}
+
+export async function restoreAsset(assetId: number, actor: string): Promise<Asset | null> {
+  const [asset] = await db.select().from(assetsTable).where(eq(assetsTable.id, assetId));
+  if (!asset) return null;
+
+  const [updated] = await db.update(assetsTable).set({
+    status: "published",
+    lifecycleStage: "finalized",
+    metadata: { ...(asset.metadata as any ?? {}), restoredAt: new Date().toISOString(), restoredBy: actor },
+  }).where(eq(assetsTable.id, assetId)).returning();
+
+  await logAudit({
+    eventType: "asset_restored",
+    domain: "production",
+    action: "restore_asset",
+    description: `Asset "${asset.title}" restored from archive by ${actor}`,
+    entityType: "asset",
+    entityId: assetId,
+    actor,
+    actorType: "human",
+  });
+
+  return updated;
+}
+
+export { CREATIVE_PROVIDERS, routeCreativeTask, getProviderById, getProvidersForAssetType, getAIRoutingRecommendation };
 
 async function generateImage(prompt: string, brandContext: string, title: string, aspectRatio?: string): Promise<{ filePath: string; description: string }> {
   const enhancedPrompt = `${prompt}\n\nBrand context for visual consistency:\n${brandContext}\n\nEnsure the image reflects the brand's color palette and professional cybersecurity aesthetic.`;

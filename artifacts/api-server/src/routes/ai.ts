@@ -13,6 +13,8 @@ import {
   submitForReview, reviewAsset, finalizeAsset,
   createAssetVersion, regenerateAssetVersion, getVersionHistory,
   getDefaultBrandKit,
+  archiveAsset, getArchivedAssets, restoreAsset,
+  CREATIVE_PROVIDERS, routeCreativeTask, getProviderById, getProvidersForAssetType, getAIRoutingRecommendation,
 } from "../services/production-studio-service";
 import {
   transitionInvoice, recordPayment, checkOverdueInvoices,
@@ -339,11 +341,16 @@ router.get("/bookings/upcoming", async (req, res) => {
 
 router.post("/production/generate", async (req, res) => {
   try {
-    const { type, title, prompt, category, domain, campaignId, brandKitId, aspectRatio, durationSeconds } = req.body;
+    const { type, title, prompt, category, domain, campaignId, brandKitId, aspectRatio, durationSeconds, providerId, qualityPreference, speedPreference } = req.body;
     if (!type || !title || !prompt) { res.status(400).json({ error: "type, title, and prompt required" }); return; }
+    const qualityNorm: Record<string, string> = { premium: "studio", professional: "professional", standard: "standard", draft: "draft", studio: "studio" };
+    const speedNorm: Record<string, string> = { instant: "realtime", fast: "fast", medium: "standard", slow: "slow", realtime: "realtime", standard: "standard" };
     const actor = (req as any).session?.user?.email ?? "system";
-    const result = await generateAsset({ type, title, prompt, category, domain, campaignId, brandKitId, aspectRatio, durationSeconds, actor });
-    res.json({ assetId: result.asset.id, asset: result.asset, provider: result.provider, generationResult: result.generationResult });
+    const result = await generateAsset({ type, title, prompt, category, domain, campaignId, brandKitId, aspectRatio, durationSeconds, actor, providerId, qualityPreference: qualityNorm[qualityPreference] ?? qualityPreference, speedPreference: speedNorm[speedPreference] ?? speedPreference });
+    res.json({
+      assetId: result.asset.id, asset: result.asset, provider: result.provider, generationResult: result.generationResult,
+      routing: { primary: result.routing.primary.id, primaryName: result.routing.primary.name, reason: result.routing.reason, estimatedCredits: result.routing.estimatedCredits, estimatedTime: result.routing.estimatedTime, pipeline: result.routing.pipeline.map(s => ({ step: s.step, provider: s.provider.id, providerName: s.provider.name, action: s.action })), alternatives: result.routing.alternatives.map(a => ({ id: a.id, name: a.name })) },
+    });
   } catch (err: any) {
     handleAIError(err, res);
   }
@@ -477,6 +484,91 @@ router.get("/production/route/:type", async (req, res) => {
 router.get("/production/brand-kit", async (_req, res) => {
   const kit = await getDefaultBrandKit();
   res.json(kit ?? { message: "No brand kit configured" });
+});
+
+router.get("/production/creative-providers", async (_req, res) => {
+  res.json({
+    providers: CREATIVE_PROVIDERS,
+    total: CREATIVE_PROVIDERS.length,
+    categories: [...new Set(CREATIVE_PROVIDERS.map(p => p.category))],
+  });
+});
+
+router.get("/production/creative-providers/:id", async (req, res) => {
+  const provider = getProviderById(req.params.id);
+  if (!provider) { res.status(404).json({ error: "Provider not found" }); return; }
+  res.json(provider);
+});
+
+router.get("/production/creative-providers/category/:category", async (req, res) => {
+  const providers = CREATIVE_PROVIDERS.filter(p => p.category === req.params.category && p.status === "active");
+  res.json({ providers, total: providers.length });
+});
+
+router.get("/production/creative-providers/asset-type/:assetType", async (req, res) => {
+  const providers = getProvidersForAssetType(req.params.assetType);
+  res.json({ providers, total: providers.length });
+});
+
+router.post("/production/creative-route", async (req, res) => {
+  try {
+    const { assetType, qualityPreference, speedPreference, budgetSensitive, specificProvider, needsAudio, needsEditing } = req.body;
+    if (!assetType) { res.status(400).json({ error: "assetType required" }); return; }
+    const qualityNorm: Record<string, string> = { premium: "studio", professional: "professional", standard: "standard", draft: "draft", studio: "studio" };
+    const speedNorm: Record<string, string> = { instant: "realtime", fast: "fast", medium: "standard", slow: "slow", realtime: "realtime", standard: "standard" };
+    const recommendation = routeCreativeTask(assetType, {
+      qualityPreference: (qualityNorm[qualityPreference] ?? qualityPreference) as any,
+      speedPreference: (speedNorm[speedPreference] ?? speedPreference) as any,
+      budgetSensitive, specificProvider, needsAudio, needsEditing,
+    });
+    res.json({
+      primary: { id: recommendation.primary.id, name: recommendation.primary.name, icon: recommendation.primary.icon, category: recommendation.primary.category, qualityTier: recommendation.primary.qualityTier, speedTier: recommendation.primary.speedTier, costPerCredit: recommendation.primary.costPerCredit, description: recommendation.primary.description },
+      alternatives: recommendation.alternatives.map(a => ({ id: a.id, name: a.name, icon: a.icon, category: a.category, qualityTier: a.qualityTier, costPerCredit: a.costPerCredit })),
+      reason: recommendation.reason,
+      estimatedCredits: recommendation.estimatedCredits,
+      estimatedTime: recommendation.estimatedTime,
+      pipeline: recommendation.pipeline.map(s => ({ step: s.step, providerId: s.provider.id, providerName: s.provider.name, providerIcon: s.provider.icon, action: s.action, outputType: s.outputType })),
+    });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+router.post("/production/ai-route", async (req, res) => {
+  try {
+    const { assetType, prompt, brandContext } = req.body;
+    if (!assetType || !prompt) { res.status(400).json({ error: "assetType and prompt required" }); return; }
+    const recommendation = await getAIRoutingRecommendation(assetType, prompt, brandContext);
+    const provider = getProviderById(recommendation.providerId);
+    res.json({ ...recommendation, provider: provider ? { id: provider.id, name: provider.name, icon: provider.icon, category: provider.category, qualityTier: provider.qualityTier, description: provider.description } : null });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+router.post("/production/:id/archive", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid asset ID" }); return; }
+    const actor = (req as any).session?.user?.email ?? "system";
+    const result = await archiveAsset(id, actor);
+    if (!result) { res.status(404).json({ error: "Asset not found" }); return; }
+    res.json({ success: true, asset: result });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+router.get("/production/archive", async (_req, res) => {
+  try {
+    const archived = await getArchivedAssets();
+    res.json({ assets: archived, total: archived.length });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+router.post("/production/:id/restore", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid asset ID" }); return; }
+    const actor = (req as any).session?.user?.email ?? "system";
+    const result = await restoreAsset(id, actor);
+    if (!result) { res.status(404).json({ error: "Asset not found" }); return; }
+    res.json({ success: true, asset: result });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
 router.post("/invoice/transition", async (req, res) => {

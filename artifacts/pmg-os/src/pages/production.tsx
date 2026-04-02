@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useListDocuments } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
-import { useUpdateDocumentMut } from "@/hooks/use-api";
+import { useUpdateDocumentMut, useCreativeProviders, useCreativeRoute, useGenerateAsset, useArchiveAsset, useArchivedAssets, useRestoreAsset, useAICreativeRoute } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { ConfidenceMeter } from "@/components/ui/confidence-meter";
 import {
@@ -23,7 +23,8 @@ import {
   PenTool, Brush, Crop, FlipHorizontal, RotateCw, Save, Upload, Send, Check,
   Lock, Unlock, AlertTriangle, Users, Shield, Package, Megaphone, Mail,
   ChevronDown, ChevronUp, Pin, ThumbsUp, ThumbsDown, UserCheck, FileCheck,
-  Rocket, ExternalLink, Printer, Share2
+  Rocket, ExternalLink, Printer, Share2, Archive, ArchiveRestore, Zap, Route,
+  Box, Cpu, DollarSign, Timer, Activity, BarChart3, GitBranch
 } from "lucide-react";
 import { CreateDocumentForm } from "@/components/forms/create-document-form";
 
@@ -50,6 +51,17 @@ const projectTypes = [
   { id: "brand", label: "Brand Asset", icon: <Star className="h-4 w-4" />, color: "text-amber-400" },
 ];
 
+const assetTemplates = [
+  { id: "linkedin-post", name: "LinkedIn Post", size: "1200×628", type: "social" },
+  { id: "instagram-story", name: "Instagram Story", size: "1080×1920", type: "social" },
+  { id: "pitch-deck", name: "Pitch Deck", size: "1920×1080", type: "deck" },
+  { id: "one-pager", name: "One-Pager", size: "Letter", type: "proposal" },
+  { id: "email-header", name: "Email Header", size: "600×200", type: "design" },
+  { id: "youtube-thumb", name: "YouTube Thumbnail", size: "1280×720", type: "thumbnail" },
+  { id: "vsl-script", name: "VSL Script", size: "—", type: "script" },
+  { id: "brand-guide", name: "Brand Guide", size: "Letter", type: "brand" },
+];
+
 const brandKit = {
   colors: [
     { name: "Crimson", hex: "#DC2626" },
@@ -63,32 +75,52 @@ const brandKit = {
   sizes: ["1920×1080", "1080×1080", "1080×1920", "1200×628", "800×418"],
 };
 
-const assetTemplates = [
-  { id: "linkedin-post", name: "LinkedIn Post", size: "1200×628", type: "social" },
-  { id: "instagram-story", name: "Instagram Story", size: "1080×1920", type: "social" },
-  { id: "pitch-deck", name: "Pitch Deck", size: "1920×1080", type: "deck" },
-  { id: "one-pager", name: "One-Pager", size: "Letter", type: "proposal" },
-  { id: "email-header", name: "Email Header", size: "600×200", type: "design" },
-  { id: "youtube-thumb", name: "YouTube Thumbnail", size: "1280×720", type: "thumbnail" },
-  { id: "vsl-script", name: "VSL Script", size: "—", type: "script" },
-  { id: "brand-guide", name: "Brand Guide", size: "Letter", type: "brand" },
-];
+const qualityIcons: Record<string, string> = { premium: "⭐", professional: "🔷", standard: "🔹" };
+const speedIcons: Record<string, string> = { instant: "⚡", fast: "🏃", medium: "⏱", slow: "🐢" };
+const categoryColors: Record<string, string> = {
+  "image-generation": "text-pink-400 bg-pink-500/10 border-pink-500/20",
+  "video-generation": "text-purple-400 bg-purple-500/10 border-purple-500/20",
+  "audio-generation": "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  "design-automation": "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+  "image-editing": "text-green-400 bg-green-500/10 border-green-500/20",
+  "brand-assets": "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  "typography": "text-slate-400 bg-slate-500/10 border-slate-500/20",
+};
 
 export default function Production() {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [showCreateDoc, setShowCreateDoc] = useState(false);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  const [rightPanel, setRightPanel] = useState<"properties" | "brand" | "layers" | "comments" | "history" | "finalize">("properties");
-  const [leftPanel, setLeftPanel] = useState<"projects" | "assets" | "templates">("projects");
+  const [rightPanel, setRightPanel] = useState<"properties" | "brand" | "routing" | "layers" | "comments" | "history" | "finalize">("properties");
+  const [leftPanel, setLeftPanel] = useState<"projects" | "assets" | "templates" | "archive">("projects");
   const [zoomLevel, setZoomLevel] = useState(100);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [searchQuery, setSearchQuery] = useState("");
   const [showReviewPanel, setShowReviewPanel] = useState(false);
+  const [routingAssetType, setRoutingAssetType] = useState("image");
+  const [routingQuality, setRoutingQuality] = useState<string>("professional");
+  const [routingSpeed, setRoutingSpeed] = useState<string>("fast");
+  const [routingResult, setRoutingResult] = useState<any>(null);
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
+  const [generatePrompt, setGeneratePrompt] = useState("");
+  const [generateTitle, setGenerateTitle] = useState("");
+
   const { data: documents } = useListDocuments();
   const { isHuman, isAuto, isHybrid } = useAiModeContext();
   const updateDoc = useUpdateDocumentMut();
   const { toast } = useToast();
+  const { data: providersData } = useCreativeProviders();
+  const creativeRoute = useCreativeRoute();
+  const aiRoute = useAICreativeRoute();
+  const generateAsset = useGenerateAsset();
+  const archiveAsset = useArchiveAsset();
+  const { data: archivedData } = useArchivedAssets();
+  const restoreAsset = useRestoreAsset();
+
+  const providers = providersData?.providers ?? [];
+  const categories = providersData?.categories ?? [];
+  const archivedAssets = archivedData?.assets ?? [];
   const docList = (documents ?? []) as any[];
   const enriched = docList.map((d) => ({ ...d, lifecycle: mapDocStatus(d.status) }));
 
@@ -112,6 +144,47 @@ export default function Production() {
     });
   }
 
+  function handleGetRouting() {
+    creativeRoute.mutate({
+      assetType: routingAssetType,
+      qualityPreference: routingQuality,
+      speedPreference: routingSpeed,
+      specificProvider: selectedProvider || undefined,
+    }, {
+      onSuccess: (data) => { setRoutingResult(data); toast({ title: `Routed to ${data.primary?.name}` }); },
+    });
+  }
+
+  function handleGenerate() {
+    if (!generateTitle || !generatePrompt) { toast({ title: "Title and prompt required", variant: "destructive" }); return; }
+    generateAsset.mutate({
+      type: routingAssetType,
+      title: generateTitle,
+      prompt: generatePrompt,
+      providerId: selectedProvider || undefined,
+      qualityPreference: routingQuality,
+      speedPreference: routingSpeed,
+    }, {
+      onSuccess: (data) => {
+        toast({ title: `Asset generated via ${data.routing?.primaryName ?? "AI"}` });
+        setGenerateTitle("");
+        setGeneratePrompt("");
+      },
+    });
+  }
+
+  function handleArchive(doc: any) {
+    archiveAsset.mutate(doc.id, {
+      onSuccess: () => toast({ title: `"${doc.title}" archived` }),
+    });
+  }
+
+  function handleRestore(asset: any) {
+    restoreAsset.mutate(asset.id, {
+      onSuccess: () => toast({ title: `"${asset.title}" restored` }),
+    });
+  }
+
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden -mx-6 -mt-6">
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-[hsl(214,65%,5%)]">
@@ -122,15 +195,16 @@ export default function Production() {
           </div>
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className={`h-7 px-2 text-[10px] ${leftPanel === "projects" ? "bg-white/10" : ""}`} onClick={() => { setLeftPanel("projects"); setLeftSidebarOpen(true); }}>
-              <Folder className="h-3 w-3 mr-1" />Projects
-            </Button>
-            <Button variant="ghost" size="sm" className={`h-7 px-2 text-[10px] ${leftPanel === "assets" ? "bg-white/10" : ""}`} onClick={() => { setLeftPanel("assets"); setLeftSidebarOpen(true); }}>
-              <Image className="h-3 w-3 mr-1" />Assets
-            </Button>
-            <Button variant="ghost" size="sm" className={`h-7 px-2 text-[10px] ${leftPanel === "templates" ? "bg-white/10" : ""}`} onClick={() => { setLeftPanel("templates"); setLeftSidebarOpen(true); }}>
-              <Grid3X3 className="h-3 w-3 mr-1" />Templates
-            </Button>
+            {([
+              { id: "projects", icon: <Folder className="h-3 w-3 mr-1" />, label: "Projects" },
+              { id: "assets", icon: <Image className="h-3 w-3 mr-1" />, label: "Assets" },
+              { id: "templates", icon: <Grid3X3 className="h-3 w-3 mr-1" />, label: "Templates" },
+              { id: "archive", icon: <Archive className="h-3 w-3 mr-1" />, label: "Archive" },
+            ] as const).map(tab => (
+              <Button key={tab.id} variant="ghost" size="sm" className={`h-7 px-2 text-[10px] ${leftPanel === tab.id ? "bg-white/10" : ""}`} onClick={() => { setLeftPanel(tab.id); setLeftSidebarOpen(true); }}>
+                {tab.icon}{tab.label}
+              </Button>
+            ))}
           </div>
           {isAuto && (
             <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[9px]">
@@ -140,6 +214,11 @@ export default function Production() {
           {isHybrid && (
             <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[9px]">
               <Wand2 className="h-2.5 w-2.5 mr-1" />Hybrid
+            </Badge>
+          )}
+          {providers.length > 0 && (
+            <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[9px]">
+              <Route className="h-2.5 w-2.5 mr-1" />{providers.length} Providers
             </Badge>
           )}
         </div>
@@ -164,6 +243,9 @@ export default function Production() {
               </Button>
               <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-green-400">
                 <Download className="h-3 w-3 mr-1" />Export
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-yellow-400" onClick={() => handleArchive(selectedProject)} disabled={archiveAsset.isPending}>
+                <Archive className="h-3 w-3 mr-1" />Archive
               </Button>
             </>
           )}
@@ -298,6 +380,32 @@ export default function Production() {
                   </div>
                 ))}
 
+                {leftPanel === "archive" && (
+                  <div className="space-y-1 pt-1">
+                    {archivedAssets.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Archive className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-xs">No archived assets</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Finalized projects can be archived here</p>
+                      </div>
+                    )}
+                    {archivedAssets.map((asset: any) => (
+                      <div key={asset.id} className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
+                        <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+                          <Archive className="h-3.5 w-3.5 text-yellow-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium truncate">{asset.title}</p>
+                          <p className="text-[9px] text-muted-foreground">{asset.type} · archived</p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[9px] opacity-0 group-hover:opacity-100 transition-opacity text-green-400" onClick={() => handleRestore(asset)} disabled={restoreAsset.isPending}>
+                          <ArchiveRestore className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {leftPanel === "projects" && filtered.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -349,6 +457,11 @@ export default function Production() {
                       <div className="flex items-center justify-center gap-2">
                         <StatusBadge variant={selectedProject.lifecycle === "finalize" ? "human-approved" : selectedProject.lifecycle === "review" ? "awaiting-review" : "draft"} label={selectedProject.lifecycle} />
                         <Badge variant="outline" className="text-[10px]">v{selectedProject.version}</Badge>
+                        {(selectedProject.metadata as any)?.creativeProviderName && (
+                          <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px]">
+                            <Route className="h-2.5 w-2.5 mr-1" />{(selectedProject.metadata as any).creativeProviderName}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -467,7 +580,7 @@ export default function Production() {
               )}
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center overflow-y-auto">
               <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
                 <Palette className="h-10 w-10 text-muted-foreground/50" />
               </div>
@@ -495,6 +608,32 @@ export default function Production() {
                   ))}
                 </div>
               </div>
+
+              {providers.length > 0 && (
+                <div className="mt-8 w-full max-w-3xl">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                    <Route className="h-3.5 w-3.5 inline mr-1.5" />Creative Provider Network — {providers.length} Tools
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {providers.slice(0, 8).map((p: any) => (
+                      <div key={p.id} className={`p-2.5 rounded-lg border transition-colors cursor-pointer hover:bg-white/10 ${categoryColors[p.category] ?? "bg-white/5 border-white/10"}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-base">{p.icon}</span>
+                          <span className="text-[10px] font-semibold truncate">{p.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-[8px]">{qualityIcons[p.qualityTier] ?? "🔹"} {p.qualityTier}</span>
+                          <span className="text-[8px]">{speedIcons[p.speedTier] ?? "⏱"} {p.speedTier}</span>
+                        </div>
+                        <p className="text-[8px] text-muted-foreground mt-1 truncate">{p.capabilities?.slice(0, 3).join(", ")}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {providers.length > 8 && (
+                    <p className="text-[10px] text-muted-foreground mt-2">+ {providers.length - 8} more providers available</p>
+                  )}
+                </div>
+              )}
 
               {enriched.length > 0 && (
                 <div className="mt-8 w-full max-w-2xl">
@@ -535,8 +674,8 @@ export default function Production() {
                   {([
                     { id: "properties", icon: <Settings className="h-3 w-3" />, label: "Props" },
                     { id: "brand", icon: <Star className="h-3 w-3" />, label: "Brand" },
+                    { id: "routing", icon: <Route className="h-3 w-3" />, label: "Route" },
                     { id: "layers", icon: <Layers className="h-3 w-3" />, label: "Layers" },
-                    { id: "comments", icon: <MessageSquare className="h-3 w-3" />, label: "Comments" },
                     { id: "history", icon: <History className="h-3 w-3" />, label: "History" },
                     { id: "finalize", icon: <Rocket className="h-3 w-3" />, label: "Finalize" },
                   ] as const).map(tab => (
@@ -611,6 +750,9 @@ export default function Production() {
                             <span className="text-[10px] text-green-400 font-medium">Finalized & Published</span>
                           </div>
                         )}
+                        <Button variant="outline" className="w-full h-7 text-[10px] border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/10" onClick={() => handleArchive(selectedProject)} disabled={archiveAsset.isPending}>
+                          <Archive className="h-3 w-3 mr-1" />Archive Asset
+                        </Button>
                       </div>
                     </div>
                     {isHuman && (
@@ -670,6 +812,153 @@ export default function Production() {
                       </div>
                     </div>
                   </>
+                )}
+
+                {rightPanel === "routing" && (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Route className="h-3 w-3 text-purple-400" />Creative Routing Engine
+                      </p>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[9px] text-muted-foreground">Asset Type</label>
+                          <Select value={routingAssetType} onValueChange={setRoutingAssetType}>
+                            <SelectTrigger className="h-7 text-[10px] bg-white/5 border-white/10 mt-0.5"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {["image", "video", "logo", "social_post", "banner", "thumbnail", "presentation", "brand_asset", "product_photo", "copy", "audio", "voiceover", "font"].map(t => (
+                                <SelectItem key={t} value={t}><span className="text-xs capitalize">{t.replace("_", " ")}</span></SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[9px] text-muted-foreground">Quality</label>
+                            <Select value={routingQuality} onValueChange={setRoutingQuality}>
+                              <SelectTrigger className="h-7 text-[10px] bg-white/5 border-white/10 mt-0.5"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="premium"><span className="text-xs">⭐ Premium</span></SelectItem>
+                                <SelectItem value="professional"><span className="text-xs">🔷 Professional</span></SelectItem>
+                                <SelectItem value="standard"><span className="text-xs">🔹 Standard</span></SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="text-[9px] text-muted-foreground">Speed</label>
+                            <Select value={routingSpeed} onValueChange={setRoutingSpeed}>
+                              <SelectTrigger className="h-7 text-[10px] bg-white/5 border-white/10 mt-0.5"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="instant"><span className="text-xs">⚡ Instant</span></SelectItem>
+                                <SelectItem value="fast"><span className="text-xs">🏃 Fast</span></SelectItem>
+                                <SelectItem value="medium"><span className="text-xs">⏱ Medium</span></SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-muted-foreground">Override Provider (optional)</label>
+                          <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                            <SelectTrigger className="h-7 text-[10px] bg-white/5 border-white/10 mt-0.5"><SelectValue placeholder="Auto-select" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value=""><span className="text-xs">Auto-select (recommended)</span></SelectItem>
+                              {providers.map((p: any) => (
+                                <SelectItem key={p.id} value={p.id}><span className="text-xs">{p.icon} {p.name}</span></SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button className="w-full h-7 text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30" onClick={handleGetRouting} disabled={creativeRoute.isPending}>
+                          <Zap className="h-3 w-3 mr-1" />{creativeRoute.isPending ? "Routing..." : "Get Routing Recommendation"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {routingResult && (
+                      <div className="space-y-3">
+                        <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-base">{routingResult.primary?.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] font-semibold text-purple-300">{routingResult.primary?.name}</p>
+                              <p className="text-[8px] text-purple-400/60 capitalize">{routingResult.primary?.category?.replace("-", " ")}</p>
+                            </div>
+                            <Badge className="bg-purple-500/30 text-purple-300 border-purple-500/40 text-[8px]">Primary</Badge>
+                          </div>
+                          <p className="text-[9px] text-slate-400">{routingResult.reason}</p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="text-[8px] text-muted-foreground flex items-center gap-1"><DollarSign className="h-2.5 w-2.5" />{routingResult.estimatedCredits} credits</span>
+                            <span className="text-[8px] text-muted-foreground flex items-center gap-1"><Timer className="h-2.5 w-2.5" />{routingResult.estimatedTime}</span>
+                          </div>
+                        </div>
+
+                        {routingResult.pipeline?.length > 0 && (
+                          <div>
+                            <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Pipeline Steps</p>
+                            <div className="space-y-1">
+                              {routingResult.pipeline.map((step: any, i: number) => (
+                                <div key={i} className="flex items-center gap-2 p-1.5 rounded-lg bg-white/5">
+                                  <div className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center text-[8px] font-bold text-purple-400">{step.step}</div>
+                                  <span className="text-[9px]">{step.providerIcon} {step.providerName}</span>
+                                  <span className="text-[8px] text-muted-foreground ml-auto">{step.action}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {routingResult.alternatives?.length > 0 && (
+                          <div>
+                            <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Alternatives</p>
+                            <div className="flex flex-wrap gap-1">
+                              {routingResult.alternatives.map((alt: any) => (
+                                <Badge key={alt.id} className="text-[8px] bg-white/5 border-white/10 cursor-pointer hover:bg-white/10" onClick={() => setSelectedProvider(alt.id)}>
+                                  {alt.icon} {alt.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="border-t border-white/5 pt-3">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Sparkles className="h-3 w-3 text-green-400" />AI Generate with Routing
+                      </p>
+                      <div className="space-y-2">
+                        <Input placeholder="Asset title..." value={generateTitle} onChange={e => setGenerateTitle(e.target.value)} className="h-7 text-[10px] bg-white/5 border-white/10" />
+                        <Textarea placeholder="Describe what you need..." value={generatePrompt} onChange={e => setGeneratePrompt(e.target.value)} className="text-[10px] bg-white/5 border-white/10 min-h-[50px] resize-none" />
+                        <Button className="w-full h-7 text-[10px] btn-premium text-white" onClick={handleGenerate} disabled={generateAsset.isPending || !generateTitle || !generatePrompt}>
+                          <Wand2 className="h-3 w-3 mr-1" />{generateAsset.isPending ? "Generating..." : "Generate Asset"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {providers.length > 0 && (
+                      <div className="border-t border-white/5 pt-3">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Provider Matrix</p>
+                        <div className="space-y-1">
+                          {categories.map((cat: string) => {
+                            const catProviders = providers.filter((p: any) => p.category === cat && p.status === "active");
+                            if (catProviders.length === 0) return null;
+                            return (
+                              <div key={cat}>
+                                <p className={`text-[8px] font-semibold uppercase tracking-wider mb-1 ${categoryColors[cat]?.split(" ")[0] ?? "text-muted-foreground"}`}>{cat.replace("-", " ")}</p>
+                                {catProviders.map((p: any) => (
+                                  <div key={p.id} className="flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-white/5 cursor-pointer" onClick={() => setSelectedProvider(p.id)}>
+                                    <span className="text-xs">{p.icon}</span>
+                                    <span className="text-[9px] flex-1 truncate">{p.name}</span>
+                                    <span className="text-[7px] text-muted-foreground">{p.costPerCredit}cr</span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {rightPanel === "layers" && (
@@ -743,66 +1032,14 @@ export default function Production() {
                   </div>
                 )}
 
-                {rightPanel === "comments" && (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Review Comments</p>
-                      <div className="space-y-2">
-                        {[
-                          { initials: "SK", name: "SherShah K.", time: "5 min ago", text: "Ensure CTA placement follows brand guide. Check headline contrast ratio.", pinned: true, resolved: false },
-                          { initials: "AI", name: "Brand Agent", time: "10 min ago", text: "Automated check: colors ✓, fonts ✓, logo placement ✓, spacing ✓", pinned: false, resolved: false },
-                          { initials: "TM", name: "Team Member", time: "1h ago", text: "Can we try a darker gradient overlay? Current version feels too washed out.", pinned: false, resolved: true },
-                        ].map((c, i) => (
-                          <div key={i} className={`p-2 rounded-lg ${c.resolved ? "bg-green-500/5 border border-green-500/10" : "bg-white/5"}`}>
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold ${c.initials === "AI" ? "bg-green-500/30" : "bg-crimson/30"}`}>{c.initials}</div>
-                              <span className="text-[9px] font-medium flex-1">{c.name}</span>
-                              {c.pinned && <Pin className="h-2 w-2 text-yellow-400" />}
-                              {c.resolved && <CheckCircle2 className="h-2 w-2 text-green-400" />}
-                            </div>
-                            <p className="text-[10px] text-slate-300 leading-relaxed">{c.text}</p>
-                            <div className="flex gap-1 mt-1">
-                              <Button variant="ghost" size="sm" className="h-4 px-1 text-[7px]"><ThumbsUp className="h-2 w-2" /></Button>
-                              <Button variant="ghost" size="sm" className="h-4 px-1 text-[7px]"><MessageSquare className="h-2 w-2" /></Button>
-                              {!c.resolved && <Button variant="ghost" size="sm" className="h-4 px-1 text-[7px] text-green-400"><Check className="h-2 w-2" /></Button>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex gap-1.5 mt-2">
-                        <Input placeholder="Add comment..." className="h-6 text-[10px] bg-white/5 border-white/10 flex-1" />
-                        <Button size="sm" className="h-6 w-6 p-0 btn-premium text-white"><Send className="h-2.5 w-2.5" /></Button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Stakeholder Sign-offs</p>
-                      {[
-                        { role: "Creative Director", signed: true, by: "SherShah K." },
-                        { role: "Brand Manager", signed: false, by: "—" },
-                        { role: "Client Approver", signed: false, by: "—" },
-                      ].map((s, i) => (
-                        <div key={i} className="flex items-center gap-2 py-1.5 border-b border-white/5 last:border-0">
-                          {s.signed ? <UserCheck className="h-3 w-3 text-green-400" /> : <Clock className="h-3 w-3 text-muted-foreground" />}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[9px] font-medium">{s.role}</p>
-                            <p className="text-[8px] text-muted-foreground">{s.by}</p>
-                          </div>
-                          {!s.signed && <Button variant="ghost" size="sm" className="h-5 px-2 text-[8px] text-crimson">Request</Button>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {rightPanel === "history" && (
                   <div>
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Version History</p>
                     <div className="space-y-1.5">
                       {[
-                        { ver: `v${selectedProject.version}`, action: "Current version", time: "Now", actor: "You", changes: "+3 layers, copy update" },
-                        { ver: `v${Math.max(1, (selectedProject.version ?? 1) - 1)}`, action: "Review feedback applied", time: "2h ago", actor: isAuto ? "AI Agent" : "You", changes: "CTA color, headline size" },
-                        { ver: "v1", action: "Initial draft", time: "Yesterday", actor: isAuto ? "AI Auto" : "Manual", changes: "Created from template" },
+                        { ver: `v${selectedProject.version}`, action: "Current version", time: "Now", actor: "You", changes: "+3 layers, copy update", provider: (selectedProject.metadata as any)?.creativeProviderName },
+                        { ver: `v${Math.max(1, (selectedProject.version ?? 1) - 1)}`, action: "Review feedback applied", time: "2h ago", actor: isAuto ? "AI Agent" : "You", changes: "CTA color, headline size", provider: null },
+                        { ver: "v1", action: "Initial draft", time: "Yesterday", actor: isAuto ? "AI Auto" : "Manual", changes: "Created from template", provider: null },
                       ].map((h, i) => (
                         <div key={i} className="p-2 rounded-lg bg-white/5">
                           <div className="flex items-center gap-2">
@@ -816,6 +1053,11 @@ export default function Production() {
                             {i > 0 && <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[8px]"><RotateCcw className="h-2.5 w-2.5" /></Button>}
                           </div>
                           <p className="text-[8px] text-muted-foreground mt-1 ml-7">{h.changes}</p>
+                          {h.provider && (
+                            <Badge className="ml-7 mt-1 text-[7px] bg-purple-500/20 text-purple-400 border-purple-500/30">
+                              <Route className="h-2 w-2 mr-0.5" />{h.provider}
+                            </Badge>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -912,6 +1154,9 @@ export default function Production() {
                           </div>
                         </div>
                       )}
+                      <Button variant="outline" className="w-full h-7 text-[10px] border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/10 mt-2" onClick={() => handleArchive(selectedProject)} disabled={archiveAsset.isPending}>
+                        <Archive className="h-3 w-3 mr-1" />Archive After Finalize
+                      </Button>
                     </div>
                   </div>
                 )}

@@ -95,3 +95,50 @@ Phase 4 makes routing real, sync visible, and ensures PMG never loses visibility
 - Sync Center tab: Live KPIs (Total Synced, Failed, Health Score, Retry Queue), entity sync status with percentages, full sync log with retry buttons, dedicated retry queue panel
 
 **Security:** `/leads/:id/route` now requires `manager` role via RBAC middleware.
+
+## Phase 5: Production Studio + Creative Routing (Completed)
+
+Phase 5 transforms Production into a true AI creative studio with intelligent multi-provider routing.
+
+**Creative Provider Registry (`creative-providers.ts`):**
+- 16 AI creative tool providers: Midjourney, FLUX, Recraft, Bannerbear, Kittl (image/design), Runway Gen-3, Kling, Luma (video), ElevenLabs, Descript (audio), Claid, Flair, SiliconFlow, Photoroom (photo/editing), Brandfetch (brand), Google Fonts (typography)
+- Each provider has: id, name, category, icon, capabilities, assetTypes, qualityTier (studio/professional/standard/draft), speedTier (realtime/fast/standard/slow), costPerCredit, outputFormats, bestFor, status
+- 7 categories: image-generation, design-automation, video-generation, audio-generation, image-editing, brand-assets, typography
+
+**Intelligent Routing Engine:**
+- `routeCreativeTask(assetType, options)` — scores candidates by quality/speed/budget preferences, returns primary provider + alternatives + pipeline + reason
+- Multi-step pipeline building (e.g., video + voiceover → Runway + ElevenLabs pipeline)
+- `getAIRoutingRecommendation()` — GPT-powered provider selection with structured JSON response
+- Quality/speed normalization: frontend `premium/instant/medium` maps to backend `studio/realtime/standard`
+
+**New API Endpoints:**
+- `GET /ai/production/creative-providers` — full provider registry with categories
+- `GET /ai/production/creative-providers/:id` — single provider details
+- `GET /ai/production/creative-providers/asset-type/:type` — providers for asset type
+- `POST /ai/production/creative-route` — deterministic routing with preferences
+- `POST /ai/production/ai-route` — AI-powered routing recommendation
+- `POST /ai/production/:id/archive` — archive asset
+- `GET /ai/production/archive` — list archived assets
+- `POST /ai/production/:id/restore` — restore from archive
+- Updated `POST /ai/production/generate` — accepts providerId, qualityPreference, speedPreference; returns routing metadata
+
+**Frontend Hooks (10 new in use-api.ts):**
+- `useCreativeProviders`, `useCreativeProvidersByAssetType`
+- `useCreativeRoute`, `useAICreativeRoute`
+- `useGenerateAsset`, `useArchiveAsset`, `useArchivedAssets`, `useRestoreAsset`
+- `useAIReviewAsset`, `useDesignBrief`
+
+**Production Studio Page Enhancements:**
+- Archive tab in left sidebar with restore functionality
+- Creative Routing panel in right sidebar (Route tab): asset type selector, quality/speed preferences, provider override, pipeline visualization, alternatives display, AI generation form
+- Provider Network grid on landing page showing 16 providers with icons, quality/speed tiers, capabilities
+- Provider attribution badges on assets showing which creative tool was used
+- Provider attribution in version history
+- Archive button in toolbar and properties panel
+- "16 Providers" badge in top bar
+
+**Service Integration:**
+- `generateAsset()` now stores routing metadata (primaryProvider, reason, estimatedCredits, pipeline, alternatives) in asset metadata
+- Audit logs include provider attribution
+- WebSocket broadcasts include creativeProvider field
+- Archive/restore with full audit trail and notifications
