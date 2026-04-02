@@ -25,6 +25,10 @@ const DEFAULT_WORKFLOW_MODES: Record<string, { mode: AiMode; description: string
   "objection_detection": { mode: "ai_autonomous", description: "Objection Detection" },
   "followup_generation": { mode: "hybrid", description: "Follow-Up Draft Generation" },
   "meeting_booking": { mode: "hybrid", description: "Meeting Booking" },
+  "asset_generation": { mode: "hybrid", description: "Asset Generation (Production Studio)" },
+  "asset_review": { mode: "ai_autonomous", description: "AI Asset Review & Quality Check" },
+  "design_brief": { mode: "ai_autonomous", description: "Design Brief Generation" },
+  "asset_finalization": { mode: "human_controlled", description: "Asset Finalization & Publication" },
 };
 
 export async function getGlobalMode(): Promise<AiMode> {

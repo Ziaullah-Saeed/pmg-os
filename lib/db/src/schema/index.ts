@@ -27,3 +27,4 @@ export * from "./automation_rules";
 export * from "./sequence_enrollments";
 export * from "./scheduled_jobs";
 export * from "./pending_actions";
+export * from "./brand-kits";

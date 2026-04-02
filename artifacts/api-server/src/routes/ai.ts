@@ -7,6 +7,13 @@ import { executeChain, getAllTools, getAllChainTemplates } from "../services/too
 import { processTranscript, processTranscriptWithHandoff, analyzeCallSentiment, detectObjections, generateFollowUp, generateFollowUpWithHandoff } from "../services/communication-intelligence-service";
 import { sendEmail, sendSMS, sendMessageWithMode } from "../services/messaging-service";
 import { getAvailableSlots, createBooking, createBookingWithMode, cancelBooking, getUpcomingMeetings } from "../services/booking-service";
+import {
+  generateAsset, routeCreativeRequest, getAvailableProviders,
+  aiReviewAsset, generateDesignBrief, suggestRevisions,
+  submitForReview, reviewAsset, finalizeAsset,
+  createAssetVersion, regenerateAssetVersion, getVersionHistory,
+  getDefaultBrandKit,
+} from "../services/production-studio-service";
 
 const router = Router();
 
@@ -321,6 +328,148 @@ router.get("/bookings/upcoming", async (req, res) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+router.post("/production/generate", async (req, res) => {
+  try {
+    const { type, title, prompt, category, domain, campaignId, brandKitId, aspectRatio, durationSeconds } = req.body;
+    if (!type || !title || !prompt) { res.status(400).json({ error: "type, title, and prompt required" }); return; }
+    const actor = (req as any).session?.user?.email ?? "system";
+    const result = await generateAsset({ type, title, prompt, category, domain, campaignId, brandKitId, aspectRatio, durationSeconds, actor });
+    res.json({ assetId: result.asset.id, asset: result.asset, provider: result.provider, generationResult: result.generationResult });
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.post("/production/design-brief", async (req, res) => {
+  try {
+    const { type, objective, targetAudience, keyMessages, references } = req.body;
+    if (!type || !objective) { res.status(400).json({ error: "type and objective required" }); return; }
+    const result = await generateDesignBrief({ type, objective, targetAudience, keyMessages, references });
+    res.json(result);
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.post("/production/:id/ai-review", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid asset ID" }); return; }
+    const result = await aiReviewAsset(id);
+    res.json(result);
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.post("/production/:id/suggest-revisions", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid asset ID" }); return; }
+    const result = await suggestRevisions(id);
+    res.json(result);
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.post("/production/:id/submit-review", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid asset ID" }); return; }
+    const actor = (req as any).session?.user?.email ?? "system";
+    const result = await submitForReview(id, actor);
+    if (!result.success) { res.status(422).json(result); return; }
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/production/:id/review", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid asset ID" }); return; }
+    const { decision, reviewNotes, rejectionReason } = req.body;
+    if (!decision || !["approved", "revision_needed"].includes(decision)) {
+      res.status(400).json({ error: 'decision required: "approved" or "revision_needed"' }); return;
+    }
+    const reviewer = (req as any).session?.user?.email ?? "system";
+    const result = await reviewAsset({ assetId: id, decision, reviewNotes, rejectionReason, reviewer });
+    if (!result.success) { res.status(422).json(result); return; }
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/production/:id/finalize", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid asset ID" }); return; }
+    const actor = (req as any).session?.user?.email ?? "system";
+    const result = await finalizeAsset(id, actor);
+    if (!result.success) { res.status(422).json(result); return; }
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/production/:id/version", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid asset ID" }); return; }
+    const { title, content, prompt } = req.body;
+    const actor = (req as any).session?.user?.email ?? "system";
+    const version = await createAssetVersion(id, { title, content, prompt }, actor);
+    if (!version) { res.status(404).json({ error: "Asset not found" }); return; }
+    res.json(version);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/production/:id/regenerate", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid asset ID" }); return; }
+    const { prompt } = req.body;
+    if (!prompt) { res.status(400).json({ error: "prompt required for regeneration" }); return; }
+    const actor = (req as any).session?.user?.email ?? "system";
+    const result = await regenerateAssetVersion(id, prompt, actor);
+    if (!result) { res.status(404).json({ error: "Asset not found" }); return; }
+    res.json({ assetId: result.asset.id, asset: result.asset, generationResult: result.generationResult });
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.get("/production/:id/versions", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid asset ID" }); return; }
+    const versions = await getVersionHistory(id);
+    res.json({ assetId: id, versions, count: versions.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/production/providers", async (_req, res) => {
+  res.json(getAvailableProviders());
+});
+
+router.get("/production/route/:type", async (req, res) => {
+  const route = routeCreativeRequest(req.params.type);
+  res.json(route);
+});
+
+router.get("/production/brand-kit", async (_req, res) => {
+  const kit = await getDefaultBrandKit();
+  res.json(kit ?? { message: "No brand kit configured" });
 });
 
 export default router;

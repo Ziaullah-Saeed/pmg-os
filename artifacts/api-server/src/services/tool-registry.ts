@@ -5,6 +5,7 @@ import { researchProspect, personalizeOutreach, draftStructuredOutreach, generat
 import { processTranscript, analyzeCallSentiment, detectObjections, generateFollowUp } from "./communication-intelligence-service";
 import { sendEmail, sendSMS } from "./messaging-service";
 import { createBooking, getAvailableSlots } from "./booking-service";
+import { generateAsset, aiReviewAsset, generateDesignBrief, suggestRevisions, submitForReview, reviewAsset, finalizeAsset, createAssetVersion, routeCreativeRequest, getDefaultBrandKit, type AssetType } from "./production-studio-service";
 import { db, leadsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -453,6 +454,156 @@ export function registerAllTools(): void {
     },
   });
 
+  registerTool({
+    name: "generate_asset",
+    description: "Generate a creative asset (image, video, text content) with brand enforcement",
+    domain: "production",
+    inputKeys: ["type", "title", "prompt", "category", "domain", "campaignId", "brandKitId", "aspectRatio", "durationSeconds"],
+    outputKeys: ["assetId", "provider", "type", "title", "version"],
+    costCredits: 10,
+    execute: async (input) => {
+      const result = await generateAsset({
+        type: (input.type ?? "social_post") as AssetType,
+        title: input.title ?? "Untitled Asset",
+        prompt: input.prompt ?? "",
+        category: input.category,
+        domain: input.domain,
+        campaignId: input.campaignId,
+        brandKitId: input.brandKitId,
+        aspectRatio: input.aspectRatio,
+        durationSeconds: input.durationSeconds,
+        actor: input.actor,
+      });
+      return { assetId: result.asset.id, provider: result.provider, type: result.asset.type, title: result.asset.title, version: result.asset.version };
+    },
+  });
+
+  registerTool({
+    name: "ai_review_asset",
+    description: "AI creative director reviews an asset for brand compliance and quality",
+    domain: "production",
+    inputKeys: ["assetId"],
+    outputKeys: ["review", "score", "suggestions", "confidence"],
+    costCredits: 5,
+    execute: async (input) => {
+      const result = await aiReviewAsset(input.assetId);
+      return result;
+    },
+  });
+
+  registerTool({
+    name: "generate_design_brief",
+    description: "Generate a comprehensive design brief for asset creation",
+    domain: "production",
+    inputKeys: ["type", "objective", "targetAudience", "keyMessages", "references"],
+    outputKeys: ["brief", "confidence"],
+    costCredits: 5,
+    execute: async (input) => {
+      const result = await generateDesignBrief({
+        type: (input.type ?? "social_post") as AssetType,
+        objective: input.objective ?? "",
+        targetAudience: input.targetAudience,
+        keyMessages: input.keyMessages,
+        references: input.references,
+      });
+      return result;
+    },
+  });
+
+  registerTool({
+    name: "suggest_asset_revisions",
+    description: "AI suggests specific revisions for a draft or rejected asset",
+    domain: "production",
+    inputKeys: ["assetId"],
+    outputKeys: ["suggestions", "priority", "confidence"],
+    costCredits: 3,
+    execute: async (input) => {
+      return await suggestRevisions(input.assetId);
+    },
+  });
+
+  registerTool({
+    name: "submit_asset_review",
+    description: "Submit an asset for human review and approval",
+    domain: "production",
+    inputKeys: ["assetId", "actor"],
+    outputKeys: ["success", "approvalId", "error"],
+    costCredits: 0,
+    execute: async (input) => {
+      return await submitForReview(input.assetId, input.actor);
+    },
+  });
+
+  registerTool({
+    name: "review_asset_decision",
+    description: "Approve or request revision on a reviewed asset",
+    domain: "production",
+    inputKeys: ["assetId", "decision", "reviewNotes", "rejectionReason", "reviewer"],
+    outputKeys: ["success", "error"],
+    costCredits: 0,
+    execute: async (input) => {
+      return await reviewAsset({
+        assetId: input.assetId,
+        decision: input.decision ?? "revision_needed",
+        reviewNotes: input.reviewNotes,
+        rejectionReason: input.rejectionReason,
+        reviewer: input.reviewer ?? "system",
+      });
+    },
+  });
+
+  registerTool({
+    name: "finalize_asset",
+    description: "Finalize an approved asset for publication/distribution",
+    domain: "production",
+    inputKeys: ["assetId", "actor"],
+    outputKeys: ["success", "error"],
+    costCredits: 0,
+    execute: async (input) => {
+      return await finalizeAsset(input.assetId, input.actor);
+    },
+  });
+
+  registerTool({
+    name: "create_asset_version",
+    description: "Create a new version of an existing asset",
+    domain: "production",
+    inputKeys: ["assetId", "title", "content", "prompt", "actor"],
+    outputKeys: ["id", "version", "parentId", "title"],
+    costCredits: 0,
+    execute: async (input) => {
+      const result = await createAssetVersion(input.assetId, { title: input.title, content: input.content, prompt: input.prompt }, input.actor);
+      if (!result) return { error: "Asset not found" };
+      return { id: result.id, version: result.version, parentId: result.parentId, title: result.title };
+    },
+  });
+
+  registerTool({
+    name: "route_creative",
+    description: "Determine the best creative provider for an asset type",
+    domain: "production",
+    inputKeys: ["assetType"],
+    outputKeys: ["provider", "description", "estimatedCredits", "capabilities"],
+    costCredits: 0,
+    execute: async (input) => {
+      return routeCreativeRequest(input.assetType ?? "social_post");
+    },
+  });
+
+  registerTool({
+    name: "get_brand_kit",
+    description: "Retrieve the default brand kit for brand enforcement",
+    domain: "production",
+    inputKeys: [],
+    outputKeys: ["id", "name", "primaryColor", "secondaryColor", "accentColor", "headingFont", "bodyFont", "tonOfVoice", "tagline"],
+    costCredits: 0,
+    execute: async () => {
+      const kit = await getDefaultBrandKit();
+      if (!kit) return { error: "No brand kit configured" };
+      return kit;
+    },
+  });
+
   registerChainTemplate({
     name: "call_analysis",
     description: "Full call analysis pipeline: transcript processing → sentiment → objection detection → follow-up draft",
@@ -472,6 +623,29 @@ export function registerAllTools(): void {
     steps: [
       { toolName: "check_availability" },
       { toolName: "book_meeting", inputMapping: { scheduledAt: "scheduledAt", contactName: "contactName", title: "title" } },
+    ],
+  });
+
+  registerChainTemplate({
+    name: "asset_production",
+    description: "Full asset production pipeline: design brief → generate asset → AI review → submit for human review",
+    domain: "production",
+    steps: [
+      { toolName: "generate_design_brief" },
+      { toolName: "generate_asset", inputMapping: { prompt: "brief", type: "type", title: "title" } },
+      { toolName: "ai_review_asset", inputMapping: { assetId: "assetId" } },
+      { toolName: "submit_asset_review", inputMapping: { assetId: "assetId" } },
+    ],
+  });
+
+  registerChainTemplate({
+    name: "asset_revision",
+    description: "Asset revision pipeline: suggest revisions → create version → AI review",
+    domain: "production",
+    steps: [
+      { toolName: "suggest_asset_revisions" },
+      { toolName: "create_asset_version", inputMapping: { assetId: "assetId", content: "suggestions" } },
+      { toolName: "ai_review_asset", inputMapping: { assetId: "id" } },
     ],
   });
 }

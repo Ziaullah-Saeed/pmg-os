@@ -43,6 +43,7 @@ import schedulerRouter from "./scheduler";
 import eventBusRouter from "./event-bus";
 import sequenceEnrollmentsRouter from "./sequence-enrollments";
 import pendingActionsRouter from "./pending-actions";
+import brandKitsRouter from "./brand-kits";
 
 const router: IRouter = Router();
 
@@ -114,5 +115,6 @@ router.use("/scheduler", schedulerRouter);
 router.use("/event-bus", eventBusRouter);
 router.use("/sequence-enrollments", sequenceEnrollmentsRouter);
 router.use(pendingActionsRouter);
+router.use(brandKitsRouter);
 
 export default router;
