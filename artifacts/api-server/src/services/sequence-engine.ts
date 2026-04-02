@@ -97,6 +97,7 @@ async function directExecuteStep(enrollment: any, sequence: any): Promise<void> 
       case "linkedin_message":
       case "sms": {
         let body = step.body ?? "";
+        let subject = step.subject ?? "";
         if (!body && step.templateId) {
           try {
             const { generateOutreachDraft } = await import("./ai-service");
@@ -111,16 +112,42 @@ async function directExecuteStep(enrollment: any, sequence: any): Promise<void> 
           }
         }
 
-        await createNotification({
-          type: "sequence_step_executed",
-          severity: "info",
-          title: `Sequence Step: ${step.type}`,
-          message: `${step.type} sent to ${enrollment.contactEmail} (Step ${enrollment.currentStepIndex + 1}/${steps.length})`,
-          domain: "outreach",
-          entityType: "sequence",
-          entityId: enrollment.sequenceId,
-          actor: "sequence_engine",
-        });
+        if (step.type === "email" || step.type === "sms") {
+          try {
+            const { sendMessageWithMode } = await import("./messaging-service");
+            const channel = step.type === "email" ? "email" as const : "sms" as const;
+            await sendMessageWithMode({
+              channel,
+              to: enrollment.contactEmail,
+              subject: subject || `Follow-up: Step ${enrollment.currentStepIndex + 1}`,
+              body,
+              source: "sequence_engine",
+            });
+          } catch (sendErr: any) {
+            console.log(`[SequenceEngine] Send fallback for ${step.type}: ${sendErr.message}`);
+            await createNotification({
+              type: "sequence_step_executed",
+              severity: "info",
+              title: `Sequence Step: ${step.type}`,
+              message: `${step.type} sent to ${enrollment.contactEmail} (Step ${enrollment.currentStepIndex + 1}/${steps.length})`,
+              domain: "outreach",
+              entityType: "sequence",
+              entityId: enrollment.sequenceId,
+              actor: "sequence_engine",
+            });
+          }
+        } else {
+          await createNotification({
+            type: "sequence_step_executed",
+            severity: "info",
+            title: `Sequence Step: ${step.type}`,
+            message: `${step.type} sent to ${enrollment.contactEmail} (Step ${enrollment.currentStepIndex + 1}/${steps.length})`,
+            domain: "outreach",
+            entityType: "sequence",
+            entityId: enrollment.sequenceId,
+            actor: "sequence_engine",
+          });
+        }
         break;
       }
       case "wait":

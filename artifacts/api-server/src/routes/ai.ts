@@ -4,6 +4,9 @@ import { generateICP, analyzeCompetitors, segmentMarket } from "../services/inte
 import { runFullOutreachPipeline, researchProspect, personalizeOutreach, draftStructuredOutreach, generateOutreachVariants } from "../services/outreach-pipeline-service";
 import { handleConfidenceHandoff, classifyConfidence } from "../services/confidence-handoff-service";
 import { executeChain, getAllTools, getAllChainTemplates } from "../services/tool-chain-service";
+import { processTranscript, processTranscriptWithHandoff, analyzeCallSentiment, detectObjections, generateFollowUp, generateFollowUpWithHandoff } from "../services/communication-intelligence-service";
+import { sendEmail, sendSMS, sendMessageWithMode } from "../services/messaging-service";
+import { getAvailableSlots, createBooking, createBookingWithMode, cancelBooking, getUpcomingMeetings } from "../services/booking-service";
 
 const router = Router();
 
@@ -209,6 +212,115 @@ router.post("/confidence-check", (req, res) => {
   if (confidence === undefined) { res.status(400).json({ error: "confidence required" }); return; }
   const decision = classifyConfidence(confidence);
   res.json(decision);
+});
+
+router.post("/transcript/process", async (req, res) => {
+  try {
+    const { communicationId, transcript, type, contactName, companyName } = req.body;
+    if (!transcript) { res.status(400).json({ error: "transcript required" }); return; }
+    const result = await processTranscriptWithHandoff({ communicationId, transcript, type, contactName, companyName });
+    res.json(result);
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.post("/transcript/sentiment", async (req, res) => {
+  try {
+    const { communicationId, transcript, summary, contactName } = req.body;
+    if (!transcript && !summary) { res.status(400).json({ error: "transcript or summary required" }); return; }
+    const result = await analyzeCallSentiment({ communicationId, transcript, summary, contactName });
+    res.json(result);
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.post("/transcript/objections", async (req, res) => {
+  try {
+    const { communicationId, transcript, summary, contactName, dealContext } = req.body;
+    if (!transcript && !summary) { res.status(400).json({ error: "transcript or summary required" }); return; }
+    const result = await detectObjections({ communicationId, transcript, summary, contactName, dealContext });
+    res.json(result);
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.post("/followup/generate", async (req, res) => {
+  try {
+    const { communicationId, transcript, summary, actionItems, contactName, companyName, channel, tone } = req.body;
+    if (!transcript && !summary) { res.status(400).json({ error: "transcript or summary required" }); return; }
+    const result = await generateFollowUpWithHandoff({ communicationId, transcript, summary, actionItems, contactName, companyName, channel, tone });
+    res.json(result);
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.post("/send-email", async (req, res) => {
+  try {
+    const { to, subject, body, contactId, companyId, opportunityId, confidence } = req.body;
+    if (!to || !subject || !body) { res.status(400).json({ error: "to, subject, body required" }); return; }
+    const result = await sendMessageWithMode({ channel: "email", to, subject, body, contactId, companyId, opportunityId, confidence });
+    res.json(result);
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.post("/send-sms", async (req, res) => {
+  try {
+    const { to, body, contactId, companyId, opportunityId, confidence } = req.body;
+    if (!to || !body) { res.status(400).json({ error: "to, body required" }); return; }
+    const result = await sendMessageWithMode({ channel: "sms", to, body, contactId, companyId, opportunityId, confidence });
+    res.json(result);
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.get("/bookings/slots", async (req, res) => {
+  try {
+    const { date, durationMinutes } = req.query;
+    if (!date) { res.status(400).json({ error: "date required (YYYY-MM-DD)" }); return; }
+    const slots = await getAvailableSlots({ date: date as string, durationMinutes: durationMinutes ? parseInt(durationMinutes as string) : undefined });
+    res.json(slots);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/bookings", async (req, res) => {
+  try {
+    const { contactId, companyId, opportunityId, contactName, contactEmail, title, description, scheduledAt, durationMinutes, meetingType, confidence } = req.body;
+    if (!title || !scheduledAt) { res.status(400).json({ error: "title and scheduledAt required" }); return; }
+    const result = await createBookingWithMode({ contactId, companyId, opportunityId, contactName, contactEmail, title, description, scheduledAt, durationMinutes, meetingType, confidence });
+    res.json(result);
+  } catch (err: any) {
+    handleAIError(err, res);
+  }
+});
+
+router.delete("/bookings/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid booking ID" }); return; }
+    const result = await cancelBooking(id);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/bookings/upcoming", async (req, res) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+    const meetings = await getUpcomingMeetings(limit);
+    res.json(meetings);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

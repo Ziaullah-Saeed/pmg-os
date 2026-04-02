@@ -1,7 +1,10 @@
-import { registerTool } from "./tool-chain-service";
+import { registerTool, registerChainTemplate } from "./tool-chain-service";
 import { enrichLead, scoreLead, generateOutreachDraft, summarizeRecord, suggestNextAction } from "./ai-service";
 import { generateICP, analyzeCompetitors, segmentMarket } from "./intelligence-service";
 import { researchProspect, personalizeOutreach, draftStructuredOutreach, generateOutreachVariants } from "./outreach-pipeline-service";
+import { processTranscript, analyzeCallSentiment, detectObjections, generateFollowUp } from "./communication-intelligence-service";
+import { sendEmail, sendSMS } from "./messaging-service";
+import { createBooking, getAvailableSlots } from "./booking-service";
 import { db, leadsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -297,5 +300,178 @@ export function registerAllTools(): void {
       });
       return { riskAssessment: result.suggestion, confidence: result.confidence };
     },
+  });
+
+  registerTool({
+    name: "process_transcript",
+    description: "Process call/meeting transcript — extract summary, action items, topics, sentiment, objections",
+    domain: "communications",
+    inputKeys: ["communicationId", "transcript", "type", "contactName", "companyName"],
+    outputKeys: ["summary", "actionItems", "keyTopics", "sentiment", "objections", "nextSteps", "confidence"],
+    costCredits: 8,
+    execute: async (input) => {
+      const result = await processTranscript({
+        communicationId: input.communicationId,
+        transcript: input.transcript ?? "",
+        type: input.type,
+        contactName: input.contactName,
+        companyName: input.companyName,
+      });
+      return { summary: result.summary, actionItems: result.actionItems, keyTopics: result.keyTopics, sentiment: result.sentiment, objections: result.objections, nextSteps: result.nextSteps, confidence: result.confidence };
+    },
+  });
+
+  registerTool({
+    name: "analyze_sentiment",
+    description: "Analyze sentiment of a call or meeting",
+    domain: "communications",
+    inputKeys: ["communicationId", "transcript", "summary", "contactName"],
+    outputKeys: ["overall", "score", "breakdown", "trendDirection", "keyPhrases", "confidence"],
+    costCredits: 5,
+    execute: async (input) => {
+      const result = await analyzeCallSentiment({
+        communicationId: input.communicationId,
+        transcript: input.transcript,
+        summary: input.summary,
+        contactName: input.contactName,
+      });
+      return { overall: result.overall, score: result.score, breakdown: result.breakdown, trendDirection: result.trendDirection, keyPhrases: result.keyPhrases, confidence: result.confidence };
+    },
+  });
+
+  registerTool({
+    name: "detect_objections",
+    description: "Detect buyer objections, concerns, and hesitations from conversation",
+    domain: "communications",
+    inputKeys: ["communicationId", "transcript", "summary", "contactName", "dealContext"],
+    outputKeys: ["objections", "objectionCount", "primaryConcern", "overallRisk", "confidence"],
+    costCredits: 5,
+    execute: async (input) => {
+      const result = await detectObjections({
+        communicationId: input.communicationId,
+        transcript: input.transcript,
+        summary: input.summary,
+        contactName: input.contactName,
+        dealContext: input.dealContext,
+      });
+      return { objections: result.objections, objectionCount: result.objectionCount, primaryConcern: result.primaryConcern, overallRisk: result.overallRisk, confidence: result.confidence };
+    },
+  });
+
+  registerTool({
+    name: "generate_followup",
+    description: "Generate follow-up draft from call/meeting conversation",
+    domain: "communications",
+    inputKeys: ["communicationId", "transcript", "summary", "actionItems", "contactName", "companyName", "channel", "tone"],
+    outputKeys: ["draft", "subject", "channel", "tone", "keyPoints", "confidence"],
+    costCredits: 5,
+    execute: async (input) => {
+      const result = await generateFollowUp({
+        communicationId: input.communicationId,
+        transcript: input.transcript,
+        summary: input.summary,
+        actionItems: input.actionItems,
+        contactName: input.contactName,
+        companyName: input.companyName,
+        channel: input.channel,
+        tone: input.tone,
+      });
+      return { draft: result.draft, subject: result.subject, channel: result.channel, tone: result.tone, keyPoints: result.keyPoints, confidence: result.confidence };
+    },
+  });
+
+  registerTool({
+    name: "send_email",
+    description: "Send an email message via SMTP or GoHighLevel",
+    domain: "communications",
+    inputKeys: ["to", "subject", "body", "contactId", "companyId"],
+    outputKeys: ["success", "messageId", "provider", "communicationId"],
+    costCredits: 2,
+    execute: async (input) => {
+      const result = await sendEmail({
+        to: input.to ?? "",
+        subject: input.subject ?? "(no subject)",
+        body: input.body ?? "",
+        contactId: input.contactId,
+        companyId: input.companyId,
+      });
+      return { success: result.success, messageId: result.messageId, provider: result.provider, communicationId: result.communicationId };
+    },
+  });
+
+  registerTool({
+    name: "send_sms",
+    description: "Send an SMS message via GoHighLevel",
+    domain: "communications",
+    inputKeys: ["to", "body", "contactId", "companyId"],
+    outputKeys: ["success", "messageId", "provider", "communicationId"],
+    costCredits: 2,
+    execute: async (input) => {
+      const result = await sendSMS({
+        to: input.to ?? "",
+        body: input.body ?? "",
+        contactId: input.contactId,
+        companyId: input.companyId,
+      });
+      return { success: result.success, messageId: result.messageId, provider: result.provider, communicationId: result.communicationId };
+    },
+  });
+
+  registerTool({
+    name: "book_meeting",
+    description: "Book a meeting with availability checking",
+    domain: "communications",
+    inputKeys: ["contactId", "companyId", "contactName", "title", "scheduledAt", "durationMinutes"],
+    outputKeys: ["success", "bookingId", "scheduledAt", "durationMinutes"],
+    costCredits: 1,
+    execute: async (input) => {
+      const result = await createBooking({
+        contactId: input.contactId,
+        companyId: input.companyId,
+        contactName: input.contactName,
+        title: input.title ?? "Meeting",
+        scheduledAt: input.scheduledAt ?? new Date(Date.now() + 86400000).toISOString(),
+        durationMinutes: input.durationMinutes ?? 30,
+      });
+      return { success: result.success, bookingId: result.bookingId, scheduledAt: result.scheduledAt, durationMinutes: result.durationMinutes };
+    },
+  });
+
+  registerTool({
+    name: "check_availability",
+    description: "Check available meeting slots for a given date",
+    domain: "communications",
+    inputKeys: ["date", "durationMinutes"],
+    outputKeys: ["slots", "availableCount"],
+    costCredits: 0,
+    execute: async (input) => {
+      const slots = await getAvailableSlots({
+        date: input.date ?? new Date().toISOString().split("T")[0],
+        durationMinutes: input.durationMinutes ?? 30,
+      });
+      return { slots, availableCount: slots.filter(s => s.available).length };
+    },
+  });
+
+  registerChainTemplate({
+    name: "call_analysis",
+    description: "Full call analysis pipeline: transcript processing → sentiment → objection detection → follow-up draft",
+    domain: "communications",
+    steps: [
+      { toolName: "process_transcript" },
+      { toolName: "analyze_sentiment", inputMapping: { transcript: "transcript", summary: "summary", contactName: "contactName" } },
+      { toolName: "detect_objections", inputMapping: { transcript: "transcript", summary: "summary", contactName: "contactName" } },
+      { toolName: "generate_followup", inputMapping: { transcript: "transcript", summary: "summary", actionItems: "actionItems", contactName: "contactName", companyName: "companyName" } },
+    ],
+  });
+
+  registerChainTemplate({
+    name: "meeting_setup",
+    description: "Meeting setup pipeline: check availability → book meeting",
+    domain: "communications",
+    steps: [
+      { toolName: "check_availability" },
+      { toolName: "book_meeting", inputMapping: { scheduledAt: "scheduledAt", contactName: "contactName", title: "title" } },
+    ],
   });
 }

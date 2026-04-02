@@ -20,6 +20,11 @@ const DEFAULT_WORKFLOW_MODES: Record<string, { mode: AiMode; description: string
   "content_generation": { mode: "hybrid", description: "Content Creation" },
   "closing_conversation": { mode: "human_controlled", description: "Deal Closing" },
   "sensitive_communication": { mode: "human_controlled", description: "Sensitive Communication" },
+  "transcript_analysis": { mode: "ai_autonomous", description: "Transcript Processing & Analysis" },
+  "call_sentiment": { mode: "ai_autonomous", description: "Call Sentiment Analysis" },
+  "objection_detection": { mode: "ai_autonomous", description: "Objection Detection" },
+  "followup_generation": { mode: "hybrid", description: "Follow-Up Draft Generation" },
+  "meeting_booking": { mode: "hybrid", description: "Meeting Booking" },
 };
 
 export async function getGlobalMode(): Promise<AiMode> {

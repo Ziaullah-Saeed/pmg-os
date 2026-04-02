@@ -144,16 +144,32 @@ async function directExecuteAction(actionType: string, config: ActionConfig, pay
       break;
     }
     case "send_email": {
-      await createNotification({
-        type: "email_queued",
-        severity: "info",
-        title: "Email Queued",
-        message: `Email action triggered for ${payload.entityType} #${payload.entityId}`,
-        domain: payload.domain ?? "outreach",
-        entityType: payload.entityType,
-        entityId: payload.entityId,
-        actor: "automation_engine",
-      });
+      try {
+        const { sendMessageWithMode } = await import("./messaging-service");
+        const emailTo = config.to ?? config.email ?? `entity-${payload.entityId}@pmggroup-llc.com`;
+        const emailSubject = config.subject ?? `Automation: ${payload.entityType} #${payload.entityId}`;
+        const emailBody = config.body ?? config.message ?? `Automated email for ${payload.entityType} #${payload.entityId}`;
+        await sendMessageWithMode({
+          channel: "email",
+          to: emailTo,
+          subject: emailSubject,
+          body: emailBody,
+          confidence: config.confidence ?? 80,
+          source: "automation_engine",
+        });
+      } catch (sendErr: any) {
+        console.log(`[AutomationEngine] Email send fallback: ${sendErr.message}`);
+        await createNotification({
+          type: "email_queued",
+          severity: "info",
+          title: "Email Queued",
+          message: `Email action triggered for ${payload.entityType} #${payload.entityId}`,
+          domain: payload.domain ?? "outreach",
+          entityType: payload.entityType,
+          entityId: payload.entityId,
+          actor: "automation_engine",
+        });
+      }
       break;
     }
     case "update_field": {

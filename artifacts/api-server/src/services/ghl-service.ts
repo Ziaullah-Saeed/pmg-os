@@ -497,6 +497,15 @@ export async function pullContactsFromGHL(limit: number = 50): Promise<{
   }
 }
 
+export async function lookupGHLContactId(internalContactId: number): Promise<string | undefined> {
+  const rows = await db.select().from(integrationsTable).where(eq(integrationsTable.type, "gohighlevel"));
+  if (rows.length === 0) return undefined;
+  const config = rows[0].config as GHLConfig;
+  const syncLogs = config?.syncLogs ?? [];
+  const match = syncLogs.find((l: any) => l.internalId === internalContactId && l.ghlContactId);
+  return match?.ghlContactId;
+}
+
 export function registerGHLExecutors(): void {
   const { registerActionExecutor } = require("./mode-action-service");
 

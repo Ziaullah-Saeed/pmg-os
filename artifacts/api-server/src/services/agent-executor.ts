@@ -29,6 +29,12 @@ const AGENT_TOOL_MAP: Record<string, { tools: string[]; chains?: string[]; runTy
   "qa-review": { tools: ["summarize_record"], runType: "quality_review", domain: "finance_legal" },
   "integration-health": { tools: ["summarize_record"], runType: "health_check", domain: "system" },
   "wallet-spend": { tools: ["summarize_record"], runType: "spend_control", domain: "system" },
+  "objection-detect": { tools: ["detect_objections"], runType: "objection_detection", domain: "communications" },
+  "meeting-summary": { tools: ["process_transcript"], chains: ["call_analysis"], runType: "transcript_analysis", domain: "communications" },
+  "followup-draft": { tools: ["generate_followup"], runType: "followup_generation", domain: "communications" },
+  "crm-update-assist": { tools: ["summarize_record"], runType: "crm_update", domain: "communications" },
+  "call-eligibility": { tools: ["check_availability"], runType: "call_eligibility", domain: "communications" },
+  "ai-call-guide": { tools: ["analyze_sentiment"], runType: "call_guidance", domain: "communications" },
 };
 
 const agentRateLimits = new Map<string, { lastRun: number; minInterval: number }>();

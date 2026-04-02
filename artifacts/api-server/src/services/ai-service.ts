@@ -11,7 +11,7 @@ const openai = new OpenAI({
 
 const MODEL = "gpt-4o-mini";
 
-async function callAI(params: {
+export async function callAI(params: {
   systemPrompt: string;
   userPrompt: string;
   workflowKey: string;

@@ -51,13 +51,12 @@ server.listen(port, () => {
 
   registerAllTools();
   initToolChainTemplates();
-  logger.info("Phase 4: Tool chain framework initialized with %d tools and %d chain templates",
-    16, 5);
+  logger.info("Phase 5: Tool chain framework initialized with 24 tools and 7 chain templates (including communication intelligence)");
 
   initEmbeddingColumn().catch(err => logger.error(err, "Embedding column init failed"));
 
   startAgentExecution(45000);
-  logger.info("Phase 4: Agent executor started — real tool routing enabled for mapped agents");
+  logger.info("Phase 5: Agent executor started — 27 agents mapped to real tools (including 6 communication agents)");
 
-  logger.info("All engines initialized: tri-mode, tool-chains, agent-executor, embedding, intelligence, outreach-pipeline");
+  logger.info("All engines initialized: tri-mode, tool-chains, agent-executor, embedding, intelligence, outreach-pipeline, comms-intelligence, messaging, booking");
 });
