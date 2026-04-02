@@ -10,12 +10,14 @@ import { DetailDrawer } from "@/components/ui/detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
-import { useUpdateTaskMut } from "@/hooks/use-api";
+import { useUpdateTaskMut, useAgents, useAgentStats, useRunAgent, useUpdateAgentStatus, useAiRuns, usePendingActions, useApprovePendingAction, useRejectPendingAction } from "@/hooks/use-api";
 import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide } from "@/components/mode-aware-wrapper";
 import { CreateTaskForm } from "@/components/forms/create-task-form";
+import { useToast } from "@/hooks/use-toast";
 import {
   Zap, CheckCircle2, Clock, AlertTriangle, Plus, LayoutGrid,
-  List, ArrowRight, Shield, Bot, Sparkles, FileText, Eye
+  List, ArrowRight, Shield, Bot, Sparkles, FileText, Eye,
+  Play, Pause, Activity, XCircle, ThumbsUp, ThumbsDown, BarChart3
 } from "lucide-react";
 
 const statuses = ["pending", "in_progress", "completed", "blocked"] as const;
@@ -24,23 +26,51 @@ const statusLabels: Record<string, string> = { pending: "Pending", in_progress: 
 const tabs = [
   { id: "kanban", label: "Kanban", icon: <LayoutGrid className="h-3.5 w-3.5" /> },
   { id: "list", label: "List View", icon: <List className="h-3.5 w-3.5" /> },
+  { id: "agents", label: "AI Agents", icon: <Bot className="h-3.5 w-3.5" /> },
+  { id: "pending", label: "Pending Actions", icon: <Clock className="h-3.5 w-3.5" /> },
+  { id: "runs", label: "AI Run History", icon: <Activity className="h-3.5 w-3.5" /> },
   { id: "approvals", label: "Approvals", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
 ];
+
+const domainColors: Record<string, string> = {
+  crm: "text-blue-400", marketing: "text-purple-400", production: "text-amber-400",
+  communications: "text-cyan-400", intelligence: "text-emerald-400", finance: "text-green-400",
+  outreach: "text-orange-400", execution: "text-indigo-400", reports: "text-pink-400",
+  system: "text-slate-400", legal: "text-rose-400",
+};
 
 export default function Execution() {
   const [activeTab, setActiveTab] = useState("kanban");
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [showCreateTask, setShowCreateTask] = useState(false);
+  const [agentDomainFilter, setAgentDomainFilter] = useState("all");
   const { data: tasks } = useListTasks();
   const { isHuman } = useAiModeContext();
   const updateTask = useUpdateTaskMut();
+  const { data: agents } = useAgents();
+  const { data: agentStatsData } = useAgentStats();
+  const runAgent = useRunAgent();
+  const updateAgentStatus = useUpdateAgentStatus();
+  const { data: aiRuns } = useAiRuns(100);
+  const { data: pendingActions } = usePendingActions();
+  const approveAction = useApprovePendingAction();
+  const rejectAction = useRejectPendingAction();
+  const { toast } = useToast();
+
   const taskList = (tasks ?? []) as any[];
+  const agentList = (agents ?? []) as any[];
+  const aiRunList = (aiRuns ?? []) as any[];
+  const pendingList = (pendingActions ?? []) as any[];
+  const stats = agentStatsData as any;
 
   const total = taskList.length;
   const inProgress = taskList.filter((t: any) => t.status === "in_progress").length;
   const pending = taskList.filter((t: any) => t.status === "pending").length;
   const completed = taskList.filter((t: any) => t.status === "completed").length;
   const critical = taskList.filter((t: any) => t.priority === "critical" && t.status !== "completed").length;
+
+  const filteredAgents = agentDomainFilter === "all" ? agentList : agentList.filter((a: any) => a.domain === agentDomainFilter);
+  const agentDomains = [...new Set(agentList.map((a: any) => a.domain))];
 
   function handleTransition(task: any, newStatus: string) {
     updateTask.mutate({ id: task.id, data: { status: newStatus } }, {
@@ -52,65 +82,22 @@ export default function Execution() {
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
         title="Execution & Operations"
-        subtitle="Task management, workflows, checklists, and operational monitoring"
+        subtitle="Task management, AI agents, pending actions, and operational monitoring"
         icon={<Zap className="h-5 w-5" />}
         actions={<Button className="btn-premium text-white text-sm px-4 py-2 rounded-lg" onClick={() => setShowCreateTask(true)}><Plus className="h-4 w-4 mr-2" />New Task</Button>}
       />
 
       <ModeIndicatorBanner />
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <KpiCard label="Total Tasks" value={total} icon={<Zap className="h-4 w-4" />} />
         <KpiCard label="In Progress" value={inProgress} icon={<Clock className="h-4 w-4" />} accent="blue" />
-        <KpiCard label="Pending" value={pending} icon={<Clock className="h-4 w-4" />} accent="gold" />
-        <KpiCard label="Completed" value={completed} icon={<CheckCircle2 className="h-4 w-4" />} accent="success" />
-        <KpiCard label="Critical" value={critical} icon={<AlertTriangle className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="AI Agents" value={agentList.length} icon={<Bot className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Active Agents" value={agentList.filter((a: any) => a.status === "active").length} icon={<Activity className="h-4 w-4" />} accent="success" />
+        <KpiCard label="Pending Actions" value={pendingList.length} icon={<Clock className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="AI Runs Today" value={aiRunList.filter((r: any) => r.createdAt && (Date.now() - new Date(r.createdAt).getTime()) < 86400000).length} icon={<Sparkles className="h-4 w-4" />} accent="blue" />
       </div>
 
-      <ModeAwareWrapper
-        domain="execution"
-        humanContent={
-          <div className="space-y-6">
-            <HumanWorkflowGuide title="Task Management Workflow" steps={[
-              { id: "1", title: "Review Task Queue", description: "Check pending and blocked tasks, prioritize by urgency and impact", status: "current" as const, action: "View Tasks" },
-              { id: "2", title: "Assign & Plan", description: "Assign tasks to team members, set deadlines and dependencies", status: "upcoming" as const },
-              { id: "3", title: "Execute & Track", description: "Work through tasks, update status as you progress", status: "upcoming" as const },
-              { id: "4", title: "Quality Check", description: "Review completed work against acceptance criteria", status: "upcoming" as const },
-              { id: "5", title: "Close & Document", description: "Mark tasks complete and document lessons learned", status: "upcoming" as const },
-            ]} icon={<Zap className="h-5 w-5 text-blue-400" />} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <GlassCard>
-                <h3 className="text-sm font-semibold mb-3">Priority Tasks ({pending + inProgress})</h3>
-                <div className="space-y-2">
-                  {taskList.filter((t: any) => t.status !== "completed").slice(0, 8).map((task: any) => (
-                    <div key={task.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30 cursor-pointer" onClick={() => setSelectedTask(task)}>
-                      <div>
-                        <p className="text-sm font-medium">{task.title}</p>
-                        <p className="text-[10px] text-muted-foreground">{task.priority} · {task.status}</p>
-                      </div>
-                      <StatusBadge variant={task.priority === "critical" ? "ai-flagged" : task.status === "in_progress" ? "ai-recommended" : "pending"} label={task.status} />
-                    </div>
-                  ))}
-                </div>
-              </GlassCard>
-              <GlassCard>
-                <h3 className="text-sm font-semibold mb-3">Recently Completed ({completed})</h3>
-                <div className="space-y-2">
-                  {taskList.filter((t: any) => t.status === "completed").slice(0, 8).map((task: any) => (
-                    <div key={task.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/30 opacity-60">
-                      <div>
-                        <p className="text-sm font-medium">{task.title}</p>
-                        <p className="text-[10px] text-muted-foreground">{task.priority}</p>
-                      </div>
-                      <CheckCircle2 className="h-4 w-4 text-green-400" />
-                    </div>
-                  ))}
-                </div>
-              </GlassCard>
-            </div>
-          </div>
-        }
-      >
       <PremiumTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -166,6 +153,226 @@ export default function Execution() {
                 </div>
               </GlassCard>
             ))}
+            {taskList.length === 0 && <div className="py-12 text-center text-sm text-muted-foreground">No tasks yet. Create one to get started.</div>}
+          </div>
+        )}
+
+        {activeTab === "agents" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-info">{agentList.length}</p>
+                <p className="text-[10px] text-muted-foreground">Total Agents</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-success">{agentList.filter((a: any) => a.status === "active").length}</p>
+                <p className="text-[10px] text-muted-foreground">Active</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-warning">{agentList.filter((a: any) => a.status === "idle").length}</p>
+                <p className="text-[10px] text-muted-foreground">Idle</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-crimson">{agentList.filter((a: any) => a.status === "paused" || a.status === "error").length}</p>
+                <p className="text-[10px] text-muted-foreground">Paused/Error</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-purple-400">{agentDomains.length}</p>
+                <p className="text-[10px] text-muted-foreground">Domains</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant={agentDomainFilter === "all" ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => setAgentDomainFilter("all")}>All Domains</Button>
+              {agentDomains.map((d) => (
+                <Button key={d} variant={agentDomainFilter === d ? "default" : "outline"} size="sm" className="text-xs h-7 capitalize" onClick={() => setAgentDomainFilter(d)}>{d}</Button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredAgents.map((agent: any) => (
+                <GlassCard key={agent.id} className="!p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Bot className={`h-4 w-4 shrink-0 ${domainColors[agent.domain] ?? "text-slate-400"}`} />
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate">{agent.name}</p>
+                        <p className="text-[9px] text-muted-foreground capitalize">{agent.domain} &bull; {agent.role ?? "agent"}</p>
+                      </div>
+                    </div>
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${agent.status === "active" ? "bg-green-400" : agent.status === "error" ? "bg-red-400" : agent.status === "paused" ? "bg-yellow-400" : "bg-slate-500"}`} />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={`text-[8px] ${agent.status === "active" ? "text-green-400 border-green-500/30" : agent.status === "error" ? "text-red-400 border-red-500/30" : ""}`}>{agent.status}</Badge>
+                      {agent.totalRuns > 0 && <span className="text-[9px] text-muted-foreground">{agent.totalRuns} runs</span>}
+                      {agent.successRate !== undefined && <span className="text-[9px] text-muted-foreground">{Math.round(agent.successRate)}%</span>}
+                    </div>
+                    <div className="flex gap-1">
+                      {agent.status === "active" ? (
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => updateAgentStatus.mutate({ id: agent.id, status: "paused" })}>
+                          <Pause className="h-3 w-3" />
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => updateAgentStatus.mutate({ id: agent.id, status: "active" })}>
+                          <Play className="h-3 w-3" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => runAgent.mutate({ id: agent.id })} disabled={runAgent.isPending}>
+                        <Zap className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  {agent.lastRunAt && <p className="text-[8px] text-muted-foreground mt-1">Last run: {new Date(agent.lastRunAt).toLocaleString()}</p>}
+                </GlassCard>
+              ))}
+            </div>
+            {filteredAgents.length === 0 && <div className="py-8 text-center text-sm text-muted-foreground">No agents found for this filter.</div>}
+          </div>
+        )}
+
+        {activeTab === "pending" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-warning">{pendingList.filter((a: any) => a.status === "pending").length}</p>
+                <p className="text-[10px] text-muted-foreground">Awaiting Review</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-crimson">{pendingList.filter((a: any) => a.confidence && a.confidence < 50).length}</p>
+                <p className="text-[10px] text-muted-foreground">Low Confidence</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-success">{pendingList.filter((a: any) => a.status === "approved").length}</p>
+                <p className="text-[10px] text-muted-foreground">Approved</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-red-400">{pendingList.filter((a: any) => a.status === "rejected").length}</p>
+                <p className="text-[10px] text-muted-foreground">Rejected</p>
+              </div>
+            </div>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-warning" />
+                  <h3 className="text-sm font-semibold">Pending Action Queue</h3>
+                </div>
+                <Badge variant="outline" className="text-[10px]">{pendingList.filter((a: any) => a.status === "pending").length} awaiting</Badge>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {pendingList.filter((a: any) => a.status === "pending").length > 0 ? (
+                  pendingList.filter((a: any) => a.status === "pending").map((action: any) => (
+                    <div key={action.id} className="p-3 rounded-lg glass-surface">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`p-1.5 rounded-lg ${action.confidence && action.confidence < 50 ? "bg-red-500/10" : action.confidence < 80 ? "bg-yellow-500/10" : "bg-green-500/10"}`}>
+                            <Bot className={`h-4 w-4 ${action.confidence && action.confidence < 50 ? "text-red-400" : action.confidence < 80 ? "text-yellow-400" : "text-green-400"}`} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">{action.action ?? action.description ?? "Pending action"}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge variant="outline" className="text-[9px] capitalize">{action.domain ?? "system"}</Badge>
+                              <Badge variant="outline" className="text-[9px] capitalize">{action.workflowKey ?? action.workflow ?? ""}</Badge>
+                              {action.confidence !== undefined && (
+                                <span className={`text-[9px] font-medium ${action.confidence >= 80 ? "text-green-400" : action.confidence >= 50 ? "text-yellow-400" : "text-red-400"}`}>
+                                  {Math.round(action.confidence)}% confidence
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0 ml-3">
+                          <Button
+                            className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs px-3 py-1.5 rounded-lg h-7"
+                            onClick={() => rejectAction.mutate({ id: action.id, reason: "Rejected via pending queue" }, {
+                              onSuccess: () => toast({ title: "Action rejected" }),
+                            })}
+                            disabled={rejectAction.isPending}
+                          >
+                            <ThumbsDown className="h-3 w-3 mr-1" />Reject
+                          </Button>
+                          <Button
+                            className="bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs px-3 py-1.5 rounded-lg h-7"
+                            onClick={() => approveAction.mutate(action.id, {
+                              onSuccess: () => toast({ title: "Action approved" }),
+                            })}
+                            disabled={approveAction.isPending}
+                          >
+                            <ThumbsUp className="h-3 w-3 mr-1" />Approve
+                          </Button>
+                        </div>
+                      </div>
+                      {action.suggestedOutput && (
+                        <div className="mt-2 p-2 rounded bg-white/[0.02] border border-white/5">
+                          <p className="text-[10px] text-muted-foreground font-medium mb-1">AI Suggested Output:</p>
+                          <p className="text-xs text-foreground/80 line-clamp-3">{typeof action.suggestedOutput === "string" ? action.suggestedOutput : JSON.stringify(action.suggestedOutput)}</p>
+                        </div>
+                      )}
+                      <p className="text-[8px] text-muted-foreground mt-1">{action.createdAt ? new Date(action.createdAt).toLocaleString() : ""}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-8 text-center flex flex-col items-center gap-2">
+                    <CheckCircle2 className="h-8 w-8 text-success/50" />
+                    <p className="text-sm text-muted-foreground">No pending actions — all clear</p>
+                    <p className="text-[10px] text-muted-foreground">Actions appear here when AI confidence is below threshold in Hybrid mode</p>
+                  </div>
+                )}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "runs" && (
+          <div className="space-y-4">
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-info" />
+                  <h3 className="text-sm font-semibold">AI Run History</h3>
+                </div>
+                <Badge variant="outline" className="text-[10px]">{aiRunList.length} total runs</Badge>
+              </div>
+              <div className="px-5 pb-4">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/5 text-muted-foreground uppercase tracking-wider text-[10px]">
+                      <th className="text-left py-2 px-2">Tool</th>
+                      <th className="text-left py-2 px-2">Domain</th>
+                      <th className="text-left py-2 px-2">Status</th>
+                      <th className="text-left py-2 px-2">Confidence</th>
+                      <th className="text-left py-2 px-2">Duration</th>
+                      <th className="text-left py-2 px-2">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aiRunList.slice(0, 50).map((run: any, i: number) => (
+                      <tr key={run.id ?? i} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="py-2 px-2 font-medium capitalize">{(run.runType ?? "").replace(/_/g, " ")}</td>
+                        <td className="py-2 px-2"><Badge variant="outline" className="text-[8px] capitalize">{run.domain}</Badge></td>
+                        <td className="py-2 px-2">
+                          <div className="flex items-center gap-1">
+                            <div className={`w-1.5 h-1.5 rounded-full ${run.status === "completed" ? "bg-green-400" : run.status === "failed" ? "bg-red-400" : "bg-yellow-400"}`} />
+                            <span className="capitalize">{run.status}</span>
+                          </div>
+                        </td>
+                        <td className="py-2 px-2">
+                          {run.confidenceScore !== undefined && run.confidenceScore !== null ? (
+                            <span className={`font-medium ${run.confidenceScore >= 80 ? "text-green-400" : run.confidenceScore >= 50 ? "text-yellow-400" : "text-red-400"}`}>
+                              {Math.round(run.confidenceScore)}%
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="py-2 px-2 tabular-nums text-muted-foreground">{run.durationMs ? `${run.durationMs}ms` : "—"}</td>
+                        <td className="py-2 px-2 text-muted-foreground">{run.createdAt ? new Date(run.createdAt).toLocaleString() : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {aiRunList.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">No AI runs yet. Trigger AI operations to see history here.</p>}
+              </div>
+            </GlassCard>
           </div>
         )}
 
@@ -201,10 +408,7 @@ export default function Execution() {
                     .filter((t: any) => t.status === "pending" && (t.priority === "critical" || t.priority === "high"))
                     .sort((a: any, b: any) => {
                       const rank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-                      const ra = rank[a.priority] ?? 4;
-                      const rb = rank[b.priority] ?? 4;
-                      if (ra !== rb) return ra - rb;
-                      return new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime();
+                      return (rank[a.priority] ?? 4) - (rank[b.priority] ?? 4);
                     })
                     .map((task: any) => (
                       <div key={task.id} className="p-3 rounded-lg glass-surface">
@@ -218,20 +422,15 @@ export default function Execution() {
                               <div className="flex items-center gap-2 mt-0.5">
                                 <Badge variant="outline" className="text-[9px] capitalize">{task.domain}</Badge>
                                 <StatusBadge variant={task.priority === "critical" ? "critical" : "warning"} label={task.priority} />
-                                {task.assignedTo && <span className="text-[9px] text-muted-foreground">Assigned: {task.assignedTo}</span>}
                               </div>
                             </div>
                           </div>
                           <div className="flex gap-1.5 shrink-0 ml-3">
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setSelectedTask(task)}>
-                              <Eye className="h-3 w-3 mr-1" />Review
-                            </Button>
-                            <Button className="btn-glass text-crimson text-xs px-3 py-1.5 rounded-lg h-7" onClick={() => handleTransition(task, "blocked")}>Escalate</Button>
-                            <Button className="btn-glass text-red-400 text-xs px-3 py-1.5 rounded-lg h-7" onClick={() => handleTransition(task, "cancelled")}>Reject</Button>
-                            <Button className="bg-success hover:bg-success/90 text-white text-xs px-3 py-1.5 rounded-lg h-7" onClick={() => handleTransition(task, "in_progress")}>Approve</Button>
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setSelectedTask(task)}><Eye className="h-3 w-3 mr-1" />Review</Button>
+                            <Button className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs px-3 py-1.5 rounded-lg h-7" onClick={() => handleTransition(task, "blocked")}>Reject</Button>
+                            <Button className="bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs px-3 py-1.5 rounded-lg h-7" onClick={() => handleTransition(task, "in_progress")}>Approve</Button>
                           </div>
                         </div>
-                        {task.description && <p className="text-[10px] text-muted-foreground ml-10">{task.description}</p>}
                       </div>
                     ))
                 ) : (
@@ -242,62 +441,9 @@ export default function Execution() {
                 )}
               </div>
             </GlassCard>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <GlassCard className="p-0 overflow-hidden">
-                <div className="px-5 pt-4 pb-3 flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-crimson" />
-                  <h3 className="text-sm font-semibold">Approval Policy Configuration</h3>
-                </div>
-                <div className="px-5 pb-4 space-y-2">
-                  {[
-                    { workflow: "Financial Transactions > $5,000", approver: "Super Admin", mode: "Required" },
-                    { workflow: "Campaign Launch", approver: "Admin+", mode: "AI Auto → Human Approval" },
-                    { workflow: "Client Proposal Send", approver: "Manager+", mode: "Required" },
-                    { workflow: "AI Agent Config Change", approver: "Super Admin", mode: "Required" },
-                    { workflow: "Content Publishing", approver: "Manager+", mode: "AI Auto → Auto-Approve" },
-                    { workflow: "Lead Disqualification", approver: "Any", mode: "AI Auto Only" },
-                    { workflow: "Contract Signing", approver: "Super Admin", mode: "Required" },
-                  ].map((policy, i) => (
-                    <div key={i} className="flex items-center justify-between p-2 rounded-lg glass-surface">
-                      <div>
-                        <p className="text-xs font-medium">{policy.workflow}</p>
-                        <p className="text-[9px] text-muted-foreground">Approver: {policy.approver}</p>
-                      </div>
-                      <Badge variant="outline" className={`text-[8px] ${policy.mode === "Required" ? "text-crimson border-crimson/30" : policy.mode.includes("Auto-Approve") ? "text-green-400 border-green-500/30" : ""}`}>{policy.mode}</Badge>
-                    </div>
-                  ))}
-                </div>
-              </GlassCard>
-
-              <GlassCard className="p-0 overflow-hidden">
-                <div className="px-5 pt-4 pb-3 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-info" />
-                  <h3 className="text-sm font-semibold">Approval History</h3>
-                </div>
-                <div className="px-5 pb-4 space-y-2">
-                  {taskList.filter((t: any) => t.status === "completed" || t.status === "in_progress").slice(0, 6).map((task: any) => (
-                    <div key={task.id} className="flex items-center justify-between p-2 rounded-lg glass-surface">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium truncate">{task.title}</p>
-                          <p className="text-[9px] text-muted-foreground">{task.domain} &bull; {new Date(task.updatedAt ?? task.createdAt ?? Date.now()).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-[9px] text-success border-success/30">{task.status === "completed" ? "Approved" : "In Review"}</Badge>
-                    </div>
-                  ))}
-                  {taskList.filter((t: any) => t.status === "completed" || t.status === "in_progress").length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-3">No approval history yet.</p>
-                  )}
-                </div>
-              </GlassCard>
-            </div>
           </div>
         )}
       </motion.div>
-      </ModeAwareWrapper>
 
       <DetailDrawer open={!!selectedTask} onClose={() => setSelectedTask(null)} title={selectedTask?.title} subtitle={selectedTask?.domain}>
         {selectedTask && (
@@ -319,39 +465,15 @@ export default function Execution() {
             {selectedTask.description && (
               <GlassCard><p className="text-xs font-semibold mb-1">Description</p><p className="text-sm text-muted-foreground">{selectedTask.description}</p></GlassCard>
             )}
-            {(selectedTask.assignee || selectedTask.assignedTo || selectedTask.assigned_to) && (
-              <GlassCard><p className="text-xs font-semibold mb-1">Assigned To</p><p className="text-sm text-muted-foreground">{selectedTask.assignee || selectedTask.assignedTo || selectedTask.assigned_to}</p></GlassCard>
-            )}
-            {selectedTask.dueDate && (
-              <GlassCard><p className="text-xs font-semibold mb-1">Due Date</p><p className="text-sm text-muted-foreground">{new Date(selectedTask.dueDate || selectedTask.due_date).toLocaleDateString()}</p></GlassCard>
-            )}
             {selectedTask.status !== "completed" && (
               <div className="flex gap-2">
-                <Button
-                  className="btn-glass text-crimson flex-1 text-sm rounded-lg"
-                  onClick={() => handleTransition(selectedTask, "blocked")}
-                  disabled={updateTask.isPending}
-                >
+                <Button className="btn-glass text-crimson flex-1 text-sm rounded-lg" onClick={() => handleTransition(selectedTask, "blocked")} disabled={updateTask.isPending}>
                   <AlertTriangle className="h-4 w-4 mr-2" />Block
                 </Button>
-                <Button
-                  className="btn-premium text-white flex-1 text-sm rounded-lg"
-                  onClick={() => handleTransition(selectedTask, selectedTask.status === "pending" ? "in_progress" : selectedTask.status === "in_progress" ? "completed" : "in_progress")}
-                  disabled={updateTask.isPending}
-                >
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                  {selectedTask.status === "pending" ? "Start" : selectedTask.status === "in_progress" ? "Complete" : "Reopen"}
+                <Button className="btn-premium text-white flex-1 text-sm rounded-lg" onClick={() => handleTransition(selectedTask, selectedTask.status === "pending" ? "in_progress" : "completed")} disabled={updateTask.isPending}>
+                  <ArrowRight className="h-4 w-4 mr-2" />{selectedTask.status === "pending" ? "Start" : "Complete"}
                 </Button>
               </div>
-            )}
-            {selectedTask.status === "completed" && (
-              <Button
-                className="btn-glass text-foreground w-full text-sm rounded-lg"
-                onClick={() => handleTransition(selectedTask, "pending")}
-                disabled={updateTask.isPending}
-              >
-                Reopen Task
-              </Button>
             )}
           </div>
         )}

@@ -13,7 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   useAiMode, useSetAiMode, useWorkflowModes, useSetWorkflowMode,
   useWalletBalance, useWalletTransactions, useCommandCenter,
-  useGHLConfig, useSaveGHLConfig, useTestGHLConnection, useGHLCRMMode, useSetGHLCRMMode
+  useGHLConfig, useSaveGHLConfig, useTestGHLConnection, useGHLCRMMode, useSetGHLCRMMode,
+  useIntegrationConnectors, useIntegrationStatus, useConnectIntegration, useDisconnectIntegration,
+  useSyncHealth, useSyncLogs, useTriggerSync, useImportCsv
 } from "@/hooks/use-api";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,8 +69,9 @@ const tabs = [
   { id: "ai-control", label: "AI Control", icon: <Bot className="h-3.5 w-3.5" /> },
   { id: "users", label: "Users & Permissions", icon: <Users className="h-3.5 w-3.5" /> },
   { id: "audit", label: "Audit Trail", icon: <Activity className="h-3.5 w-3.5" /> },
-  { id: "integrations", label: "Integrations", icon: <Globe className="h-3.5 w-3.5" /> },
-  { id: "channels", label: "Channel Connectors", icon: <PlugZap className="h-3.5 w-3.5" /> },
+  { id: "integration-hub", label: "Integration Hub", icon: <PlugZap className="h-3.5 w-3.5" /> },
+  { id: "integrations", label: "GHL Setup", icon: <Globe className="h-3.5 w-3.5" /> },
+  { id: "channels", label: "Channel Connectors", icon: <RefreshCw className="h-3.5 w-3.5" /> },
 ];
 
 const channelConnectors = [
@@ -121,8 +124,20 @@ export default function System() {
   const testGHL = useTestGHLConnection();
   const { data: crmModeData } = useGHLCRMMode();
   const setCRMMode = useSetGHLCRMMode();
+  const { data: connectors } = useIntegrationConnectors();
+  const { data: integrationStatus } = useIntegrationStatus();
+  const connectIntegration = useConnectIntegration();
+  const disconnectIntegration = useDisconnectIntegration();
+  const { data: syncHealthData } = useSyncHealth();
+  const triggerSync = useTriggerSync();
+  const importCsv = useImportCsv();
   const { toast } = useToast();
   const [ghlForm, setGhlForm] = useState({ apiKey: "", locationId: "", webhookUrl: "" });
+  const [connectForm, setConnectForm] = useState({ provider: "", apiKey: "" });
+  const [csvForm, setCsvForm] = useState({ entityType: "leads", csvContent: "", dryRun: true });
+
+  const connectorList = (connectors ?? []) as any[];
+  const syncHealth = syncHealthData as any;
 
   const currentMode = aiMode?.mode ?? "hybrid";
   const crmMode = crmModeData?.mode ?? "internal";
@@ -521,6 +536,163 @@ export default function System() {
               )}
             </div>
           </GlassCard>
+        )}
+
+        {activeTab === "integration-hub" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-info">{connectorList.length || 10}</p>
+                <p className="text-[10px] text-muted-foreground">Total Connectors</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-success">{connectorList.filter((c: any) => c.status === "connected").length}</p>
+                <p className="text-[10px] text-muted-foreground">Connected</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <p className="text-lg font-bold text-warning">{connectorList.filter((c: any) => c.status === "disconnected" || c.status === "available").length || connectorList.length || 10}</p>
+                <p className="text-[10px] text-muted-foreground">Available</p>
+              </div>
+              <div className="p-3 rounded-lg glass-surface text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${syncHealth?.healthy ? "bg-green-400" : "bg-yellow-400"}`} />
+                  <p className="text-sm font-bold">{syncHealth?.healthy ? "Healthy" : "OK"}</p>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Sync Health</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                  <PlugZap className="h-4 w-4 text-info" />
+                  <h3 className="text-sm font-semibold">Integration Connectors</h3>
+                </div>
+                <div className="px-5 pb-4 space-y-2 max-h-[400px] overflow-y-auto">
+                  {(connectorList.length > 0 ? connectorList : [
+                    { id: "ghl", name: "GoHighLevel", status: "available", type: "oauth2", category: "CRM" },
+                    { id: "hubspot", name: "HubSpot", status: "available", type: "oauth2", category: "CRM" },
+                    { id: "salesforce", name: "Salesforce", status: "available", type: "oauth2", category: "CRM" },
+                    { id: "slack", name: "Slack", status: "available", type: "oauth2", category: "Communication" },
+                    { id: "google_sheets", name: "Google Sheets", status: "available", type: "oauth2", category: "Data" },
+                    { id: "stripe", name: "Stripe", status: "available", type: "api_key", category: "Payments" },
+                    { id: "mailchimp", name: "Mailchimp", status: "available", type: "api_key", category: "Email" },
+                    { id: "apollo", name: "Apollo.io", status: "available", type: "api_key", category: "Prospecting" },
+                    { id: "linkedin", name: "LinkedIn", status: "available", type: "oauth2", category: "Social" },
+                    { id: "zapier", name: "Zapier Webhooks", status: "available", type: "webhook", category: "Automation" },
+                  ]).map((c: any, i: number) => (
+                    <div key={c.id ?? i} className="p-3 rounded-lg glass-surface flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium">{c.name}</p>
+                        <p className="text-[9px] text-muted-foreground">{c.category ?? c.type} &bull; {c.type ?? "api_key"}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge variant={c.status === "connected" ? "active" : "pending"} label={c.status} />
+                        {c.status === "connected" ? (
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => triggerSync.mutate(c.id, {
+                              onSuccess: () => toast({ title: `Sync triggered for ${c.name}` }),
+                              onError: (err: any) => toast({ title: "Sync failed", description: err.message, variant: "destructive" }),
+                            })} disabled={triggerSync.isPending}>
+                              <RefreshCw className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-red-400" onClick={() => disconnectIntegration.mutate(c.id, {
+                              onSuccess: () => toast({ title: `${c.name} disconnected` }),
+                            })}>
+                              Disconnect
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-green-400" onClick={async () => {
+                            if (c.type === "oauth2") {
+                              try {
+                                const redirectUri = `${window.location.origin}/api/integration-hub/oauth/callback`;
+                                const resp = await fetch("/api/integration-hub/oauth/authorize", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  credentials: "include",
+                                  body: JSON.stringify({ provider: c.id, clientId: c.id, redirectUri }),
+                                });
+                                const data = await resp.json();
+                                if (data.authorizeUrl) window.open(data.authorizeUrl, "_blank");
+                                else toast({ title: "OAuth not configured", description: data.error || "No authorize URL returned", variant: "destructive" });
+                              } catch (err: any) {
+                                toast({ title: "OAuth error", description: err.message, variant: "destructive" });
+                              }
+                            } else {
+                              setConnectForm({ provider: c.id, apiKey: "" });
+                            }
+                          }}>
+                            Connect
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+
+              <div className="space-y-6">
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-warning" />
+                    <h3 className="text-sm font-semibold">API Key Connect</h3>
+                  </div>
+                  <div className="px-5 pb-4 space-y-3">
+                    <Input placeholder="Provider ID (e.g. stripe, apollo)" value={connectForm.provider} onChange={(e) => setConnectForm(p => ({ ...p, provider: e.target.value }))} className="bg-white/5 border-white/10 h-8 text-xs" />
+                    <Input placeholder="API Key" type="password" value={connectForm.apiKey} onChange={(e) => setConnectForm(p => ({ ...p, apiKey: e.target.value }))} className="bg-white/5 border-white/10 h-8 text-xs" />
+                    <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => {
+                      if (!connectForm.provider || !connectForm.apiKey) return;
+                      connectIntegration.mutate(connectForm, {
+                        onSuccess: () => { toast({ title: "Connected!" }); setConnectForm({ provider: "", apiKey: "" }); },
+                        onError: (err: any) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+                      });
+                    }} disabled={connectIntegration.isPending || !connectForm.provider || !connectForm.apiKey}>
+                      {connectIntegration.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <PlugZap className="h-3 w-3 mr-1" />}
+                      Connect Provider
+                    </Button>
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <Database className="h-4 w-4 text-info" />
+                    <h3 className="text-sm font-semibold">CSV Import</h3>
+                  </div>
+                  <div className="px-5 pb-4 space-y-3">
+                    <select value={csvForm.entityType} onChange={(e) => setCsvForm(p => ({ ...p, entityType: e.target.value }))} className="h-8 w-full rounded-md border border-white/10 bg-white/5 px-3 text-xs text-white">
+                      <option value="leads">Leads</option>
+                      <option value="contacts">Contacts</option>
+                      <option value="companies">Companies</option>
+                      <option value="opportunities">Opportunities</option>
+                    </select>
+                    <textarea
+                      placeholder="Paste CSV content here (header row + data rows)..."
+                      value={csvForm.csvContent}
+                      onChange={(e) => setCsvForm(p => ({ ...p, csvContent: e.target.value }))}
+                      className="w-full h-24 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white font-mono resize-none"
+                    />
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <input type="checkbox" checked={csvForm.dryRun} onChange={(e) => setCsvForm(p => ({ ...p, dryRun: e.target.checked }))} className="rounded" />
+                        Dry Run (preview only)
+                      </label>
+                      <Button variant="outline" size="sm" className="ml-auto text-xs" onClick={() => {
+                        if (!csvForm.csvContent) return;
+                        importCsv.mutate({ entityType: csvForm.entityType, csvContent: csvForm.csvContent, fieldMapping: {}, skipDuplicates: true, dryRun: csvForm.dryRun }, {
+                          onSuccess: (data: any) => toast({ title: csvForm.dryRun ? "Dry run complete" : "Import complete", description: `${data?.imported ?? data?.count ?? 0} records` }),
+                          onError: (err: any) => toast({ title: "Import failed", description: err.message, variant: "destructive" }),
+                        });
+                      }} disabled={importCsv.isPending || !csvForm.csvContent}>
+                        {importCsv.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Database className="h-3 w-3 mr-1" />}
+                        {csvForm.dryRun ? "Preview Import" : "Import Data"}
+                      </Button>
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === "integrations" && (

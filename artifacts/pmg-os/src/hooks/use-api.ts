@@ -706,4 +706,275 @@ export function useUpdateQualityIssue() {
   });
 }
 
+export function useIntegrationConnectors() {
+  return useQuery({
+    queryKey: ["integration-hub", "connectors"],
+    queryFn: () => apiFetch<any[]>("/integration-hub/connectors"),
+  });
+}
+
+export function useIntegrationStatus() {
+  return useQuery({
+    queryKey: ["integration-hub", "status"],
+    queryFn: () => apiFetch<any>("/integration-hub/status"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useConnectIntegration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { provider: string; apiKey: string }) =>
+      apiFetch<any>("/integration-hub/connect-api-key", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["integration-hub"] }); },
+  });
+}
+
+export function useDisconnectIntegration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (provider: string) =>
+      apiFetch<any>("/integration-hub/disconnect", { method: "POST", body: JSON.stringify({ provider }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["integration-hub"] }); },
+  });
+}
+
+export function useSyncLogs() {
+  return useQuery({
+    queryKey: ["integration-hub", "sync-logs"],
+    queryFn: () => apiFetch<any>("/integration-hub/sync/logs"),
+  });
+}
+
+export function useSyncHealth() {
+  return useQuery({
+    queryKey: ["integration-hub", "sync-health"],
+    queryFn: () => apiFetch<any>("/integration-hub/sync/health"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useTriggerSync() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (integrationId: string) =>
+      apiFetch<any>("/integration-hub/sync/trigger", { method: "POST", body: JSON.stringify({ integrationId }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["integration-hub"] }); },
+  });
+}
+
+export function useImportCsv() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { entityType: string; csvContent: string; fieldMapping: Record<string, string>; skipDuplicates?: boolean; dryRun?: boolean }) =>
+      apiFetch<any>("/integration-hub/import/execute", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["contacts"] });
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      qc.invalidateQueries({ queryKey: ["opportunities"] });
+    },
+  });
+}
+
+export function useReportTemplates() {
+  return useQuery({
+    queryKey: ["reporting", "templates"],
+    queryFn: () => apiFetch<any[]>("/reporting/templates"),
+  });
+}
+
+export function useReportEventTriggers() {
+  return useQuery({
+    queryKey: ["reporting", "event-triggers"],
+    queryFn: () => apiFetch<any[]>("/reporting/event-triggers"),
+  });
+}
+
+export function useReportArchive(params?: Record<string, string>) {
+  const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+  return useQuery({
+    queryKey: ["reporting", "archive", params],
+    queryFn: async () => {
+      const result = await apiFetch<{ items: any[]; total: number; accessLevels: string[] }>(`/reporting/archive${qs}`);
+      return result.items ?? [];
+    },
+  });
+}
+
+export function useGenerateScheduledReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { template: string }) =>
+      apiFetch<any>("/reporting/generate", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["reporting"] }); },
+  });
+}
+
+export function useDeliverReportSlack() {
+  return useMutation({
+    mutationFn: (data: { reportId: number; channel?: string }) =>
+      apiFetch<any>("/reporting/deliver/slack", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useDeliverReportEmail() {
+  return useMutation({
+    mutationFn: (data: { reportId: number; email: string; subject?: string }) =>
+      apiFetch<any>("/reporting/deliver/email", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useKnowledgeEventMappings() {
+  return useQuery({
+    queryKey: ["knowledge", "event-mappings"],
+    queryFn: () => apiFetch<any[]>("/knowledge/event-mappings"),
+  });
+}
+
+export function useSemanticSearch(query: string) {
+  return useQuery({
+    queryKey: ["knowledge", "semantic-search", query],
+    queryFn: () => apiFetch<any[]>(`/knowledge/semantic-search?q=${encodeURIComponent(query)}`),
+    enabled: query.length > 2,
+  });
+}
+
+export function useTestSuites() {
+  return useQuery({
+    queryKey: ["testing", "suites"],
+    queryFn: () => apiFetch<any[]>("/testing/suites"),
+  });
+}
+
+export function useTestHistory(limit = 50) {
+  return useQuery({
+    queryKey: ["testing", "history", limit],
+    queryFn: () => apiFetch<any[]>(`/testing/history?limit=${limit}`),
+  });
+}
+
+export function useDummyModeStatus() {
+  return useQuery({
+    queryKey: ["testing", "dummy-mode"],
+    queryFn: () => apiFetch<any>("/testing/dummy-mode/status"),
+  });
+}
+
+export function useRunTestSuite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (suite?: string) =>
+      apiFetch<any>("/testing/run", { method: "POST", body: JSON.stringify({ suite }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["testing"] }); },
+  });
+}
+
+export function useToggleDummyMode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (enable: boolean) =>
+      apiFetch<any>(`/testing/dummy-mode/${enable ? "enable" : "disable"}`, { method: "POST" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["testing"] }); },
+  });
+}
+
+export function usePendingActions() {
+  return useQuery({
+    queryKey: ["pending-actions"],
+    queryFn: () => apiFetch<any[]>("/pending-actions"),
+    refetchInterval: 15000,
+  });
+}
+
+export function useApprovePendingAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiFetch<any>(`/pending-actions/${id}/resolve`, { method: "POST", body: JSON.stringify({ option: "approve" }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pending-actions"] });
+      qc.invalidateQueries({ queryKey: ["command-center"] });
+    },
+  });
+}
+
+export function useRejectPendingAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) =>
+      apiFetch<any>(`/pending-actions/${id}/resolve`, { method: "POST", body: JSON.stringify({ option: "skip", reason }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pending-actions"] });
+    },
+  });
+}
+
+export function useAiRuns(limit = 50) {
+  return useQuery({
+    queryKey: ["ai-runs", limit],
+    queryFn: () => apiFetch<any[]>(`/ai-runs?limit=${limit}`),
+    refetchInterval: 15000,
+  });
+}
+
+export function useAuditEvents(limit = 100) {
+  return useQuery({
+    queryKey: ["audit-events", limit],
+    queryFn: () => apiFetch<any[]>(`/audit-events?limit=${limit}`),
+  });
+}
+
+export function useScheduledJobs() {
+  return useQuery({
+    queryKey: ["scheduler", "jobs"],
+    queryFn: async () => {
+      const result = await apiFetch<{ jobs: any[]; total: number }>("/scheduler");
+      return result.jobs ?? [];
+    },
+    refetchInterval: 30000,
+  });
+}
+
+export function useEventBusLog() {
+  return useQuery({
+    queryKey: ["event-bus", "log"],
+    queryFn: async () => {
+      const result = await apiFetch<{ events: any[]; subscribers: number; totalEvents: number }>("/event-bus");
+      return result.events ?? [];
+    },
+    refetchInterval: 10000,
+  });
+}
+
+export function useInvoiceTransition() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { invoiceId: number; newStatus: string }) =>
+      apiFetch<any>("/ai/invoice/transition", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invoices"] }); },
+  });
+}
+
+export function useContractReview() {
+  return useMutation({
+    mutationFn: (data: { contractId: number }) =>
+      apiFetch<any>("/ai/contract/review", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useToolsList() {
+  return useQuery({
+    queryKey: ["ai", "tools"],
+    queryFn: () => apiFetch<any[]>("/ai/tools"),
+  });
+}
+
+export function useChainsList() {
+  return useQuery({
+    queryKey: ["ai", "chains"],
+    queryFn: () => apiFetch<any[]>("/ai/chains"),
+  });
+}
+
 export { apiFetch };

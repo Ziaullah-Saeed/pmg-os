@@ -1,0 +1,166 @@
+PHASE 0 — SYSTEM UNDERSTANDING AND ARCHITECTURE LOCK
+Do not build final UI-first code before this is complete
+Objective
+
+Before implementation, produce and internally follow a full architecture map.
+
+Required outputs
+system architecture map
+domain relationship map
+workflow map
+mode behavior map
+AI/human responsibility map
+entity map
+state transition map
+integration map
+wallet execution map
+archive / library map
+reporting map
+permission map
+Mandatory understanding from the 35-part PMG design logic
+
+You must understand and implement these foundational ideas:
+
+Part 1 — Foundational Declaration
+
+This is a new system from zero, not a redesign or inherited platform.
+
+Part 2 — Core Product Identity
+
+This is a unified AI-native business operating system, not separate tools.
+
+Part 3 — Strategic Market Focus
+
+The system is specifically for cybersecurity and IT companies.
+
+Part 4 — Business Objective
+
+The system must help PMG operate toward scalable growth and stronger control.
+
+Part 5 — Intelligence Standard
+
+Outputs must be elite, strategic, commercially useful, and non-generic.
+
+Part 6 — AI-First Operating Philosophy
+
+AI handles most structured work, humans handle high-risk and trust-heavy moments.
+
+Part 7 — New-System Design Rule
+
+Design the whole system before building modules.
+
+Part 8 — The 11 Operating Domains
+
+All 11 domains are true architectural layers.
+
+Part 9 — Command Center
+
+Must be executive nervous system, not a vanity dashboard.
+
+Part 10 — Intelligence Domain
+
+Must turn information into decision support and positioning advantage.
+
+Part 11 — Outreach & Prospecting
+
+Must generate qualified, context-rich pipeline.
+
+Part 12 — Lead Intelligence Discipline
+
+Must enforce quality over quantity and traceability.
+
+Part 13 — Marketing & Discoverability
+
+Must support real growth and channel logic.
+
+Part 14 — Platform-Safe Multi-Channel Operation
+
+Must protect platform safety, reputation, and operational discipline.
+
+Part 15 — Production / Studio / Asset Generation
+
+Must be a real production environment, not an output list.
+
+Part 16 — Production Governance
+
+Must enforce Generate → Preview → Review → Revise → Approve → Finalize.
+
+Part 17 — Execution / Operations
+
+Must make work happen and maintain continuity.
+
+Part 18 — CRM / Sales / Revenue Pipeline
+
+Must be a real revenue operating environment.
+
+Part 19 — CRM Structure and Models
+
+Must support PMG CRM, optional GHL, optional HubSpot-like patterns, and client CRM.
+
+Part 20 — Communication Intelligence
+
+Must support calls, meetings, summaries, coaching, and updates.
+
+Part 21 — Human + AI Communication Coordination
+
+AI must amplify human performance, not flatten it.
+
+Part 22 — Finance Domain
+
+Must support operational finance visibility and risk awareness.
+
+Part 23 — Legal Domain
+
+Must support legal docs and clearly flag human legal review when needed.
+
+Part 24 — Administrative Domain
+
+Must structure SOPs, forms, procedures, and internal documentation.
+
+Part 25 — Quality Management
+
+Must include QA gates, rejection reasons, and measurable review.
+
+Part 26 — Reporting Domain
+
+Must generate executive and technical reporting.
+
+Part 27 — Reporting Style and Delivery
+
+Must explain what happened, what matters, and what is next.
+
+Part 28 — Archive / Documentation / Knowledge Memory
+
+Must be structured, searchable, and operationally useful memory.
+
+Part 29 — Slack / Communication Surface
+
+Must act as a real reporting and communication layer.
+
+Part 30 — System Core / Governance / Integrations / Infrastructure
+
+Must function as the trust and control layer.
+
+Part 31 — Permission Model
+
+Permissions must change actual system behavior.
+
+Part 32 — UI / UX Design System
+
+Must be premium, cinematic, AI-native, dark, and controlled.
+
+Part 33 — Responsive / Interaction / Accessibility
+
+Must work across devices and support proper overlays, drawers, and state feedback.
+
+Part 34 — Technology Stack / Delivery Standard
+
+Must be modern, modular, scalable, maintainable, and production-grade.
+
+Part 35 — Final Creation Mandate
+
+No foundational layer may remain shallow.
+
+Acceptance criteria for Phase 0
+
+Do not proceed unless the codebase architecture is shaped around all of the above.

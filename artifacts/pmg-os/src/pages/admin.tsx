@@ -11,19 +11,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { ModeIndicatorBanner, ModeAwareWrapper, HumanWorkflowGuide } from "@/components/mode-aware-wrapper";
-import { useSops, useCreateSop, useQualityIssues } from "@/hooks/use-api";
+import { useSops, useCreateSop, useQualityIssues, useTestSuites, useTestHistory, useDummyModeStatus, useRunTestSuite, useToggleDummyMode, useAuditEvents, useScheduledJobs, useEventBusLog } from "@/hooks/use-api";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   BookOpen, FileText, AlertTriangle, Plus, Search, FolderOpen,
-  ClipboardList, Scale, ArrowUpCircle, Archive, CheckCircle2, Loader2, Eye
+  ClipboardList, Scale, ArrowUpCircle, Archive, CheckCircle2, Loader2, Eye,
+  FlaskConical, Bot, Activity, Calendar, Play, Pause, Shield, Zap
 } from "lucide-react";
 
 const tabs = [
   { id: "sops", label: "SOPs", icon: <BookOpen className="h-3.5 w-3.5" /> },
+  { id: "testing", label: "Testing", icon: <FlaskConical className="h-3.5 w-3.5" /> },
+  { id: "audit", label: "Audit Trail", icon: <Activity className="h-3.5 w-3.5" /> },
+  { id: "scheduler", label: "Scheduler", icon: <Calendar className="h-3.5 w-3.5" /> },
   { id: "policies", label: "Policies", icon: <Scale className="h-3.5 w-3.5" /> },
-  { id: "work-instructions", label: "Work Instructions", icon: <ClipboardList className="h-3.5 w-3.5" /> },
   { id: "escalations", label: "Escalations", icon: <ArrowUpCircle className="h-3.5 w-3.5" /> },
-  { id: "archives", label: "Archives", icon: <Archive className="h-3.5 w-3.5" /> },
 ];
 
 const builtInPolicies = [
@@ -60,6 +63,21 @@ export default function Admin() {
   const { toast } = useToast();
   const { data: sops } = useSops();
   const createSop = useCreateSop();
+  const { data: testSuites } = useTestSuites();
+  const { data: testHistory } = useTestHistory(50);
+  const { data: dummyStatus } = useDummyModeStatus();
+  const runTestSuite = useRunTestSuite();
+  const toggleDummy = useToggleDummyMode();
+  const { data: auditEvents } = useAuditEvents(100);
+  const { data: scheduledJobs } = useScheduledJobs();
+  const { data: eventBusLog } = useEventBusLog();
+
+  const suiteList = (testSuites ?? []) as any[];
+  const historyList = (testHistory ?? []) as any[];
+  const auditList = (auditEvents ?? []) as any[];
+  const jobList = (scheduledJobs ?? []) as any[];
+  const eventLog = (eventBusLog ?? []) as any[];
+  const isDummyEnabled = (dummyStatus as any)?.enabled ?? false;
 
   const sopList = (sops ?? []) as any[];
   const filteredSops = sopSearch ? sopList.filter((s: any) => s.title?.toLowerCase().includes(sopSearch.toLowerCase()) || s.category?.toLowerCase().includes(sopSearch.toLowerCase())) : sopList;
@@ -246,20 +264,280 @@ export default function Admin() {
             </div>
           )}
 
-          {activeTab === "archives" && (
-            <GlassCard>
-              <h3 className="text-sm font-semibold mb-3">Administrative Archives</h3>
-              <p className="text-xs text-muted-foreground">Archived SOPs, retired policies, and historical records are stored here for compliance and audit purposes.</p>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                {["Retired SOPs", "Previous Policy Versions", "Completed Escalations"].map(cat => (
-                  <div key={cat} className="p-3 rounded-lg glass-surface text-center">
-                    <Archive className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
-                    <p className="text-xs font-medium">{cat}</p>
-                    <p className="text-[10px] text-muted-foreground">0 items</p>
+          {activeTab === "testing" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="p-3 rounded-lg glass-surface text-center">
+                  <p className="text-lg font-bold text-info">{suiteList.length}</p>
+                  <p className="text-[10px] text-muted-foreground">Test Suites</p>
+                </div>
+                <div className="p-3 rounded-lg glass-surface text-center">
+                  <p className="text-lg font-bold text-success">{historyList.filter((h: any) => h.status === "passed").length}</p>
+                  <p className="text-[10px] text-muted-foreground">Passed</p>
+                </div>
+                <div className="p-3 rounded-lg glass-surface text-center">
+                  <p className="text-lg font-bold text-crimson">{historyList.filter((h: any) => h.status === "failed").length}</p>
+                  <p className="text-[10px] text-muted-foreground">Failed</p>
+                </div>
+                <div className="p-3 rounded-lg glass-surface text-center">
+                  <p className="text-lg font-bold text-purple-400">{historyList.length}</p>
+                  <p className="text-[10px] text-muted-foreground">Total Runs</p>
+                </div>
+                <div className="p-3 rounded-lg glass-surface text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${isDummyEnabled ? "bg-yellow-400" : "bg-green-400"}`} />
+                    <p className="text-sm font-bold">{isDummyEnabled ? "Dummy" : "Live"}</p>
                   </div>
-                ))}
+                  <p className="text-[10px] text-muted-foreground">AI Mode</p>
+                </div>
               </div>
-            </GlassCard>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FlaskConical className="h-4 w-4 text-info" />
+                      <h3 className="text-sm font-semibold">Test Suites</h3>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => {
+                        runTestSuite.mutate(undefined, {
+                          onSuccess: (data: any) => toast({ title: "Tests completed", description: `${data?.summary?.totalPassed ?? 0} passed, ${data?.summary?.totalFailed ?? 0} failed` }),
+                          onError: (err: any) => toast({ title: "Test run failed", description: err.message, variant: "destructive" }),
+                        });
+                      }}
+                      disabled={runTestSuite.isPending}
+                    >
+                      {runTestSuite.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Play className="h-3 w-3 mr-1" />}
+                      Run All
+                    </Button>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2">
+                    {suiteList.length > 0 ? suiteList.map((suite: any, i: number) => (
+                      <div key={suite.id ?? suite.name ?? i} className="p-3 rounded-lg glass-surface flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium">{suite.name ?? suite.title}</p>
+                          <p className="text-[9px] text-muted-foreground">{suite.testCount ?? suite.tests?.length ?? 0} tests &bull; {suite.description ?? ""}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge variant={suite.lastResult === "passed" ? "success" : suite.lastResult === "failed" ? "critical" : "pending"} label={suite.lastResult ?? "pending"} />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[10px]"
+                            onClick={() => {
+                              runTestSuite.mutate(suite.name ?? suite.id, {
+                                onSuccess: (data: any) => toast({ title: `Suite "${suite.name}" completed`, description: `${data?.summary?.totalPassed ?? 0} passed, ${data?.summary?.totalFailed ?? 0} failed` }),
+                                onError: (err: any) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+                              });
+                            }}
+                            disabled={runTestSuite.isPending}
+                          >
+                            <Zap className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    )) : (
+                      ["core", "crm", "marketing", "production", "finance", "integration", "reporting"].map((name) => (
+                        <div key={name} className="p-3 rounded-lg glass-surface flex items-center justify-between">
+                          <div>
+                            <p className="text-xs font-medium capitalize">{name} Suite</p>
+                            <p className="text-[9px] text-muted-foreground">Phase 10 validation tests</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[10px]"
+                            onClick={() => {
+                              runTestSuite.mutate(name, {
+                                onSuccess: (data: any) => toast({ title: `Suite "${name}" completed` }),
+                                onError: (err: any) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+                              });
+                            }}
+                            disabled={runTestSuite.isPending}
+                          >
+                            <Zap className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-4 w-4 text-warning" />
+                      <h3 className="text-sm font-semibold">Dummy Mode Control</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">{isDummyEnabled ? "Enabled" : "Disabled"}</span>
+                      <Switch
+                        checked={isDummyEnabled}
+                        onCheckedChange={(checked) => {
+                          toggleDummy.mutate(checked, {
+                            onSuccess: () => toast({ title: `Dummy mode ${checked ? "enabled" : "disabled"}` }),
+                            onError: (err: any) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+                          });
+                        }}
+                        disabled={toggleDummy.isPending}
+                      />
+                    </div>
+                  </div>
+                  <div className="px-5 pb-4 space-y-3">
+                    <div className={`p-3 rounded-lg ${isDummyEnabled ? "bg-yellow-500/10 border border-yellow-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
+                      <p className="text-xs font-medium">{isDummyEnabled ? "Dummy Mode Active" : "Live AI Active"}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {isDummyEnabled
+                          ? "AI calls return mock responses. No wallet charges. Admin-only access."
+                          : "AI calls use OpenAI API. Wallet charges apply per operation."}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Features</p>
+                      {[
+                        { label: "Bypasses wallet charges", active: isDummyEnabled },
+                        { label: "Returns deterministic mock data", active: isDummyEnabled },
+                        { label: "Admin-only access control", active: true },
+                        { label: "Full API compatibility", active: true },
+                      ].map((f) => (
+                        <div key={f.label} className="flex items-center gap-2 text-xs">
+                          <CheckCircle2 className={`h-3 w-3 ${f.active ? "text-green-400" : "text-muted-foreground"}`} />
+                          <span className={f.active ? "" : "text-muted-foreground"}>{f.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Test Run History</h3>
+                  <Badge variant="outline" className="text-[10px]">{historyList.length} runs</Badge>
+                </div>
+                <div className="px-5 pb-4">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-white/5 text-muted-foreground uppercase tracking-wider text-[10px]">
+                        <th className="text-left py-2 px-2">Suite</th>
+                        <th className="text-left py-2 px-2">Test</th>
+                        <th className="text-left py-2 px-2">Status</th>
+                        <th className="text-left py-2 px-2">Duration</th>
+                        <th className="text-left py-2 px-2">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historyList.slice(0, 30).map((run: any, i: number) => (
+                        <tr key={run.id ?? i} className="border-b border-white/5 hover:bg-white/[0.02]">
+                          <td className="py-2 px-2 font-medium">{run.suite ?? "all"}</td>
+                          <td className="py-2 px-2 text-muted-foreground">{run.name ?? "—"}</td>
+                          <td className="py-2 px-2">
+                            <div className="flex items-center gap-1">
+                              <div className={`w-1.5 h-1.5 rounded-full ${run.status === "passed" ? "bg-green-400" : run.status === "failed" ? "bg-red-400" : "bg-yellow-400"}`} />
+                              <span className={`capitalize ${run.status === "passed" ? "text-green-400" : run.status === "failed" ? "text-red-400" : ""}`}>{run.status}</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-2 text-muted-foreground tabular-nums">{run.durationMs ? `${run.durationMs}ms` : "—"}</td>
+                          <td className="py-2 px-2 text-muted-foreground">{run.timestamp ? new Date(run.timestamp).toLocaleString() : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {historyList.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">No test runs yet. Run a suite to see results here.</p>}
+                </div>
+              </GlassCard>
+            </div>
+          )}
+
+          {activeTab === "audit" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-info" />
+                    <h3 className="text-sm font-semibold">Audit Events</h3>
+                    <Badge variant="outline" className="text-[10px] ml-auto">{auditList.length} events</Badge>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2 max-h-[500px] overflow-y-auto">
+                    {auditList.length > 0 ? auditList.slice(0, 30).map((evt: any, i: number) => (
+                      <div key={evt.id ?? i} className="p-2 rounded-lg glass-surface">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs font-medium capitalize">{(evt.action ?? evt.event ?? "").replace(/_/g, " ")}</p>
+                          <Badge variant="outline" className="text-[8px]">{evt.domain ?? "system"}</Badge>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground">{evt.details ?? evt.description ?? ""}</p>
+                        <p className="text-[8px] text-muted-foreground mt-1">{evt.actor ?? evt.user ?? "system"} &bull; {evt.createdAt ? new Date(evt.createdAt).toLocaleString() : ""}</p>
+                      </div>
+                    )) : (
+                      <p className="text-xs text-muted-foreground text-center py-6">No audit events recorded yet.</p>
+                    )}
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-0 overflow-hidden">
+                  <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-purple-400" />
+                    <h3 className="text-sm font-semibold">Event Bus Log</h3>
+                    <Badge variant="outline" className="text-[10px] ml-auto">{eventLog.length} events</Badge>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2 max-h-[500px] overflow-y-auto">
+                    {eventLog.length > 0 ? eventLog.slice(0, 30).map((evt: any, i: number) => (
+                      <div key={i} className="p-2 rounded-lg glass-surface flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium">{evt.event ?? evt.type}</p>
+                          <p className="text-[9px] text-muted-foreground">{evt.source ?? ""} {evt.timestamp ? new Date(evt.timestamp).toLocaleTimeString() : ""}</p>
+                        </div>
+                        <Badge variant="outline" className="text-[8px]">{evt.status ?? "emitted"}</Badge>
+                      </div>
+                    )) : (
+                      <p className="text-xs text-muted-foreground text-center py-6">Event bus log is empty. Events appear here in real-time.</p>
+                    )}
+                  </div>
+                </GlassCard>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "scheduler" && (
+            <div className="space-y-6">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-info" />
+                    <h3 className="text-sm font-semibold">Scheduled Jobs</h3>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">{jobList.length} jobs</Badge>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {jobList.length > 0 ? jobList.map((job: any, i: number) => (
+                    <div key={job.id ?? i} className="p-3 rounded-lg glass-surface flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium">{job.name ?? job.title}</p>
+                        <p className="text-[9px] text-muted-foreground">{job.schedule ?? job.cron ?? "manual"} &bull; {job.description ?? ""}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge variant={job.status === "active" ? "active" : job.status === "running" ? "ai-executed" : "pending"} label={job.status ?? "active"} />
+                        {job.nextRun && <span className="text-[9px] text-muted-foreground">Next: {new Date(job.nextRun).toLocaleString()}</span>}
+                      </div>
+                    </div>
+                  )) : (
+                    ["Report Generation (Daily)", "Data Sync (Hourly)", "Knowledge Refresh (4h)", "Agent Health Check (15min)", "Wallet Alert Check (30min)"].map((name) => (
+                      <div key={name} className="p-3 rounded-lg glass-surface flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium">{name}</p>
+                          <p className="text-[9px] text-muted-foreground">System scheduled job</p>
+                        </div>
+                        <StatusBadge variant="active" label="Active" />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </GlassCard>
+            </div>
           )}
         </motion.div>
       </ModeAwareWrapper>
