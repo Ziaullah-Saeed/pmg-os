@@ -22,6 +22,7 @@ import {
   User,
   ArrowLeftRight,
   Cpu,
+  Radio,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ const navItems = [
   { href: "/quality", label: "Quality", icon: ShieldCheck, domain: "quality" },
   { href: "/admin", label: "Administrative", icon: BookOpen, domain: "admin" },
   { href: "/agents", label: "Agent Orchestration", icon: Cpu, domain: "agents" },
+  { href: "/channels", label: "Channels", icon: Radio, domain: "channels" },
   { href: "/system", label: "System", icon: Settings, domain: "system" },
 ];
 

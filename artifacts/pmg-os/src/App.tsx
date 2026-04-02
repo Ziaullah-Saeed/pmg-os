@@ -26,6 +26,7 @@ import AiAuto from "@/pages/ai-auto";
 import Hybrid from "@/pages/hybrid";
 import Human from "@/pages/human";
 import Agents from "@/pages/agents";
+import Channels from "@/pages/channels";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,7 @@ function AppRouter() {
             <Route path="/hybrid" component={Hybrid} />
             <Route path="/human" component={Human} />
             <Route path="/agents" component={Agents} />
+            <Route path="/channels" component={Channels} />
             <Route component={NotFound} />
           </Switch>
         </SidebarLayout>

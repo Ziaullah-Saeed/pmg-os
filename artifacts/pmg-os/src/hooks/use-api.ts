@@ -140,6 +140,178 @@ export function useInvalidateWalletCache() {
   });
 }
 
+export function useChannels() {
+  return useQuery({
+    queryKey: ["channels"],
+    queryFn: () => apiFetch<any[]>("/channels"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useChannelAnalytics() {
+  return useQuery({
+    queryKey: ["channels", "analytics"],
+    queryFn: () => apiFetch<any>("/channels/analytics"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useChannelTypes() {
+  return useQuery({
+    queryKey: ["channels", "types"],
+    queryFn: () => apiFetch<any[]>("/channels/types"),
+    staleTime: Infinity,
+  });
+}
+
+export function useCreateChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => apiFetch<any>("/channels", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+  });
+}
+
+export function useUpdateChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: any) => apiFetch<any>(`/channels/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+  });
+}
+
+export function useDeleteChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<any>(`/channels/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+  });
+}
+
+export function useConnectChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: any) => apiFetch<any>(`/channels/${id}/connect`, { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+  });
+}
+
+export function useDisconnectChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<any>(`/channels/${id}/disconnect`, { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+  });
+}
+
+export function useReconnectChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<any>(`/channels/${id}/reconnect`, { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+  });
+}
+
+export function useTriggerChannelSync() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<any>(`/channels/${id}/sync`, { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+  });
+}
+
+export function useChannelForms() {
+  return useQuery({
+    queryKey: ["channels", "forms"],
+    queryFn: () => apiFetch<any[]>("/channels/forms/list"),
+  });
+}
+
+export function useCreateForm() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => apiFetch<any>("/channels/forms", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels", "forms"] }),
+  });
+}
+
+export function useDeleteFormMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<any>(`/channels/forms/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels", "forms"] }),
+  });
+}
+
+export function useLandingPages() {
+  return useQuery({
+    queryKey: ["channels", "pages"],
+    queryFn: () => apiFetch<any[]>("/channels/pages/list"),
+  });
+}
+
+export function useCreateLandingPage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => apiFetch<any>("/channels/pages", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels", "pages"] }),
+  });
+}
+
+export function useDeleteLandingPageMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<any>(`/channels/pages/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels", "pages"] }),
+  });
+}
+
+export function useAttributionSummary() {
+  return useQuery({
+    queryKey: ["channels", "attribution"],
+    queryFn: () => apiFetch<any[]>("/channels/attribution/summary"),
+  });
+}
+
+export function useManualImports() {
+  return useQuery({
+    queryKey: ["channels", "imports"],
+    queryFn: () => apiFetch<any[]>("/channels/imports/list"),
+  });
+}
+
+export function useStartImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => apiFetch<any>("/channels/imports/start", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels", "imports"] }),
+  });
+}
+
+export function useProcessImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: any) => apiFetch<any>(`/channels/imports/${id}/process`, { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels", "imports"] }),
+  });
+}
+
+export function useReconcileImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, notes }: any) => apiFetch<any>(`/channels/imports/${id}/reconcile`, { method: "POST", body: JSON.stringify({ notes }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels", "imports"] }),
+  });
+}
+
+export function useSeedChannels() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<any>("/channels/seed", { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["channels"] }),
+  });
+}
+
 export function useAiMode() {
   return useQuery({
     queryKey: ["ai-mode", "global"],
