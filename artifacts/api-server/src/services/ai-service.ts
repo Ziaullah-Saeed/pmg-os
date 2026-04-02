@@ -1,8 +1,9 @@
 import OpenAI from "openai";
 import { db, aiRunsTable } from "@workspace/db";
-import { chargeWallet } from "./wallet-service";
+import { chargeWallet, isDummyMode, getToolCost } from "./wallet-service";
 import { shouldAiAct } from "./ai-mode-service";
 import { createNotification } from "./notification-service";
+import { getCachedResult, setCachedResult, categorizeAICall } from "./cache-intelligence";
 
 const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
@@ -36,14 +37,57 @@ export async function callAI(params: {
     throw new Error(`AI_BLOCKED: ${modeCheck.reason}`);
   }
 
+  const cacheCategory = categorizeAICall({ workflowKey: params.workflowKey, tool: params.tool, domain: params.domain, action: params.action });
+  if (cacheCategory) {
+    const cached = await getCachedResult({
+      category: cacheCategory,
+      domain: params.domain,
+      input: { systemPrompt: params.systemPrompt, userPrompt: params.userPrompt, tool: params.tool },
+    });
+
+    if (cached.hit) {
+      await chargeWallet({
+        tool: params.tool,
+        domain: params.domain,
+        action: params.action,
+        entityType: params.entityType,
+        entityId: params.entityId,
+        cached: true,
+        description: `Cache hit: ${params.tool}`,
+      });
+
+      const [run] = await db.insert(aiRunsTable).values({
+        runType: params.tool,
+        status: "cached",
+        prompt: params.userPrompt.slice(0, 2000),
+        output: (typeof cached.result === "string" ? cached.result : JSON.stringify(cached.result)).slice(0, 2000),
+        model: "cache",
+        tokensUsed: 0,
+        durationMs: 0,
+        confidenceScore: cached.confidence ?? 85,
+        domain: params.domain,
+        entityType: params.entityType,
+        entityId: params.entityId,
+        metadata: JSON.stringify({ cached: true, cacheId: cached.cacheId, category: cacheCategory }),
+      }).returning();
+
+      return {
+        result: typeof cached.result === "string" ? cached.result : JSON.stringify(cached.result),
+        confidence: cached.confidence ?? 85,
+        runId: run.id,
+      };
+    }
+  }
+
   const { getDummyResponse } = await import("./testing-service");
   const dummyResult = getDummyResponse(params.tool, { prompt: params.userPrompt });
 
-  if (dummyResult === null) {
+  if (dummyResult === null && !isDummyMode()) {
     const chargeResult = await chargeWallet({
       tool: params.tool,
       domain: params.domain,
       action: params.action,
+      workflow: params.workflowKey,
       entityType: params.entityType,
       entityId: params.entityId,
     });
@@ -59,8 +103,8 @@ export async function callAI(params: {
   let status = "completed" as string;
   let errorMsg: string | undefined;
 
-  if (dummyResult !== null) {
-    result = dummyResult;
+  if (dummyResult !== null || isDummyMode()) {
+    result = dummyResult ?? `[DUMMY] AI response for ${params.action}`;
     confidence = 85;
     status = "completed";
   } else {
@@ -130,6 +174,17 @@ export async function callAI(params: {
       actor: "ai_system",
       metadata: { runId: run.id, confidence, handoffTier: "MEDIUM" },
     });
+  }
+
+  if (cacheCategory && status === "completed" && confidence >= 60) {
+    setCachedResult({
+      category: cacheCategory,
+      domain: params.domain,
+      input: { systemPrompt: params.systemPrompt, userPrompt: params.userPrompt, tool: params.tool },
+      result,
+      confidence,
+      originalCost: getToolCost(params.tool),
+    }).catch(() => {});
   }
 
   return { result, confidence, runId: run.id };

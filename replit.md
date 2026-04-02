@@ -2,7 +2,7 @@
 
 ## Overview
 
-PMG Group OS is an AI-native enterprise business operating system for PMG Group LLC, a cybersecurity and IT services agency. Its primary purpose is to unify and intelligentize business operations across 11 core domains, including command center, intelligence, outreach, marketing, production, CRM, communications, execution, finance & legal, reports & archive, and system management. The system leverages AI for critical functions such as lead enrichment, scoring, report generation, and multi-tool orchestration, aiming to significantly enhance efficiency, automate tasks, and provide intelligent insights for operational excellence and growth.
+PMG Group OS is an AI-native enterprise business operating system for PMG Group LLC, a cybersecurity and IT services agency. It aims to unify and intelligentize business operations across 11 core domains: command center, intelligence, outreach, marketing, production, CRM, communications, execution, finance & legal, reports & archive, and system management. The system leverages AI for lead enrichment, scoring, report generation, and multi-tool orchestration to enhance efficiency, automate tasks, and provide intelligent insights for operational excellence and growth.
 
 ## User Preferences
 
@@ -17,27 +17,29 @@ The system features a cinematic glassmorphic dark-first design, utilizing a prim
 
 **Technical Implementations & Design Choices:**
 
-*   **Monorepo Structure:** Organizes `api-server`, `pmg-os` (React frontend), `mockup-sandbox`, and shared libraries (`api-spec`, `api-client-react`, `api-zod`, `db`).
-*   **Authentication & Permissions:** Session-based authentication using `express-session` with PostgreSQL-backed sessions. Role-based access control (RBAC) with a hierarchical permission system is enforced via backend middleware.
-*   **AI Integration & Tri-Mode System:** Integrates OpenAI via Replit AI Integrations for various AI tasks. A "Tri-Mode System" (AI Autonomous, Hybrid, Human Controlled) dictates AI operation, allowing global, workflow-specific, and record-level overrides for actions and confidence-based handoffs.
-*   **Core Engine Services:** Includes wallet management (for AI costs), state machines for entity lifecycles, CRM lead routing, knowledge library, notification system, and an event bus for cross-domain communication.
-*   **Automated Workflow Engines:** Features an Automation Rules Engine (trigger-action rules), Outreach Sequence Execution Engine, Task Auto-Assignment Router, and a Pipeline Engine for CRM deal management.
-*   **Data & Realtime:** Utilizes an in-memory LRU cache and a WebSocket server for real-time notifications and updates. File uploads are handled via Multer to local storage.
-*   **Global Error Handling:** Express global error handler middleware catches all unhandled route errors with structured JSON responses (error message, request ID, stack in dev). Process-level handlers for uncaughtException and unhandledRejection. 404 handler returns structured path/method info.
-*   **Job Queue:** DB-backed background job queue (`job_queue` table) with priority ordering, exponential backoff retries (5s→15s→60s→5m→15m), dead-letter queue for exhausted jobs, periodic processing every 10s. Admin-only API at `/job-queue/stats`, `/job-queue/dead-letter`, `/job-queue/retry/:id`, `/job-queue/purge`.
-*   **Overlay Engine:** Centralized React overlay manager (`useOverlay` hook + `OverlayProvider`) supporting stacked modals/drawers/sheets/command palette with Escape key handling, backdrop click dismiss, body scroll lock, and programmatic open/close/closeAll.
-*   **RBAC Enforcement:** Fixed `requireRole` middleware to read `session.userRole` (matching auth middleware storage) with fallback to `*` permission detection.
-*   **Audit Service:** Logs critical actions to an `audit_events` table for compliance and traceability.
-*   **AI Agent & Tool Orchestration:** Manages 112 agents across 11 domains, with 21 mapped to real AI tools and chains. Supports multi-tool orchestration with 34 registered tools and 9 chain templates for complex workflows (e.g., lead qualification, asset production).
-*   **Vector Embeddings & Semantic Search:** Knowledge entries are auto-embedded using OpenAI for semantic search capabilities.
-*   **Communication & Production AI:** Includes AI-powered features for structured outreach, communication intelligence (transcript processing, sentiment analysis, objection detection), follow-up draft generation, and a comprehensive Production Studio for asset generation with brand kit enforcement and AI review workflows.
-*   **Finance, Legal & Quality:** Implements state machines for invoice lifecycle and expense approval workflows, AI-powered contract review and generation, and quality checkpoints with SOP enforcement. Quality gates are enforced as mandatory checks during state transitions — critical/high failures block transitions for leads (data completeness), opportunities (value/close-date), and contracts (content/dates).
-*   **Channel Health & Safety:** A channel health service tracks bounce rates, complaint rates, daily send limits (email: 200, SMS: 100, LinkedIn: 50), opt-out lists, and cross-sequence collision detection. The sequence engine enforces these limits before every send.
-*   **Slack Communication Surface:** A Slack surface service routes operational alerts to dedicated channels (#deals, #approvals, #ops, #quality, #finance, #legal) for deals, agent errors, quality gate failures, invoices, expenses, and contract reviews.
-*   **Integration Hub:** Provides a unified layer for third-party integrations (10 connectors like GoHighLevel, HubSpot, Stripe), supporting OAuth2, API key auth, public webhook receivers, CSV import with field mapping, and a bidirectional sync engine.
-*   **Reporting & Knowledge Memory:** Offers scheduled and event-triggered reports with AI-powered content generation, knowledge auto-population from business events, and a permission-aware archive with delivery channels (Slack, email).
-*   **Testing & Validation:** Features a built-in test harness with a "Dummy Mode" for intercepting AI calls and simulating responses for cost-free testing.
-*   **Operating Mode Pages:** Three dedicated mode pages at `/auto` (AI Autonomous), `/hybrid` (Hybrid), `/human` (Human Manual) providing mode-specific dashboards with real-time data, approval queues, workflow guides, and cross-mode switching. Sidebar includes "Operating Mode" section for direct navigation. Backend supports record-level mode overrides via `PUT/DELETE /ai-mode/record/:entityType/:entityId`, mode check via `GET /ai-mode/check`, and active overrides listing via `GET /ai-mode/overrides`.
+*   **Monorepo Structure:** Organizes `api-server`, `pmg-os` (React frontend), `mockup-sandbox`, and shared libraries.
+*   **Authentication & Permissions:** Session-based authentication with PostgreSQL-backed sessions and role-based access control (RBAC).
+*   **AI Integration & Tri-Mode System:** Integrates OpenAI via Replit AI Integrations, with a "Tri-Mode System" (AI Autonomous, Hybrid, Human Controlled) for flexible AI operation and confidence-based handoffs.
+*   **Core Engine Services:** Includes wallet management, state machines, CRM lead routing, knowledge library, notification system, and an event bus.
+*   **Automated Workflow Engines:** Features an Automation Rules Engine, Outreach Sequence Execution Engine, Task Auto-Assignment Router, and a Pipeline Engine.
+*   **Data & Realtime:** Utilizes an in-memory LRU cache and WebSocket server for real-time updates. File uploads are handled via Multer.
+*   **Global Error Handling:** Comprehensive Express global error handling with structured JSON responses.
+*   **Job Queue:** DB-backed background job queue with priority, exponential backoff retries, and a dead-letter queue.
+*   **Overlay Engine:** Centralized React overlay manager supporting stacked modals/drawers/sheets/command palette.
+*   **Audit Service:** Logs critical actions to an `audit_events` table.
+*   **AI Agent & Tool Orchestration:** Manages 112 agents across 11 domains, with 21 mapped to AI tools and chains. Supports multi-tool orchestration with 34 registered tools and 9 chain templates.
+*   **Vector Embeddings & Semantic Search:** Knowledge entries are auto-embedded using OpenAI for semantic search.
+*   **Communication & Production AI:** Includes AI for structured outreach, communication intelligence, follow-up draft generation, and a Production Studio for asset generation with brand kit enforcement and AI review.
+*   **Finance, Legal & Quality:** Implements state machines for invoice/expense approval, AI-powered contract review, and quality checkpoints with SOP enforcement.
+*   **Channel Health & Safety:** A channel health service tracks bounce rates, complaint rates, daily send limits, opt-out lists, and cross-sequence collision detection.
+*   **Slack Communication Surface:** Routes operational alerts to dedicated Slack channels.
+*   **Integration Hub:** Provides a unified layer for third-party integrations (e.g., GoHighLevel, HubSpot, Stripe) with OAuth2, API key auth, webhooks, CSV import, and bidirectional sync.
+*   **Reporting & Knowledge Memory:** Offers scheduled/event-triggered reports with AI-powered content, knowledge auto-population, and a permission-aware archive.
+*   **Wallet & Cost Control (Phase 7):** Enhanced wallet with balance reservation (reserve/commit/release), per-provider and per-workflow spend tracking with proper daily/monthly reset logic, configurable spend thresholds (daily/monthly limits per provider/workflow/global), anomaly detection, and dummy no-spend mode. Includes an intelligent 8-category semantic cache (reasoning/enrichment/research/report_component/manual_guide/production_asset/crm_summary/outreach_structure) with DB-backed persistence and in-memory L1 LRU that intercepts AI calls to reduce repeated costs. Finance page has a "Wallet & Cost Control" tab with KPI cards, provider/domain spend charts, action ledger, controls (dummy mode toggle, fund wallet), threshold CRUD, and cache statistics.
+*   **Testing & Validation:** Features a built-in test harness with a "Dummy Mode" for simulating AI responses.
+*   **Operating Mode Pages:** Dedicated dashboards at `/auto`, `/hybrid`, `/human` for AI Autonomous, Hybrid, and Human Manual operating modes, respectively, with real-time data and workflow guides.
+*   **Tool Orchestration Engine:** An 8-step pipeline for orchestrating agents, including provider selection, wallet charging, execution, result processing, confidence checks, archiving, auditing, and reporting. It supports dynamic provider scoring and fallback chains.
+*   **Enhanced Agent Registry:** All agents have detailed definitions covering purpose, triggers, tool access, confidence models, output structures, wallet behavior, fallback behavior, and archive behavior.
 
 ## External Dependencies
 
@@ -56,137 +58,3 @@ The system features a cinematic glassmorphic dark-first design, utilizing a prim
 *   **CRM/Marketing Integrations:** GoHighLevel
 *   **Email Service:** nodemailer (SMTP)
 *   **UI Components:** @dnd-kit (for drag-and-drop)
-
-## Phase 4: CRM + GHL + External Routing (Completed)
-
-Phase 4 makes routing real, sync visible, and ensures PMG never loses visibility after external handoff.
-
-**Schema Changes:**
-- `leads`: Added `externalCrmId`, `routingDestination` (pmg/ghl/both/hold), `retainCopy` (always true), `routedAt`, `lastSyncedAt`
-- `contacts`, `companies`, `opportunities`: Added `externalCrmId`, `lastSyncedAt`
-- `sync_logs`: Added `retryCount`, `retriedAt`, `routingDestination`
-
-**API Enhancements (ghl.ts routes):**
-- Field mapping CRUD (`/ghl/field-mapping` GET/PUT)
-- Pipeline mapping CRUD (`/ghl/pipeline-mapping` GET/PUT)
-- Per-lead routing (`/ghl/route-lead/:id` POST) with retainCopy
-- Bulk routing (`/ghl/route-bulk` POST)
-- Enhanced sync logs with filtering (`/ghl/sync-logs`)
-- Retry queue (`/ghl/retry-queue` GET, `/ghl/retry-all-failed` POST)
-- Sync health dashboard (`/ghl/sync-health` GET) with totalSynced, totalFailed, healthScore, status
-- Routing summary (`/ghl/routing-summary` GET)
-- Note sync, contact sync endpoints
-- Legacy `/leads/:id/route` updated to accept `pmg` destination and write routing fields
-
-**Frontend (15 new hooks in use-api.ts):**
-- `useGHLFieldMapping`, `useSaveGHLFieldMapping`, `useGHLPipelineMapping`, `useSaveGHLPipelineMapping`
-- `useGHLSyncHealth`, `useGHLRoutingSummary`, `useGHLRetryQueue`, `useGHLSyncRetry`
-- `useGHLRetryAllFailed`, `useGHLRouteLeadEnhanced`, `useGHLRouteBulk`
-- `useGHLSyncNotes`, `useGHLSyncContact`, `useGHLPullContacts`
-
-**System Page (GHL Setup tab) enhancements:**
-- Field Mapping editor (PMG → GHL field name mapping with save)
-- Pipeline Mapping editor (stage name mapping)
-- Sync Health Dashboard with live metrics and sync log viewer
-- Retry queue management with per-item and batch retry
-
-**CRM Page enhancements:**
-- GHL Routing tab: Real per-lead routing with PMG/GHL/Both/Hold buttons, bulk routing via checkboxes, routing destination badges, "Copy Retained" indicator, GHL external ID display, sync timestamp
-- Sync Center tab: Live KPIs (Total Synced, Failed, Health Score, Retry Queue), entity sync status with percentages, full sync log with retry buttons, dedicated retry queue panel
-
-**Security:** `/leads/:id/route` now requires `manager` role via RBAC middleware.
-
-## Phase 5: Production Studio + Creative Routing (Completed)
-
-Phase 5 transforms Production into a true AI creative studio with intelligent multi-provider routing.
-
-**Creative Provider Registry (`creative-providers.ts`):**
-- 16 AI creative tool providers: Midjourney, FLUX, Recraft, Bannerbear, Kittl (image/design), Runway Gen-3, Kling, Luma (video), ElevenLabs, Descript (audio), Claid, Flair, SiliconFlow, Photoroom (photo/editing), Brandfetch (brand), Google Fonts (typography)
-- Each provider has: id, name, category, icon, capabilities, assetTypes, qualityTier (studio/professional/standard/draft), speedTier (realtime/fast/standard/slow), costPerCredit, outputFormats, bestFor, status
-- 7 categories: image-generation, design-automation, video-generation, audio-generation, image-editing, brand-assets, typography
-
-**Intelligent Routing Engine:**
-- `routeCreativeTask(assetType, options)` — scores candidates by quality/speed/budget preferences, returns primary provider + alternatives + pipeline + reason
-- Multi-step pipeline building (e.g., video + voiceover → Runway + ElevenLabs pipeline)
-- `getAIRoutingRecommendation()` — GPT-powered provider selection with structured JSON response
-- Quality/speed normalization: frontend `premium/instant/medium` maps to backend `studio/realtime/standard`
-
-**New API Endpoints:**
-- `GET /ai/production/creative-providers` — full provider registry with categories
-- `GET /ai/production/creative-providers/:id` — single provider details
-- `GET /ai/production/creative-providers/asset-type/:type` — providers for asset type
-- `POST /ai/production/creative-route` — deterministic routing with preferences
-- `POST /ai/production/ai-route` — AI-powered routing recommendation
-- `POST /ai/production/:id/archive` — archive asset
-- `GET /ai/production/archive` — list archived assets
-- `POST /ai/production/:id/restore` — restore from archive
-- Updated `POST /ai/production/generate` — accepts providerId, qualityPreference, speedPreference; returns routing metadata
-
-**Frontend Hooks (10 new in use-api.ts):**
-- `useCreativeProviders`, `useCreativeProvidersByAssetType`
-- `useCreativeRoute`, `useAICreativeRoute`
-- `useGenerateAsset`, `useArchiveAsset`, `useArchivedAssets`, `useRestoreAsset`
-- `useAIReviewAsset`, `useDesignBrief`
-
-**Production Studio Page Enhancements:**
-- Archive tab in left sidebar with restore functionality
-- Creative Routing panel in right sidebar (Route tab): asset type selector, quality/speed preferences, provider override, pipeline visualization, alternatives display, AI generation form
-- Provider Network grid on landing page showing 16 providers with icons, quality/speed tiers, capabilities
-- Provider attribution badges on assets showing which creative tool was used
-- Provider attribution in version history
-- Archive button in toolbar and properties panel
-- "16 Providers" badge in top bar
-
-**Service Integration:**
-- `generateAsset()` now stores routing metadata (primaryProvider, reason, estimatedCredits, pipeline, alternatives) in asset metadata
-- Audit logs include provider attribution
-- WebSocket broadcasts include creativeProvider field
-- Archive/restore with full audit trail and notifications
-
-## Phase 6: Tool Orchestration + Agent System (Completed)
-
-Phase 6 makes agents real with an orchestration engine, provider selection/fallback, execution pipeline, result processing, and audit/archive.
-
-**Orchestration Engine (`orchestration-engine.ts`):**
-- 8-step pipeline: provider_selection → wallet_charge → execution → result_processing → confidence_check → archive → audit_log → reporting
-- Dynamic provider scoring based on task type, domain match, and preferences
-- Fallback chains: if primary provider fails, tries alternatives automatically
-- Wallet integration: charges per-run based on provider cost
-- Result processing with output validation against agent's `outputStructure`
-- Confidence classification (auto_approve, human_review, escalate tiers)
-- Full audit logging to `audit_events` and `ai_runs` tables
-- WebSocket broadcast events for orchestration start/complete/fail
-- Active task tracking and completed task history
-
-**Enhanced Agent Registry (`agent-registry.ts`):**
-- All 112 agents have full `EnhancedAgentDefinition`: purpose, trigger (event/schedule/manual/threshold/chain), domain, toolAccess, confidenceModel (minConfidence, escalateBelow, autoApproveAbove, method), outputStructure (format, requiredFields), walletBehavior (maxChargePerRun, budgetPool, chargeOnFailure), fallbackBehavior (strategy, maxRetries), archiveBehavior (autoArchive, retentionDays, archiveCategory)
-- `getFullAgentProfile(id)` and `getAllFullAgentProfiles()` combine base + enhanced definitions
-
-**Agent Executor (`agent-executor.ts`):**
-- Calls `orchestrate()` instead of direct tool execution for all mapped agents
-- Dynamic provider selection via orchestration engine
-
-**New API Endpoints (`agents.ts`):**
-- `GET /agents/full` — all agents with full profiles (base + enhanced)
-- `GET /agents/enhanced` — all enhanced definitions
-- `GET /agents/:id/full` — single agent full profile
-- `GET /agents/:id/enhanced` — single enhanced definition
-- `GET /agents/orchestration/stats` — orchestration statistics (active, completed, failed, avgConfidence, totalCost, providerUsage, domainUsage)
-- `GET /agents/orchestration/active` — currently running orchestration tasks
-- `GET /agents/orchestration/completed?limit=N` — completed orchestration history
-- `GET /agents/orchestration/task/:id` — specific task details
-- `POST /agents/orchestration/select-provider` — provider selection with scoring
-- `POST /agents/orchestration/execute` — trigger orchestrated agent execution
-
-**Frontend Hooks (9 new in `use-api.ts`):**
-- `useFullAgents`, `useEnhancedAgents`, `useFullAgent(id)`, `useEnhancedAgent(id)`
-- `useOrchestrationStats`, `useOrchestrationActive`, `useOrchestrationCompleted(limit)`
-- `useExecuteAgent`, `useSelectProvider`
-
-**Agents Orchestration Page (`/agents`):**
-- 4-tab layout: Agent Overview, Orchestration, Domain View, Execution Log
-- Agent Overview: filterable agent grid (by domain), detail panel with trigger/tool access/confidence model/wallet/fallback/archive/output, execute/pause controls, domain distribution sidebar
-- Orchestration: pipeline KPIs, active task tracker with step visualization, 8-step pipeline architecture diagram, provider usage grid
-- Domain View: 11 domain cards with agent counts, running/paused status, success rates
-- Execution Log: chronological completed/failed executions with confidence/provider/duration/cost
-- Sidebar navigation: "Agent Orchestration" link with Cpu icon

@@ -21,7 +21,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 export function useWalletBalance() {
   return useQuery({
     queryKey: ["wallet", "balance"],
-    queryFn: () => apiFetch<{ balance: number; id: number }>("/wallet/balance"),
+    queryFn: () => apiFetch<{ balance: number; reservedBalance: number; availableBalance: number; id: number }>("/wallet/balance"),
     refetchInterval: 30000,
   });
 }
@@ -43,6 +43,100 @@ export function useFundWallet() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["wallet"] });
     },
+  });
+}
+
+export function useWalletAnalytics() {
+  return useQuery({
+    queryKey: ["wallet", "analytics"],
+    queryFn: () => apiFetch<any>("/wallet/analytics"),
+    refetchInterval: 60000,
+  });
+}
+
+export function useWalletLedger(params?: { limit?: number; domain?: string; tool?: string; type?: string }) {
+  return useQuery({
+    queryKey: ["wallet", "ledger", params],
+    queryFn: () => {
+      const qs = new URLSearchParams();
+      if (params?.limit) qs.set("limit", String(params.limit));
+      if (params?.domain) qs.set("domain", params.domain);
+      if (params?.tool) qs.set("tool", params.tool);
+      if (params?.type) qs.set("type", params.type);
+      return apiFetch<any[]>(`/wallet/ledger?${qs.toString()}`);
+    },
+  });
+}
+
+export function useWalletThresholds() {
+  return useQuery({
+    queryKey: ["wallet", "thresholds"],
+    queryFn: () => apiFetch<any[]>("/wallet/thresholds"),
+  });
+}
+
+export function useUpsertThreshold() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { scopeType: string; scopeId: string; dailyLimit?: number; monthlyLimit?: number; perActionCap?: number; enabled?: boolean }) =>
+      apiFetch<any>("/wallet/thresholds", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["wallet", "thresholds"] }),
+  });
+}
+
+export function useDeleteThreshold() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<any>(`/wallet/thresholds/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["wallet", "thresholds"] }),
+  });
+}
+
+export function useWalletDummyMode() {
+  return useQuery({
+    queryKey: ["wallet", "dummy-mode"],
+    queryFn: () => apiFetch<{ dummyMode: boolean }>("/wallet/dummy-mode"),
+  });
+}
+
+export function useSetDummyMode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) => apiFetch<{ dummyMode: boolean }>("/wallet/dummy-mode", { method: "POST", body: JSON.stringify({ enabled }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["wallet"] }),
+  });
+}
+
+export function useProviderSpend() {
+  return useQuery({
+    queryKey: ["wallet", "provider-spend"],
+    queryFn: () => apiFetch<Record<string, { daily: number; monthly: number }>>("/wallet/provider-spend"),
+    refetchInterval: 60000,
+  });
+}
+
+export function useWorkflowSpend() {
+  return useQuery({
+    queryKey: ["wallet", "workflow-spend"],
+    queryFn: () => apiFetch<Record<string, { daily: number; monthly: number }>>("/wallet/workflow-spend"),
+    refetchInterval: 60000,
+  });
+}
+
+export function useWalletCacheStats() {
+  return useQuery({
+    queryKey: ["wallet", "cache-stats"],
+    queryFn: () => apiFetch<any>("/wallet/cache/stats"),
+    refetchInterval: 60000,
+  });
+}
+
+export function useInvalidateWalletCache() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { category?: string; domain?: string }) =>
+      apiFetch<any>("/wallet/cache/invalidate", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["wallet", "cache-stats"] }),
   });
 }
 

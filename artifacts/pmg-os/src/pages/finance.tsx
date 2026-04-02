@@ -15,17 +15,27 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
-import { useInvoices, useContracts, useCreateInvoiceMut } from "@/hooks/use-api";
+import {
+  useInvoices, useContracts, useCreateInvoiceMut,
+  useWalletBalance, useWalletAnalytics, useWalletLedger,
+  useWalletThresholds, useUpsertThreshold, useDeleteThreshold,
+  useWalletDummyMode, useSetDummyMode, useFundWallet,
+  useWalletCacheStats,
+} from "@/hooks/use-api";
 import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide } from "@/components/mode-aware-wrapper";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 import {
   Landmark, DollarSign, TrendingUp, FileText, Plus, Receipt,
-  Scale, AlertTriangle, Download
+  Scale, AlertTriangle, Download, Wallet, ShieldAlert, Zap,
+  Database, Shield, Activity, RefreshCw, Lock
 } from "lucide-react";
 
 const chartTooltipStyle = { backgroundColor: "hsl(214, 65%, 6%)", border: "1px solid hsl(214, 45%, 20%)", borderRadius: "8px", fontSize: "12px", color: "hsl(210, 40%, 90%)" };
 
 const tabs = [
   { id: "overview", label: "Financial Overview", icon: <TrendingUp className="h-3.5 w-3.5" /> },
+  { id: "wallet", label: "Wallet & Cost Control", icon: <Wallet className="h-3.5 w-3.5" /> },
   { id: "invoices", label: "Invoices", icon: <Receipt className="h-3.5 w-3.5" /> },
   { id: "contracts", label: "Contracts", icon: <FileText className="h-3.5 w-3.5" /> },
   { id: "expenses", label: "Expenses", icon: <DollarSign className="h-3.5 w-3.5" /> },
@@ -52,6 +62,19 @@ export default function Finance() {
   const { data: contractData } = useContracts();
   const { isHuman } = useAiModeContext();
   const createInvoice = useCreateInvoiceMut();
+  const { data: walletData } = useWalletBalance();
+  const { data: analytics } = useWalletAnalytics();
+  const { data: ledger } = useWalletLedger({ limit: 50 });
+  const { data: thresholds } = useWalletThresholds();
+  const { data: dummyModeData } = useWalletDummyMode();
+  const { data: cacheStats } = useWalletCacheStats();
+  const fundWallet = useFundWallet();
+  const upsertThreshold = useUpsertThreshold();
+  const deleteThreshold = useDeleteThreshold();
+  const setDummyMode = useSetDummyMode();
+  const { toast } = useToast();
+  const [fundAmount, setFundAmount] = useState("");
+  const [thresholdForm, setThresholdForm] = useState({ scopeType: "provider", scopeId: "", dailyLimit: "", monthlyLimit: "" });
   const oppList = (opportunities ?? []) as any[];
   const docList = ((documents ?? []) as any[]).filter((d: any) => d.category === "legal");
   const invoiceList = (invoiceData ?? []) as any[];
@@ -221,6 +244,189 @@ export default function Finance() {
                 <p className="text-2xl font-bold text-crimson">{overdueInvoices.length}</p>
                 <p className="text-[10px] text-muted-foreground">Overdue</p>
               </GlassCard>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "wallet" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <KpiCard label="Balance" value={`$${walletData?.balance?.toFixed(2) ?? "0.00"}`} icon={<Wallet className="h-4 w-4" />} accent="success" />
+              <KpiCard label="Reserved" value={`$${walletData?.reservedBalance?.toFixed(2) ?? "0.00"}`} icon={<Lock className="h-4 w-4" />} accent="gold" />
+              <KpiCard label="Available" value={`$${walletData?.availableBalance?.toFixed(2) ?? "0.00"}`} icon={<Zap className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="Today Spent" value={`$${analytics?.today?.spent?.toFixed(2) ?? "0.00"}`} icon={<Activity className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="Month Spent" value={`$${analytics?.month?.spent?.toFixed(2) ?? "0.00"}`} icon={<TrendingUp className="h-4 w-4" />} />
+              <KpiCard label="Cache Saved" value={`$${cacheStats?.totalSaved?.toFixed(2) ?? "0.00"}`} icon={<Database className="h-4 w-4" />} accent="success" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-4">
+                <GlassCard className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold">Provider Spend</h3>
+                    <Badge variant="outline" className="text-[10px]">{analytics?.byProvider?.length ?? 0} providers</Badge>
+                  </div>
+                  {analytics?.byProvider && analytics.byProvider.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={analytics.byProvider.slice(0, 10)}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 45%, 15%)" />
+                        <XAxis dataKey="provider" tick={{ fontSize: 10, fill: "hsl(210,40%,60%)" }} angle={-30} textAnchor="end" height={60} />
+                        <YAxis tick={{ fontSize: 10, fill: "hsl(210,40%,60%)" }} />
+                        <RechartsTooltip contentStyle={chartTooltipStyle} />
+                        <Bar dataKey="spent" fill="hsl(0, 72%, 51%)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">No provider spend data yet</p>
+                  )}
+                </GlassCard>
+
+                <GlassCard className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold">Domain Spend</h3>
+                  </div>
+                  {analytics?.byDomain && analytics.byDomain.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={analytics.byDomain}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 45%, 15%)" />
+                        <XAxis dataKey="domain" tick={{ fontSize: 10, fill: "hsl(210,40%,60%)" }} />
+                        <YAxis tick={{ fontSize: 10, fill: "hsl(210,40%,60%)" }} />
+                        <RechartsTooltip contentStyle={chartTooltipStyle} />
+                        <Bar dataKey="spent" fill="hsl(214, 60%, 50%)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">No domain spend data yet</p>
+                  )}
+                </GlassCard>
+
+                <GlassCard className="p-4">
+                  <h3 className="text-sm font-semibold mb-3">Action Ledger</h3>
+                  <div className="max-h-[300px] overflow-y-auto space-y-1">
+                    {(ledger ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>}
+                    {(ledger ?? []).map((tx: any) => (
+                      <div key={tx.id} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-white/[0.03] text-xs">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <div className={`h-1.5 w-1.5 rounded-full ${tx.type === "charge" ? "bg-crimson" : tx.type === "fund" ? "bg-emerald-400" : tx.type === "cache_hit" ? "bg-blue-400" : tx.type === "dummy" ? "bg-amber-400" : "bg-muted-foreground"}`} />
+                          <span className="truncate max-w-[200px]">{tx.description ?? tx.action}</span>
+                          {tx.cached && <Badge variant="outline" className="text-[9px] px-1">CACHED</Badge>}
+                          {tx.type === "dummy" && <Badge variant="outline" className="text-[9px] px-1 text-amber-400 border-amber-400/30">DUMMY</Badge>}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-muted-foreground">{tx.domain}</span>
+                          <span className={tx.type === "charge" ? "text-crimson" : tx.type === "fund" ? "text-emerald-400" : "text-blue-400"}>
+                            {tx.type === "fund" ? "+" : tx.type === "charge" ? "-" : ""}${Math.abs(Number(tx.amount)).toFixed(4)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </GlassCard>
+              </div>
+
+              <div className="space-y-4">
+                <GlassCard className="p-4">
+                  <h3 className="text-sm font-semibold mb-3">Controls</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-medium">Dummy Mode (No Spend)</span>
+                        <p className="text-[10px] text-muted-foreground">Test without real charges</p>
+                      </div>
+                      <Switch checked={dummyModeData?.dummyMode ?? false} onCheckedChange={(v) => {
+                        setDummyMode.mutate(v, { onSuccess: () => toast({ title: v ? "Dummy Mode ON" : "Dummy Mode OFF" }), onError: () => toast({ title: "Failed to toggle dummy mode", variant: "destructive" }) });
+                      }} />
+                    </div>
+                    <div className="border-t border-border/30 pt-3">
+                      <span className="text-xs font-medium">Fund Wallet</span>
+                      <div className="flex gap-2 mt-1">
+                        <Input className="glass-input text-xs h-8" type="number" placeholder="Amount" value={fundAmount} onChange={(e) => setFundAmount(e.target.value)} />
+                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 h-8" onClick={() => {
+                          const amt = parseFloat(fundAmount);
+                          if (amt > 0) fundWallet.mutate(amt, { onSuccess: () => { setFundAmount(""); toast({ title: `Funded $${amt.toFixed(2)}` }); }, onError: () => toast({ title: "Failed to fund wallet", variant: "destructive" }) });
+                        }} disabled={!fundAmount || fundWallet.isPending}>Fund</Button>
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-4">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
+                    Spend Thresholds
+                  </h3>
+                  <div className="space-y-2 mb-3">
+                    {(thresholds ?? []).map((t: any) => (
+                      <div key={t.id} className="flex items-center justify-between bg-white/[0.03] rounded px-2 py-1.5 text-xs">
+                        <div>
+                          <span className="font-medium">{t.scopeId}</span>
+                          <span className="text-muted-foreground ml-1">({t.scopeType})</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {t.dailyLimit && <span className="text-muted-foreground">${Number(t.dailyLimit).toFixed(2)}/day</span>}
+                          {t.monthlyLimit && <span className="text-muted-foreground">${Number(t.monthlyLimit).toFixed(2)}/mo</span>}
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-crimson hover:text-crimson/80" onClick={() => deleteThreshold.mutate(t.id)}>×</Button>
+                        </div>
+                      </div>
+                    ))}
+                    {(thresholds ?? []).length === 0 && <p className="text-[10px] text-muted-foreground">No thresholds set</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <Select value={thresholdForm.scopeType} onValueChange={(v) => setThresholdForm(f => ({ ...f, scopeType: v }))}>
+                        <SelectTrigger className="glass-input text-[10px] h-7"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="provider">Provider</SelectItem>
+                          <SelectItem value="workflow">Workflow</SelectItem>
+                          <SelectItem value="global">Global</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input className="glass-input text-[10px] h-7" placeholder="Scope ID" value={thresholdForm.scopeId} onChange={(e) => setThresholdForm(f => ({ ...f, scopeId: e.target.value }))} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <Input className="glass-input text-[10px] h-7" type="number" placeholder="Daily $" value={thresholdForm.dailyLimit} onChange={(e) => setThresholdForm(f => ({ ...f, dailyLimit: e.target.value }))} />
+                      <Input className="glass-input text-[10px] h-7" type="number" placeholder="Monthly $" value={thresholdForm.monthlyLimit} onChange={(e) => setThresholdForm(f => ({ ...f, monthlyLimit: e.target.value }))} />
+                    </div>
+                    <Button size="sm" className="w-full h-7 text-[10px] bg-crimson hover:bg-crimson/80" onClick={() => {
+                      const scopeId = thresholdForm.scopeType === "global" ? "global" : thresholdForm.scopeId;
+                      if (!scopeId) return;
+                      upsertThreshold.mutate({
+                        scopeType: thresholdForm.scopeType,
+                        scopeId: scopeId,
+                        dailyLimit: thresholdForm.dailyLimit ? parseFloat(thresholdForm.dailyLimit) : undefined,
+                        monthlyLimit: thresholdForm.monthlyLimit ? parseFloat(thresholdForm.monthlyLimit) : undefined,
+                      }, { onSuccess: () => { setThresholdForm({ scopeType: "provider", scopeId: "", dailyLimit: "", monthlyLimit: "" }); toast({ title: "Threshold saved" }); }, onError: () => toast({ title: "Failed to save threshold", variant: "destructive" }) });
+                    }}>Add Threshold</Button>
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-4">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Database className="h-3.5 w-3.5 text-blue-400" />
+                    Intelligent Cache
+                  </h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Cached Entries</span><span>{cacheStats?.totalEntries ?? 0}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Total Hits</span><span>{cacheStats?.totalHits ?? 0}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Cost Saved</span><span className="text-emerald-400">${cacheStats?.totalSaved?.toFixed(2) ?? "0.00"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Avg Confidence</span><span>{cacheStats?.avgConfidence ?? 0}%</span></div>
+                    {cacheStats?.byType && cacheStats.byType.length > 0 && (
+                      <div className="border-t border-border/30 pt-2 mt-2 space-y-1">
+                        <span className="text-[10px] uppercase text-muted-foreground tracking-wider">By Category</span>
+                        {cacheStats.byType.map((ct: any) => (
+                          <div key={ct.type} className="flex items-center justify-between">
+                            <span className="text-muted-foreground">{ct.type}</span>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[9px]">{ct.entries}</Badge>
+                              <span className="text-emerald-400">${ct.saved?.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </GlassCard>
+              </div>
             </div>
           </div>
         )}
