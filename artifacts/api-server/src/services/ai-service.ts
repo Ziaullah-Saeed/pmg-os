@@ -36,16 +36,21 @@ export async function callAI(params: {
     throw new Error(`AI_BLOCKED: ${modeCheck.reason}`);
   }
 
-  const chargeResult = await chargeWallet({
-    tool: params.tool,
-    domain: params.domain,
-    action: params.action,
-    entityType: params.entityType,
-    entityId: params.entityId,
-  });
+  const { getDummyResponse } = await import("./testing-service");
+  const dummyResult = getDummyResponse(params.tool, { prompt: params.userPrompt });
 
-  if (!chargeResult.success) {
-    throw new Error("WALLET_INSUFFICIENT: " + ("error" in chargeResult ? chargeResult.error : ""));
+  if (dummyResult === null) {
+    const chargeResult = await chargeWallet({
+      tool: params.tool,
+      domain: params.domain,
+      action: params.action,
+      entityType: params.entityType,
+      entityId: params.entityId,
+    });
+
+    if (!chargeResult.success) {
+      throw new Error("WALLET_INSUFFICIENT: " + ("error" in chargeResult ? chargeResult.error : ""));
+    }
   }
 
   const startTime = Date.now();
@@ -54,24 +59,30 @@ export async function callAI(params: {
   let status = "completed" as string;
   let errorMsg: string | undefined;
 
-  try {
-    const response = await openai.chat.completions.create({
-      model: MODEL,
-      messages: [
-        { role: "system", content: params.systemPrompt },
-        { role: "user", content: params.userPrompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 1500,
-    });
+  if (dummyResult !== null) {
+    result = dummyResult;
+    confidence = 85;
+    status = "completed";
+  } else {
+    try {
+      const response = await openai.chat.completions.create({
+        model: MODEL,
+        messages: [
+          { role: "system", content: params.systemPrompt },
+          { role: "user", content: params.userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 1500,
+      });
 
-    result = response.choices[0]?.message?.content ?? "";
-    confidence = estimateConfidence(result);
-  } catch (err: any) {
-    status = "failed";
-    errorMsg = err.message;
-    result = "";
-    confidence = 0;
+      result = response.choices[0]?.message?.content ?? "";
+      confidence = estimateConfidence(result);
+    } catch (err: any) {
+      status = "failed";
+      errorMsg = err.message;
+      result = "";
+      confidence = 0;
+    }
   }
 
   const durationMs = Date.now() - startTime;
