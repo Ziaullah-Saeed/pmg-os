@@ -6,6 +6,7 @@ import {
   ListActivitiesResponse,
   CreateActivityBody,
 } from "@workspace/api-zod";
+import { getEntityTimeline } from "../services/activity-timeline";
 
 const router: IRouter = Router();
 
@@ -31,6 +32,21 @@ router.get("/activities", async (req, res): Promise<void> => {
     .orderBy(desc(activitiesTable.createdAt))
     .limit(limit);
   res.json(ListActivitiesResponse.parse(activities));
+});
+
+router.get("/activities/timeline/:entityType/:entityId", async (req, res): Promise<void> => {
+  const { entityType, entityId } = req.params;
+  const id = parseInt(entityId);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid entity ID" });
+    return;
+  }
+
+  const includeRelated = req.query.includeRelated === "true";
+  const limit = Math.min(Number(req.query.limit) || 100, 500);
+
+  const timeline = await getEntityTimeline(entityType, id, { includeRelated, limit });
+  res.json({ entityType, entityId: id, count: timeline.length, timeline });
 });
 
 router.post("/activities", async (req, res): Promise<void> => {

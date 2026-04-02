@@ -1,5 +1,9 @@
 import { Router, type IRouter } from "express";
-import { getGHLConfig, saveGHLConfig, testGHLConnection, getCRMMode, setCRMMode, pushLeadToGHL, type CRMMode } from "../services/ghl-service";
+import {
+  getGHLConfig, saveGHLConfig, testGHLConnection, getCRMMode, setCRMMode, pushLeadToGHL,
+  getOAuthAuthorizeUrl, exchangeOAuthCode, refreshOAuthToken, handleGHLWebhook, pullContactsFromGHL,
+  type CRMMode
+} from "../services/ghl-service";
 import { db, integrationsTable, leadsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireRole } from "../middleware/rbac";
@@ -123,6 +127,43 @@ router.post("/ghl/sync-all", requireRole("manager"), async (req, res): Promise<v
   }
 
   res.json({ synced: results.length, results });
+});
+
+router.get("/ghl/oauth/authorize", requireRole("admin"), async (req, res): Promise<void> => {
+  const { clientId, redirectUri } = req.query as { clientId?: string; redirectUri?: string };
+  if (!clientId || !redirectUri) {
+    res.status(400).json({ error: "clientId and redirectUri query params are required" });
+    return;
+  }
+  const url = getOAuthAuthorizeUrl(clientId, redirectUri);
+  res.json({ authorizeUrl: url });
+});
+
+router.post("/ghl/oauth/callback", requireRole("admin"), async (req, res): Promise<void> => {
+  const { code, clientId, clientSecret, redirectUri } = req.body as {
+    code: string; clientId: string; clientSecret: string; redirectUri: string;
+  };
+  if (!code || !clientId || !clientSecret || !redirectUri) {
+    res.status(400).json({ error: "code, clientId, clientSecret, and redirectUri are required" });
+    return;
+  }
+  const result = await exchangeOAuthCode(code, clientId, clientSecret, redirectUri);
+  if (result.success) {
+    res.json({ success: true, message: "OAuth connected successfully" });
+  } else {
+    res.status(400).json(result);
+  }
+});
+
+router.post("/ghl/oauth/refresh", requireRole("admin"), async (_req, res): Promise<void> => {
+  const result = await refreshOAuthToken();
+  res.json(result);
+});
+
+router.post("/ghl/pull-contacts", requireRole("manager"), async (req, res): Promise<void> => {
+  const limit = Math.min(Number(req.body?.limit) || 50, 200);
+  const result = await pullContactsFromGHL(limit);
+  res.json(result);
 });
 
 export default router;

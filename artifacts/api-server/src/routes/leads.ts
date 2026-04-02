@@ -20,6 +20,7 @@ import { routeLead } from "../services/ghl-service";
 import { logAudit } from "../services/audit-service";
 import { emit } from "../services/event-bus";
 import { getSessionUser } from "../middleware/auth";
+import { opportunitiesTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -341,6 +342,125 @@ router.get("/leads/:id/ai-runs", async (req, res): Promise<void> => {
     .where(and(eq(aiRunsTable.entityType, "lead"), eq(aiRunsTable.entityId, id)))
     .orderBy(aiRunsTable.createdAt);
   res.json(runs);
+});
+
+router.post("/leads/:id/convert", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  const [lead] = await db.select().from(leadsTable)
+    .leftJoin(companiesTable, eq(leadsTable.companyId, companiesTable.id))
+    .where(eq(leadsTable.id, id));
+  if (!lead || !lead.leads) {
+    res.status(404).json({ error: "Lead not found" });
+    return;
+  }
+
+  const l = lead.leads;
+  if (["closed_won", "closed_lost", "disqualified"].includes(l.status)) {
+    res.status(400).json({ error: `Cannot convert a lead with status "${l.status}"` });
+    return;
+  }
+
+  const { title, value, serviceType, owner } = req.body as {
+    title?: string; value?: number; serviceType?: string; owner?: string;
+  };
+
+  const oppTitle = title ?? `${lead.companies?.name ?? "Lead"} — Opportunity`;
+  const [opp] = await db.insert(opportunitiesTable).values({
+    title: oppTitle,
+    companyId: l.companyId,
+    contactId: l.contactId,
+    leadId: l.id,
+    stage: "discovery",
+    value: value ?? 0,
+    probability: 10,
+    serviceType: serviceType ?? "cybersecurity",
+    owner: owner ?? l.assignedTo,
+  }).returning();
+
+  await db.update(leadsTable).set({ status: "active" }).where(eq(leadsTable.id, id));
+
+  await db.insert(activitiesTable).values({
+    action: "lead_converted",
+    description: `Lead converted to opportunity "${oppTitle}" (ID: ${opp.id})`,
+    entityType: "lead",
+    entityId: id,
+    performedBy: getSessionUser(req)?.name ?? "system",
+    metadata: JSON.stringify({ opportunityId: opp.id, title: oppTitle, value: opp.value }),
+  });
+
+  const sessionUser = getSessionUser(req);
+  emit("lead.converted", {
+    entityType: "lead",
+    entityId: id,
+    domain: "crm",
+    actor: sessionUser?.name ?? "system",
+    actorType: "human",
+    data: { opportunityId: opp.id, title: oppTitle, value: opp.value },
+  }).catch(() => {});
+
+  emit("opportunity.created", {
+    entityType: "opportunity",
+    entityId: opp.id,
+    domain: "crm",
+    actor: sessionUser?.name ?? "system",
+    actorType: "human",
+    data: { title: oppTitle, value: opp.value, stage: "discovery", fromLead: id },
+  }).catch(() => {});
+
+  res.status(201).json({ lead: { id, status: "active" }, opportunity: opp });
+});
+
+router.post("/leads/:id/close", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  const { reason, notes: closeNotes } = req.body as { reason: "won" | "lost" | "disqualified"; notes?: string };
+
+  if (!["won", "lost", "disqualified"].includes(reason)) {
+    res.status(400).json({ error: "Reason must be won, lost, or disqualified" });
+    return;
+  }
+
+  const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, id));
+  if (!lead) {
+    res.status(404).json({ error: "Lead not found" });
+    return;
+  }
+
+  if (["closed_won", "closed_lost", "disqualified"].includes(lead.status)) {
+    res.status(400).json({ error: `Lead is already closed (${lead.status})` });
+    return;
+  }
+
+  const newStatus = reason === "won" ? "closed_won" : reason === "lost" ? "closed_lost" : "disqualified";
+  const combinedNotes = closeNotes
+    ? `${lead.notes ?? ""}\n---Closed (${reason})---\n${closeNotes}`.trim()
+    : lead.notes;
+
+  const [updated] = await db.update(leadsTable).set({
+    status: newStatus,
+    notes: combinedNotes,
+  }).where(eq(leadsTable.id, id)).returning();
+
+  await db.insert(activitiesTable).values({
+    action: "lead_closed",
+    description: `Lead closed as ${reason}${closeNotes ? `: ${closeNotes.slice(0, 150)}` : ""}`,
+    entityType: "lead",
+    entityId: id,
+    performedBy: getSessionUser(req)?.name ?? "system",
+    metadata: JSON.stringify({ reason, closeNotes }),
+  });
+
+  const sessionUser = getSessionUser(req);
+  emit("lead.closed", {
+    entityType: "lead",
+    entityId: id,
+    domain: "crm",
+    actor: sessionUser?.name ?? "system",
+    actorType: "human",
+    newState: newStatus,
+    data: { closeReason: reason, notes: closeNotes },
+  }).catch(() => {});
+
+  res.json({ success: true, lead: updated });
 });
 
 router.delete("/leads/:id", async (req, res): Promise<void> => {

@@ -37,6 +37,12 @@ The system features a cinematic glassmorphic dark-first design. The primary colo
 *   **Scheduled Jobs (Cron):** node-cron-based scheduler with DB-tracked jobs (`scheduled_jobs` table). Default jobs: daily stale deal check, wallet low-balance alert (every 4h), sequence advancement (every 15min), daily summary (weekdays 6pm). Manual trigger via API. Toggle enable/disable. Execution tracking (duration, status, failures).
 *   **Outreach Sequence Execution Engine:** Step-by-step contact enrollment through outreach sequences. Tracks per-contact progress (active/paused/completed/removed). Respects cadence rules (delay days/hours between steps), safety controls (business hours, weekends, stop on reply). Auto-advances via scheduler. Steps: email, linkedin_message, sms, wait, task.
 *   **Task Auto-Assignment Router:** Event-driven auto-assignment on task creation. Domain → role mapping with round-robin selection. High-priority tasks escalated to admins. Notifications sent to assignees. Works via event bus subscriber on `task.created`.
+*   **Lead Lifecycle:** Full lifecycle from capture → enrich → score → route → convert → close. `POST /leads/:id/convert` creates opportunity from lead (auto-links company, contact, lead). `POST /leads/:id/close` closes lead as won/lost/disqualified with notes. Events fired for each transition.
+*   **Activity Timeline:** Cross-domain event recording via event bus subscription. Records 22 event types (lead, opportunity, task, approval, automation, sequence, scheduler). `GET /activities/timeline/:entityType/:entityId` returns entity-specific timeline with optional related entity activities (lead → its opportunities + tasks).
+*   **Pipeline Engine:** Auto-updates opportunity probability on stage changes (discovery:10%, qualification:25%, proposal:50%, negotiation:75%, closing:90%). Stale deal detection with configurable per-stage thresholds. Deal won/lost notifications + task creation. Pipeline automation rules seeded on startup.
+*   **Lead Routing Engine:** Score-based auto-routing on `lead.scored` event. HOT (≥80) → GHL+internal, WARM (≥50) → internal, COLD → hold. Round-robin lead assignment within team. Auto-notifications on routing.
+*   **GHL OAuth & Bidirectional Sync:** Full OAuth 2.0 flow (authorize URL, token exchange, auto-refresh before expiry). Webhook receiver (`POST /api/ghl/webhook`, unauthenticated) for GHL → PMG OS contact sync. `POST /api/ghl/pull-contacts` for bulk import. Token stored in integrations table with expiry tracking.
+*   **Contact/Company Dedup & Merge:** Duplicate detection by email/phone/name for contacts, name/website for companies. Match scoring (email=90%, name=60%, phone=70%). `GET /contacts/duplicates`, `GET /companies/duplicates`. `POST /contacts/merge`, `POST /companies/merge` — merges data, reassigns related entities (leads, opportunities, activities), marks duplicate as "merged". Auto-check on contact/company creation with duplicate notifications.
 *   **DnD Pipeline (CRM):** Enables drag-and-drop functionality for managing deals within pipeline stages.
 *   **Entity Forms & Edit Drawers:** Standardized forms for creating and editing various entities (Lead, Opportunity, Company, Contact, Task, Campaign) with CSV export capabilities.
 *   **Agent Simulation Engine:** Simulates background agent activity, records AI runs, charges the wallet, and provides activity feeds and recommendations.
@@ -66,6 +72,10 @@ The system is organized into 11 distinct modules: Command Center, Intelligence, 
 *   **Scheduler:** `artifacts/api-server/src/services/scheduler-service.ts`, `artifacts/api-server/src/routes/scheduler.ts`
 *   **Sequence Engine:** `artifacts/api-server/src/services/sequence-engine.ts`, `artifacts/api-server/src/routes/sequence-enrollments.ts`
 *   **Assignment Router:** `artifacts/api-server/src/services/assignment-router.ts`
+*   **Activity Timeline:** `artifacts/api-server/src/services/activity-timeline.ts`
+*   **Pipeline Engine:** `artifacts/api-server/src/services/pipeline-engine.ts`
+*   **Lead Router:** `artifacts/api-server/src/services/lead-router.ts`
+*   **Dedup Service:** `artifacts/api-server/src/services/dedup-service.ts`
 
 ## DB Commands
 

@@ -1,7 +1,8 @@
-import { db, integrationsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, integrationsTable, leadsTable, contactsTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import { createNotification } from "./notification-service";
 import { chargeWallet } from "./wallet-service";
+import { logAudit } from "./audit-service";
 
 type GHLConfig = {
   apiKey: string;
@@ -10,6 +11,16 @@ type GHLConfig = {
   webhookUrl?: string;
   fieldMapping: Record<string, string>;
   pipelineMapping: Record<string, string>;
+  oauth?: {
+    clientId: string;
+    clientSecret: string;
+    accessToken?: string;
+    refreshToken?: string;
+    expiresAt?: number;
+    scopes?: string[];
+  };
+  crmMode?: string;
+  syncLogs?: any[];
 };
 
 type SyncResult = {
@@ -49,14 +60,15 @@ export async function saveGHLConfig(config: Partial<GHLConfig>): Promise<void> {
 
 export async function testGHLConnection(): Promise<{ connected: boolean; error?: string }> {
   const config = await getGHLConfig();
-  if (!config || !config.apiKey) {
-    return { connected: false, error: "No GHL API key configured" };
+  const token = await getValidAccessToken();
+  if (!token) {
+    return { connected: false, error: "No GHL credentials configured (set OAuth or API key)" };
   }
 
   try {
-    const response = await fetch(`${config.baseUrl || "https://services.leadconnectorhq.com"}/locations/${config.locationId}`, {
+    const response = await fetch(`${config?.baseUrl || "https://services.leadconnectorhq.com"}/locations/${config?.locationId}`, {
       headers: {
-        "Authorization": `Bearer ${config.apiKey}`,
+        "Authorization": `Bearer ${token}`,
         "Version": "2021-07-28",
       },
     });
@@ -85,8 +97,9 @@ export async function pushLeadToGHL(lead: {
   tags?: string[];
 }): Promise<SyncResult> {
   const config = await getGHLConfig();
-  if (!config || !config.apiKey) {
-    return { success: false, error: "GHL not configured", timestamp: new Date().toISOString() };
+  const token = await getValidAccessToken();
+  if (!token) {
+    return { success: false, error: "GHL not configured — set up OAuth or API key", timestamp: new Date().toISOString() };
   }
 
   const walletResult = await chargeWallet({
@@ -101,7 +114,7 @@ export async function pushLeadToGHL(lead: {
     return { success: false, error: "Insufficient wallet balance for GHL sync", timestamp: new Date().toISOString() };
   }
 
-  const mapping = config.fieldMapping || {};
+  const mapping = config?.fieldMapping || {};
   const payload: Record<string, unknown> = {
     [mapping.name || "firstName"]: lead.name,
     [mapping.email || "email"]: lead.email,
@@ -117,16 +130,16 @@ export async function pushLeadToGHL(lead: {
   };
 
   try {
-    const response = await fetch(`${config.baseUrl || "https://services.leadconnectorhq.com"}/contacts/`, {
+    const response = await fetch(`${config?.baseUrl || "https://services.leadconnectorhq.com"}/contacts/`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${config.apiKey}`,
+        "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json",
         "Version": "2021-07-28",
       },
       body: JSON.stringify({
         ...payload,
-        locationId: config.locationId,
+        locationId: config?.locationId,
       }),
     });
 
@@ -199,5 +212,262 @@ export async function routeLead(leadId: number, destination: "internal" | "ghl" 
     return { routed: true, destination: "internal" };
   }
 
-  return { routed: false, destination, ghlResult: { success: false, error: "GHL not configured — configure API key first", timestamp: new Date().toISOString() } };
+  const config = await getGHLConfig();
+  const token = await getValidAccessToken();
+  if (!token && (!config || !config.apiKey)) {
+    return { routed: false, destination, ghlResult: { success: false, error: "GHL not configured — configure OAuth or API key first", timestamp: new Date().toISOString() } };
+  }
+
+  const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, leadId));
+  if (!lead) {
+    return { routed: false, destination, ghlResult: { success: false, error: "Lead not found", timestamp: new Date().toISOString() } };
+  }
+
+  const ghlResult = await pushLeadToGHL({
+    id: lead.id,
+    name: lead.assignedTo ?? `Lead #${lead.id}`,
+    source: lead.source,
+    score: lead.fitScore,
+  });
+
+  return {
+    routed: ghlResult.success,
+    destination,
+    ghlResult,
+  };
+}
+
+export function getOAuthAuthorizeUrl(clientId: string, redirectUri: string, scopes: string[] = ["contacts.readonly", "contacts.write", "locations.readonly"]): string {
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    scope: scopes.join(" "),
+  });
+  return `https://marketplace.gohighlevel.com/oauth/chooselocation?${params.toString()}`;
+}
+
+export async function exchangeOAuthCode(code: string, clientId: string, clientSecret: string, redirectUri: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const response = await fetch("https://services.leadconnectorhq.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return { success: false, error: `OAuth exchange failed: ${errText}` };
+    }
+
+    const data = await response.json() as {
+      access_token: string;
+      refresh_token: string;
+      expires_in: number;
+      locationId: string;
+    };
+
+    const config = await getGHLConfig();
+    await saveGHLConfig({
+      ...config,
+      locationId: data.locationId,
+      oauth: {
+        clientId,
+        clientSecret,
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt: Date.now() + data.expires_in * 1000,
+        scopes: ["contacts.readonly", "contacts.write", "locations.readonly"],
+      },
+    } as any);
+
+    await db.update(integrationsTable)
+      .set({ status: "active", lastSyncAt: new Date() })
+      .where(eq(integrationsTable.type, "gohighlevel"));
+
+    await logAudit({
+      eventType: "ghl_oauth_connected",
+      domain: "integration",
+      action: "oauth_token_exchanged",
+      description: "GoHighLevel OAuth connected successfully",
+      actor: "system",
+      actorType: "system",
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function refreshOAuthToken(): Promise<{ success: boolean; error?: string }> {
+  const config = await getGHLConfig();
+  if (!config?.oauth?.refreshToken || !config?.oauth?.clientId || !config?.oauth?.clientSecret) {
+    return { success: false, error: "No OAuth refresh token available" };
+  }
+
+  try {
+    const response = await fetch("https://services.leadconnectorhq.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: config.oauth.refreshToken,
+        client_id: config.oauth.clientId,
+        client_secret: config.oauth.clientSecret,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return { success: false, error: `Token refresh failed: ${errText}` };
+    }
+
+    const data = await response.json() as {
+      access_token: string;
+      refresh_token: string;
+      expires_in: number;
+    };
+
+    await saveGHLConfig({
+      ...config,
+      oauth: {
+        ...config.oauth,
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt: Date.now() + data.expires_in * 1000,
+      },
+    } as any);
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function getValidAccessToken(): Promise<string | null> {
+  const config = await getGHLConfig();
+  if (!config?.oauth?.accessToken) return config?.apiKey ?? null;
+
+  if (config.oauth.expiresAt && Date.now() > config.oauth.expiresAt - 300000) {
+    const refreshResult = await refreshOAuthToken();
+    if (!refreshResult.success) {
+      console.error("[GHL] Token refresh failed:", refreshResult.error);
+      return config.apiKey ?? null;
+    }
+    const updatedConfig = await getGHLConfig();
+    return updatedConfig?.oauth?.accessToken ?? updatedConfig?.apiKey ?? null;
+  }
+
+  return config.oauth.accessToken;
+}
+
+export async function handleGHLWebhook(event: string, payload: any): Promise<{ processed: boolean }> {
+  try {
+    if (event === "ContactCreate" || event === "ContactUpdate") {
+      const ghlContact = payload;
+      const email = ghlContact.email;
+      if (email) {
+        const [existing] = await db.select().from(contactsTable).where(eq(contactsTable.email, email));
+        if (existing) {
+          await db.update(contactsTable).set({
+            firstName: ghlContact.firstName ?? existing.firstName,
+            lastName: ghlContact.lastName ?? existing.lastName,
+            phone: ghlContact.phone ?? existing.phone,
+          }).where(eq(contactsTable.id, existing.id));
+        } else {
+          await db.insert(contactsTable).values({
+            firstName: ghlContact.firstName ?? "Unknown",
+            lastName: ghlContact.lastName ?? "",
+            email,
+            phone: ghlContact.phone,
+            status: "active",
+          });
+        }
+      }
+
+      await logAudit({
+        eventType: "ghl_webhook_processed",
+        domain: "integration",
+        action: event.toLowerCase(),
+        description: `GHL webhook: ${event} for ${email ?? "unknown contact"}`,
+        actor: "ghl_webhook",
+        actorType: "system",
+        metadata: { ghlEvent: event, email },
+      });
+
+      return { processed: true };
+    }
+
+    return { processed: false };
+  } catch (err: any) {
+    console.error("[GHL Webhook] Error:", err.message);
+    return { processed: false };
+  }
+}
+
+export async function pullContactsFromGHL(limit: number = 50): Promise<{
+  imported: number;
+  errors: string[];
+}> {
+  const token = await getValidAccessToken();
+  const config = await getGHLConfig();
+  if (!token || !config?.locationId) {
+    return { imported: 0, errors: ["GHL not configured or no valid token"] };
+  }
+
+  try {
+    const response = await fetch(
+      `${config.baseUrl || "https://services.leadconnectorhq.com"}/contacts/?locationId=${config.locationId}&limit=${limit}`,
+      {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Version": "2021-07-28",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return { imported: 0, errors: [`GHL API returned ${response.status}`] };
+    }
+
+    const data = await response.json() as { contacts?: any[] };
+    const contacts = data.contacts ?? [];
+    let imported = 0;
+    const errors: string[] = [];
+
+    for (const c of contacts) {
+      try {
+        const email = c.email;
+        if (email) {
+          const [existing] = await db.select().from(contactsTable).where(eq(contactsTable.email, email));
+          if (!existing) {
+            await db.insert(contactsTable).values({
+              firstName: c.firstName ?? c.name ?? "Unknown",
+              lastName: c.lastName ?? "",
+              email,
+              phone: c.phone,
+              status: "active",
+            });
+            imported++;
+          }
+        }
+      } catch (err: any) {
+        errors.push(`Failed to import ${c.email ?? "unknown"}: ${err.message}`);
+      }
+    }
+
+    return { imported, errors };
+  } catch (err: any) {
+    return { imported: 0, errors: [err.message] };
+  }
 }

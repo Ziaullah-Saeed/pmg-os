@@ -32,6 +32,7 @@ import stateMachineRouter from "./state-machine";
 import knowledgeRouter from "./knowledge";
 import searchRouter from "./search";
 import ghlRouter from "./ghl";
+import { handleGHLWebhook } from "../services/ghl-service";
 import automationRouter from "./automation";
 import agentsRouter from "./agents";
 import notesRouter from "./notes";
@@ -46,6 +47,28 @@ const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+
+router.post("/ghl/webhook", async (req, res) => {
+  const signature = req.headers["x-ghl-signature"] as string;
+  if (signature) {
+    const { createHmac } = await import("crypto");
+    const { getGHLConfig } = await import("../services/ghl-service");
+    const config = await getGHLConfig();
+    const secret = (config as any)?.webhookSecret;
+    if (secret) {
+      const expected = createHmac("sha256", secret).update(JSON.stringify(req.body)).digest("hex");
+      if (signature !== expected) {
+        res.status(401).json({ error: "Invalid webhook signature" });
+        return;
+      }
+    }
+  }
+
+  const event = (req.headers["x-ghl-event"] as string) ?? req.body?.event ?? "unknown";
+  const payload = req.body?.payload ?? req.body;
+  const result = await handleGHLWebhook(event, payload);
+  res.json(result);
+});
 
 router.use(requireAuth);
 router.use(requirePermission);

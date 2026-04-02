@@ -115,23 +115,12 @@ async function seedDefaultJobs(): Promise<void> {
   }
 }
 
-registerJobExecutor("stale_deal_check", async (config) => {
-  const { daysThreshold = 7 } = config;
-  const { db: dbConn, opportunitiesTable } = await import("@workspace/db");
-  const stale = await dbConn.select().from(opportunitiesTable)
-    .where(sql`${opportunitiesTable.updatedAt} < NOW() - INTERVAL '${sql.raw(String(daysThreshold))} days'
-      AND ${opportunitiesTable.stage} NOT IN ('won', 'lost')`);
+registerJobExecutor("stale_deal_check", async (_config) => {
+  const { checkStalePipelineDeals } = await import("./pipeline-engine");
+  const alertCount = await checkStalePipelineDeals();
 
-  if (stale.length > 0) {
-    await createNotification({
-      type: "stale_deals",
-      severity: "warning",
-      title: `${stale.length} Stale Deal(s) Found`,
-      message: `${stale.length} deals have had no activity for ${daysThreshold}+ days`,
-      domain: "crm",
-      actor: "scheduler",
-    });
-    await emit("schedule.daily", { domain: "crm", actor: "scheduler", actorType: "system", data: { staleDealCount: stale.length } });
+  if (alertCount > 0) {
+    await emit("schedule.daily", { domain: "crm", actor: "scheduler", actorType: "system", data: { staleDealCount: alertCount } });
   }
 });
 

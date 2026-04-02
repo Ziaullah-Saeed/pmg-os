@@ -9,9 +9,18 @@ const roleHierarchy: Record<Role, number> = {
   user: 25,
 };
 
+function getSessionRole(req: Request): Role {
+  const session = (req as any).session;
+  if (session?.user?.role) {
+    const role = session.user.role as Role;
+    if (role in roleHierarchy) return role;
+  }
+  return "user";
+}
+
 export function requireRole(...allowedRoles: Role[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const userRole = (req.headers["x-user-role"] as Role) || "user";
+    const userRole = getSessionRole(req);
     const isAllowed = allowedRoles.some(
       (role) => roleHierarchy[userRole] >= roleHierarchy[role]
     );
@@ -28,7 +37,7 @@ export function requireRole(...allowedRoles: Role[]) {
 }
 
 export function getCurrentRole(req: Request): Role {
-  return (req.headers["x-user-role"] as Role) || "user";
+  return getSessionRole(req);
 }
 
 export function roleAtLeast(role: Role) {

@@ -12,6 +12,7 @@ import {
   UpdateCompanyResponse,
   DeleteCompanyParams,
 } from "@workspace/api-zod";
+import { findCompanyDuplicates, mergeCompanies, checkDuplicatesOnCreate } from "../services/dedup-service";
 
 const router: IRouter = Router();
 
@@ -44,7 +45,31 @@ router.post("/companies", async (req, res): Promise<void> => {
     return;
   }
   const [company] = await db.insert(companiesTable).values(parsed.data).returning();
+  checkDuplicatesOnCreate("company", company.id).catch(() => {});
   res.status(201).json(GetCompanyResponse.parse(company));
+});
+
+router.get("/companies/duplicates", async (_req, res): Promise<void> => {
+  const duplicates = await findCompanyDuplicates();
+  res.json({ count: duplicates.length, duplicates });
+});
+
+router.post("/companies/merge", async (req, res): Promise<void> => {
+  const { primaryId, duplicateId } = req.body as { primaryId: number; duplicateId: number };
+  if (!primaryId || !duplicateId) {
+    res.status(400).json({ error: "primaryId and duplicateId are required" });
+    return;
+  }
+  if (primaryId === duplicateId) {
+    res.status(400).json({ error: "Cannot merge a company with itself" });
+    return;
+  }
+  const result = await mergeCompanies(primaryId, duplicateId);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
 });
 
 router.get("/companies/:id", async (req, res): Promise<void> => {

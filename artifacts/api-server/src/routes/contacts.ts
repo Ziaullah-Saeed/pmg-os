@@ -12,6 +12,7 @@ import {
   UpdateContactResponse,
   DeleteContactParams,
 } from "@workspace/api-zod";
+import { findContactDuplicates, mergeContacts, checkDuplicatesOnCreate } from "../services/dedup-service";
 
 const router: IRouter = Router();
 
@@ -59,7 +60,31 @@ router.post("/contacts", async (req, res): Promise<void> => {
     return;
   }
   const [contact] = await db.insert(contactsTable).values(parsed.data).returning();
+  checkDuplicatesOnCreate("contact", contact.id).catch(() => {});
   res.status(201).json(GetContactResponse.parse(contact));
+});
+
+router.get("/contacts/duplicates", async (_req, res): Promise<void> => {
+  const duplicates = await findContactDuplicates();
+  res.json({ count: duplicates.length, duplicates });
+});
+
+router.post("/contacts/merge", async (req, res): Promise<void> => {
+  const { primaryId, duplicateId } = req.body as { primaryId: number; duplicateId: number };
+  if (!primaryId || !duplicateId) {
+    res.status(400).json({ error: "primaryId and duplicateId are required" });
+    return;
+  }
+  if (primaryId === duplicateId) {
+    res.status(400).json({ error: "Cannot merge a contact with itself" });
+    return;
+  }
+  const result = await mergeContacts(primaryId, duplicateId);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
 });
 
 router.get("/contacts/:id", async (req, res): Promise<void> => {

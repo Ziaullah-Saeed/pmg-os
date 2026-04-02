@@ -7,6 +7,9 @@ import { initAutomationEngine } from "./services/automation-engine";
 import { initApprovalEngine } from "./services/approval-engine";
 import { initScheduler } from "./services/scheduler-service";
 import { initAssignmentRouter } from "./services/assignment-router";
+import { initActivityTimeline } from "./services/activity-timeline";
+import { initPipelineEngine } from "./services/pipeline-engine";
+import { initLeadRouter } from "./services/lead-router";
 
 const rawPort = process.env["PORT"];
 
@@ -32,8 +35,11 @@ server.listen(port, () => {
   initAutomationEngine();
   initApprovalEngine();
   initAssignmentRouter();
+  initActivityTimeline();
+  initPipelineEngine();
+  initLeadRouter();
   initScheduler().catch(err => logger.error(err, "Scheduler init failed"));
 
   startAgentSimulation(45000);
-  logger.info("Phase 2 engines initialized: automation, approval, scheduler, assignment");
+  logger.info("Phase 3 engines initialized: automation, approval, scheduler, assignment, activity-timeline, pipeline, lead-router");
 });
