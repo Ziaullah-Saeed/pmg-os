@@ -3,6 +3,10 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startAgentSimulation } from "./services/agent-simulator";
 import { initWebSocket } from "./services/websocket-service";
+import { initAutomationEngine } from "./services/automation-engine";
+import { initApprovalEngine } from "./services/approval-engine";
+import { initScheduler } from "./services/scheduler-service";
+import { initAssignmentRouter } from "./services/assignment-router";
 
 const rawPort = process.env["PORT"];
 
@@ -25,6 +29,11 @@ initWebSocket(server);
 server.listen(port, () => {
   logger.info({ port }, "Server listening");
 
+  initAutomationEngine();
+  initApprovalEngine();
+  initAssignmentRouter();
+  initScheduler().catch(err => logger.error(err, "Scheduler init failed"));
+
   startAgentSimulation(45000);
-  logger.info("Agent simulation engine started (45s interval)");
+  logger.info("Phase 2 engines initialized: automation, approval, scheduler, assignment");
 });

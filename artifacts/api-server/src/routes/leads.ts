@@ -18,6 +18,8 @@ import { createNotification } from "../services/notification-service";
 import { addKnowledgeEntry } from "../services/knowledge-service";
 import { routeLead } from "../services/ghl-service";
 import { logAudit } from "../services/audit-service";
+import { emit } from "../services/event-bus";
+import { getSessionUser } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -168,6 +170,16 @@ router.post("/leads", async (req, res): Promise<void> => {
     actorType: "human",
   });
 
+  const sessionUser = getSessionUser(req);
+  emit("lead.created", {
+    entityType: "lead",
+    entityId: lead.id,
+    domain: "crm",
+    actor: sessionUser?.name ?? "system",
+    actorType: "human",
+    data: { source: lead.source, companyId: lead.companyId },
+  }).catch(() => {});
+
   res.status(201).json(GetLeadResponse.parse(lead));
 });
 
@@ -263,6 +275,23 @@ router.patch("/leads/:id", async (req, res): Promise<void> => {
     actorType: "human",
     metadata: { changedFields: Object.keys(parsed.data) },
   });
+
+  if (parsed.data.status) {
+    const sessionUser = getSessionUser(req);
+    const eventName = parsed.data.status === "qualified" ? "lead.qualified" :
+      parsed.data.status === "scored" ? "lead.scored" :
+      parsed.data.status === "routed" ? "lead.routed" :
+      `lead.status_changed`;
+    emit(eventName, {
+      entityType: "lead",
+      entityId: lead.id,
+      domain: "crm",
+      actor: sessionUser?.name ?? "system",
+      actorType: "human",
+      newState: parsed.data.status,
+      data: { fitScore: lead.fitScore, status: parsed.data.status },
+    }).catch(() => {});
+  }
 
   res.json(UpdateLeadResponse.parse(lead));
 });

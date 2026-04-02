@@ -38,6 +38,9 @@ import notesRouter from "./notes";
 import uploadsRouter from "./uploads";
 import cacheRouter from "./cache";
 import recordModeRouter from "./record-mode";
+import schedulerRouter from "./scheduler";
+import eventBusRouter from "./event-bus";
+import sequenceEnrollmentsRouter from "./sequence-enrollments";
 
 const router: IRouter = Router();
 
@@ -83,5 +86,8 @@ router.use(notesRouter);
 router.use(uploadsRouter);
 router.use(cacheRouter);
 router.use(recordModeRouter);
+router.use("/scheduler", schedulerRouter);
+router.use("/event-bus", eventBusRouter);
+router.use("/sequence-enrollments", sequenceEnrollmentsRouter);
 
 export default router;

@@ -18,7 +18,7 @@ The system features a cinematic glassmorphic dark-first design. The primary colo
 **Technical Implementations & Design Choices:**
 
 *   **Monorepo Structure:** Organizes `api-server`, `pmg-os` (React frontend), and `mockup-sandbox` within the `artifacts` directory, alongside shared libraries for `api-spec`, `api-client-react`, `api-zod`, and `db`.
-*   **Authentication & Sessions:** Session-based auth using `express-session` + `connect-pg-simple` (PostgreSQL-backed sessions in `user_sessions` table). Login via `/api/auth/login`, session via cookie `pmg.sid`. Default admin: `shershah@pmggroup.com` / `PMGAdmin2024!`. Passwords hashed with bcryptjs (12 rounds). Frontend uses `AuthProvider` context + `useAuth()` hook. Unauthenticated users see a branded login page.
+*   **Authentication & Sessions:** Session-based auth using `express-session` + `connect-pg-simple` (PostgreSQL-backed sessions in `user_sessions` table). Login via `/api/auth/login`, session via cookie `pmg.sid`. Default admin: `shershah_nawabi@pmggroup-llc.com` / `PMGAdmin2024!`. Any email domain accepted. Passwords hashed with bcryptjs (12 rounds). Frontend uses `AuthProvider` context + `useAuth()` hook. Unauthenticated users see a branded login page.
 *   **Permission Enforcement:** Backend middleware (`requireAuth` + `requirePermission`) checks user role + permissions on every route. Permission matrix maps HTTP method + path to required roles/permissions. Role hierarchy: super_admin (100) > admin (75) > manager (50) > user (25). Users with `["*"]` permission bypass all checks.
 *   **Core Engine:** Features a "Real AI OS" with services for wallet management, AI integrations, dual-mode AI operation, state machines, CRM lead routing, knowledge library, notification system, and RBAC.
 *   **Wallet System:** Tracks per-action costs for AI operations, allowing auto-deduction and funding via API, with a full transaction history. Low-balance ($10) and critical ($2) alerts via notifications.
@@ -31,7 +31,12 @@ The system features a cinematic glassmorphic dark-first design. The primary colo
 *   **Audit Service:** `logAudit()` helper logs all important actions (auth, entity CRUD, mode changes, wallet operations) to `audit_events` table. Always wraps in try/catch so it never crashes callers.
 *   **State Machines:** Manages the lifecycle of key entities (Lead, Opportunity, Approval, Asset, Contract, Task) with defined state transitions.
 *   **Global Search:** Provides cross-entity search functionality accessible via a `⌘K` shortcut on the frontend.
-*   **Automation Rules Engine:** Allows for configurable Trigger → Action rules to orchestrate tools and automate workflows.
+*   **Event Bus:** Cross-domain event system (`emit`/`subscribe`) that dispatches typed events (lead.created, task.completed, approval.approved, etc.) to all registered handlers. Wildcard subscribers supported. Event log retained for debugging. Events fire from leads, tasks, opportunities, approvals.
+*   **Automation Rules Engine:** DB-backed (`automation_rules` table) configurable Trigger → Action rules. Rules listen to event bus and execute actions (ai_enrich, ai_score, notification, create_task, set_priority, route_lead, ghl_sync, send_email). Condition evaluation with comparison operators (gte, lte, eq, neq). Execution count + error tracking per rule. Default rules seeded on startup.
+*   **Approval Workflow State Machine:** Real state transitions (draft → pending → approved/rejected/revision_requested) enforced via `validateTransition()`. On approved: notification. On rejected: notification + auto-created revision task. Events fire for each transition. Wired through event bus for cross-domain automation.
+*   **Scheduled Jobs (Cron):** node-cron-based scheduler with DB-tracked jobs (`scheduled_jobs` table). Default jobs: daily stale deal check, wallet low-balance alert (every 4h), sequence advancement (every 15min), daily summary (weekdays 6pm). Manual trigger via API. Toggle enable/disable. Execution tracking (duration, status, failures).
+*   **Outreach Sequence Execution Engine:** Step-by-step contact enrollment through outreach sequences. Tracks per-contact progress (active/paused/completed/removed). Respects cadence rules (delay days/hours between steps), safety controls (business hours, weekends, stop on reply). Auto-advances via scheduler. Steps: email, linkedin_message, sms, wait, task.
+*   **Task Auto-Assignment Router:** Event-driven auto-assignment on task creation. Domain → role mapping with round-robin selection. High-priority tasks escalated to admins. Notifications sent to assignees. Works via event bus subscriber on `task.created`.
 *   **DnD Pipeline (CRM):** Enables drag-and-drop functionality for managing deals within pipeline stages.
 *   **Entity Forms & Edit Drawers:** Standardized forms for creating and editing various entities (Lead, Opportunity, Company, Contact, Task, Campaign) with CSV export capabilities.
 *   **Agent Simulation Engine:** Simulates background agent activity, records AI runs, charges the wallet, and provides activity feeds and recommendations.
@@ -55,6 +60,12 @@ The system is organized into 11 distinct modules: Command Center, Intelligence, 
 *   **Wallet:** `artifacts/api-server/src/services/wallet-service.ts`
 *   **AI Mode:** `artifacts/api-server/src/services/ai-mode-service.ts`
 *   **Notifications:** `artifacts/api-server/src/services/notification-service.ts`
+*   **Event Bus:** `artifacts/api-server/src/services/event-bus.ts`
+*   **Automation Engine:** `artifacts/api-server/src/services/automation-engine.ts`, `artifacts/api-server/src/routes/automation.ts`
+*   **Approval Engine:** `artifacts/api-server/src/services/approval-engine.ts`
+*   **Scheduler:** `artifacts/api-server/src/services/scheduler-service.ts`, `artifacts/api-server/src/routes/scheduler.ts`
+*   **Sequence Engine:** `artifacts/api-server/src/services/sequence-engine.ts`, `artifacts/api-server/src/routes/sequence-enrollments.ts`
+*   **Assignment Router:** `artifacts/api-server/src/services/assignment-router.ts`
 
 ## DB Commands
 
@@ -74,6 +85,7 @@ The system is organized into 11 distinct modules: Command Center, Intelligence, 
 *   **Auth:** bcryptjs, express-session, connect-pg-simple
 *   **WebSocket:** ws
 *   **File Upload:** multer
+*   **Scheduler:** node-cron
 *   **Validation:** Zod (`zod/v4`), `drizzle-zod`
 *   **API Codegen:** Orval (from OpenAPI spec)
 *   **Build Tool:** esbuild

@@ -11,10 +11,9 @@ import {
   UpdateApprovalParams,
   UpdateApprovalBody,
 } from "@workspace/api-zod";
-import { createNotification } from "../services/notification-service";
-import { logAudit } from "../services/audit-service";
-
-const PRIORITY_RANK: Record<string, number> = { critical: 0, high: 1, urgent: 1, medium: 2, normal: 2, low: 3 };
+import { transitionApproval } from "../services/approval-engine";
+import { emit } from "../services/event-bus";
+import { getSessionUser } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -35,7 +34,23 @@ router.post("/approvals", async (req, res): Promise<void> => {
   try {
     var insertData = { ...parsed.data, expiresAt: parseDate(parsed.data.expiresAt) };
   } catch (e: any) { res.status(400).json({ error: e.message }); return; }
+
+  const sessionUser = getSessionUser(req);
+  if (!insertData.requestedBy && sessionUser) {
+    (insertData as any).requestedBy = sessionUser.name;
+  }
+
   const [item] = await db.insert(approvalsTable).values(insertData).returning();
+
+  await emit("approval.created", {
+    entityType: item.entityType,
+    entityId: item.entityId,
+    domain: item.domain ?? "system",
+    actor: sessionUser?.name ?? "system",
+    actorType: "human",
+    data: { approvalId: item.id, priority: item.priority },
+  });
+
   res.status(201).json(GetApprovalResponse.parse(item));
 });
 
@@ -53,52 +68,31 @@ router.patch("/approvals/:id", async (req, res): Promise<void> => {
   const parsed = UpdateApprovalBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const [existing] = await db.select().from(approvalsTable).where(eq(approvalsTable.id, params.data.id));
-  if (!existing) { res.status(404).json({ error: "Approval not found" }); return; }
+  const sessionUser = getSessionUser(req);
+
+  if (parsed.data.status) {
+    const result = await transitionApproval({
+      approvalId: params.data.id,
+      newStatus: parsed.data.status,
+      reviewedBy: parsed.data.reviewedBy ?? sessionUser?.name,
+      rejectionReason: parsed.data.rejectionReason,
+      notes: parsed.data.notes,
+    });
+
+    if (!result.success) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+
+    res.json(GetApprovalResponse.parse(result.approval));
+    return;
+  }
 
   try {
     var updateData = { ...parsed.data, expiresAt: parseDate(parsed.data.expiresAt) };
   } catch (e: any) { res.status(400).json({ error: e.message }); return; }
   const [item] = await db.update(approvalsTable).set(updateData).where(eq(approvalsTable.id, params.data.id)).returning();
-
-  if (parsed.data.status && parsed.data.status !== existing.status) {
-    const isApproved = parsed.data.status === "approved";
-    const isRejected = parsed.data.status === "rejected";
-
-    if (isApproved || isRejected) {
-      await createNotification({
-        type: isApproved ? "approval_approved" : "approval_rejected",
-        severity: isRejected ? "warning" : "info",
-        title: `Approval ${isApproved ? "Approved" : "Rejected"}: ${existing.entityType} #${existing.entityId}`,
-        message: `${existing.entityType} #${existing.entityId} in ${existing.domain ?? "system"} was ${parsed.data.status} by ${parsed.data.reviewedBy ?? "reviewer"}`,
-        domain: existing.domain ?? "system",
-        entityType: existing.entityType,
-        entityId: existing.entityId,
-        actor: parsed.data.reviewedBy ?? "reviewer",
-      }).catch(() => {});
-
-      await db.insert(activitiesTable).values({
-        action: `approval_${parsed.data.status}`,
-        description: `${existing.entityType} #${existing.entityId} ${parsed.data.status}`,
-        entityType: existing.entityType,
-        entityId: existing.entityId,
-        performedBy: parsed.data.reviewedBy ?? "reviewer",
-      }).catch(() => {});
-
-      await logAudit({
-        eventType: "approval_decision",
-        domain: existing.domain ?? "system",
-        action: `approval_${parsed.data.status}`,
-        description: `Approval ${params.data.id} for ${existing.entityType} #${existing.entityId} ${parsed.data.status}`,
-        entityType: "approval",
-        entityId: params.data.id,
-        actor: parsed.data.reviewedBy ?? "reviewer",
-        actorType: "human",
-        severity: isRejected ? "warning" : "info",
-      });
-    }
-  }
-
+  if (!item) { res.status(404).json({ error: "Approval not found" }); return; }
   res.json(GetApprovalResponse.parse(item));
 });
 

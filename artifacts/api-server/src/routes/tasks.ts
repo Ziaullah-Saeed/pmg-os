@@ -13,6 +13,8 @@ import {
   UpdateTaskResponse,
   DeleteTaskParams,
 } from "@workspace/api-zod";
+import { emit } from "../services/event-bus";
+import { getSessionUser } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -57,6 +59,17 @@ router.post("/tasks", async (req, res): Promise<void> => {
     return;
   }
   const [task] = await db.insert(tasksTable).values(insertData).returning();
+
+  const sessionUser = getSessionUser(req);
+  emit("task.created", {
+    entityType: "task",
+    entityId: task.id,
+    domain: task.domain,
+    actor: sessionUser?.name ?? "system",
+    actorType: "human",
+    data: { title: task.title, priority: task.priority, assignedTo: task.assignedTo },
+  }).catch(() => {});
+
   res.status(201).json(GetTaskResponse.parse(task));
 });
 
@@ -94,11 +107,27 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: e.message });
     return;
   }
+  const [existing] = await db.select().from(tasksTable).where(eq(tasksTable.id, params.data.id));
   const [task] = await db.update(tasksTable).set(updateData).where(eq(tasksTable.id, params.data.id)).returning();
   if (!task) {
     res.status(404).json({ error: "Task not found" });
     return;
   }
+
+  if (task.status === "completed" && existing?.status !== "completed") {
+    const sessionUser = getSessionUser(req);
+    emit("task.completed", {
+      entityType: "task",
+      entityId: task.id,
+      domain: task.domain,
+      actor: sessionUser?.name ?? "system",
+      actorType: "human",
+      previousState: existing?.status,
+      newState: "completed",
+      data: { title: task.title },
+    }).catch(() => {});
+  }
+
   res.json(UpdateTaskResponse.parse(task));
 });
 

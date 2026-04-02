@@ -1,82 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db } from "@workspace/db";
-import { sql } from "drizzle-orm";
-
-const automationRules: Array<{
-  id: string;
-  name: string;
-  trigger: { event: string; conditions: Record<string, unknown> };
-  actions: Array<{ type: string; config: Record<string, unknown> }>;
-  enabled: boolean;
-  createdAt: string;
-  executionCount: number;
-  lastExecuted: string | null;
-}> = [
-  {
-    id: "rule-1",
-    name: "Auto-score new leads",
-    trigger: { event: "lead.created", conditions: {} },
-    actions: [
-      { type: "ai_enrich", config: {} },
-      { type: "ai_score", config: {} },
-    ],
-    enabled: true,
-    createdAt: new Date().toISOString(),
-    executionCount: 4,
-    lastExecuted: new Date().toISOString(),
-  },
-  {
-    id: "rule-2",
-    name: "Notify on high-score lead",
-    trigger: { event: "lead.scored", conditions: { fitScore: { gte: 80 } } },
-    actions: [
-      { type: "notification", config: { title: "Hot Lead Detected", severity: "warning" } },
-      { type: "set_priority", config: { priority: "high" } },
-    ],
-    enabled: true,
-    createdAt: new Date().toISOString(),
-    executionCount: 2,
-    lastExecuted: new Date().toISOString(),
-  },
-  {
-    id: "rule-3",
-    name: "Route qualified leads to GHL",
-    trigger: { event: "lead.qualified", conditions: {} },
-    actions: [
-      { type: "route_lead", config: { destination: "ghl" } },
-    ],
-    enabled: false,
-    createdAt: new Date().toISOString(),
-    executionCount: 0,
-    lastExecuted: null,
-  },
-  {
-    id: "rule-4",
-    name: "Auto-archive won deals",
-    trigger: { event: "opportunity.won", conditions: {} },
-    actions: [
-      { type: "archive", config: {} },
-      { type: "notification", config: { title: "Deal Won!", severity: "success" } },
-    ],
-    enabled: true,
-    createdAt: new Date().toISOString(),
-    executionCount: 0,
-    lastExecuted: null,
-  },
-  {
-    id: "rule-5",
-    name: "Stale deal alert (7+ days)",
-    trigger: { event: "schedule.daily", conditions: {} },
-    actions: [
-      { type: "check_stale_deals", config: { daysThreshold: 7 } },
-      { type: "notification", config: { title: "Stale Deal Alert", severity: "warning" } },
-    ],
-    enabled: true,
-    createdAt: new Date().toISOString(),
-    executionCount: 0,
-    lastExecuted: null,
-  },
-];
+import { db, automationRulesTable } from "@workspace/db";
+import { eq, sql, desc } from "drizzle-orm";
 
 const triggerTypes = [
   { event: "lead.created", label: "Lead Created" },
@@ -87,10 +11,16 @@ const triggerTypes = [
   { event: "opportunity.stage_changed", label: "Deal Stage Changed" },
   { event: "opportunity.won", label: "Deal Won" },
   { event: "opportunity.lost", label: "Deal Lost" },
+  { event: "task.created", label: "Task Created" },
   { event: "task.completed", label: "Task Completed" },
-  { event: "approval.submitted", label: "Approval Submitted" },
+  { event: "approval.created", label: "Approval Created" },
+  { event: "approval.approved", label: "Approval Approved" },
+  { event: "approval.rejected", label: "Approval Rejected" },
+  { event: "sequence.contact_enrolled", label: "Sequence Enrollment" },
+  { event: "sequence.completed", label: "Sequence Completed" },
   { event: "schedule.daily", label: "Daily Schedule" },
   { event: "schedule.weekly", label: "Weekly Schedule" },
+  { event: "scheduler.job_completed", label: "Scheduled Job Completed" },
 ];
 
 const actionTypes = [
@@ -100,7 +30,6 @@ const actionTypes = [
   { type: "set_priority", label: "Set Priority" },
   { type: "route_lead", label: "Route Lead" },
   { type: "archive", label: "Archive Record" },
-  { type: "check_stale_deals", label: "Check Stale Deals" },
   { type: "send_email", label: "Send Email" },
   { type: "create_task", label: "Create Task" },
   { type: "update_field", label: "Update Field" },
@@ -110,7 +39,8 @@ const actionTypes = [
 const router: IRouter = Router();
 
 router.get("/automation/rules", async (_req, res): Promise<void> => {
-  res.json({ rules: automationRules, total: automationRules.length });
+  const rules = await db.select().from(automationRulesTable).orderBy(automationRulesTable.priority, desc(automationRulesTable.createdAt));
+  res.json({ rules, total: rules.length });
 });
 
 router.get("/automation/triggers", async (_req, res): Promise<void> => {
@@ -122,39 +52,98 @@ router.get("/automation/actions", async (_req, res): Promise<void> => {
 });
 
 router.post("/automation/rules", async (req, res): Promise<void> => {
-  const { name, trigger, actions, enabled } = req.body;
-  const rule = {
-    id: `rule-${Date.now()}`,
+  const { name, trigger, actions, enabled, description, domain, priority } = req.body;
+  if (!name || !trigger?.event || !actions) {
+    res.status(400).json({ error: "name, trigger.event, and actions are required" });
+    return;
+  }
+
+  const [rule] = await db.insert(automationRulesTable).values({
     name,
-    trigger,
+    description,
+    triggerEvent: trigger.event,
+    triggerConditions: trigger.conditions ?? {},
     actions,
     enabled: enabled ?? true,
-    createdAt: new Date().toISOString(),
-    executionCount: 0,
-    lastExecuted: null,
+    domain,
+    priority: priority ?? 0,
+    createdBy: (req as any).session?.userName ?? "system",
+  }).returning();
+
+  const formatted = {
+    id: String(rule.id),
+    name: rule.name,
+    trigger: { event: rule.triggerEvent, conditions: rule.triggerConditions },
+    actions: rule.actions,
+    enabled: rule.enabled,
+    createdAt: rule.createdAt.toISOString(),
+    executionCount: rule.executionCount,
+    lastExecuted: rule.lastExecutedAt?.toISOString() ?? null,
   };
-  automationRules.push(rule);
-  res.status(201).json(rule);
+  res.status(201).json(formatted);
 });
 
 router.put("/automation/rules/:id", async (req, res): Promise<void> => {
-  const idx = automationRules.findIndex(r => r.id === req.params.id);
-  if (idx === -1) { res.status(404).json({ error: "Rule not found" }); return; }
-  Object.assign(automationRules[idx], req.body);
-  res.json(automationRules[idx]);
+  const id = parseInt(req.params.id.replace("rule-", ""));
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid rule ID" }); return; }
+
+  const { name, trigger, actions, enabled, description, domain, priority } = req.body;
+  const updateData: Record<string, unknown> = {};
+  if (name !== undefined) updateData.name = name;
+  if (description !== undefined) updateData.description = description;
+  if (trigger?.event !== undefined) updateData.triggerEvent = trigger.event;
+  if (trigger?.conditions !== undefined) updateData.triggerConditions = trigger.conditions;
+  if (actions !== undefined) updateData.actions = actions;
+  if (enabled !== undefined) updateData.enabled = enabled;
+  if (domain !== undefined) updateData.domain = domain;
+  if (priority !== undefined) updateData.priority = priority;
+
+  const [updated] = await db.update(automationRulesTable).set(updateData).where(eq(automationRulesTable.id, id)).returning();
+  if (!updated) { res.status(404).json({ error: "Rule not found" }); return; }
+
+  const formatted = {
+    id: String(updated.id),
+    name: updated.name,
+    trigger: { event: updated.triggerEvent, conditions: updated.triggerConditions },
+    actions: updated.actions,
+    enabled: updated.enabled,
+    createdAt: updated.createdAt.toISOString(),
+    executionCount: updated.executionCount,
+    lastExecuted: updated.lastExecutedAt?.toISOString() ?? null,
+  };
+  res.json(formatted);
 });
 
 router.put("/automation/rules/:id/toggle", async (req, res): Promise<void> => {
-  const idx = automationRules.findIndex(r => r.id === req.params.id);
-  if (idx === -1) { res.status(404).json({ error: "Rule not found" }); return; }
-  automationRules[idx].enabled = !automationRules[idx].enabled;
-  res.json(automationRules[idx]);
+  const id = parseInt(req.params.id.replace("rule-", ""));
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid rule ID" }); return; }
+
+  const [existing] = await db.select().from(automationRulesTable).where(eq(automationRulesTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Rule not found" }); return; }
+
+  const [updated] = await db.update(automationRulesTable)
+    .set({ enabled: !existing.enabled })
+    .where(eq(automationRulesTable.id, id))
+    .returning();
+
+  const formatted = {
+    id: String(updated.id),
+    name: updated.name,
+    trigger: { event: updated.triggerEvent, conditions: updated.triggerConditions },
+    actions: updated.actions,
+    enabled: updated.enabled,
+    createdAt: updated.createdAt.toISOString(),
+    executionCount: updated.executionCount,
+    lastExecuted: updated.lastExecutedAt?.toISOString() ?? null,
+  };
+  res.json(formatted);
 });
 
 router.delete("/automation/rules/:id", async (req, res): Promise<void> => {
-  const idx = automationRules.findIndex(r => r.id === req.params.id);
-  if (idx === -1) { res.status(404).json({ error: "Rule not found" }); return; }
-  automationRules.splice(idx, 1);
+  const id = parseInt(req.params.id.replace("rule-", ""));
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid rule ID" }); return; }
+
+  const deleted = await db.delete(automationRulesTable).where(eq(automationRulesTable.id, id));
   res.status(204).send();
 });
 

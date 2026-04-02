@@ -2,6 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq, ilike, and } from "drizzle-orm";
 import { db, opportunitiesTable, companiesTable, contactsTable } from "@workspace/db";
 import { parseDate } from "../lib/parse-date";
+import { emit } from "../services/event-bus";
+import { getSessionUser } from "../middleware/auth";
 import {
   ListOpportunitiesQueryParams,
   ListOpportunitiesResponse,
@@ -75,6 +77,17 @@ router.post("/opportunities", async (req, res): Promise<void> => {
     return;
   }
   const [opp] = await db.insert(opportunitiesTable).values(insertData).returning();
+
+  const sessionUser = getSessionUser(req);
+  emit("opportunity.created", {
+    entityType: "opportunity",
+    entityId: opp.id,
+    domain: "crm",
+    actor: sessionUser?.name ?? "system",
+    actorType: "human",
+    data: { title: opp.title, value: opp.value, stage: opp.stage },
+  }).catch(() => {});
+
   res.status(201).json(GetOpportunityResponse.parse(opp));
 });
 
@@ -139,11 +152,29 @@ router.patch("/opportunities/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: e.message });
     return;
   }
+  const [existingOpp] = await db.select().from(opportunitiesTable).where(eq(opportunitiesTable.id, params.data.id));
   const [opp] = await db.update(opportunitiesTable).set(updateData).where(eq(opportunitiesTable.id, params.data.id)).returning();
   if (!opp) {
     res.status(404).json({ error: "Opportunity not found" });
     return;
   }
+
+  if (parsed.data.stage && parsed.data.stage !== existingOpp?.stage) {
+    const sessionUser = getSessionUser(req);
+    const eventName = parsed.data.stage === "won" ? "opportunity.won" :
+      parsed.data.stage === "lost" ? "opportunity.lost" : "opportunity.stage_changed";
+    emit(eventName, {
+      entityType: "opportunity",
+      entityId: opp.id,
+      domain: "crm",
+      actor: sessionUser?.name ?? "system",
+      actorType: "human",
+      previousState: existingOpp?.stage,
+      newState: parsed.data.stage,
+      data: { title: opp.title, value: opp.value, stage: parsed.data.stage },
+    }).catch(() => {});
+  }
+
   res.json(UpdateOpportunityResponse.parse(opp));
 });
 
