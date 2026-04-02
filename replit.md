@@ -45,7 +45,12 @@ The system features a cinematic glassmorphic dark-first design. The primary colo
 *   **Lead Routing Engine:** Score-based auto-routing of leads (HOT, WARM, COLD) with round-robin assignment and notifications.
 *   **DnD Pipeline (CRM):** Drag-and-drop functionality for managing deals within pipeline stages.
 *   **Entity Forms & Edit Drawers:** Standardized forms for entity creation and editing, with CSV export.
-*   **Agent Simulation Engine:** Simulates background agent activity, records AI runs, and charges the wallet.
+*   **Agent Executor (Real + Simulated):** 112 agents across 11 domains. 21 agents mapped to real AI tools/chains (ICP modeling, lead enrichment, competitor mapping, etc.), unmapped agents use simulated fallback. Self-scheduling loop prevents overlap. Per-agent rate limiting (1 exec/minute). Results tracked in `ai_runs` with confidence-based handoff tiers.
+*   **Vector Embeddings (Knowledge):** Knowledge entries auto-embed via OpenAI `text-embedding-3-small` on creation. Semantic search via cosine similarity. `embedding` column (jsonb) on `knowledge_entries`. Routes: `GET /knowledge/semantic-search`, `POST /knowledge/embed-all`, `POST /knowledge/:id/embed`.
+*   **Multi-Tool Orchestration:** 16 registered tools with sequential chain execution. 5 chain templates: `lead_qualification` (enrich→score→route), `outreach_pipeline` (research→personalize→draft→variants), `icp_analysis`, `competitor_intel`, `deal_assessment`. Tri-mode aware chain execution. Routes: `GET /ai/tools`, `GET /ai/chains`, `POST /ai/chain/execute`.
+*   **Confidence-Based Handoff:** HIGH (≥80%) → auto_continue, MEDIUM (50-79%) → ai_with_review (queues pending action), LOW (<50%) → human_takeover (notification + queue). Wired into all AI results and agent execution.
+*   **ICP & Market Research AI:** Real AI workflows for ICP generation (from won deals + company data), competitor analysis (positioning maps, gap analysis), and market segmentation (scored segments with resource allocation). Routes: `POST /ai/icp`, `POST /ai/competitors`, `POST /ai/market-segments`.
+*   **Structured Outreach Pipeline:** Multi-step outreach: prospect research → personalization brief → channel-specific drafting → A/B variant generation. Email subject extraction, phone call scripts, LinkedIn messages, SMS. Full pipeline via `POST /ai/outreach-pipeline`. Individual steps available as separate endpoints.
 *   **Quality Management:** Dedicated page for managing quality issues and tracking quality scores.
 *   **Admin SOP Management:** Interface for managing Standard Operating Procedures.
 *   **UI Components:** Key frontend components like `AiModeToggle`, `WalletDisplay`, `NotificationBell`, and various forms leveraging AI.

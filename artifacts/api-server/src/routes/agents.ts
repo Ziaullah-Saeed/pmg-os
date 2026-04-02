@@ -8,6 +8,7 @@ import {
   getAgentStats,
   domainLabels,
 } from "../services/agent-registry.js";
+import { executeAgent } from "../services/agent-executor";
 
 const router = Router();
 
@@ -49,6 +50,15 @@ router.post("/:id/run", (req, res) => {
   const ok = recordAgentRun(req.params.id, durationMs, success);
   if (!ok) return res.status(404).json({ error: "Agent not found" });
   res.json({ ok: true, agent: getAgent(req.params.id) });
+});
+
+router.post("/:id/execute", async (req, res) => {
+  try {
+    const result = await executeAgent(req.params.id, req.body.input);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

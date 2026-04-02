@@ -25,6 +25,11 @@ export async function addKnowledgeEntry(params: {
     tags: params.tags ?? [],
     confidence: params.confidence,
   }).returning();
+
+  import("./embedding-service").then(({ embedKnowledgeEntry }) => {
+    embedKnowledgeEntry(entry.id).catch(() => {});
+  }).catch(() => {});
+
   return entry;
 }
 

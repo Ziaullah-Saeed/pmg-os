@@ -95,17 +95,29 @@ async function callAI(params: {
     throw new Error(`AI_CALL_FAILED: ${errorMsg}`);
   }
 
-  if (confidence < 70) {
+  if (confidence < 50) {
     await createNotification({
       type: "low_confidence",
+      severity: "error",
+      title: "Low Confidence AI Result — Human Takeover",
+      message: `${params.action} returned ${confidence}% confidence — human takeover required`,
+      domain: params.domain,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      actor: "ai_system",
+      metadata: { runId: run.id, confidence, handoffTier: "LOW" },
+    });
+  } else if (confidence < 80) {
+    await createNotification({
+      type: "medium_confidence",
       severity: "warning",
-      title: "Low Confidence AI Result",
+      title: "Medium Confidence AI Result — Review Recommended",
       message: `${params.action} returned ${confidence}% confidence — review recommended`,
       domain: params.domain,
       entityType: params.entityType,
       entityId: params.entityId,
       actor: "ai_system",
-      metadata: { runId: run.id, confidence },
+      metadata: { runId: run.id, confidence, handoffTier: "MEDIUM" },
     });
   }
 

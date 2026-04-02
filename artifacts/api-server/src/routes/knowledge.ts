@@ -2,6 +2,7 @@ import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, knowledgeEntriesTable } from "@workspace/db";
 import { addKnowledgeEntry, searchKnowledge, getKnowledgeByCategory, getAllKnowledge, incrementUsage } from "../services/knowledge-service";
+import { semanticSearch, embedKnowledgeEntry, embedAllKnowledge } from "../services/embedding-service";
 
 const router = Router();
 
@@ -89,6 +90,42 @@ router.post("/:id/track-usage", async (req, res) => {
     if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
     await incrementUsage(id);
     res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/semantic-search", async (req, res) => {
+  try {
+    const q = req.query.q as string;
+    if (!q) { res.status(400).json({ error: "Query parameter q required" }); return; }
+    const limit = parseInt(req.query.limit as string) || 10;
+    const minScore = parseFloat(req.query.minScore as string) || 0.3;
+    const results = await semanticSearch(q, limit, minScore);
+    for (const entry of results) {
+      incrementUsage(entry.id).catch(() => {});
+    }
+    res.json(results);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/embed-all", async (req, res) => {
+  try {
+    const result = await embedAllKnowledge();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/:id/embed", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+    await embedKnowledgeEntry(id);
+    res.json({ success: true, embedded: id });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
