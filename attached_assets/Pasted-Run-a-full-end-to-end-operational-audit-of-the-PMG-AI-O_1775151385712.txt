@@ -1,0 +1,192 @@
+Run a full end-to-end operational audit of the PMG AI Operating System right now.
+
+Do not give me another design/status response.
+Do not tell me pages render.
+Do not tell me charts are visible.
+Do not tell me APIs are healthy unless you prove the workflows behind them actually operate.
+
+I want you to treat the current system as a partially built operating system and perform a real execution audit to determine what is genuinely functional and what is still only design/UI.
+
+1. What I want you to do first
+
+Launch the system and run a full E2E operational test across the entire platform.
+
+Test all major domains, workflows, mode behavior, routing logic, wallet logic, integrations, permissions, archive/library behavior, and production/CRM interactions.
+
+You must inspect the system as an operator would, not as a page viewer.
+
+That means:
+
+click through workflows
+create records
+edit records
+move records across states
+test drawers, tabs, modals, and actions
+test whether tasks actually execute
+test whether approvals actually work
+test whether data updates actually flow through the system
+test whether reporting, archive, and memory update correctly
+test whether AI/Hybrid/Human modes actually change behavior
+test whether CRM and Production are real operating environments or only UI shells
+2. Audit the system by operational reality, not visual reality
+
+Do not measure success by:
+
+page loads
+route existence
+charts
+fake seed data
+static counters
+simple CRUD responses
+
+Measure success by:
+
+does the workflow actually operate?
+does the state transition actually work?
+does the action trigger the next step?
+does the mode change the workflow?
+does the system create or route real downstream tasks?
+does AI perform real work?
+does human review actually control approvals?
+does reporting reflect real actions?
+does archive/memory update from real activity?
+does wallet logic actually govern paid actions?
+3. I want the output in 3 categories only
+
+After running the full audit, give me a structured report with these exact categories:
+
+A. Fully Functional
+
+Things that are actually working end-to-end in real operational terms.
+
+B. Partially Functional
+
+Things that exist but are incomplete, shallow, non-enforced, UI-only, or missing key workflow logic.
+
+C. Not Functional
+
+Things that are still missing, broken, placeholder-only, design-only, or not operating at all.
+
+4. Audit all major areas
+
+You must audit all of these areas:
+
+Core system
+auth
+roles
+permissions
+audit logs
+queues
+retries
+environment behavior
+system core
+All 11 domains
+Command Center
+Intelligence
+Outreach
+Marketing
+Production
+Execution
+CRM
+Communication
+Finance / Legal / Admin / Quality
+Reporting / Archive / Knowledge Memory
+System Core / Integrations / Governance
+Modes
+AI Auto
+Hybrid
+Human / Manual Control
+CRM
+PMG CRM
+Client CRM
+GHL routing
+sync handling
+state movement
+activities
+next actions
+AI insights
+Production
+workspace behavior
+preview
+timeline/panel logic
+versioning
+approval flow
+finalization flow
+Integrations
+GHL
+websites
+landing pages
+forms
+social channels
+manual integration mode
+attribution logic
+Wallet / billing
+wallet deductions
+action logs
+cost visibility
+spend controls
+low-balance handling
+Knowledge library / memory
+storage
+retrieval
+auto-update
+AI reuse
+archive continuity
+Tool orchestration
+tool selection
+execution
+fallback behavior
+logs
+result storage
+Permissions / users
+Super Admin control
+user creation
+role assignment
+granular permissions
+action restrictions
+audit trail
+5. Test all 3 modes properly
+
+You must test:
+
+AI Auto mode as if the user is away
+Hybrid mode as shared AI/human operation
+Human mode as manual control with guides
+
+For each mode, report:
+
+what actually changes
+what only changes visually
+what still does not work
+6. I want a hard truth report
+
+Do not soften the result.
+Do not try to make it sound more complete than it is.
+
+If something is only a design shell, call it a design shell.
+If something is a partial CRUD layer, call it partial CRUD.
+If something is fake or seeded and not operational, say that clearly.
+If a workflow breaks after one or two steps, say that clearly.
+
+I want the truth about what is really operational.
+
+7. After the audit, do this next
+
+Once the audit is finished:
+
+show me the gap report
+show me what is truly functional
+show me what is partially functional
+show me what is not functional
+then create the next rebuild priority order based on operational importance
+8. Final instruction
+
+This is not a design review.
+This is not a page review.
+This is not a UI review.
+
+This is a full end-to-end operational audit.
+
+Run the system like a real operator.
+Test it like a real business operating system.
+Then tell me what actually works and what does not.
