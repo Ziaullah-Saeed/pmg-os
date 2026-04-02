@@ -1578,4 +1578,83 @@ export function useDesignBrief() {
   });
 }
 
+export function useUsers(filters?: { role?: string; isActive?: string }) {
+  const params = new URLSearchParams();
+  if (filters?.role) params.set("role", filters.role);
+  if (filters?.isActive) params.set("isActive", filters.isActive);
+  const qs = params.toString();
+  return useQuery({ queryKey: ["users", filters], queryFn: () => apiFetch<any[]>(`/users${qs ? `?${qs}` : ""}`), refetchInterval: 30000 });
+}
+
+export function useCreateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { email: string; name: string; password: string; role?: string; department?: string; title?: string }) =>
+      apiFetch<any>("/users", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useUpdateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: number; email?: string; name?: string; department?: string; title?: string }) =>
+      apiFetch<any>(`/users/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useChangeUserRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, role }: { id: number; role: string }) =>
+      apiFetch<any>(`/users/${id}/role`, { method: "PATCH", body: JSON.stringify({ role }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useUpdateUserPermissions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, permissions }: { id: number; permissions: any }) =>
+      apiFetch<any>(`/users/${id}/permissions`, { method: "PATCH", body: JSON.stringify({ permissions }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useDeactivateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<any>(`/users/${id}/deactivate`, { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useReactivateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<any>(`/users/${id}/reactivate`, { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useResetUserPassword() {
+  return useMutation({
+    mutationFn: ({ id, password }: { id: number; password: string }) =>
+      apiFetch<any>(`/users/${id}/reset-password`, { method: "POST", body: JSON.stringify({ password }) }),
+  });
+}
+
+export function useUserAuditLog(filters?: { userId?: number; limit?: number }) {
+  const params = new URLSearchParams();
+  if (filters?.userId) params.set("userId", String(filters.userId));
+  if (filters?.limit) params.set("limit", String(filters.limit));
+  const qs = params.toString();
+  return useQuery({ queryKey: ["user-audit-log", filters], queryFn: () => apiFetch<any[]>(`/users/audit-log${qs ? `?${qs}` : ""}`), refetchInterval: 15000 });
+}
+
+export function useRoleDefaults(role: string) {
+  return useQuery({ queryKey: ["role-defaults", role], queryFn: () => apiFetch<any>(`/users/role-defaults/${role}`) });
+}
+
 export { apiFetch };

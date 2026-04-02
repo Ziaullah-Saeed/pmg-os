@@ -17,7 +17,9 @@ import {
   useGHLFieldMapping, useSaveGHLFieldMapping, useGHLPipelineMapping, useSaveGHLPipelineMapping,
   useGHLSyncHealth, useGHLRoutingSummary, useGHLSyncLogs, useGHLRetryQueue, useGHLRetryAllFailed, useGHLSyncRetry,
   useIntegrationConnectors, useIntegrationStatus, useConnectIntegration, useDisconnectIntegration,
-  useSyncHealth, useSyncLogs, useTriggerSync, useImportCsv
+  useSyncHealth, useSyncLogs, useTriggerSync, useImportCsv,
+  useUsers, useCreateUser, useUpdateUser, useChangeUserRole, useUpdateUserPermissions,
+  useDeactivateUser, useReactivateUser, useResetUserPassword, useUserAuditLog,
 } from "@/hooks/use-api";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +27,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Settings, CheckCircle2, Database, Shield, Server, Users,
   Lock, Eye, Activity, Clock, Globe, Cpu, Bot, Wallet, Zap,
-  TrendingUp, AlertTriangle, Loader2, Save, PlugZap, RefreshCw, Plus, ArrowRight
+  TrendingUp, AlertTriangle, Loader2, Save, PlugZap, RefreshCw, Plus, ArrowRight,
+  UserPlus, KeyRound, UserX, RotateCcw, X
 } from "lucide-react";
 
 const roles = [
@@ -145,12 +148,26 @@ export default function System() {
   const { data: syncHealthData } = useSyncHealth();
   const triggerSync = useTriggerSync();
   const importCsv = useImportCsv();
+  const { data: usersData } = useUsers();
+  const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
+  const changeRole = useChangeUserRole();
+  const updatePermissions = useUpdateUserPermissions();
+  const deactivateUser = useDeactivateUser();
+  const reactivateUser = useReactivateUser();
+  const resetPassword = useResetUserPassword();
+  const { data: auditLog } = useUserAuditLog({ limit: 50 });
   const { toast } = useToast();
   const [ghlForm, setGhlForm] = useState({ apiKey: "", locationId: "", webhookUrl: "" });
   const [connectForm, setConnectForm] = useState({ provider: "", apiKey: "" });
   const [csvForm, setCsvForm] = useState({ entityType: "leads", csvContent: "", dryRun: true });
   const [fieldMapEdits, setFieldMapEdits] = useState<Record<string, string>>({});
   const [pipelineMapEdits, setPipelineMapEdits] = useState<Record<string, string>>({});
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [createForm, setCreateForm] = useState({ email: "", name: "", password: "", role: "user", department: "", title: "" });
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editingPerms, setEditingPerms] = useState<any>(null);
+  const [userRoleFilter, setUserRoleFilter] = useState("all");
 
   const connectorList = (connectors ?? []) as any[];
   const syncHealth = syncHealthData as any;
@@ -403,12 +420,82 @@ export default function System() {
           </div>
         )}
 
-        {activeTab === "users" && (
+        {activeTab === "users" && (() => {
+          const usersList = (usersData ?? []) as any[];
+          const filteredUsers = userRoleFilter === "all" ? usersList : usersList.filter((u: any) => u.role === userRoleFilter);
+          const roleCounts = { super_admin: 0, admin: 0, manager: 0, user: 0 };
+          usersList.forEach((u: any) => { if (roleCounts[u.role as keyof typeof roleCounts] !== undefined) roleCounts[u.role as keyof typeof roleCounts]++; });
+          const roleColor = (r: string) => r === "super_admin" ? "text-crimson border-crimson/30" : r === "admin" ? "text-yellow-400 border-yellow-500/30" : r === "manager" ? "text-blue-400 border-blue-500/30" : "text-muted-foreground";
+          const roleLabel = (r: string) => r === "super_admin" ? "Super Admin" : r === "admin" ? "Admin" : r === "manager" ? "Manager" : "User";
+          const aiPrivLabel = (gp: any) => !gp ? "Default" : gp.aiModePrivileges === "full" ? "Full" : gp.aiModePrivileges === "hybrid_only" ? "Hybrid" : gp.aiModePrivileges === "read_only" ? "Read Only" : "None";
+
+          const permCategories = [
+            { key: "domainAccess", label: "Domain Access", options: ["dashboard", "intelligence", "outreach", "marketing", "production", "execution", "crm", "communications", "finance", "reports", "admin", "agents", "channels", "system", "quality", "automation"] },
+            { key: "approvalRights", label: "Approval Rights", options: ["proposals", "deals", "invoices", "contracts", "campaigns", "content", "budgets", "users"] },
+            { key: "publishingRights", label: "Publishing Rights", options: ["content", "campaigns", "landing_pages", "forms", "reports", "emails"] },
+            { key: "financialVisibility", label: "Financial Visibility", options: ["invoices", "revenue", "wallet_balance", "cost_data", "budgets", "forecasts", "thresholds"] },
+            { key: "crmVisibility", label: "CRM Visibility", options: ["leads", "contacts", "companies", "opportunities", "pipelines", "activities"] },
+            { key: "archiveVisibility", label: "Archive Visibility", options: ["reports", "archived_data", "audit_logs", "knowledge_base"] },
+            { key: "integrationAccess", label: "Integration Access", options: ["connect", "disconnect", "configure", "sync", "import", "export"] },
+            { key: "walletPermissions", label: "Wallet Permissions", options: ["fund", "set_thresholds", "view_transactions", "view_balance", "configure_providers"] },
+            { key: "manualIntegrationPermissions", label: "Manual Integration", options: ["csv_import", "csv_export", "field_mapping", "reconciliation", "manual_sync"] },
+          ];
+
+          return (
           <div className="space-y-6">
+            {showCreateUser && (
+              <GlassCard glow="crimson" className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold flex items-center gap-2"><UserPlus className="h-4 w-4 text-crimson" />Create New User</h3>
+                  <Button variant="ghost" size="sm" onClick={() => setShowCreateUser(false)}><X className="h-4 w-4" /></Button>
+                </div>
+                <div className="px-5 pb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div><Label className="text-xs">Full Name *</Label><Input className="mt-1 text-xs h-8" value={createForm.name} onChange={(e) => setCreateForm(f => ({ ...f, name: e.target.value }))} placeholder="John Smith" /></div>
+                  <div><Label className="text-xs">Email *</Label><Input className="mt-1 text-xs h-8" value={createForm.email} onChange={(e) => setCreateForm(f => ({ ...f, email: e.target.value }))} placeholder="john@pmggroup-llc.com" /></div>
+                  <div><Label className="text-xs">Password *</Label><Input className="mt-1 text-xs h-8" type="password" value={createForm.password} onChange={(e) => setCreateForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 8 characters" /></div>
+                  <div><Label className="text-xs">Role</Label>
+                    <Select value={createForm.role} onValueChange={(v) => setCreateForm(f => ({ ...f, role: v }))}>
+                      <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="super_admin">Super Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label className="text-xs">Department</Label><Input className="mt-1 text-xs h-8" value={createForm.department} onChange={(e) => setCreateForm(f => ({ ...f, department: e.target.value }))} placeholder="e.g. Sales" /></div>
+                  <div><Label className="text-xs">Title</Label><Input className="mt-1 text-xs h-8" value={createForm.title} onChange={(e) => setCreateForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Sales Manager" /></div>
+                </div>
+                <div className="px-5 pb-4 flex justify-end gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setShowCreateUser(false)}>Cancel</Button>
+                  <Button className="btn-premium text-white text-xs" disabled={!createForm.email || !createForm.name || !createForm.password || createForm.password.length < 8}
+                    onClick={() => createUser.mutate(createForm, {
+                      onSuccess: () => { toast({ title: "User created successfully" }); setShowCreateUser(false); setCreateForm({ email: "", name: "", password: "", role: "user", department: "", title: "" }); },
+                      onError: (e) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+                    })}>
+                    {createUser.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <UserPlus className="h-3 w-3 mr-1" />}Create User
+                  </Button>
+                </div>
+              </GlassCard>
+            )}
+
             <GlassCard className="p-0 overflow-hidden">
               <div className="px-5 pt-4 pb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">User Management</h3>
-                <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"><Users className="h-3 w-3 mr-1" />Add User</Button>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-sm font-semibold">User Management</h3>
+                  <div className="flex gap-1">
+                    {["all", "super_admin", "admin", "manager", "user"].map((r) => (
+                      <Button key={r} variant={userRoleFilter === r ? "default" : "ghost"} size="sm" className={`h-6 px-2 text-[10px] ${userRoleFilter === r ? "bg-crimson/20 text-crimson" : ""}`}
+                        onClick={() => setUserRoleFilter(r)}>
+                        {r === "all" ? `All (${usersList.length})` : `${roleLabel(r)} (${roleCounts[r as keyof typeof roleCounts]})`}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg" onClick={() => setShowCreateUser(true)}>
+                  <UserPlus className="h-3 w-3 mr-1" />Add User
+                </Button>
               </div>
               <div className="px-5 pb-4">
                 <table className="w-full text-xs">
@@ -419,52 +506,193 @@ export default function System() {
                       <th className="text-left py-2 px-2">Department</th>
                       <th className="text-left py-2 px-2">Status</th>
                       <th className="text-left py-2 px-2">AI Privileges</th>
-                      <th className="text-left py-2 px-2">Last Active</th>
+                      <th className="text-left py-2 px-2">Domains</th>
                       <th className="text-left py-2 px-2">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      { name: "SherShah K.", email: "shershah@pmggroup.io", role: "Super Admin", dept: "Executive", status: "active", aiPriv: "Full", lastActive: "Now" },
-                      { name: "Sarah M.", email: "sarah@pmggroup.io", role: "Admin", dept: "Sales", status: "active", aiPriv: "Full", lastActive: "2h ago" },
-                      { name: "Marcus T.", email: "marcus@pmggroup.io", role: "Manager", dept: "Marketing", status: "active", aiPriv: "Hybrid Only", lastActive: "1d ago" },
-                      { name: "James R.", email: "james@pmggroup.io", role: "User", dept: "Operations", status: "active", aiPriv: "Read Only", lastActive: "3h ago" },
-                      { name: "Elena V.", email: "elena@pmggroup.io", role: "Manager", dept: "Production", status: "active", aiPriv: "Full", lastActive: "5h ago" },
-                    ].map((u) => (
-                      <tr key={u.email} className="border-b border-white/5 hover:bg-white/[0.02]">
+                    {filteredUsers.map((u: any) => (
+                      <tr key={u.id} className="border-b border-white/5 hover:bg-white/[0.02]">
                         <td className="py-2 px-2">
                           <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-crimson/20 flex items-center justify-center text-[9px] font-bold">{u.name.split(" ").map(n => n[0]).join("")}</div>
+                            <div className={`w-7 h-7 rounded-full ${u.isActive ? "bg-crimson/20" : "bg-muted"} flex items-center justify-center text-[9px] font-bold`}>
+                              {u.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                            </div>
                             <div>
                               <p className="font-medium">{u.name}</p>
                               <p className="text-[9px] text-muted-foreground">{u.email}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="py-2 px-2"><Badge variant="outline" className={`text-[9px] ${u.role === "Super Admin" ? "border-crimson/30 text-crimson" : u.role === "Admin" ? "border-yellow-500/30 text-yellow-400" : u.role === "Manager" ? "border-blue-500/30 text-blue-400" : ""}`}>{u.role}</Badge></td>
-                        <td className="py-2 px-2 text-muted-foreground">{u.dept}</td>
-                        <td className="py-2 px-2"><div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-400" /><span className="text-green-400">Active</span></div></td>
-                        <td className="py-2 px-2"><Badge variant="outline" className="text-[9px]">{u.aiPriv}</Badge></td>
-                        <td className="py-2 px-2 text-muted-foreground">{u.lastActive}</td>
+                        <td className="py-2 px-2">
+                          <Select value={u.role} onValueChange={(v) => changeRole.mutate({ id: u.id, role: v }, {
+                            onSuccess: () => toast({ title: `Role changed to ${roleLabel(v)}` }),
+                            onError: (e) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+                          })}>
+                            <SelectTrigger className={`h-6 text-[10px] w-[110px] border ${roleColor(u.role)}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">User</SelectItem>
+                              <SelectItem value="manager">Manager</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="super_admin">Super Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="py-2 px-2 text-muted-foreground">{u.department || "—"}</td>
+                        <td className="py-2 px-2">
+                          {u.isActive
+                            ? <StatusBadge variant="active" label="Active" />
+                            : <StatusBadge variant="inactive" label="Deactivated" />}
+                        </td>
+                        <td className="py-2 px-2"><Badge variant="outline" className="text-[9px]">{aiPrivLabel(u.governancePermissions)}</Badge></td>
+                        <td className="py-2 px-2">
+                          <span className="text-[10px] text-muted-foreground">
+                            {u.governancePermissions?.domainAccess?.length ?? 0} domains
+                          </span>
+                        </td>
                         <td className="py-2 px-2">
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]">Edit</Button>
-                            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]">Permissions</Button>
+                            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => setEditingPerms(u)}>
+                              <KeyRound className="h-3 w-3 mr-0.5" />Permissions
+                            </Button>
+                            {u.isActive ? (
+                              <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-crimson" onClick={() =>
+                                deactivateUser.mutate(u.id, {
+                                  onSuccess: () => toast({ title: "User deactivated" }),
+                                  onError: (e) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+                                })}>
+                                <UserX className="h-3 w-3 mr-0.5" />Deactivate
+                              </Button>
+                            ) : (
+                              <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-emerald-400" onClick={() =>
+                                reactivateUser.mutate(u.id, {
+                                  onSuccess: () => toast({ title: "User reactivated" }),
+                                  onError: (e) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+                                })}>
+                                <RotateCcw className="h-3 w-3 mr-0.5" />Reactivate
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
                     ))}
+                    {filteredUsers.length === 0 && (
+                      <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">No users found</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </GlassCard>
+
+            {editingPerms && (
+              <GlassCard glow="blue" className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-info" />
+                    Governance Permissions — {editingPerms.name}
+                    <Badge variant="outline" className={`text-[9px] ${roleColor(editingPerms.role)}`}>{roleLabel(editingPerms.role)}</Badge>
+                  </h3>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => setEditingPerms(null)}>Close</Button>
+                    <Button className="btn-premium text-white text-xs" onClick={() => {
+                      const perms = editingPerms.governancePermissions || {};
+                      updatePermissions.mutate({ id: editingPerms.id, permissions: perms }, {
+                        onSuccess: () => { toast({ title: "Permissions saved" }); setEditingPerms(null); },
+                        onError: (e) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+                      });
+                    }}>
+                      <Save className="h-3 w-3 mr-1" />Save Permissions
+                    </Button>
+                  </div>
+                </div>
+                <div className="px-5 pb-4 space-y-4">
+                  <div className="p-3 rounded-lg glass-surface">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-xs font-semibold">AI Mode Privileges</Label>
+                      <Select value={editingPerms.governancePermissions?.aiModePrivileges || "read_only"} onValueChange={(v) =>
+                        setEditingPerms((p: any) => ({ ...p, governancePermissions: { ...p.governancePermissions, aiModePrivileges: v } }))}>
+                        <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="full">Full Access</SelectItem>
+                          <SelectItem value="hybrid_only">Hybrid Only</SelectItem>
+                          <SelectItem value="read_only">Read Only</SelectItem>
+                          <SelectItem value="none">No Access</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {permCategories.map(({ key, label, options }) => {
+                    const currentValues: string[] = editingPerms.governancePermissions?.[key] || [];
+                    return (
+                      <div key={key} className="p-3 rounded-lg glass-surface">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-xs font-semibold">{label}</Label>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" className="h-5 text-[9px] text-emerald-400" onClick={() =>
+                              setEditingPerms((p: any) => ({ ...p, governancePermissions: { ...p.governancePermissions, [key]: [...options] } }))}>All</Button>
+                            <Button variant="ghost" size="sm" className="h-5 text-[9px] text-crimson" onClick={() =>
+                              setEditingPerms((p: any) => ({ ...p, governancePermissions: { ...p.governancePermissions, [key]: [] } }))}>None</Button>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {options.map((opt) => {
+                            const active = currentValues.includes(opt);
+                            return (
+                              <button key={opt}
+                                className={`px-2 py-0.5 rounded text-[10px] border transition-all ${active ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-white/[0.02] border-white/10 text-muted-foreground hover:bg-white/5"}`}
+                                onClick={() => setEditingPerms((p: any) => ({
+                                  ...p, governancePermissions: {
+                                    ...p.governancePermissions,
+                                    [key]: active ? currentValues.filter((v: string) => v !== opt) : [...currentValues, opt],
+                                  },
+                                }))}>
+                                {active ? <CheckCircle2 className="h-2.5 w-2.5 inline mr-0.5" /> : <Lock className="h-2.5 w-2.5 inline mr-0.5" />}
+                                {opt.replace(/_/g, " ")}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div className="p-3 rounded-lg glass-surface">
+                    <Label className="text-xs font-semibold">Action Permissions</Label>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {["create", "read", "update", "delete"].map((act) => {
+                        const ap = editingPerms.governancePermissions?.actionPermissions?.["*"] || [];
+                        const active = ap.includes(act);
+                        return (
+                          <button key={act}
+                            className={`px-2 py-0.5 rounded text-[10px] border transition-all ${active ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-white/[0.02] border-white/10 text-muted-foreground hover:bg-white/5"}`}
+                            onClick={() => setEditingPerms((p: any) => ({
+                              ...p, governancePermissions: {
+                                ...p.governancePermissions,
+                                actionPermissions: { "*": active ? ap.filter((v: string) => v !== act) : [...ap, act] },
+                              },
+                            }))}>
+                            {active ? <CheckCircle2 className="h-2.5 w-2.5 inline mr-0.5" /> : <Lock className="h-2.5 w-2.5 inline mr-0.5" />}
+                            {act}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
 
             <GlassCard className="p-0 overflow-hidden">
               <div className="px-5 pt-4 pb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Role-Based Access Control</h3>
               </div>
               <div className="px-5 pb-4 space-y-3">
-                {roles.map((r) => (
+                {roles.map((r) => {
+                  const count = roleCounts[r.role.toLowerCase().replace(" ", "_") as keyof typeof roleCounts] ?? 0;
+                  return (
                   <div key={r.role} className="p-4 rounded-lg glass-surface">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
@@ -474,16 +702,54 @@ export default function System() {
                           <p className="text-[10px] text-muted-foreground">{r.desc}</p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-[10px]">{r.users} users</Badge>
+                      <Badge variant="outline" className="text-[10px]">{count} users</Badge>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {r.role === "Super Admin" && ["All Modules", "Governance", "Permissions", "Financials", "System Config", "Audit Logs"].map((p) => <Badge key={p} className="text-[8px] bg-crimson/10 text-crimson border-crimson/20">{p}</Badge>)}
-                      {r.role === "Admin" && ["Domain Management", "Approvals", "Financial View", "User Management", "Reports"].map((p) => <Badge key={p} className="text-[8px] bg-warning/10 text-warning border-warning/20">{p}</Badge>)}
-                      {r.role === "Manager" && ["Team Tasks", "Campaign Management", "CRM Access", "Basic Reports"].map((p) => <Badge key={p} className="text-[8px] bg-info/10 text-info border-info/20">{p}</Badge>)}
-                      {r.role === "User" && ["Own Tasks", "Limited CRM", "Communication Log"].map((p) => <Badge key={p} className="text-[8px] bg-muted text-muted-foreground">{p}</Badge>)}
+                      {r.role === "Super Admin" && ["All Modules", "All Governance", "All Permissions", "All Financials", "System Config", "Audit Logs", "User Management"].map((p) => <Badge key={p} className="text-[8px] bg-crimson/10 text-crimson border-crimson/20">{p}</Badge>)}
+                      {r.role === "Admin" && ["All Domains", "Approvals", "Financial View", "User Management", "Reports", "Integrations"].map((p) => <Badge key={p} className="text-[8px] bg-warning/10 text-warning border-warning/20">{p}</Badge>)}
+                      {r.role === "Manager" && ["10 Domains", "Deal Approvals", "CSV Import/Export", "CRM Full", "Basic Reports"].map((p) => <Badge key={p} className="text-[8px] bg-info/10 text-info border-info/20">{p}</Badge>)}
+                      {r.role === "User" && ["4 Domains", "Read Only", "Limited CRM", "No Admin"].map((p) => <Badge key={p} className="text-[8px] bg-muted text-muted-foreground">{p}</Badge>)}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-info" />
+                <h3 className="text-sm font-semibold">Governance Audit Trail</h3>
+              </div>
+              <div className="px-5 pb-4">
+                {(auditLog ?? []).length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">No governance events recorded yet</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                    {(auditLog ?? []).map((log: any) => (
+                      <div key={log.id} className="flex items-center justify-between p-2 rounded-lg glass-surface text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            log.action === "user_created" ? "bg-emerald-400" :
+                            log.action === "user_deactivated" ? "bg-crimson" :
+                            log.action === "role_changed" ? "bg-yellow-400" :
+                            log.action === "permissions_updated" ? "bg-blue-400" :
+                            "bg-muted-foreground"
+                          }`} />
+                          <span className="font-medium">{log.action.replace(/_/g, " ")}</span>
+                          {log.targetField && <span className="text-muted-foreground">({log.targetField})</span>}
+                          {log.oldValue && log.newValue && (
+                            <span className="text-muted-foreground">{log.oldValue} → {log.newValue}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-muted-foreground">{log.performedByName || `User #${log.performedBy}`}</span>
+                          <span className="text-[10px] text-muted-foreground tabular-nums">{new Date(log.createdAt).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </GlassCard>
 
@@ -520,7 +786,8 @@ export default function System() {
               </div>
             </GlassCard>
           </div>
-        )}
+          );
+        })()}
 
         {activeTab === "audit" && (
           <GlassCard className="p-0 overflow-hidden">

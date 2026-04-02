@@ -1062,6 +1062,20 @@ export const GetCommunicationResponse = zod.object({
 /**
  * @summary List users
  */
+export const GovernancePermissionsSchema = zod.object({
+  domainAccess: zod.array(zod.string()),
+  actionPermissions: zod.record(zod.string(), zod.array(zod.string())),
+  approvalRights: zod.array(zod.string()),
+  publishingRights: zod.array(zod.string()),
+  financialVisibility: zod.array(zod.string()),
+  crmVisibility: zod.array(zod.string()),
+  archiveVisibility: zod.array(zod.string()),
+  integrationAccess: zod.array(zod.string()),
+  aiModePrivileges: zod.string(),
+  walletPermissions: zod.array(zod.string()),
+  manualIntegrationPermissions: zod.array(zod.string()),
+});
+
 export const ListUsersQueryParams = zod.object({
   role: zod.coerce.string().optional(),
   department: zod.coerce.string().optional(),
@@ -1079,18 +1093,19 @@ export const ListUsersResponseItem = zod.object({
   department: zod.string().nullish(),
   title: zod.string().nullish(),
   isActive: zod.boolean(),
+  governancePermissions: GovernancePermissionsSchema.nullish(),
+  deactivatedAt: zod.coerce.date().nullish(),
+  deactivatedBy: zod.number().nullish(),
   lastLoginAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
 
-/**
- * @summary Create a user
- */
 export const CreateUserBody = zod.object({
   email: zod.string(),
   name: zod.string(),
+  password: zod.string(),
   role: zod.string().optional(),
   avatarUrl: zod.string().optional(),
   department: zod.string().optional(),
@@ -1098,9 +1113,6 @@ export const CreateUserBody = zod.object({
   isActive: zod.boolean().optional(),
 });
 
-/**
- * @summary Get a user
- */
 export const GetUserParams = zod.object({
   id: zod.coerce.number(),
 });
@@ -1114,14 +1126,14 @@ export const GetUserResponse = zod.object({
   department: zod.string().nullish(),
   title: zod.string().nullish(),
   isActive: zod.boolean(),
+  governancePermissions: GovernancePermissionsSchema.nullish(),
+  deactivatedAt: zod.coerce.date().nullish(),
+  deactivatedBy: zod.number().nullish(),
   lastLoginAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
 
-/**
- * @summary Update a user
- */
 export const UpdateUserParams = zod.object({
   id: zod.coerce.number(),
 });
@@ -1134,6 +1146,7 @@ export const UpdateUserBody = zod.object({
   department: zod.string().optional(),
   title: zod.string().optional(),
   isActive: zod.boolean().optional(),
+  governancePermissions: GovernancePermissionsSchema.optional(),
 });
 
 export const UpdateUserResponse = zod.object({
@@ -1145,10 +1158,28 @@ export const UpdateUserResponse = zod.object({
   department: zod.string().nullish(),
   title: zod.string().nullish(),
   isActive: zod.boolean(),
+  governancePermissions: GovernancePermissionsSchema.nullish(),
+  deactivatedAt: zod.coerce.date().nullish(),
+  deactivatedBy: zod.number().nullish(),
   lastLoginAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
+
+export const UserAuditLogEntry = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  action: zod.string(),
+  performedBy: zod.number(),
+  performedByName: zod.string().nullish(),
+  targetField: zod.string().nullish(),
+  oldValue: zod.string().nullish(),
+  newValue: zod.string().nullish(),
+  details: zod.record(zod.string(), zod.any()).nullish(),
+  ipAddress: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const UserAuditLogResponse = zod.array(UserAuditLogEntry);
 
 /**
  * @summary List approvals

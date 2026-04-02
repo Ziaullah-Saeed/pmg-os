@@ -25,6 +25,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   req.session.userName = user.name;
   req.session.userRole = user.role;
   req.session.userPermissions = user.permissions;
+  req.session.userGovernancePermissions = (user as any).governancePermissions || null;
 
   await new Promise<void>((resolve, reject) => {
     req.session.save((err) => err ? reject(err) : resolve());
@@ -46,6 +47,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     name: user.name,
     role: user.role,
     permissions: user.permissions,
+    governancePermissions: (user as any).governancePermissions,
     avatarUrl: user.avatarUrl,
     department: user.department,
     title: user.title,

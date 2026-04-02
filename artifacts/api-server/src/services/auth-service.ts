@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, DEFAULT_PERMISSIONS } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const SALT_ROUNDS = 12;
@@ -25,6 +25,7 @@ export async function authenticateUser(email: string, password: string) {
     name: user.name,
     role: user.role,
     permissions: (user.permissions as string[]) || [],
+    governancePermissions: user.governancePermissions,
     avatarUrl: user.avatarUrl,
     department: user.department,
     title: user.title,
@@ -40,21 +41,26 @@ export async function createUserWithPassword(data: {
   title?: string;
   permissions?: string[];
 }) {
+  const role = data.role || "user";
   const passwordHash = await hashPassword(data.password);
+  const governancePermissions = DEFAULT_PERMISSIONS[role] || DEFAULT_PERMISSIONS.user;
   const [user] = await db.insert(usersTable).values({
     email: data.email,
     name: data.name,
     passwordHash,
-    role: data.role || "user",
+    role,
     department: data.department,
     title: data.title,
     permissions: data.permissions || [],
+    governancePermissions,
   }).returning();
   return user;
 }
 
 export async function seedDefaultAdmin() {
   const ADMIN_EMAIL = "shershah_nawabi@pmggroup-llc.com";
+
+  const superAdminPerms = DEFAULT_PERMISSIONS.super_admin;
 
   const [oldAdmin] = await db.select().from(usersTable).where(eq(usersTable.email, "shershah@pmggroup-llc.com"));
   if (oldAdmin) {
@@ -64,20 +70,19 @@ export async function seedDefaultAdmin() {
       passwordHash: hash,
       role: "super_admin",
       permissions: ["*"],
+      governancePermissions: superAdminPerms,
     }).where(eq(usersTable.id, oldAdmin.id));
     return;
   }
 
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, ADMIN_EMAIL));
   if (existing) {
-    if (!existing.passwordHash) {
-      const hash = await hashPassword("PMGAdmin2024!");
-      await db.update(usersTable).set({
-        passwordHash: hash,
-        role: "super_admin",
-        permissions: ["*"],
-      }).where(eq(usersTable.id, existing.id));
-    }
+    const updates: any = {};
+    if (!existing.passwordHash) updates.passwordHash = await hashPassword("PMGAdmin2024!");
+    if (!existing.governancePermissions) updates.governancePermissions = superAdminPerms;
+    updates.role = "super_admin";
+    updates.permissions = ["*"];
+    await db.update(usersTable).set(updates).where(eq(usersTable.id, existing.id));
     return;
   }
 

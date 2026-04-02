@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { DEFAULT_PERMISSIONS, type GovernancePermissions } from "@workspace/db";
 
 declare module "express-session" {
   interface SessionData {
@@ -7,6 +8,7 @@ declare module "express-session" {
     userName: string;
     userRole: string;
     userPermissions: string[];
+    userGovernancePermissions: GovernancePermissions | null;
   }
 }
 
@@ -16,6 +18,7 @@ export interface AuthenticatedUser {
   name: string;
   role: string;
   permissions: string[];
+  governancePermissions: GovernancePermissions | null;
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -34,6 +37,7 @@ export function getSessionUser(req: Request): AuthenticatedUser | null {
     name: req.session.userName!,
     role: req.session.userRole!,
     permissions: req.session.userPermissions || [],
+    governancePermissions: req.session.userGovernancePermissions || null,
   };
 }
 
@@ -58,6 +62,7 @@ const PERMISSION_MAP: Record<string, { roles: string[]; permissions: string[] }>
   "DELETE:/ai-mode": { roles: ["admin", "super_admin"], permissions: ["ai.control"] },
 
   "POST:/wallet": { roles: ["admin", "super_admin"], permissions: ["wallet.manage"] },
+  "GET:/wallet": { roles: ["user", "manager", "admin", "super_admin"], permissions: ["wallet.read"] },
 
   "GET:/users": { roles: ["admin", "super_admin"], permissions: ["users.read"] },
   "POST:/users": { roles: ["super_admin"], permissions: ["users.create"] },
@@ -69,7 +74,42 @@ const PERMISSION_MAP: Record<string, { roles: string[]; permissions: string[] }>
   "PATCH:/approvals": { roles: ["manager", "admin", "super_admin"], permissions: ["approvals.decide"] },
 
   "POST:/invoices": { roles: ["manager", "admin", "super_admin"], permissions: ["finance.manage"] },
+  "GET:/invoices": { roles: ["manager", "admin", "super_admin"], permissions: ["finance.read"] },
+
   "POST:/contracts": { roles: ["manager", "admin", "super_admin"], permissions: ["contracts.manage"] },
+  "GET:/contracts": { roles: ["manager", "admin", "super_admin"], permissions: ["contracts.read"] },
+
+  "GET:/channels": { roles: ["manager", "admin", "super_admin"], permissions: ["channels.read"] },
+  "POST:/channels": { roles: ["admin", "super_admin"], permissions: ["channels.manage"] },
+  "PATCH:/channels": { roles: ["admin", "super_admin"], permissions: ["channels.manage"] },
+
+  "GET:/reports": { roles: ["manager", "admin", "super_admin"], permissions: ["reports.read"] },
+  "POST:/reports": { roles: ["admin", "super_admin"], permissions: ["reports.create"] },
+
+  "GET:/campaigns": { roles: ["user", "manager", "admin", "super_admin"], permissions: ["campaigns.read"] },
+  "POST:/campaigns": { roles: ["manager", "admin", "super_admin"], permissions: ["campaigns.create"] },
+
+  "GET:/assets": { roles: ["user", "manager", "admin", "super_admin"], permissions: ["assets.read"] },
+  "POST:/assets": { roles: ["manager", "admin", "super_admin"], permissions: ["assets.create"] },
+};
+
+const ROUTE_DOMAIN_MAP: Record<string, string> = {
+  "/leads": "crm",
+  "/opportunities": "crm",
+  "/companies": "crm",
+  "/contacts": "crm",
+  "/invoices": "finance",
+  "/contracts": "finance",
+  "/wallet": "finance",
+  "/campaigns": "marketing",
+  "/assets": "production",
+  "/channels": "channels",
+  "/reports": "reports",
+  "/users": "system",
+  "/ai-mode": "system",
+  "/agents": "agents",
+  "/automation": "automation",
+  "/quality": "quality",
 };
 
 const ROLE_HIERARCHY: Record<string, number> = {
@@ -95,6 +135,19 @@ export function requirePermission(req: Request, res: Response, next: NextFunctio
   const basePath = "/" + req.path.split("/").filter(Boolean)[0];
   const key = `${method}:${basePath}`;
   const rule = PERMISSION_MAP[key];
+
+  const domain = ROUTE_DOMAIN_MAP[basePath];
+  if (domain && user.role !== "super_admin" && !user.permissions.includes("*")) {
+    const govPerms = user.governancePermissions || DEFAULT_PERMISSIONS[user.role] || DEFAULT_PERMISSIONS.user;
+    const domainAccess = govPerms.domainAccess || [];
+    if (!domainAccess.includes(domain)) {
+      res.status(403).json({
+        error: "Forbidden",
+        message: `You do not have access to the ${domain} domain`,
+      });
+      return;
+    }
+  }
 
   if (!rule) {
     const minRole = ROLE_HIERARCHY[user.role] ?? 0;
