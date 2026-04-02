@@ -20,6 +20,7 @@ import {
   useSyncHealth, useSyncLogs, useTriggerSync, useImportCsv,
   useUsers, useCreateUser, useUpdateUser, useChangeUserRole, useUpdateUserPermissions,
   useDeactivateUser, useReactivateUser, useResetUserPassword, useUserAuditLog,
+  useTestSuites, useDummyModeStatus, useTestHistory, useRunTestSuite, useToggleDummyMode,
 } from "@/hooks/use-api";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,6 +80,7 @@ const tabs = [
   { id: "channels", label: "Channel Connectors", icon: <RefreshCw className="h-3.5 w-3.5" /> },
   { id: "queue", label: "Queue & Retries", icon: <Zap className="h-3.5 w-3.5" /> },
   { id: "incidents", label: "Incident Monitor", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
+  { id: "testing", label: "Testing", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
 ];
 
 const channelConnectors = [
@@ -157,6 +159,13 @@ export default function System() {
   const reactivateUser = useReactivateUser();
   const resetPassword = useResetUserPassword();
   const { data: auditLog } = useUserAuditLog({ limit: 50 });
+  const { data: testSuites } = useTestSuites();
+  const { data: dummyStatus } = useDummyModeStatus();
+  const { data: testHistory } = useTestHistory(200);
+  const runTests = useRunTestSuite();
+  const toggleDummy = useToggleDummyMode();
+  const [testResults, setTestResults] = useState<any>(null);
+  const [runningTest, setRunningTest] = useState<string | null>(null);
   const { toast } = useToast();
   const [ghlForm, setGhlForm] = useState({ apiKey: "", locationId: "", webhookUrl: "" });
   const [connectForm, setConnectForm] = useState({ provider: "", apiKey: "" });
@@ -1503,6 +1512,102 @@ export default function System() {
                     <p className="text-[9px] text-muted-foreground">{m.period}</p>
                   </div>
                 ))}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+        {activeTab === "testing" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KpiCard label="Total Suites" value={(testSuites ?? []).length} icon={<Database className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="Total Tests" value={(testSuites ?? []).reduce((s: number, suite: any) => s + suite.testCount, 0)} icon={<CheckCircle2 className="h-4 w-4" />} accent="success" />
+              <KpiCard label="Dummy Mode" value={dummyStatus?.enabled ? "ON" : "OFF"} icon={<Shield className="h-4 w-4" />} accent={dummyStatus?.enabled ? "gold" : "crimson"} />
+              <KpiCard label="Last Run" value={testHistory?.length ? new Date((testHistory as any[])[testHistory.length - 1]?.timestamp).toLocaleTimeString() : "Never"} icon={<Clock className="h-4 w-4" />} accent="blue" />
+            </div>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Test Control</h3>
+                <div className="flex items-center gap-3">
+                  <Button size="sm" variant={dummyStatus?.enabled ? "destructive" : "default"} onClick={() => toggleDummy.mutate(!dummyStatus?.enabled, { onSuccess: () => toast({ title: dummyStatus?.enabled ? "Dummy Mode Disabled" : "Dummy Mode Enabled" }) })} disabled={toggleDummy.isPending}>
+                    <Shield className="h-3.5 w-3.5 mr-1" />
+                    {dummyStatus?.enabled ? "Disable Dummy Mode" : "Enable Dummy Mode"}
+                  </Button>
+                  <Button size="sm" className="bg-crimson hover:bg-crimson/90" onClick={() => { setRunningTest("all"); runTests.mutate({ phase: 1 }, { onSuccess: (data: any) => { setTestResults(data); setRunningTest(null); toast({ title: `Phase 1: ${data.summary?.totalPassed}/${data.summary?.totalTests} passed` }); }, onError: () => setRunningTest(null) }); }} disabled={runTests.isPending}>
+                    {runningTest === "all" ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Zap className="h-3.5 w-3.5 mr-1" />}
+                    Run All Phase 1
+                  </Button>
+                </div>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Test Suites</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {(testSuites ?? []).map((suite: any) => (
+                  <div key={suite.name} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{suite.name.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}</p>
+                        <Badge variant="outline" className="text-[9px]">Phase {suite.phase}</Badge>
+                        <Badge variant="outline" className="text-[9px]">{suite.testCount} tests</Badge>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{suite.description}</p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => { setRunningTest(suite.name); runTests.mutate(suite.name, { onSuccess: (data: any) => { setTestResults(data); setRunningTest(null); toast({ title: `${suite.name}: ${data.summary?.totalPassed ?? 0}/${data.summary?.totalTests ?? 0} passed`, variant: (data.summary?.totalFailed ?? 0) > 0 ? "destructive" : "default" }); }, onError: () => setRunningTest(null) }); }} disabled={runTests.isPending}>
+                      {runningTest === suite.name ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            {testResults && (
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Test Results</h3>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge variant={testResults.summary?.allPassed ? "success" : "critical"} label={testResults.summary?.allPassed ? "ALL PASSED" : "FAILURES"} />
+                    <Badge variant="outline" className="text-[10px]">{testResults.summary?.totalPassed}/{testResults.summary?.totalTests} passed</Badge>
+                  </div>
+                </div>
+                <div className="px-5 pb-4 space-y-3">
+                  {(testResults.results ?? []).map((suite: any) => (
+                    <div key={suite.suite} className="space-y-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-xs font-semibold">{suite.suite}</p>
+                        <Badge variant="outline" className="text-[9px]">{suite.passed}/{suite.total} passed</Badge>
+                        <span className="text-[9px] text-muted-foreground">{suite.durationMs}ms</span>
+                      </div>
+                      {(suite.tests ?? []).map((t: any) => (
+                        <div key={t.id} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs ${t.status === "passed" ? "glass-surface" : "bg-destructive/10 border border-destructive/20"}`}>
+                          <span className={t.status === "passed" ? "text-success" : "text-destructive"}>{t.status === "passed" ? "✓" : "✗"}</span>
+                          <span className="flex-1 font-mono text-[11px]">{t.name}</span>
+                          <span className="text-[9px] text-muted-foreground">{t.durationMs}ms</span>
+                          {t.error && <span className="text-[9px] text-destructive max-w-[300px] truncate">{t.error}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Test History (Last 50)</h3></div>
+              <div className="px-5 pb-4 max-h-[300px] overflow-y-auto space-y-1">
+                {(testHistory ?? []).slice(-50).reverse().map((t: any, i: number) => (
+                  <div key={i} className="flex items-center gap-2 px-2 py-1 rounded text-[11px]">
+                    <span className={t.status === "passed" ? "text-success" : "text-destructive"}>{t.status === "passed" ? "✓" : "✗"}</span>
+                    <span className="font-mono text-muted-foreground w-[140px] truncate">{t.suite}</span>
+                    <span className="flex-1 truncate">{t.name}</span>
+                    <span className="text-muted-foreground w-[60px] text-right">{t.durationMs}ms</span>
+                    <span className="text-muted-foreground w-[70px] text-right">{new Date(t.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                ))}
+                {(!testHistory || testHistory.length === 0) && (
+                  <p className="text-xs text-muted-foreground text-center py-4">No test history yet. Run a test suite to see results.</p>
+                )}
               </div>
             </GlassCard>
           </div>

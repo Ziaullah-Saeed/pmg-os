@@ -34,9 +34,9 @@ router.get("/testing/suites", async (_req, res): Promise<void> => {
 });
 
 router.post("/testing/run", requireAdmin, async (req, res): Promise<void> => {
-  const { suite } = req.body;
+  const { suite, phase } = req.body;
   try {
-    const results = await runTestSuite(suite);
+    const results = await runTestSuite(suite, phase ? Number(phase) : undefined);
     if (suite && results.length === 0) { res.status(404).json({ error: `Suite "${suite}" not found` }); return; }
     const totalTests = results.reduce((s, r) => s + r.total, 0);
     const totalPassed = results.reduce((s, r) => s + r.passed, 0);

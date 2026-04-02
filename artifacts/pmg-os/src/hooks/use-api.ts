@@ -1375,8 +1375,10 @@ export function useDummyModeStatus() {
 export function useRunTestSuite() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (suite?: string) =>
-      apiFetch<any>("/testing/run", { method: "POST", body: JSON.stringify({ suite }) }),
+    mutationFn: (params?: string | { suite?: string; phase?: number }) => {
+      const body = typeof params === "string" ? { suite: params } : (params ?? {});
+      return apiFetch<any>("/testing/run", { method: "POST", body: JSON.stringify(body) });
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["testing"] }); },
   });
 }
