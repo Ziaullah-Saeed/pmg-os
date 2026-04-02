@@ -3,8 +3,94 @@ import { eq } from "drizzle-orm";
 import { db, knowledgeEntriesTable } from "@workspace/db";
 import { addKnowledgeEntry, searchKnowledge, getKnowledgeByCategory, getAllKnowledge, incrementUsage } from "../services/knowledge-service";
 import { semanticSearch, embedKnowledgeEntry, embedAllKnowledge } from "../services/embedding-service";
+import { getKnowledgeStats, ingestCorrection, ingestApproval, ingestRejection, ingestMeetingTranscript, ingestSOP, ingestCampaignLesson, ingestObjectionPattern, ingestPerformanceData, KNOWLEDGE_CATEGORIES } from "../services/memory-service";
 
 const router = Router();
+
+router.get("/stats", async (_req, res) => {
+  try {
+    const stats = await getKnowledgeStats();
+    res.json(stats);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/categories", async (_req, res) => {
+  res.json(KNOWLEDGE_CATEGORIES);
+});
+
+router.post("/ingest/correction", async (req, res) => {
+  try {
+    await ingestCorrection(req.body);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/ingest/approval", async (req, res) => {
+  try {
+    await ingestApproval(req.body);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/ingest/rejection", async (req, res) => {
+  try {
+    await ingestRejection(req.body);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/ingest/meeting", async (req, res) => {
+  try {
+    await ingestMeetingTranscript(req.body);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/ingest/sop", async (req, res) => {
+  try {
+    await ingestSOP(req.body);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/ingest/campaign-lesson", async (req, res) => {
+  try {
+    await ingestCampaignLesson(req.body);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/ingest/objection", async (req, res) => {
+  try {
+    await ingestObjectionPattern(req.body);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/ingest/performance", async (req, res) => {
+  try {
+    await ingestPerformanceData(req.body);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 router.get("/", async (req, res) => {
   try {

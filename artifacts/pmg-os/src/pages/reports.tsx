@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useKnowledgeLibrary, useSearchKnowledge, useAiGenerateReport, useReportTemplates, useReportEventTriggers, useReportArchive, useGenerateScheduledReport, useDeliverReportSlack, useDeliverReportEmail, useKnowledgeEventMappings, useSemanticSearch } from "@/hooks/use-api";
+import { useKnowledgeLibrary, useSearchKnowledge, useAiGenerateReport, useReportTemplates, useReportEventTriggers, useReportArchive, useGenerateScheduledReport, useDeliverReportSlack, useDeliverReportEmail, useKnowledgeEventMappings, useSemanticSearch, useKnowledgeStats, useCreateKnowledgeEntry } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
@@ -18,7 +18,7 @@ import {
   FileBox, FileText, Search, BarChart3, Sparkles,
   Download, Clock, Eye, BookOpen, Brain, Loader2, FileDown,
   Calendar, Mail, MessageSquare, Zap, Activity, TrendingUp,
-  CheckCircle2, AlertTriangle
+  CheckCircle2, AlertTriangle, Plus, Database, BarChart, Hash
 } from "lucide-react";
 import { apiFetch } from "@/hooks/use-api";
 
@@ -51,6 +51,8 @@ export default function Reports() {
   const [generatedReport, setGeneratedReport] = useState<string | null>(null);
   const [deliverReportId, setDeliverReportId] = useState<number | null>(null);
   const [deliverEmail, setDeliverEmail] = useState("");
+  const [showAddKnowledge, setShowAddKnowledge] = useState(false);
+  const [newKnowledge, setNewKnowledge] = useState({ title: "", content: "", category: "strategy", sourceDomain: "system" });
   const { toast } = useToast();
   const { isHuman, isHybrid, isAuto } = useAiModeContext();
   const { data: documents } = useListDocuments();
@@ -68,6 +70,8 @@ export default function Reports() {
   const deliverEmailMut = useDeliverReportEmail();
   const { data: eventMappings } = useKnowledgeEventMappings();
   const { data: semanticResults } = useSemanticSearch(knowledgeSearch.length > 2 ? knowledgeSearch : "");
+  const { data: knowledgeStats } = useKnowledgeStats();
+  const createKnowledge = useCreateKnowledgeEntry();
 
   const docList = (documents ?? []) as any[];
   const oppList = (opportunities ?? []) as any[];
@@ -366,6 +370,15 @@ export default function Reports() {
 
         {activeTab === "knowledge" && (
           <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <KpiCard label="Total Entries" value={knowledgeStats?.activeEntries ?? 0} icon={<Database className="h-4 w-4" />} />
+              <KpiCard label="Categories" value={Object.keys(knowledgeStats?.categoryCounts ?? {}).length} icon={<Hash className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="New This Week" value={knowledgeStats?.recentCount ?? 0} icon={<TrendingUp className="h-4 w-4" />} accent="success" />
+              <KpiCard label="AI Usage" value={knowledgeStats?.totalUsageCount ?? 0} icon={<Brain className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="AI Generated" value={knowledgeStats?.sourceCounts?.ai_generated ?? 0} icon={<Sparkles className="h-4 w-4" />} accent="gold" />
+              <KpiCard label="Auto Events" value={knowledgeStats?.sourceCounts?.auto_event ?? 0} icon={<Zap className="h-4 w-4" />} accent="blue" />
+            </div>
+
             <div className="flex items-center gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -377,16 +390,32 @@ export default function Reports() {
                 />
               </div>
               <Select value={knowledgeCategoryFilter} onValueChange={setKnowledgeCategoryFilter}>
-                <SelectTrigger className="w-[140px] h-9 text-xs bg-white/5 border-white/10">
+                <SelectTrigger className="w-[180px] h-9 text-xs bg-white/5 border-white/10">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="deal_insights">Deal Insights</SelectItem>
+                  <SelectItem value="strategy">Strategy</SelectItem>
+                  <SelectItem value="sales_knowledge">Sales Knowledge</SelectItem>
+                  <SelectItem value="marketing_knowledge">Marketing Knowledge</SelectItem>
+                  <SelectItem value="sop">SOPs</SelectItem>
+                  <SelectItem value="workflow">Workflows</SelectItem>
+                  <SelectItem value="meeting_transcript">Meeting Transcripts</SelectItem>
+                  <SelectItem value="objection_pattern">Objection Patterns</SelectItem>
+                  <SelectItem value="successful_response">Successful Responses</SelectItem>
+                  <SelectItem value="ai_output">AI Outputs</SelectItem>
+                  <SelectItem value="correction">Corrections</SelectItem>
+                  <SelectItem value="approval">Approvals</SelectItem>
+                  <SelectItem value="rejection">Rejections</SelectItem>
+                  <SelectItem value="campaign_lesson">Campaign Lessons</SelectItem>
+                  <SelectItem value="performance_data">Performance Data</SelectItem>
+                  <SelectItem value="failure_case">Failure Cases</SelectItem>
+                  <SelectItem value="deal_intelligence">Deal Intelligence</SelectItem>
                   <SelectItem value="lead_intelligence">Lead Intelligence</SelectItem>
-                  <SelectItem value="market_research">Market Research</SelectItem>
-                  <SelectItem value="process">Process</SelectItem>
+                  <SelectItem value="finance_intelligence">Finance Intelligence</SelectItem>
                   <SelectItem value="competitive">Competitive</SelectItem>
+                  <SelectItem value="market_research">Market Research</SelectItem>
+                  <SelectItem value="reporting">Reporting</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={knowledgeTimeFilter} onValueChange={setKnowledgeTimeFilter}>
@@ -401,34 +430,142 @@ export default function Reports() {
                   <SelectItem value="90d">Last 90 Days</SelectItem>
                 </SelectContent>
               </Select>
+              <Button variant="outline" size="sm" className="text-xs h-9" onClick={() => setShowAddKnowledge(!showAddKnowledge)}>
+                <Plus className="h-3 w-3 mr-1" />Add Knowledge
+              </Button>
             </div>
 
-            <div className="space-y-2">
-              {filteredKnowledge.length > 0 ? filteredKnowledge.map((entry: any) => (
-                <GlassCard key={entry.id} className="!p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-3.5 w-3.5 text-purple-400" />
-                      <p className="text-sm font-semibold">{entry.title}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[8px] capitalize">{entry.category}</Badge>
-                      {entry.confidence !== undefined && (
-                        <span className={`text-[9px] font-medium ${entry.confidence >= 80 ? "text-green-400" : entry.confidence >= 50 ? "text-yellow-400" : "text-red-400"}`}>
-                          {entry.confidence}%
-                        </span>
-                      )}
-                      <span className="text-[9px] text-muted-foreground">{entry.source}</span>
-                    </div>
+            {showAddKnowledge && (
+              <GlassCard glow="blue" className="!p-4">
+                <h3 className="text-sm font-semibold mb-3">Add Knowledge Entry</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                  <Input placeholder="Title" className="h-8 text-xs bg-white/5" value={newKnowledge.title} onChange={(e) => setNewKnowledge(p => ({ ...p, title: e.target.value }))} />
+                  <div className="flex gap-2">
+                    <Select value={newKnowledge.category} onValueChange={(v) => setNewKnowledge(p => ({ ...p, category: v }))}>
+                      <SelectTrigger className="h-8 text-xs bg-white/5 flex-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["strategy", "sales_knowledge", "marketing_knowledge", "sop", "workflow", "meeting_transcript", "objection_pattern", "successful_response", "campaign_lesson", "performance_data"].map(c => (
+                          <SelectItem key={c} value={c}>{c.replace(/_/g, " ")}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={newKnowledge.sourceDomain} onValueChange={(v) => setNewKnowledge(p => ({ ...p, sourceDomain: v }))}>
+                      <SelectTrigger className="h-8 text-xs bg-white/5 w-[120px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["system", "crm", "marketing", "finance", "legal", "outreach", "communications", "execution"].map(d => (
+                          <SelectItem key={d} value={d}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{entry.content}</p>
-                  {entry.createdAt && <p className="text-[8px] text-muted-foreground mt-1">{new Date(entry.createdAt).toLocaleString()}</p>}
-                </GlassCard>
-              )) : (
+                </div>
+                <textarea
+                  placeholder="Knowledge content..."
+                  className="w-full h-24 rounded-lg border border-white/10 bg-white/5 text-xs p-3 resize-none mb-3 text-foreground"
+                  value={newKnowledge.content}
+                  onChange={(e) => setNewKnowledge(p => ({ ...p, content: e.target.value }))}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setShowAddKnowledge(false)}>Cancel</Button>
+                  <Button
+                    className="btn-premium text-white text-xs h-7"
+                    disabled={!newKnowledge.title || !newKnowledge.content || createKnowledge.isPending}
+                    onClick={() => {
+                      createKnowledge.mutate({
+                        title: newKnowledge.title,
+                        content: newKnowledge.content,
+                        category: newKnowledge.category,
+                        source: "manual",
+                        sourceDomain: newKnowledge.sourceDomain,
+                        tags: [newKnowledge.category, newKnowledge.sourceDomain],
+                      }, {
+                        onSuccess: () => {
+                          toast({ title: "Knowledge added" });
+                          setNewKnowledge({ title: "", content: "", category: "strategy", sourceDomain: "system" });
+                          setShowAddKnowledge(false);
+                        },
+                        onError: (err: any) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+                      });
+                    }}
+                  >
+                    {createKnowledge.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                    Save Entry
+                  </Button>
+                </div>
+              </GlassCard>
+            )}
+
+            {knowledgeStats && Object.keys(knowledgeStats.categoryCounts).length > 0 && (
+              <GlassCard className="!p-4">
+                <h3 className="text-sm font-semibold mb-3">Category Distribution</h3>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(knowledgeStats.categoryCounts).sort((a, b) => b[1] - a[1]).map(([cat, cnt]) => (
+                    <button
+                      key={cat}
+                      onClick={() => setKnowledgeCategoryFilter(knowledgeCategoryFilter === cat ? "all" : cat)}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${knowledgeCategoryFilter === cat ? "bg-info/20 text-info border border-info/30" : "glass-surface hover:bg-white/10"}`}
+                    >
+                      {cat.replace(/_/g, " ")} <span className="opacity-60 ml-1">{cnt}</span>
+                    </button>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+
+            {knowledgeStats?.topUsed && knowledgeStats.topUsed.filter(t => t.usageCount > 0).length > 0 && (
+              <GlassCard className="!p-4">
+                <h3 className="text-sm font-semibold mb-3">Most Used by AI</h3>
+                <div className="space-y-1.5">
+                  {knowledgeStats.topUsed.filter(t => t.usageCount > 0).slice(0, 5).map(entry => (
+                    <div key={entry.id} className="flex items-center justify-between p-2 rounded-lg glass-surface">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Brain className="h-3 w-3 text-purple-400 shrink-0" />
+                        <p className="text-[11px] font-medium truncate">{entry.title}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline" className="text-[8px]">{entry.category.replace(/_/g, " ")}</Badge>
+                        <span className="text-[10px] font-bold text-info">{entry.usageCount}x</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+
+            <div className="space-y-2">
+              {filteredKnowledge.length > 0 ? filteredKnowledge.map((entry: any) => {
+                const sourceType = entry.source?.startsWith("ai:") ? "ai" : entry.source?.startsWith("event:") ? "auto" : entry.source?.startsWith("correction:") ? "correction" : entry.source?.startsWith("approval:") ? "approval" : entry.source?.startsWith("rejection:") ? "rejection" : "manual";
+                const sourceColors: Record<string, string> = { ai: "text-purple-400 border-purple-400/30", auto: "text-info border-info/30", correction: "text-warning border-warning/30", approval: "text-success border-success/30", rejection: "text-crimson border-crimson/30", manual: "text-muted-foreground border-muted-foreground/30" };
+                return (
+                  <GlassCard key={entry.id} className="!p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Brain className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                        <p className="text-sm font-semibold truncate">{entry.title}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline" className={`text-[8px] ${sourceColors[sourceType]}`}>{sourceType}</Badge>
+                        <Badge variant="outline" className="text-[8px] capitalize">{entry.category?.replace(/_/g, " ")}</Badge>
+                        {entry.confidence !== undefined && entry.confidence !== null && (
+                          <span className={`text-[9px] font-medium ${entry.confidence >= 80 ? "text-green-400" : entry.confidence >= 50 ? "text-yellow-400" : "text-red-400"}`}>
+                            {entry.confidence}%
+                          </span>
+                        )}
+                        {entry.usageCount > 0 && <span className="text-[9px] text-info font-medium">{entry.usageCount}x used</span>}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{entry.content}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      {entry.sourceDomain && <span className="text-[8px] text-muted-foreground">Domain: {entry.sourceDomain}</span>}
+                      {entry.createdAt && <span className="text-[8px] text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</span>}
+                    </div>
+                  </GlassCard>
+                );
+              }) : (
                 <div className="py-12 text-center">
                   <Brain className="h-8 w-8 mx-auto mb-2 opacity-30" />
                   <p className="text-sm text-muted-foreground">No knowledge entries yet</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Knowledge auto-populates from business events (deal wins, lead scoring, etc.)</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Knowledge auto-populates from AI outputs, business events, corrections, and manual entries</p>
                 </div>
               )}
             </div>
@@ -550,7 +687,7 @@ export default function Reports() {
                 <Badge variant="outline" className="text-[10px]">{archiveList.length + filtered.length} total</Badge>
               </div>
               <div className="px-5 pb-4 space-y-2">
-                {archiveList.map((report: any, i: number) => (
+                {archiveList.filter((r: any) => !searchQuery || r.title?.toLowerCase().includes(searchQuery.toLowerCase()) || r.domain?.toLowerCase().includes(searchQuery.toLowerCase())).map((report: any, i: number) => (
                   <div key={report.id ?? i} className="p-3 rounded-lg glass-surface flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                       <FileText className="h-4 w-4 text-info shrink-0" />

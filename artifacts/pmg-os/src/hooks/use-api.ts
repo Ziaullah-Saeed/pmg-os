@@ -1311,6 +1311,46 @@ export function useSemanticSearch(query: string) {
   });
 }
 
+export function useKnowledgeStats() {
+  return useQuery({
+    queryKey: ["knowledge", "stats"],
+    queryFn: () => apiFetch<{
+      totalEntries: number;
+      activeEntries: number;
+      categoryCounts: Record<string, number>;
+      sourceCounts: Record<string, number>;
+      recentCount: number;
+      totalUsageCount: number;
+      topUsed: Array<{ id: number; title: string; usageCount: number; category: string }>;
+    }>("/knowledge/stats"),
+  });
+}
+
+export function useKnowledgeCategories() {
+  return useQuery({
+    queryKey: ["knowledge", "categories"],
+    queryFn: () => apiFetch<string[]>("/knowledge/categories"),
+  });
+}
+
+export function useCreateKnowledgeEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { category: string; subcategory?: string; title: string; content: string; source: string; sourceDomain?: string; tags?: string[] }) =>
+      apiFetch<any>("/knowledge", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["knowledge"] }); },
+  });
+}
+
+export function useIngestKnowledge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { type: string; payload: Record<string, unknown> }) =>
+      apiFetch<any>(`/knowledge/ingest/${data.type}`, { method: "POST", body: JSON.stringify(data.payload) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["knowledge"] }); },
+  });
+}
+
 export function useTestSuites() {
   return useQuery({
     queryKey: ["testing", "suites"],

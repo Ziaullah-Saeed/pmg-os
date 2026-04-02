@@ -97,6 +97,22 @@ export async function callAI(params: {
     }
   }
 
+  let knowledgeContext = "";
+  try {
+    const { getSemanticContext } = await import("./embedding-service");
+    const contextQuery = `${params.action} ${params.domain} ${params.userPrompt.slice(0, 200)}`;
+    knowledgeContext = await getSemanticContext(contextQuery, params.domain, 5);
+  } catch {
+    try {
+      const { getRecentKnowledgeContext } = await import("./knowledge-service");
+      knowledgeContext = await getRecentKnowledgeContext(params.domain, 5);
+    } catch {}
+  }
+
+  const enrichedSystemPrompt = knowledgeContext
+    ? `${params.systemPrompt}\n\n--- Institutional Memory (Knowledge Base Context) ---\n${knowledgeContext}\n--- End Knowledge Context ---\nUse the above institutional memory to inform your response when relevant.`
+    : params.systemPrompt;
+
   const startTime = Date.now();
   let result = "";
   let confidence = 0;
@@ -112,7 +128,7 @@ export async function callAI(params: {
       const response = await openai.chat.completions.create({
         model: MODEL,
         messages: [
-          { role: "system", content: params.systemPrompt },
+          { role: "system", content: enrichedSystemPrompt },
           { role: "user", content: params.userPrompt },
         ],
         temperature: 0.7,
@@ -184,6 +200,22 @@ export async function callAI(params: {
       result,
       confidence,
       originalCost: getToolCost(params.tool),
+    }).catch(() => {});
+  }
+
+  if (status === "completed" && confidence >= 60) {
+    import("./memory-service").then(({ ingestAiOutput }) => {
+      ingestAiOutput({
+        tool: params.tool,
+        domain: params.domain,
+        action: params.action,
+        prompt: params.userPrompt,
+        result,
+        confidence,
+        runId: run.id,
+        entityType: params.entityType,
+        entityId: params.entityId,
+      }).catch(() => {});
     }).catch(() => {});
   }
 

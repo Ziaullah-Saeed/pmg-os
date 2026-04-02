@@ -53,7 +53,7 @@ export async function semanticSearch(query: string, limit = 10, minScore = 0.3):
   const queryEmbedding = await generateEmbedding(query);
 
   const rows = await db.execute(sql`
-    SELECT id, title, content, category, subcategory, tags, source, confidence, embedding
+    SELECT id, title, content, category, subcategory, tags, source, source_domain, confidence, embedding
     FROM knowledge_entries
     WHERE is_active = true AND embedding IS NOT NULL
     ORDER BY updated_at DESC
@@ -69,6 +69,7 @@ export async function semanticSearch(query: string, limit = 10, minScore = 0.3):
     score: number;
     tags: unknown;
     source: string;
+    sourceDomain: string | null;
     confidence: number | null;
   }> = [];
 
@@ -87,6 +88,7 @@ export async function semanticSearch(query: string, limit = 10, minScore = 0.3):
         score: Math.round(score * 1000) / 1000,
         tags: row.tags,
         source: row.source,
+        sourceDomain: row.source_domain,
         confidence: row.confidence,
       });
     }
@@ -116,10 +118,19 @@ export async function embedAllKnowledge(): Promise<{ embedded: number; errors: n
 }
 
 export async function getSemanticContext(query: string, domain?: string, limit = 5): Promise<string> {
-  const results = await semanticSearch(query, limit);
-  const filtered = domain ? results.filter(r => r.category === domain || r.source === domain) : results;
-  if (filtered.length === 0) return "";
-  return filtered.map(r => `[${r.category}|score:${r.score}] ${r.title}: ${r.content.slice(0, 300)}`).join("\n");
+  const results = await semanticSearch(query, limit * 2);
+  const filtered = domain
+    ? results.filter(r => !domain || r.category === domain || (r as any).sourceDomain === domain || r.source?.includes(domain))
+    : results;
+  const final = (filtered.length > 0 ? filtered : results).slice(0, limit);
+  if (final.length === 0) return "";
+
+  const { incrementUsage } = await import("./knowledge-service");
+  for (const r of final) {
+    incrementUsage(r.id).catch(() => {});
+  }
+
+  return final.map(r => `[${r.category}|score:${r.score}] ${r.title}: ${r.content.slice(0, 300)}`).join("\n");
 }
 
 export async function initEmbeddingColumn(): Promise<void> {
