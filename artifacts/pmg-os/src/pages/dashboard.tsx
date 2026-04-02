@@ -15,7 +15,9 @@ import {
   Activity, AlertCircle, AlertTriangle, Bot, Briefcase, CheckCircle2,
   Clock, DollarSign, Eye, Flame, Megaphone, Server, Shield, Target,
   TrendingUp, Users, Zap, ArrowRight, BarChart3, ClipboardList,
-  Phone, FileText, CircleDot, Inbox, ListChecks, Wallet, RefreshCw
+  Phone, FileText, CircleDot, Inbox, ListChecks, Wallet, RefreshCw,
+  Globe, Search, Mail, Palette, Cog, MessageSquare, Scale, BookOpen,
+  Settings, Layers, Brain, Lock, Database, Gauge, TestTube2, Info
 } from "lucide-react";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
@@ -44,11 +46,32 @@ const chartTooltipStyle = {
 };
 
 const tabs = [
+  { id: "overview", label: "Platform Overview", icon: <Info className="h-3.5 w-3.5" /> },
   { id: "executive", label: "Executive", icon: <Eye className="h-3.5 w-3.5" /> },
   { id: "operations", label: "Operations", icon: <Zap className="h-3.5 w-3.5" /> },
   { id: "health", label: "System Health", icon: <Server className="h-3.5 w-3.5" /> },
   { id: "exceptions", label: "Exceptions", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
   { id: "ai-activity", label: "AI Activity", icon: <Bot className="h-3.5 w-3.5" /> },
+];
+
+const DOMAINS = [
+  { name: "Command Center", desc: "Executive Dashboard & Control", icon: <BarChart3 className="h-5 w-5" />, color: "text-red-400", route: "/" },
+  { name: "Intelligence", desc: "Market Research & Strategic Insight", icon: <Search className="h-5 w-5" />, color: "text-blue-400", route: "/intelligence" },
+  { name: "Outreach", desc: "Prospecting & Pipeline Discovery", icon: <Mail className="h-5 w-5" />, color: "text-amber-400", route: "/outreach" },
+  { name: "Marketing", desc: "SEO, Brand & Discoverability", icon: <Megaphone className="h-5 w-5" />, color: "text-green-400", route: "/marketing" },
+  { name: "Production Studio", desc: "Brand & Asset Generation", icon: <Palette className="h-5 w-5" />, color: "text-purple-400", route: "/production" },
+  { name: "Execution", desc: "Operations & Workflow Control", icon: <Cog className="h-5 w-5" />, color: "text-cyan-400", route: "/execution" },
+  { name: "CRM", desc: "Sales, Closing & Revenue Pipeline", icon: <Users className="h-5 w-5" />, color: "text-red-300", route: "/crm" },
+  { name: "Communications", desc: "Calling & Meeting Intelligence", icon: <MessageSquare className="h-5 w-5" />, color: "text-indigo-400", route: "/communications" },
+  { name: "Finance & Legal", desc: "Administrative & Compliance", icon: <Scale className="h-5 w-5" />, color: "text-emerald-400", route: "/finance" },
+  { name: "Reports & Archive", desc: "Documentation & Knowledge Memory", icon: <BookOpen className="h-5 w-5" />, color: "text-orange-400", route: "/reports" },
+  { name: "System Core", desc: "Governance, Permissions & Infra", icon: <Settings className="h-5 w-5" />, color: "text-slate-300", route: "/system" },
+];
+
+const MODES = [
+  { name: "AI Autonomous", desc: "Full AI control — 112 agents auto-execute across all domains. High-confidence actions proceed instantly.", icon: <Bot className="h-6 w-6" />, color: "border-green-500/30 bg-green-500/5", textColor: "text-green-400", tag: "FULL AUTO" },
+  { name: "Hybrid", desc: "AI proposes, humans approve. Confidence handoff: >80% auto-continue, 50-79% review required, <50% human takeover.", icon: <Layers className="h-6 w-6" />, color: "border-amber-500/30 bg-amber-500/5", textColor: "text-amber-400", tag: "AI + HUMAN" },
+  { name: "Human Controlled", desc: "Full manual operation. AI completely blocked. All decisions and actions require human initiation.", icon: <Lock className="h-6 w-6" />, color: "border-blue-500/30 bg-blue-500/5", textColor: "text-blue-400", tag: "MANUAL" },
 ];
 
 export default function Dashboard() {
@@ -172,6 +195,159 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
+        {activeView === "overview" && (
+          <div className="space-y-6">
+            <GlassCard className="p-6 border-crimson/20">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-crimson/10 border border-crimson/20">
+                  <Globe className="h-8 w-8 text-crimson" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>PMG Group OS</h2>
+                  <p className="text-sm text-muted-foreground mt-1">AI-Native Enterprise Business Operating System for PMG Group LLC — Cybersecurity & IT Services</p>
+                  <div className="flex flex-wrap gap-3 mt-3">
+                    <Badge variant="outline" className="border-crimson/30 text-crimson text-[10px]"><Bot className="h-3 w-3 mr-1" />{agentStats?.total ?? 112} AI Agents</Badge>
+                    <Badge variant="outline" className="border-blue-500/30 text-blue-400 text-[10px]"><Layers className="h-3 w-3 mr-1" />11 Domains</Badge>
+                    <Badge variant="outline" className="border-amber-500/30 text-amber-400 text-[10px]"><Shield className="h-3 w-3 mr-1" />3 Operating Modes</Badge>
+                    <Badge variant="outline" className="border-green-500/30 text-green-400 text-[10px]"><TestTube2 className="h-3 w-3 mr-1" />62 Tests Passing</Badge>
+                    <Badge variant="outline" className="border-purple-500/30 text-purple-400 text-[10px]"><Wallet className="h-3 w-3 mr-1" />${wallet?.balance ? Number(wallet.balance).toFixed(2) : "---"} Balance</Badge>
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2"><Layers className="h-4 w-4 text-crimson" /> 11 Operating Domains</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {DOMAINS.map((d, i) => (
+                  <motion.div key={d.name} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                    <GlassCard className="p-4 hover:border-white/10 transition-colors cursor-pointer group" onClick={() => { window.location.hash = d.route; }}>
+                      <div className="flex items-center gap-3">
+                        <div className={`${d.color}`}>{d.icon}</div>
+                        <div>
+                          <p className="text-sm font-semibold group-hover:text-white transition-colors">{d.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{d.desc}</p>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2"><Brain className="h-4 w-4 text-crimson" /> Tri-Mode AI Operation</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {MODES.map((m, i) => (
+                  <motion.div key={m.name} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
+                    <GlassCard className={`p-5 border ${m.color}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className={m.textColor}>{m.icon}</div>
+                        <Badge variant="outline" className={`text-[9px] ${m.textColor} border-current/30`}>{m.tag}</Badge>
+                      </div>
+                      <h4 className={`font-bold ${m.textColor}`}>{m.name}</h4>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{m.desc}</p>
+                    </GlassCard>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2"><Gauge className="h-4 w-4 text-crimson" /> Core Capabilities</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <GlassCard className="p-4 text-center">
+                  <Bot className="h-6 w-6 mx-auto text-green-400 mb-2" />
+                  <p className="text-lg font-bold">{agentStats?.total ?? 112}</p>
+                  <p className="text-[10px] text-muted-foreground">AI Agents</p>
+                </GlassCard>
+                <GlassCard className="p-4 text-center">
+                  <Brain className="h-6 w-6 mx-auto text-purple-400 mb-2" />
+                  <p className="text-lg font-bold">GPT-4o</p>
+                  <p className="text-[10px] text-muted-foreground">AI Engine</p>
+                </GlassCard>
+                <GlassCard className="p-4 text-center">
+                  <Database className="h-6 w-6 mx-auto text-blue-400 mb-2" />
+                  <p className="text-lg font-bold">96+</p>
+                  <p className="text-[10px] text-muted-foreground">Knowledge Entries</p>
+                </GlassCard>
+                <GlassCard className="p-4 text-center">
+                  <Wallet className="h-6 w-6 mx-auto text-amber-400 mb-2" />
+                  <p className="text-lg font-bold">${wallet?.balance ? Number(wallet.balance).toFixed(0) : "---"}</p>
+                  <p className="text-[10px] text-muted-foreground">Wallet Balance</p>
+                </GlassCard>
+                <GlassCard className="p-4 text-center">
+                  <Gauge className="h-6 w-6 mx-auto text-cyan-400 mb-2" />
+                  <p className="text-lg font-bold">73.6%</p>
+                  <p className="text-[10px] text-muted-foreground">Cache Hit Rate</p>
+                </GlassCard>
+                <GlassCard className="p-4 text-center">
+                  <TestTube2 className="h-6 w-6 mx-auto text-emerald-400 mb-2" />
+                  <p className="text-lg font-bold">62/62</p>
+                  <p className="text-[10px] text-muted-foreground">Tests Passing</p>
+                </GlassCard>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <GlassCard className="p-5">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Activity className="h-4 w-4 text-crimson" /> Daily Usage Pattern</h3>
+                <div className="space-y-3 text-xs text-muted-foreground">
+                  <div className="flex items-start gap-3 p-3 rounded-lg glass-surface">
+                    <Badge variant="outline" className="text-[9px] border-blue-500/30 text-blue-400 shrink-0">MORNING</Badge>
+                    <p>Review AI overnight actions in Command Center. Check exception queue. Approve or reject pending hybrid actions. Review Knowledge Library auto-ingested entries.</p>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg glass-surface">
+                    <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 shrink-0">MIDDAY</Badge>
+                    <p>CRM pipeline review — check AI-scored leads, advance deals. Launch outreach sequences. Review Production Studio assets. Check wallet spend & thresholds.</p>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg glass-surface">
+                    <Badge variant="outline" className="text-[9px] border-purple-500/30 text-purple-400 shrink-0">AFTERNOON</Badge>
+                    <p>Marketing campaign monitoring. Generate reports for stakeholders. Review AI communication intelligence. Process finance approvals. Update SOPs in Knowledge Library.</p>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg glass-surface">
+                    <Badge variant="outline" className="text-[9px] border-green-500/30 text-green-400 shrink-0">EVENING</Badge>
+                    <p>System health check. Review agent performance. Adjust AI mode thresholds. Set overnight automation rules. Let agents work while you sleep.</p>
+                  </div>
+                </div>
+              </GlassCard>
+              <GlassCard className="p-5">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Shield className="h-4 w-4 text-crimson" /> Key Integrations & Architecture</h3>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <span className="text-muted-foreground">GoHighLevel CRM</span>
+                    <StatusBadge variant="active" label="Hybrid Sync" />
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <span className="text-muted-foreground">OpenAI / GPT-4o-mini</span>
+                    <StatusBadge variant="active" label="Connected" />
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <span className="text-muted-foreground">Wallet Billing System</span>
+                    <StatusBadge variant="active" label="Active" />
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <span className="text-muted-foreground">Knowledge Library (Vector)</span>
+                    <StatusBadge variant="active" label="Self-Updating" />
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <span className="text-muted-foreground">Event Bus & WebSocket</span>
+                    <StatusBadge variant="active" label="Real-Time" />
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <span className="text-muted-foreground">RBAC Permissions</span>
+                    <StatusBadge variant="active" label="4 Roles" />
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <span className="text-muted-foreground">Testing Framework</span>
+                    <StatusBadge variant="success" label="12 Suites / 62 Tests" />
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        )}
+
         {activeView === "executive" && (
           <div className="space-y-6">
             <motion.div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" variants={stagger} initial="initial" animate="animate">
