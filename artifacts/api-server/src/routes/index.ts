@@ -44,11 +44,25 @@ import eventBusRouter from "./event-bus";
 import sequenceEnrollmentsRouter from "./sequence-enrollments";
 import pendingActionsRouter from "./pending-actions";
 import brandKitsRouter from "./brand-kits";
+import integrationHubRouter from "./integration-hub";
+import { processInboundWebhook } from "../services/integration-hub-service";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+
+router.post("/webhooks/inbound/:source", async (req, res) => {
+  const { source } = req.params;
+  const signature = (req.headers["x-webhook-signature"] ?? req.headers["x-hub-signature-256"] ?? req.headers["x-signature"]) as string | undefined;
+  const event = (req.headers["x-webhook-event"] ?? req.headers["x-event-type"] ?? req.body?.event ?? "lead_capture") as string;
+  const result = await processInboundWebhook({ source, event, payload: req.body, signature });
+  if (result.error && !result.processed) {
+    res.status(result.error === "Invalid webhook signature" ? 401 : 422).json(result);
+    return;
+  }
+  res.json(result);
+});
 
 router.post("/ghl/webhook", async (req, res) => {
   const signature = req.headers["x-ghl-signature"] as string;
@@ -116,5 +130,6 @@ router.use("/event-bus", eventBusRouter);
 router.use("/sequence-enrollments", sequenceEnrollmentsRouter);
 router.use(pendingActionsRouter);
 router.use(brandKitsRouter);
+router.use(integrationHubRouter);
 
 export default router;
