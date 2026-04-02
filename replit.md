@@ -37,6 +37,7 @@ The system features a cinematic glassmorphic dark-first design, utilizing a prim
 *   **Integration Hub:** Provides a unified layer for third-party integrations (10 connectors like GoHighLevel, HubSpot, Stripe), supporting OAuth2, API key auth, public webhook receivers, CSV import with field mapping, and a bidirectional sync engine.
 *   **Reporting & Knowledge Memory:** Offers scheduled and event-triggered reports with AI-powered content generation, knowledge auto-population from business events, and a permission-aware archive with delivery channels (Slack, email).
 *   **Testing & Validation:** Features a built-in test harness with a "Dummy Mode" for intercepting AI calls and simulating responses for cost-free testing.
+*   **Operating Mode Pages:** Three dedicated mode pages at `/auto` (AI Autonomous), `/hybrid` (Hybrid), `/human` (Human Manual) providing mode-specific dashboards with real-time data, approval queues, workflow guides, and cross-mode switching. Sidebar includes "Operating Mode" section for direct navigation. Backend supports record-level mode overrides via `PUT/DELETE /ai-mode/record/:entityType/:entityId`, mode check via `GET /ai-mode/check`, and active overrides listing via `GET /ai-mode/overrides`.
 
 ## External Dependencies
 

@@ -55,6 +55,7 @@ const PERMISSION_MAP: Record<string, { roles: string[]; permissions: string[] }>
   "POST:/contacts": { roles: ["manager", "admin", "super_admin"], permissions: ["contacts.create"] },
 
   "PUT:/ai-mode": { roles: ["admin", "super_admin"], permissions: ["ai.control"] },
+  "DELETE:/ai-mode": { roles: ["admin", "super_admin"], permissions: ["ai.control"] },
 
   "POST:/wallet": { roles: ["admin", "super_admin"], permissions: ["wallet.manage"] },
 

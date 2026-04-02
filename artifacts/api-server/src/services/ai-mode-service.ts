@@ -1,5 +1,5 @@
 import { db, aiModeSettingsTable, leadsTable, opportunitiesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNotNull } from "drizzle-orm";
 import { cacheGet, cacheSet, cacheInvalidatePattern, TTL } from "./cache-service";
 import { broadcast } from "./websocket-service";
 
@@ -90,6 +90,31 @@ export async function setWorkflowMode(workflowKey: string, mode: AiMode): Promis
   }
   cacheInvalidatePattern("ai_mode:");
   broadcast("mode_change", { scope: "workflow", workflowKey, mode });
+}
+
+export async function setRecordOverride(entityType: string, entityId: number, mode: AiMode | null): Promise<void> {
+  if (entityType === "lead") {
+    await db.update(leadsTable).set({ aiModeOverride: mode }).where(eq(leadsTable.id, entityId));
+  } else if (entityType === "opportunity") {
+    await db.update(opportunitiesTable).set({ aiModeOverride: mode }).where(eq(opportunitiesTable.id, entityId));
+  }
+  cacheInvalidatePattern(`ai_mode:record:${entityType}:${entityId}`);
+  broadcast("mode_change", { scope: "record", entityType, entityId, mode });
+}
+
+export async function getActiveOverrides(): Promise<any[]> {
+  const overrides: any[] = [];
+  const leadRows = await db.select({ id: leadsTable.id, aiModeOverride: leadsTable.aiModeOverride })
+    .from(leadsTable).where(isNotNull(leadsTable.aiModeOverride));
+  for (const row of leadRows) {
+    if (row.aiModeOverride) overrides.push({ entityType: "lead", entityId: row.id, mode: row.aiModeOverride });
+  }
+  const oppRows = await db.select({ id: opportunitiesTable.id, aiModeOverride: opportunitiesTable.aiModeOverride })
+    .from(opportunitiesTable).where(isNotNull(opportunitiesTable.aiModeOverride));
+  for (const row of oppRows) {
+    if (row.aiModeOverride) overrides.push({ entityType: "opportunity", entityId: row.id, mode: row.aiModeOverride });
+  }
+  return overrides;
 }
 
 async function getRecordOverride(entityType: string, entityId: number): Promise<AiMode | null> {

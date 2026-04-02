@@ -19,6 +19,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Workflow,
+  User,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,12 @@ const navItems = [
   { href: "/quality", label: "Quality", icon: ShieldCheck, domain: "quality" },
   { href: "/admin", label: "Administrative", icon: BookOpen, domain: "admin" },
   { href: "/system", label: "System", icon: Settings, domain: "system" },
+];
+
+const modeItems = [
+  { href: "/auto", label: "AI Auto", icon: Bot, domain: "mode" },
+  { href: "/hybrid", label: "Hybrid", icon: ArrowLeftRight, domain: "mode" },
+  { href: "/human", label: "Manual", icon: User, domain: "mode" },
 ];
 
 function Logo({ collapsed }: { collapsed?: boolean }) {
@@ -203,6 +211,17 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     isActive={location === item.href}
                   />
                 ))}
+                <div className="mx-3 my-2 border-t border-border/30" />
+                <div className="px-3 py-1">
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Operating Mode</span>
+                </div>
+                {modeItems.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    isActive={location === item.href}
+                  />
+                ))}
               </nav>
             </SheetContent>
           </Sheet>
@@ -237,6 +256,20 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 overflow-y-auto py-2 space-y-0.5">
           {navItems.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              isActive={location === item.href}
+              collapsed={collapsed}
+            />
+          ))}
+          <div className={cn("my-2 border-t border-border/30", collapsed ? "mx-1.5" : "mx-3")} />
+          {!collapsed && (
+            <div className="px-5 py-1">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Operating Mode</span>
+            </div>
+          )}
+          {modeItems.map((item) => (
             <NavLink
               key={item.href}
               item={item}

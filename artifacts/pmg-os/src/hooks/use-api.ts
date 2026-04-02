@@ -977,4 +977,52 @@ export function useChainsList() {
   });
 }
 
+export function useListLeads() {
+  return useQuery({
+    queryKey: ["leads"],
+    queryFn: () => apiFetch<any[]>("/leads"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useListOpportunities() {
+  return useQuery({
+    queryKey: ["opportunities"],
+    queryFn: () => apiFetch<any[]>("/opportunities"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useListTasks() {
+  return useQuery({
+    queryKey: ["tasks"],
+    queryFn: () => apiFetch<any[]>("/tasks"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useListActivities() {
+  return useQuery({
+    queryKey: ["activities"],
+    queryFn: () => apiFetch<any[]>("/activities"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useJobQueueStats() {
+  return useQuery({
+    queryKey: ["job-queue", "stats"],
+    queryFn: () => apiFetch<{ pending: number; running: number; completed: number; failed: number; deadLetter: number; retry: number }>("/job-queue/stats"),
+    refetchInterval: 15000,
+  });
+}
+
+export function useChannelHealth() {
+  return useQuery({
+    queryKey: ["channel-health"],
+    queryFn: () => apiFetch<any>("/channel-health"),
+    refetchInterval: 30000,
+  });
+}
+
 export { apiFetch };

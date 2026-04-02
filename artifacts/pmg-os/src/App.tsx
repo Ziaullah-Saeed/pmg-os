@@ -22,6 +22,9 @@ import Automation from "@/pages/automation";
 import Quality from "@/pages/quality";
 import Admin from "@/pages/admin";
 import Login from "@/pages/login";
+import AiAuto from "@/pages/ai-auto";
+import Hybrid from "@/pages/hybrid";
+import Human from "@/pages/human";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -64,6 +67,9 @@ function AppRouter() {
             <Route path="/automation" component={Automation} />
             <Route path="/quality" component={Quality} />
             <Route path="/admin" component={Admin} />
+            <Route path="/auto" component={AiAuto} />
+            <Route path="/hybrid" component={Hybrid} />
+            <Route path="/human" component={Human} />
             <Route component={NotFound} />
           </Switch>
         </SidebarLayout>
