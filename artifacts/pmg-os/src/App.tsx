@@ -6,6 +6,7 @@ import { SidebarLayout } from "@/components/layout/sidebar-layout";
 import { AiModeProvider } from "@/hooks/use-ai-mode-context";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { OverlayProvider } from "@/hooks/use-overlay";
 import Dashboard from "@/pages/dashboard";
 import Intelligence from "@/pages/intelligence";
 import Outreach from "@/pages/outreach";
@@ -46,25 +47,27 @@ function AppRouter() {
 
   return (
     <AiModeProvider>
-      <SidebarLayout>
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/intelligence" component={Intelligence} />
-          <Route path="/outreach" component={Outreach} />
-          <Route path="/marketing" component={Marketing} />
-          <Route path="/production" component={Production} />
-          <Route path="/crm" component={CRM} />
-          <Route path="/communications" component={Communications} />
-          <Route path="/execution" component={Execution} />
-          <Route path="/finance" component={Finance} />
-          <Route path="/reports" component={Reports} />
-          <Route path="/system" component={System} />
-          <Route path="/automation" component={Automation} />
-          <Route path="/quality" component={Quality} />
-          <Route path="/admin" component={Admin} />
-          <Route component={NotFound} />
-        </Switch>
-      </SidebarLayout>
+      <OverlayProvider>
+        <SidebarLayout>
+          <Switch>
+            <Route path="/" component={Dashboard} />
+            <Route path="/intelligence" component={Intelligence} />
+            <Route path="/outreach" component={Outreach} />
+            <Route path="/marketing" component={Marketing} />
+            <Route path="/production" component={Production} />
+            <Route path="/crm" component={CRM} />
+            <Route path="/communications" component={Communications} />
+            <Route path="/execution" component={Execution} />
+            <Route path="/finance" component={Finance} />
+            <Route path="/reports" component={Reports} />
+            <Route path="/system" component={System} />
+            <Route path="/automation" component={Automation} />
+            <Route path="/quality" component={Quality} />
+            <Route path="/admin" component={Admin} />
+            <Route component={NotFound} />
+          </Switch>
+        </SidebarLayout>
+      </OverlayProvider>
     </AiModeProvider>
   );
 }

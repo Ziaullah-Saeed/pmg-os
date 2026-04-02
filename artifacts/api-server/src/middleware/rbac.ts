@@ -11,10 +11,10 @@ const roleHierarchy: Record<Role, number> = {
 
 function getSessionRole(req: Request): Role {
   const session = (req as any).session;
-  if (session?.user?.role) {
-    const role = session.user.role as Role;
-    if (role in roleHierarchy) return role;
-  }
+  const role = session?.userRole ?? session?.user?.role;
+  if (role && role in roleHierarchy) return role as Role;
+  const permissions = session?.userPermissions ?? session?.user?.permissions ?? [];
+  if (Array.isArray(permissions) && permissions.includes("*")) return "super_admin";
   return "user";
 }
 

@@ -22,6 +22,7 @@ import { initIntegrationHub } from "./services/integration-hub-service";
 import { initReportingKnowledge } from "./services/reporting-knowledge-service";
 import { initChannelHealthService } from "./services/channel-health-service";
 import { initSlackSurfaceService } from "./services/slack-surface-service";
+import { startJobProcessing } from "./services/job-queue";
 
 const rawPort = process.env["PORT"];
 
@@ -62,8 +63,9 @@ server.listen(port, () => {
   initIntegrationHub();
   initChannelHealthService();
   initSlackSurfaceService();
+  startJobProcessing(10_000);
   initReportingKnowledge().catch(err => logger.error(err, "ReportingKnowledge init failed"));
-  logger.info("Phase 9: All service layers initialized");
+  logger.info("Phase 1 Spine: All service layers initialized");
 
   initEmbeddingColumn().catch(err => logger.error(err, "Embedding column init failed"));
 

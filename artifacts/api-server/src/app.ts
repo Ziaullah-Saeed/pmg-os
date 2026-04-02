@@ -6,6 +6,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
+import { globalErrorHandler, notFoundHandler, setupProcessErrorHandlers } from "./middleware/error-handler";
 
 const PgStore = connectPgSimple(session);
 
@@ -64,6 +65,11 @@ app.use(
   }),
 );
 
+setupProcessErrorHandlers();
+
 app.use("/api", router);
+
+app.use(notFoundHandler);
+app.use(globalErrorHandler);
 
 export default app;
