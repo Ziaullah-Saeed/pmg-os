@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Settings, CheckCircle2, Database, Shield, Server, Users,
   Lock, Eye, Activity, Clock, Globe, Cpu, Bot, Wallet, Zap,
-  TrendingUp, AlertTriangle, Loader2, Save, PlugZap, RefreshCw
+  TrendingUp, AlertTriangle, Loader2, Save, PlugZap, RefreshCw, Plus
 } from "lucide-react";
 
 const roles = [
@@ -72,6 +72,8 @@ const tabs = [
   { id: "integration-hub", label: "Integration Hub", icon: <PlugZap className="h-3.5 w-3.5" /> },
   { id: "integrations", label: "GHL Setup", icon: <Globe className="h-3.5 w-3.5" /> },
   { id: "channels", label: "Channel Connectors", icon: <RefreshCw className="h-3.5 w-3.5" /> },
+  { id: "queue", label: "Queue & Retries", icon: <Zap className="h-3.5 w-3.5" /> },
+  { id: "incidents", label: "Incident Monitor", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
 ];
 
 const channelConnectors = [
@@ -908,6 +910,172 @@ export default function System() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </GlassCard>
+          </div>
+        )}
+        {activeTab === "queue" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Queue Depth", value: "24", accent: "text-info" },
+                { label: "Processing Rate", value: "12/min", accent: "text-success" },
+                { label: "Dead Letters", value: "3", accent: "text-crimson" },
+                { label: "Avg Latency", value: "240ms", accent: "text-warning" },
+              ].map((kpi) => (
+                <GlassCard key={kpi.label} className="text-center">
+                  <p className={`text-2xl font-bold ${kpi.accent}`}>{kpi.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+                </GlassCard>
+              ))}
+            </div>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Job Queue Monitor</h3>
+                <div className="flex gap-1.5">
+                  <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg"><RefreshCw className="h-3 w-3 mr-1" />Refresh</Button>
+                  <Button className="btn-premium text-white text-xs px-2 py-1 rounded-lg">Retry All Failed</Button>
+                </div>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { id: "JOB-001", type: "ai_report_generation", domain: "reports", status: "processing", attempts: 1, created: "2 min ago", priority: "high" },
+                  { id: "JOB-002", type: "lead_enrichment", domain: "outreach", status: "queued", attempts: 0, created: "5 min ago", priority: "medium" },
+                  { id: "JOB-003", type: "email_delivery", domain: "communications", status: "failed", attempts: 3, created: "15 min ago", priority: "high" },
+                  { id: "JOB-004", type: "ghl_sync", domain: "system", status: "processing", attempts: 1, created: "1 min ago", priority: "critical" },
+                  { id: "JOB-005", type: "invoice_reminder", domain: "finance", status: "completed", attempts: 1, created: "30 min ago", priority: "medium" },
+                  { id: "JOB-006", type: "campaign_analytics", domain: "marketing", status: "queued", attempts: 0, created: "8 min ago", priority: "low" },
+                  { id: "JOB-007", type: "content_generation", domain: "production", status: "dead_letter", attempts: 5, created: "1 hour ago", priority: "medium" },
+                ].map((job) => (
+                  <div key={job.id} className={`flex items-center justify-between p-3 rounded-lg ${job.status === "dead_letter" ? "border border-crimson/20 bg-crimson/5" : job.status === "failed" ? "border border-warning/20 bg-warning/5" : "glass-surface"}`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${job.status === "processing" ? "bg-info animate-pulse" : job.status === "completed" ? "bg-success" : job.status === "queued" ? "bg-warning" : "bg-crimson"}`} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{job.id}: {job.type.replace(/_/g, " ")}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Badge variant="outline" className="text-[9px]">{job.domain}</Badge>
+                          <Badge variant="outline" className={`text-[9px] ${job.priority === "critical" ? "border-crimson/30 text-crimson" : ""}`}>{job.priority}</Badge>
+                          <span className="text-[10px] text-muted-foreground">{job.attempts} attempts · {job.created}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusBadge variant={job.status === "completed" ? "active" : job.status === "processing" ? "awaiting-review" : job.status === "failed" || job.status === "dead_letter" ? "critical" : "pending"} label={job.status.replace("_", " ")} />
+                      {(job.status === "failed" || job.status === "dead_letter") && (
+                        <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg">Retry</Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Rate Control</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { service: "OpenAI API", limit: "60 req/min", current: "42 req/min", usage: 70, status: "normal" },
+                  { service: "GoHighLevel API", limit: "100 req/min", current: "28 req/min", usage: 28, status: "normal" },
+                  { service: "Email Provider", limit: "500/hr", current: "120/hr", usage: 24, status: "normal" },
+                  { service: "LinkedIn API", limit: "100/day", current: "78/day", usage: 78, status: "warning" },
+                ].map((svc) => (
+                  <div key={svc.service} className="p-3 rounded-lg glass-surface">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-medium">{svc.service}</p>
+                      <span className="text-[10px] text-muted-foreground">{svc.current} / {svc.limit}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/5">
+                      <div className={`h-full rounded-full ${svc.usage > 80 ? "bg-crimson" : svc.usage > 60 ? "bg-warning" : "bg-success"}`} style={{ width: `${svc.usage}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "incidents" && (
+          <div className="space-y-6">
+            <GlassCard glow="crimson" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Active Incidents</h3>
+                </div>
+                <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"><Plus className="h-3 w-3 mr-1" />Report Incident</Button>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { id: "INC-001", title: "LinkedIn API Rate Limit Approaching", severity: "warning", domain: "outreach", started: "45 min ago", status: "monitoring", impact: "Lead enrichment may be delayed" },
+                  { id: "INC-002", title: "Email Delivery Failures — SMTP Timeout", severity: "critical", domain: "communications", started: "2 hours ago", status: "investigating", impact: "Invoice reminders and follow-up emails blocked" },
+                ].map((inc) => (
+                  <div key={inc.id} className={`p-4 rounded-lg border ${inc.severity === "critical" ? "border-crimson/30 bg-crimson/5" : "border-warning/20 bg-warning/5"}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className={`h-4 w-4 ${inc.severity === "critical" ? "text-crimson" : "text-warning"}`} />
+                        <p className="text-sm font-semibold">{inc.title}</p>
+                      </div>
+                      <StatusBadge variant={inc.severity === "critical" ? "critical" : "warning"} label={inc.status} />
+                    </div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className="text-[9px]">{inc.id}</Badge>
+                      <Badge variant="outline" className="text-[9px]">{inc.domain}</Badge>
+                      <span className="text-[10px] text-muted-foreground">Started: {inc.started}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Impact: {inc.impact}</p>
+                    <div className="flex gap-1.5 mt-2">
+                      <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg">Acknowledge</Button>
+                      <Button className="bg-success/20 hover:bg-success/30 text-success text-xs px-2 py-1 rounded-lg">Resolve</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Recent Resolved Incidents</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { id: "INC-098", title: "GHL Webhook Delivery Failure", severity: "high", domain: "system", resolved: "2 days ago", duration: "4 hours", rootCause: "Webhook URL misconfiguration after GHL update" },
+                  { id: "INC-097", title: "AI Report Generation Timeout", severity: "medium", domain: "reports", resolved: "5 days ago", duration: "1 hour", rootCause: "OpenAI API latency spike during peak hours" },
+                  { id: "INC-096", title: "Database Connection Pool Exhaustion", severity: "critical", domain: "system", resolved: "1 week ago", duration: "30 min", rootCause: "Connection leak in long-running queries — pool config updated" },
+                ].map((inc) => (
+                  <div key={inc.id} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{inc.title}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Badge variant="outline" className="text-[9px]">{inc.id}</Badge>
+                        <Badge variant="outline" className="text-[9px]">{inc.domain}</Badge>
+                        <span className="text-[10px] text-muted-foreground">Duration: {inc.duration} · {inc.resolved}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Root Cause: {inc.rootCause}</p>
+                    </div>
+                    <StatusBadge variant="active" label="Resolved" />
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">System Observability</h3></div>
+              <div className="px-5 pb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { metric: "API Uptime", value: "99.8%", period: "30d", status: "good" },
+                  { metric: "Avg Response Time", value: "180ms", period: "24h", status: "good" },
+                  { metric: "Error Rate", value: "0.3%", period: "24h", status: "good" },
+                  { metric: "DB Query P95", value: "45ms", period: "24h", status: "good" },
+                  { metric: "AI Run Success", value: "94%", period: "7d", status: "warning" },
+                  { metric: "Queue Throughput", value: "720/hr", period: "24h", status: "good" },
+                  { metric: "Memory Usage", value: "68%", period: "current", status: "warning" },
+                  { metric: "Storage Used", value: "2.4GB", period: "total", status: "good" },
+                ].map((m) => (
+                  <div key={m.metric} className="p-3 rounded-lg glass-surface text-center">
+                    <p className={`text-lg font-bold ${m.status === "good" ? "text-success" : "text-warning"}`}>{m.value}</p>
+                    <p className="text-[10px] text-muted-foreground">{m.metric}</p>
+                    <p className="text-[9px] text-muted-foreground">{m.period}</p>
+                  </div>
+                ))}
               </div>
             </GlassCard>
           </div>

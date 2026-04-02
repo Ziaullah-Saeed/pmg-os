@@ -30,6 +30,8 @@ const tabs = [
   { id: "pending", label: "Pending Actions", icon: <Clock className="h-3.5 w-3.5" /> },
   { id: "runs", label: "AI Run History", icon: <Activity className="h-3.5 w-3.5" /> },
   { id: "approvals", label: "Approvals", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+  { id: "workflows", label: "Workflow Automation", icon: <Zap className="h-3.5 w-3.5" /> },
+  { id: "escalation", label: "Escalation & Failures", icon: <Shield className="h-3.5 w-3.5" /> },
 ];
 
 const domainColors: Record<string, string> = {
@@ -439,6 +441,153 @@ export default function Execution() {
                     <p className="text-sm text-muted-foreground">All approvals are up to date</p>
                   </div>
                 )}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+        {activeTab === "workflows" && (
+          <div className="space-y-6">
+            <GlassCard glow="blue" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-info" />
+                  <h3 className="text-sm font-semibold">Workflow Automation Rules</h3>
+                </div>
+                <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"><Plus className="h-3 w-3 mr-1" />New Workflow</Button>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { name: "Lead → CRM Pipeline", trigger: "New lead fit score ≥ 80%", actions: ["Create CRM opportunity", "Assign sales rep", "Send Slack notification"], runs: 47, success: 98, status: "active" },
+                  { name: "Invoice Overdue Alert", trigger: "Invoice unpaid > 30 days", actions: ["Send reminder email", "Flag in finance dashboard", "Create follow-up task"], runs: 12, success: 100, status: "active" },
+                  { name: "Campaign Performance Check", trigger: "Campaign spend > $500 with < 2% CTR", actions: ["Pause campaign", "Generate report", "Notify marketing team"], runs: 8, success: 87, status: "active" },
+                  { name: "Security Incident Escalation", trigger: "Critical vulnerability detected", actions: ["Create incident ticket", "Page on-call team", "Lock affected systems"], runs: 3, success: 100, status: "active" },
+                  { name: "Client Onboarding Checklist", trigger: "New contract signed", actions: ["Create onboarding tasks", "Send welcome kit", "Schedule kickoff meeting"], runs: 15, success: 93, status: "active" },
+                  { name: "Content Publishing Pipeline", trigger: "Content approved in production", actions: ["Schedule social posts", "Update website", "Track engagement"], runs: 22, success: 95, status: "paused" },
+                ].map((wf, i) => (
+                  <div key={i} className="p-3 rounded-lg glass-surface">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${wf.status === "active" ? "bg-success" : "bg-warning"}`} />
+                        <p className="text-sm font-semibold">{wf.name}</p>
+                      </div>
+                      <StatusBadge variant={wf.status === "active" ? "active" : "pending"} label={wf.status} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mb-2">Trigger: {wf.trigger}</p>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {wf.actions.map((a, j) => (
+                        <Badge key={j} variant="outline" className="text-[9px]">{j + 1}. {a}</Badge>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                      <span>{wf.runs} runs</span>
+                      <span className="text-success">{wf.success}% success</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold gradient-text-crimson">6</p>
+                <p className="text-[10px] text-muted-foreground">Active Workflows</p>
+              </GlassCard>
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold text-success">107</p>
+                <p className="text-[10px] text-muted-foreground">Total Executions</p>
+              </GlassCard>
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold text-info">96%</p>
+                <p className="text-[10px] text-muted-foreground">Avg Success Rate</p>
+              </GlassCard>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "escalation" && (
+          <div className="space-y-6">
+            <GlassCard glow="crimson" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Escalation Routing</h3>
+                </div>
+                <Badge variant="outline" className="text-[10px] border-crimson/30 text-crimson">{taskList.filter((t: any) => t.status === "blocked").length} Active Escalations</Badge>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {taskList.filter((t: any) => t.status === "blocked").length > 0 ? (
+                  taskList.filter((t: any) => t.status === "blocked").map((task: any) => (
+                    <div key={task.id} className="p-3 rounded-lg border border-crimson/20 bg-crimson/5">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-crimson" />
+                          <p className="text-sm font-medium">{task.title}</p>
+                        </div>
+                        <StatusBadge variant="critical" label="Blocked" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[9px] capitalize">{task.domain}</Badge>
+                        <Badge variant="outline" className="text-[9px]">{task.priority}</Badge>
+                      </div>
+                      <div className="flex gap-1.5 mt-2">
+                        <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg" onClick={() => setSelectedTask(task)}>Review</Button>
+                        <Button className="bg-success/20 hover:bg-success/30 text-success text-xs px-2 py-1 rounded-lg" onClick={() => handleTransition(task, "in_progress")}>Unblock</Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-6 text-center">
+                    <CheckCircle2 className="h-8 w-8 text-success/30 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No active escalations</p>
+                  </div>
+                )}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Failure Handling & Retries</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { action: "Email Delivery — Invoice #1042", type: "Communication", attempts: 3, lastAttempt: "2 hours ago", status: "retrying", resolution: "Auto-retry scheduled" },
+                  { action: "AI Report Generation — Weekly CRM", type: "Report", attempts: 2, lastAttempt: "4 hours ago", status: "failed", resolution: "API rate limit — retry in 1hr" },
+                  { action: "GHL Sync — Contact Update", type: "Integration", attempts: 1, lastAttempt: "30 min ago", status: "retrying", resolution: "Connection timeout — retrying" },
+                ].map((failure, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{failure.action}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <Badge variant="outline" className="text-[9px]">{failure.type}</Badge>
+                        <span className="text-[10px] text-muted-foreground">{failure.attempts} attempts · {failure.lastAttempt}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{failure.resolution}</p>
+                    </div>
+                    <StatusBadge variant={failure.status === "failed" ? "critical" : "warning"} label={failure.status} />
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Escalation Rules</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { rule: "Task blocked > 24 hours", action: "Notify domain lead + CEO", tier: "L2" },
+                  { rule: "AI failure > 3 retries", action: "Switch to human mode + create incident", tier: "L3" },
+                  { rule: "Critical task unassigned > 1 hour", action: "Auto-assign to available agent", tier: "L1" },
+                  { rule: "Client-facing deadline < 48 hours", action: "Priority escalation to all leads", tier: "L2" },
+                  { rule: "Wallet balance < $10", action: "Pause AI operations + alert admin", tier: "L3" },
+                ].map((rule, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className={`text-[9px] ${rule.tier === "L3" ? "border-crimson/30 text-crimson" : rule.tier === "L2" ? "border-warning/30 text-warning" : "border-info/30 text-info"}`}>{rule.tier}</Badge>
+                      <div>
+                        <p className="text-xs font-medium">{rule.rule}</p>
+                        <p className="text-[10px] text-muted-foreground">{rule.action}</p>
+                      </div>
+                    </div>
+                    <StatusBadge variant="active" label="Active" />
+                  </div>
+                ))}
               </div>
             </GlassCard>
           </div>

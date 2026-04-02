@@ -30,6 +30,8 @@ const tabs = [
   { id: "ai-calling", label: "Mode A: AI-Led", icon: <Bot className="h-3.5 w-3.5" /> },
   { id: "human-calling", label: "Mode B: AI-Guided", icon: <User className="h-3.5 w-3.5" /> },
   { id: "meeting-support", label: "Mode C: Meeting", icon: <Headphones className="h-3.5 w-3.5" /> },
+  { id: "transcription", label: "Transcription & Playback", icon: <Mic className="h-3.5 w-3.5" /> },
+  { id: "coaching", label: "Coaching Layer", icon: <TrendingUp className="h-3.5 w-3.5" /> },
 ];
 
 const defaultLogForm = { subject: "", type: "call", direction: "outbound", duration: "", sentiment: "neutral", outcome: "follow_up", summary: "", nextSteps: "" };
@@ -459,6 +461,186 @@ export default function Communications() {
               </div>
             </div>
           </GlassCard>
+        )}
+
+        {activeMode === "transcription" && (
+          <div className="space-y-6">
+            <GlassCard glow="blue" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mic className="h-4 w-4 text-info" />
+                  <h3 className="text-sm font-semibold">Recent Transcriptions</h3>
+                </div>
+                <Badge variant="outline" className="text-[10px]">{commList.filter((c: any) => c.type === "call" || c.type === "meeting").length} recordings</Badge>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {commList.filter((c: any) => c.type === "call" || c.type === "meeting").slice(0, 8).map((comm: any) => (
+                  <div key={comm.id} className="p-3 rounded-lg glass-surface">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {comm.type === "call" ? <Phone className="h-4 w-4 text-info shrink-0" /> : <Video className="h-4 w-4 text-purple-400 shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{comm.subject}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-muted-foreground">{comm.duration ? `${comm.duration} min` : "N/A"}</span>
+                            <span className="text-[10px] text-muted-foreground">{comm.createdAt ? new Date(comm.createdAt).toLocaleDateString() : ""}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <StatusBadge variant={comm.sentiment === "positive" ? "success" : comm.sentiment === "negative" ? "critical" : "pending"} label={comm.sentiment ?? "neutral"} />
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px]" onClick={() => setSelectedComm(comm)}>View</Button>
+                      </div>
+                    </div>
+                    {comm.summary && (
+                      <div className="p-2 rounded bg-white/[0.02] text-[10px] text-muted-foreground mt-1">{comm.summary}</div>
+                    )}
+                  </div>
+                ))}
+                {commList.filter((c: any) => c.type === "call" || c.type === "meeting").length === 0 && (
+                  <div className="py-6 text-center text-sm text-muted-foreground">No call or meeting recordings yet</div>
+                )}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Sentiment Detection</h3></div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { label: "Positive", count: positive, color: "bg-success" },
+                    { label: "Neutral", count: commList.filter((c: any) => c.sentiment === "neutral").length, color: "bg-info" },
+                    { label: "Negative", count: commList.filter((c: any) => c.sentiment === "negative").length, color: "bg-crimson" },
+                  ].map((s) => (
+                    <div key={s.label} className="space-y-1">
+                      <div className="flex justify-between text-xs"><span>{s.label}</span><span className="tabular-nums">{s.count}</span></div>
+                      <div className="h-1.5 rounded-full bg-white/5"><div className={`h-full rounded-full ${s.color}`} style={{ width: `${totalComms ? (s.count / totalComms) * 100 : 0}%` }} /></div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Hesitation Detection</h3></div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { pattern: "Long pauses after pricing discussion", frequency: "42%", severity: "high" },
+                    { pattern: "Repeated clarification requests", frequency: "28%", severity: "medium" },
+                    { pattern: "Non-committal language patterns", frequency: "35%", severity: "high" },
+                  ].map((h, i) => (
+                    <div key={i} className="p-2 rounded-lg glass-surface">
+                      <p className="text-xs font-medium">{h.pattern}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-muted-foreground">{h.frequency} of calls</span>
+                        <Badge variant="outline" className={`text-[9px] ${h.severity === "high" ? "border-crimson/30 text-crimson" : "border-warning/30 text-warning"}`}>{h.severity}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Follow-Up Draft Generator</h3></div>
+                <div className="px-5 pb-4 space-y-2">
+                  {commList.filter((c: any) => c.outcome === "follow_up").slice(0, 4).map((comm: any) => (
+                    <div key={comm.id} className="p-2 rounded-lg glass-surface">
+                      <p className="text-xs font-medium truncate">{comm.subject}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[10px] text-muted-foreground">Draft ready</span>
+                        <Button variant="ghost" size="sm" className="h-5 text-[9px] px-1.5"><Sparkles className="h-3 w-3 mr-0.5" />Generate</Button>
+                      </div>
+                    </div>
+                  ))}
+                  {commList.filter((c: any) => c.outcome === "follow_up").length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-2">No follow-ups pending</p>
+                  )}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        )}
+
+        {activeMode === "coaching" && (
+          <div className="space-y-6">
+            <GlassCard glow="crimson" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Communication Coaching Dashboard</h3>
+                </div>
+                <StatusBadge variant="ai-executed" label="AI Coach Active" />
+              </div>
+              <div className="px-5 pb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { metric: "Talk-to-Listen Ratio", value: "62:38", target: "40:60", status: "needs_work" },
+                  { metric: "Avg Call Duration", value: `${Math.round(commList.reduce((s: number, c: any) => s + (c.duration ?? 0), 0) / (calls || 1))} min`, target: "15-20 min", status: "good" },
+                  { metric: "Positive Outcome Rate", value: `${totalComms ? Math.round((positive / totalComms) * 100) : 0}%`, target: ">60%", status: positive / (totalComms || 1) > 0.6 ? "good" : "needs_work" },
+                  { metric: "Follow-Up Completion", value: "78%", target: ">90%", status: "needs_work" },
+                ].map((m) => (
+                  <div key={m.metric} className="p-3 rounded-lg glass-surface text-center">
+                    <p className={`text-lg font-bold ${m.status === "good" ? "text-success" : "text-warning"}`}>{m.value}</p>
+                    <p className="text-[10px] text-muted-foreground">{m.metric}</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">Target: {m.target}</p>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Improvement Areas</h3></div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { area: "Active Listening", score: 65, tips: ["Ask more open-ended questions", "Summarize prospect's points before responding", "Avoid interrupting during key statements"] },
+                    { area: "Objection Handling", score: 72, tips: ["Use 'feel-felt-found' framework", "Acknowledge concern before pivoting", "Prepare responses for top 5 objections"] },
+                    { area: "Value Articulation", score: 58, tips: ["Lead with ROI numbers", "Use client-specific examples", "Quantify risk of inaction"] },
+                    { area: "Closing Technique", score: 45, tips: ["Use assumptive close more often", "Establish next steps before ending call", "Create urgency with relevant deadlines"] },
+                  ].map((item) => (
+                    <div key={item.area} className="p-3 rounded-lg glass-surface">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold">{item.area}</p>
+                        <span className={`text-xs font-bold ${item.score >= 70 ? "text-success" : item.score >= 50 ? "text-warning" : "text-crimson"}`}>{item.score}%</span>
+                      </div>
+                      <div className="space-y-1">
+                        {item.tips.map((tip, i) => (
+                          <div key={i} className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
+                            <Sparkles className="h-3 w-3 text-crimson shrink-0 mt-0.5" />
+                            <span>{tip}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Best Practices & Templates</h3></div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { name: "Discovery Call Framework", type: "Call Script", rating: 4.8, uses: 34 },
+                    { name: "Security Audit Pitch", type: "Call Script", rating: 4.5, uses: 22 },
+                    { name: "Follow-Up Email — Post-Demo", type: "Email Template", rating: 4.7, uses: 48 },
+                    { name: "Objection Response — Budget", type: "Response Template", rating: 4.3, uses: 18 },
+                    { name: "Meeting Summary Format", type: "Template", rating: 4.6, uses: 31 },
+                    { name: "Cold Outreach — CISO Target", type: "Email Template", rating: 4.1, uses: 12 },
+                  ].map((bp) => (
+                    <div key={bp.name} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium">{bp.name}</p>
+                        <Badge variant="outline" className="text-[9px] mt-0.5">{bp.type}</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-gold">{bp.rating}</p>
+                          <p className="text-[9px] text-muted-foreground">{bp.uses} uses</p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-6 text-[9px] px-2">Use</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
         )}
       </motion.div>
       </ModeAwareWrapper>

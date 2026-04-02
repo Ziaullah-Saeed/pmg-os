@@ -25,6 +25,8 @@ const tabs = [
   { id: "analytics", label: "Analytics", icon: <BarChart3 className="h-3.5 w-3.5" /> },
   { id: "calendar", label: "Content Calendar", icon: <Calendar className="h-3.5 w-3.5" /> },
   { id: "seo", label: "SEO & Topics", icon: <Search className="h-3.5 w-3.5" /> },
+  { id: "social", label: "Social Planning", icon: <Users className="h-3.5 w-3.5" /> },
+  { id: "brand", label: "Brand Monitor", icon: <Sparkles className="h-3.5 w-3.5" /> },
 ];
 
 export default function Marketing() {
@@ -235,6 +237,176 @@ export default function Marketing() {
               ))}
             </div>
           </GlassCard>
+        )}
+
+        {activeTab === "social" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Social Content Calendar</h3>
+                  <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"><Plus className="h-3 w-3 mr-1" />Schedule Post</Button>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { platform: "LinkedIn", title: "Cybersecurity Trends 2026", type: "Article", date: "Apr 8", status: "scheduled" },
+                    { platform: "LinkedIn", title: "Client Success Story", type: "Case Study", date: "Apr 10", status: "draft" },
+                    { platform: "Twitter/X", title: "SOC 2 Compliance Thread", type: "Thread", date: "Apr 12", status: "scheduled" },
+                    { platform: "YouTube", title: "Zero Trust Architecture Explained", type: "Video", date: "Apr 15", status: "in_production" },
+                    { platform: "LinkedIn", title: "Industry Report Launch", type: "PDF Carousel", date: "Apr 18", status: "draft" },
+                  ].map((post, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="text-center w-14 shrink-0"><p className="text-xs font-bold text-crimson">{post.date}</p></div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{post.title}</p>
+                          <div className="flex gap-1 mt-0.5">
+                            <Badge variant="outline" className="text-[9px]">{post.platform}</Badge>
+                            <Badge variant="outline" className="text-[9px]">{post.type}</Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <StatusBadge variant={post.status === "scheduled" ? "active" : post.status === "in_production" ? "awaiting-review" : "draft"} label={post.status.replace("_", " ")} />
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Channel Strategy</h3></div>
+                <div className="px-5 pb-4 space-y-3">
+                  {[
+                    { channel: "LinkedIn", followers: "2.4K", engagement: 4.2, growth: 12, priority: "primary" },
+                    { channel: "YouTube", subscribers: "890", engagement: 6.8, growth: 18, priority: "primary" },
+                    { channel: "Twitter/X", followers: "1.1K", engagement: 2.1, growth: 5, priority: "secondary" },
+                    { channel: "Email Newsletter", subscribers: "3.2K", engagement: 22.5, growth: 8, priority: "primary" },
+                  ].map((ch) => (
+                    <div key={ch.channel} className="p-3 rounded-lg glass-surface">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-semibold">{ch.channel}</p>
+                          <p className="text-[10px] text-muted-foreground">{ch.followers ?? ch.subscribers} · {ch.engagement}% engagement</p>
+                        </div>
+                        <Badge variant="outline" className={`text-[9px] ${ch.priority === "primary" ? "border-crimson/30 text-crimson" : ""}`}>{ch.priority}</Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <ConfidenceMeter score={Math.min(ch.engagement * 10, 100)} className="flex-1" showLabel={false} />
+                        <span className="text-[10px] text-success">+{ch.growth}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-gold" />
+                <h3 className="text-sm font-semibold">Retargeting Audiences</h3>
+              </div>
+              <div className="px-5 pb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  { name: "Website Visitors (30d)", size: "1,240", match: 82, status: "active" },
+                  { name: "Blog Readers — Security", size: "680", match: 91, status: "active" },
+                  { name: "Webinar Attendees", size: "320", match: 88, status: "active" },
+                  { name: "Proposal Viewers", size: "45", match: 95, status: "active" },
+                  { name: "Cold Email Openers", size: "890", match: 64, status: "paused" },
+                  { name: "LinkedIn Engagers", size: "540", match: 76, status: "active" },
+                ].map((aud) => (
+                  <div key={aud.name} className="p-3 rounded-lg glass-surface">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-semibold">{aud.name}</p>
+                      <StatusBadge variant={aud.status === "active" ? "active" : "pending"} label={aud.status} />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>{aud.size} contacts</span>
+                      <span>{aud.match}% match</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "brand" && (
+          <div className="space-y-6">
+            <GlassCard glow="crimson" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Brand Health Monitor</h3>
+                </div>
+                <StatusBadge variant="ai-executed" label="Live Tracking" />
+              </div>
+              <div className="px-5 pb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { metric: "Brand Mentions", value: "127", change: "+23%", period: "30d" },
+                  { metric: "Share of Voice", value: "4.2%", change: "+0.8%", period: "vs Q1" },
+                  { metric: "Sentiment Score", value: "82%", change: "+5%", period: "positive" },
+                  { metric: "Domain Authority", value: "34", change: "+3", period: "vs last month" },
+                ].map((m) => (
+                  <div key={m.metric} className="p-3 rounded-lg glass-surface text-center">
+                    <p className="text-lg font-bold gradient-text-crimson">{m.value}</p>
+                    <p className="text-[10px] text-muted-foreground">{m.metric}</p>
+                    <p className="text-[9px] text-success mt-0.5">{m.change} {m.period}</p>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Discoverability Tracking</h3></div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { keyword: "cybersecurity services dallas", position: 12, change: "+3", volume: "1.2K" },
+                    { keyword: "managed IT services texas", position: 18, change: "+7", volume: "880" },
+                    { keyword: "SOC 2 compliance help", position: 8, change: "+2", volume: "2.4K" },
+                    { keyword: "penetration testing company", position: 25, change: "-1", volume: "3.6K" },
+                    { keyword: "IT security consulting SMB", position: 15, change: "+5", volume: "720" },
+                  ].map((kw) => (
+                    <div key={kw.keyword} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{kw.keyword}</p>
+                        <p className="text-[10px] text-muted-foreground">Volume: {kw.volume}/mo</p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-center">
+                          <p className="text-sm font-bold">#{kw.position}</p>
+                          <p className="text-[9px] text-muted-foreground">Position</p>
+                        </div>
+                        <Badge variant="outline" className={`text-[9px] ${kw.change.startsWith("+") ? "border-success/30 text-success" : "border-crimson/30 text-crimson"}`}>{kw.change}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Authority Content Pipeline</h3></div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { title: "2026 Cybersecurity Compliance Guide", type: "Whitepaper", status: "published", authority: 92 },
+                    { title: "SOC 2 vs ISO 27001 Comparison", type: "Blog Series", status: "in_progress", authority: 78 },
+                    { title: "SMB Security Maturity Model", type: "Framework", status: "draft", authority: 85 },
+                    { title: "Client Success: Healthcare Provider", type: "Case Study", status: "in_review", authority: 88 },
+                  ].map((content) => (
+                    <div key={content.title} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                      <div className="min-w-0 mr-2">
+                        <p className="text-sm font-medium truncate">{content.title}</p>
+                        <Badge variant="outline" className="text-[9px] mt-0.5">{content.type}</Badge>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <ConfidenceMeter score={content.authority} size="sm" className="w-16" showLabel={false} />
+                        <StatusBadge variant={content.status === "published" ? "active" : content.status === "in_review" ? "awaiting-review" : "draft"} label={content.status.replace("_", " ")} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
         )}
       </motion.div>
       </ModeAwareWrapper>

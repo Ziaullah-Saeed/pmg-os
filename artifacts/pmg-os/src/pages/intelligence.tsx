@@ -23,9 +23,11 @@ const tabs = [
   { id: "companies", label: "Company Intelligence", icon: <Building2 className="h-3.5 w-3.5" /> },
   { id: "contacts", label: "Decision Maker Map", icon: <Users className="h-3.5 w-3.5" /> },
   { id: "icp", label: "ICP Analysis", icon: <Crosshair className="h-3.5 w-3.5" /> },
+  { id: "service-fit", label: "Service-Fit Scoring", icon: <Target className="h-3.5 w-3.5" /> },
   { id: "competitors", label: "Competitor Watch", icon: <Eye className="h-3.5 w-3.5" /> },
   { id: "pain", label: "Pain Analysis", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
   { id: "positioning", label: "Positioning", icon: <Lightbulb className="h-3.5 w-3.5" /> },
+  { id: "niche", label: "Niche Opportunities", icon: <Search className="h-3.5 w-3.5" /> },
 ];
 
 const competitors = [
@@ -334,6 +336,55 @@ export default function Intelligence() {
           );
         })()}
 
+        {activeTab === "service-fit" && (
+          <div className="space-y-6">
+            <GlassCard glow="crimson" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Service-Fit Scoring Matrix</h3>
+                </div>
+                <StatusBadge variant="ai-executed" label="AI Computed" />
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {companyList.length > 0 ? [...companyList].sort((a: any, b: any) => (b.fitScore ?? b.fit_score ?? 0) - (a.fitScore ?? a.fit_score ?? 0)).map((company: any) => {
+                  const fit = company.fitScore ?? company.fit_score ?? 0;
+                  const services = [
+                    { name: "Pen Testing", score: fit > 60 ? Math.min(fit + 10, 100) : fit - 10, match: fit > 70 },
+                    { name: "Compliance", score: fit > 50 ? Math.min(fit + 5, 100) : fit, match: fit > 60 },
+                    { name: "Managed Security", score: fit > 40 ? Math.min(fit + 15, 100) : fit - 5, match: fit > 55 },
+                    { name: "IR Response", score: Math.max(fit - 15, 20), match: fit > 75 },
+                  ];
+                  return (
+                    <div key={company.id} className="p-3 rounded-lg glass-surface">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-crimson/10 flex items-center justify-center text-crimson font-bold text-xs">{company.name?.charAt(0)}</div>
+                          <div>
+                            <p className="text-sm font-medium">{company.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{company.industry}</p>
+                          </div>
+                        </div>
+                        <ConfidenceMeter score={fit} className="w-20" />
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        {services.map((svc) => (
+                          <div key={svc.name} className={`p-2 rounded text-center ${svc.match ? "bg-success/10 border border-success/20" : "bg-white/[0.02]"}`}>
+                            <p className={`text-xs font-bold ${svc.match ? "text-success" : "text-muted-foreground"}`}>{svc.score}%</p>
+                            <p className="text-[9px] text-muted-foreground">{svc.name}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <div className="py-6 text-center text-sm text-muted-foreground">Add companies to generate service-fit scores</div>
+                )}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
         {activeTab === "competitors" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {competitors.map((comp) => (
@@ -500,6 +551,80 @@ export default function Intelligence() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "niche" && (
+          <div className="space-y-6">
+            <GlassCard glow="blue" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-info" />
+                  <h3 className="text-sm font-semibold">Niche Opportunity Scoring</h3>
+                </div>
+                <StatusBadge variant="ai-executed" label="AI Discovered" />
+              </div>
+              <div className="px-5 pb-4 space-y-3">
+                {[
+                  { niche: "Healthcare Compliance (HIPAA)", score: 94, tam: "$2.4B", competition: "Medium", entry: "Low barrier — PMG has existing healthcare clients", services: ["HIPAA Audit", "Pen Testing", "Staff Training"] },
+                  { niche: "Legal Firm Data Protection", score: 88, tam: "$890M", competition: "Low", entry: "Quick win — underserved market", services: ["Data Encryption", "DLP Setup", "Compliance Monitoring"] },
+                  { niche: "Financial Services SOC 2", score: 82, tam: "$3.1B", competition: "High", entry: "Requires SOC 2 certification", services: ["SOC 2 Readiness", "Continuous Monitoring", "Audit Support"] },
+                  { niche: "Manufacturing OT/IT Security", score: 72, tam: "$1.7B", competition: "Medium", entry: "Needs OT expertise investment", services: ["OT Assessment", "Network Segmentation", "Incident Response"] },
+                  { niche: "Education Sector Cybersecurity", score: 68, tam: "$640M", competition: "Low", entry: "Budget-sensitive — needs SMB pricing", services: ["Endpoint Protection", "Phishing Training", "Email Security"] },
+                ].map((opp) => (
+                  <div key={opp.niche} className="p-4 rounded-lg glass-surface">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="text-sm font-semibold">{opp.niche}</h4>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{opp.entry}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-lg font-bold gradient-text-crimson">{opp.score}%</p>
+                        <p className="text-[9px] text-muted-foreground">Opportunity Score</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <div className="p-2 rounded glass-surface text-center">
+                        <p className="text-xs font-bold">{opp.tam}</p>
+                        <p className="text-[9px] text-muted-foreground">TAM</p>
+                      </div>
+                      <div className="p-2 rounded glass-surface text-center">
+                        <p className={`text-xs font-bold ${opp.competition === "Low" ? "text-success" : opp.competition === "High" ? "text-crimson" : "text-warning"}`}>{opp.competition}</p>
+                        <p className="text-[9px] text-muted-foreground">Competition</p>
+                      </div>
+                      <div className="p-2 rounded glass-surface text-center">
+                        <p className="text-xs font-bold">{opp.services.length}</p>
+                        <p className="text-[9px] text-muted-foreground">Services</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {opp.services.map((s) => <Badge key={s} variant="outline" className="text-[9px]">{s}</Badge>)}
+                    </div>
+                    <ConfidenceMeter score={opp.score} className="mt-2" />
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Market Messaging Gap Analysis</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { gap: "No content addressing AI-powered security for SMBs", severity: 85, fix: "Create thought leadership content: 'AI Security That Small Businesses Can Actually Afford'" },
+                  { gap: "Missing comparison content vs traditional MSSPs", severity: 72, fix: "Build comparison landing pages with ROI calculators" },
+                  { gap: "No vertical-specific case studies", severity: 68, fix: "Develop 3 industry-specific success stories (Healthcare, Legal, Finance)" },
+                  { gap: "Lack of compliance roadmap content", severity: 60, fix: "Create interactive compliance assessment tool" },
+                ].map((item) => (
+                  <div key={item.gap} className={`p-3 rounded-lg border ${item.severity >= 80 ? "border-crimson/30 bg-crimson/5" : item.severity >= 65 ? "border-warning/20 bg-warning/5" : "border-white/5 bg-white/[0.02]"}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-semibold">{item.gap}</p>
+                      <span className={`text-[10px] font-bold ${item.severity >= 80 ? "text-crimson" : "text-warning"}`}>{item.severity}% impact</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">{item.fix}</p>
+                  </div>
+                ))}
               </div>
             </GlassCard>
           </div>

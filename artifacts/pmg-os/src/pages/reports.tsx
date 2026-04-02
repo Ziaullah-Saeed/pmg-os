@@ -17,7 +17,8 @@ import { ModeAwareWrapper, ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBa
 import {
   FileBox, FileText, Search, BarChart3, Sparkles,
   Download, Clock, Eye, BookOpen, Brain, Loader2, FileDown,
-  Calendar, Mail, MessageSquare, Zap, Activity, TrendingUp
+  Calendar, Mail, MessageSquare, Zap, Activity, TrendingUp,
+  CheckCircle2, AlertTriangle
 } from "lucide-react";
 import { apiFetch } from "@/hooks/use-api";
 
@@ -26,6 +27,7 @@ const tabs = [
   { id: "scheduled", label: "Scheduled", icon: <Calendar className="h-3.5 w-3.5" /> },
   { id: "triggers", label: "Event Triggers", icon: <Zap className="h-3.5 w-3.5" /> },
   { id: "knowledge", label: "Knowledge Library", icon: <BookOpen className="h-3.5 w-3.5" /> },
+  { id: "lessons", label: "Lessons & Patterns", icon: <TrendingUp className="h-3.5 w-3.5" /> },
   { id: "archive", label: "Report Archive", icon: <FileBox className="h-3.5 w-3.5" /> },
 ];
 
@@ -429,6 +431,92 @@ export default function Reports() {
                   <p className="text-[10px] text-muted-foreground mt-1">Knowledge auto-populates from business events (deal wins, lead scoring, etc.)</p>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "lessons" && (
+          <div className="space-y-6">
+            <GlassCard glow="crimson" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Campaign Lessons Learned</h3>
+                </div>
+                <StatusBadge variant="ai-executed" label="AI Analyzed" />
+              </div>
+              <div className="px-5 pb-4 space-y-3">
+                {[
+                  { campaign: "LinkedIn Ads — Cybersecurity Awareness", lesson: "Video ads outperformed static images by 3.2x CTR. Focus on short-form video content for awareness campaigns.", impact: "high", domain: "marketing", type: "success" },
+                  { campaign: "Cold Email Sequence — Healthcare", lesson: "Personalized subject lines with compliance keywords had 2x open rate. Generic 'security' messaging underperforms in regulated industries.", impact: "high", domain: "outreach", type: "success" },
+                  { campaign: "Google Ads — Managed IT Services", lesson: "Broad match keywords drained budget without conversions. Switch to phrase match and add negative keywords for 'free' and 'DIY'.", impact: "critical", domain: "marketing", type: "failure" },
+                  { campaign: "Webinar Series — SOC 2 Readiness", lesson: "Post-webinar follow-up within 24 hours converts 4x better than 48+ hour delays. Automate immediate follow-up sequence.", impact: "high", domain: "communications", type: "success" },
+                  { campaign: "Referral Outreach Program", lesson: "Existing clients who received quarterly business reviews were 5x more likely to refer. Increase QBR frequency for top accounts.", impact: "medium", domain: "crm", type: "success" },
+                ].map((lesson, i) => (
+                  <div key={i} className={`p-4 rounded-lg ${lesson.type === "failure" ? "border border-crimson/20 bg-crimson/5" : "glass-surface"}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {lesson.type === "success" ? <CheckCircle2 className="h-4 w-4 text-success" /> : <AlertTriangle className="h-4 w-4 text-crimson" />}
+                        <p className="text-sm font-semibold">{lesson.campaign}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="text-[9px]">{lesson.domain}</Badge>
+                        <Badge variant="outline" className={`text-[9px] ${lesson.impact === "critical" ? "border-crimson/30 text-crimson" : lesson.impact === "high" ? "border-warning/30 text-warning" : ""}`}>{lesson.impact}</Badge>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{lesson.lesson}</p>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Best-Practice Reuse Index</h3></div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { practice: "Video-first content strategy", reuses: 12, successRate: 89, origin: "LinkedIn Campaign Q1" },
+                    { practice: "24-hour follow-up automation", reuses: 8, successRate: 94, origin: "Webinar Series" },
+                    { practice: "Compliance-specific messaging", reuses: 15, successRate: 82, origin: "Healthcare Outreach" },
+                    { practice: "Quarterly business reviews", reuses: 6, successRate: 91, origin: "Client Retention Program" },
+                    { practice: "Case study social proof", reuses: 10, successRate: 76, origin: "Financial Services Campaign" },
+                  ].map((bp) => (
+                    <div key={bp.practice} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium">{bp.practice}</p>
+                        <p className="text-[10px] text-muted-foreground">Origin: {bp.origin}</p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-success">{bp.successRate}%</p>
+                          <p className="text-[9px] text-muted-foreground">{bp.reuses} reuses</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Failed Pattern Detection</h3></div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { pattern: "Generic messaging to regulated industries", occurrences: 4, impact: "$12K wasted spend", fix: "Create industry-specific messaging tracks" },
+                    { pattern: "Broad match keyword spending", occurrences: 3, impact: "$8.5K wasted spend", fix: "Switch to phrase match + negative keywords" },
+                    { pattern: "Delayed follow-ups (>48hr)", occurrences: 7, impact: "23 lost opportunities", fix: "Automate within 24 hours via workflow" },
+                    { pattern: "Single-channel campaigns", occurrences: 5, impact: "40% lower conversion", fix: "Run multi-channel sequences (email + LinkedIn + call)" },
+                  ].map((fp) => (
+                    <div key={fp.pattern} className="p-3 rounded-lg border border-crimson/15 bg-crimson/5">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-crimson">{fp.pattern}</p>
+                        <Badge variant="outline" className="text-[9px] border-crimson/30 text-crimson">{fp.occurrences}x</Badge>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Impact: {fp.impact}</p>
+                      <p className="text-[10px] text-success mt-1">Fix: {fp.fix}</p>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
             </div>
           </div>
         )}

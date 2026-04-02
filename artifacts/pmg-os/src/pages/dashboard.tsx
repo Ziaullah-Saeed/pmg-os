@@ -15,11 +15,11 @@ import {
   Activity, AlertCircle, AlertTriangle, Bot, Briefcase, CheckCircle2,
   Clock, DollarSign, Eye, Flame, Megaphone, Server, Shield, Target,
   TrendingUp, Users, Zap, ArrowRight, BarChart3, ClipboardList,
-  Phone, FileText, CircleDot, Inbox, ListChecks
+  Phone, FileText, CircleDot, Inbox, ListChecks, Wallet, RefreshCw
 } from "lucide-react";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { ModeIndicatorBanner, HumanWorkflowGuide, HybridItemBadge } from "@/components/mode-aware-wrapper";
-import { useAgentStats, useAiRecommendations, useInterventionQueue, useAgentActivity } from "@/hooks/use-api";
+import { useAgentStats, useAiRecommendations, useInterventionQueue, useAgentActivity, useJobQueueStats, useChannelHealth, usePendingActions, useInvoices, useContracts } from "@/hooks/use-api";
 import { Button } from "@/components/ui/button";
 
 const stagger = {
@@ -63,6 +63,11 @@ export default function Dashboard() {
   const { data: leads } = useListLeads();
   const { data: cmdCenter } = useCommandCenter();
   const { data: wallet } = useWalletBalance();
+  const { data: invoiceListDash } = useInvoices();
+  const { data: contractListDash } = useContracts();
+  const { data: pendingActionsDash } = usePendingActions();
+  const { data: channelHealthDash } = useChannelHealth();
+  const { data: jobQueueStatsDash } = useJobQueueStats();
 
   const taskList = (tasks ?? []) as any[];
   const oppList = (opportunities ?? []) as any[];
@@ -361,12 +366,129 @@ export default function Dashboard() {
           </div>
         )}
 
-        {activeView === "operations" && (
+        {activeView === "operations" && (() => {
+          const overdueInvList = (invoiceListDash ?? []).filter((inv: any) => inv.status === "overdue");
+          const pendingContractsList = (contractListDash ?? []).filter((c: any) => c.status === "pending" || c.status === "draft");
+          const failingCampaigns = campaignList.filter((c: any) => {
+            const leads = c.leadsGenerated ?? c.leads_generated ?? 0;
+            return c.budget && (c.spent ?? 0) > c.budget * 0.5 && leads < 2;
+          });
+          const pendingActionsList = (pendingActionsDash ?? []) as any[];
+          const channelHealthData = (channelHealthDash ?? {}) as any;
+          const jobStats = (jobQueueStatsDash ?? {}) as any;
+          const walletBal = wallet?.balance ?? 0;
+
+          const riskItems = [
+            ...staleDeals.map((d: any) => ({ type: "deal", severity: "warning" as const, title: `Stale Deal: ${d.title}`, detail: `No activity in ${staleDealThreshold}+ days — $${(d.value ?? 0).toLocaleString()}`, domain: "crm" })),
+            ...overdueInvList.map((inv: any) => ({ type: "invoice", severity: "critical" as const, title: `Overdue Invoice: INV-${String(inv.id).padStart(3, "0")}`, detail: `$${Number(inv.amount ?? 0).toLocaleString()} — ${inv.clientName ?? inv.client_name ?? "Client"}`, domain: "finance" })),
+            ...failingCampaigns.map((c: any) => ({ type: "campaign", severity: "warning" as const, title: `Underperforming: ${c.name}`, detail: `${c.leadsGenerated ?? c.leads_generated ?? 0} leads at ${Math.round(((c.spent ?? 0) / (c.budget ?? 1)) * 100)}% budget`, domain: "marketing" })),
+            ...criticalTasks.map((t: any) => ({ type: "task", severity: "critical" as const, title: `Critical Task: ${t.title}`, detail: t.description, domain: t.domain })),
+            ...(walletBal < 10 ? [{ type: "wallet", severity: "critical" as const, title: "Low Wallet Balance", detail: `$${walletBal.toFixed(2)} remaining — AI operations may halt`, domain: "system" }] : []),
+            ...(pendingActionsList.length > 5 ? [{ type: "approvals", severity: "warning" as const, title: "Approval Queue Pressure", detail: `${pendingActionsList.length} pending actions awaiting review`, domain: "execution" }] : []),
+          ];
+
+          return (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <KpiCard label="Active Tasks" value={taskList.filter((t: any) => t.status !== "completed").length} icon={<Zap className="h-4 w-4" />} accent="blue" />
               <KpiCard label="Pending Actions" value={pendingTasks.length} icon={<Clock className="h-4 w-4" />} accent="gold" />
               <KpiCard label="Critical Items" value={criticalTasks.length} icon={<AlertTriangle className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="Risk Items" value={riskItems.length} icon={<Shield className="h-4 w-4" />} accent={riskItems.length > 0 ? "crimson" : "success"} />
+            </div>
+
+            {riskItems.length > 0 && (
+              <GlassCard className="p-0 overflow-hidden" glow="crimson">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-crimson" />
+                    <h3 className="text-sm font-semibold">Cross-Domain Risk Queue</h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-crimson/20 text-crimson font-bold">{riskItems.length}</span>
+                  </div>
+                </div>
+                <div className="px-5 pb-4 space-y-2 max-h-[300px] overflow-auto">
+                  {riskItems.map((item, i) => (
+                    <div key={i} className={`flex items-center justify-between p-3 rounded-lg border ${item.severity === "critical" ? "border-crimson/30 bg-crimson/5" : "border-warning/20 bg-warning/5"}`}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${item.severity === "critical" ? "bg-crimson animate-pulse" : "bg-warning"}`} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{item.title}</p>
+                          <p className="text-[10px] text-muted-foreground">{item.detail}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="capitalize text-[10px] shrink-0 ml-2">{item.domain}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-gold" />
+                  <h3 className="text-sm font-semibold">Wallet & AI Spend</h3>
+                </div>
+                <div className="px-5 pb-4 space-y-3">
+                  <div className="p-3 rounded-lg glass-surface text-center">
+                    <p className={`text-2xl font-bold ${walletBal < 10 ? "text-crimson" : walletBal < 50 ? "text-warning" : "gradient-text-crimson"}`}>${walletBal.toFixed(2)}</p>
+                    <p className="text-[10px] text-muted-foreground">Current Balance</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-lg glass-surface text-center">
+                      <p className="text-sm font-bold">{jobStats.total ?? 0}</p>
+                      <p className="text-[9px] text-muted-foreground">Jobs Processed</p>
+                    </div>
+                    <div className="p-2 rounded-lg glass-surface text-center">
+                      <p className="text-sm font-bold text-crimson">{jobStats.failed ?? 0}</p>
+                      <p className="text-[9px] text-muted-foreground">Failed Jobs</p>
+                    </div>
+                  </div>
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 text-info" />
+                  <h3 className="text-sm font-semibold">Sync & Channel Health</h3>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {Object.keys(channelHealthData).length > 0 ? Object.entries(channelHealthData).slice(0, 5).map(([channel, data]: [string, any]) => (
+                    <div key={channel} className="flex items-center justify-between p-2 rounded-lg glass-surface">
+                      <span className="text-xs font-medium capitalize">{channel.replace(/_/g, " ")}</span>
+                      <StatusBadge variant={data?.status === "healthy" ? "active" : data?.status === "degraded" ? "warning" : "critical"} label={data?.status ?? "unknown"} />
+                    </div>
+                  )) : (
+                    <>
+                      {["API Server", "Database", "AI Engine", "GHL Sync"].map((ch) => (
+                        <div key={ch} className="flex items-center justify-between p-2 rounded-lg glass-surface">
+                          <span className="text-xs font-medium">{ch}</span>
+                          <StatusBadge variant="active" label="Healthy" />
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                  <ListChecks className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Approval Pressure</h3>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {pendingActionsList.length > 0 ? pendingActionsList.slice(0, 5).map((action: any, i: number) => (
+                    <div key={action.id ?? i} className="flex items-center justify-between p-2 rounded-lg glass-surface">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium truncate">{action.description ?? action.type ?? "Pending Action"}</p>
+                        <p className="text-[9px] text-muted-foreground">{action.domain ?? "system"}</p>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] shrink-0">{action.status ?? "pending"}</Badge>
+                    </div>
+                  )) : (
+                    <div className="py-4 text-center text-xs text-muted-foreground">No pending approvals</div>
+                  )}
+                </div>
+              </GlassCard>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -422,7 +544,8 @@ export default function Dashboard() {
               </GlassCard>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {activeView === "health" && (
           <div className="space-y-6">

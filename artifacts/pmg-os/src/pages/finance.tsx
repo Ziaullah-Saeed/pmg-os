@@ -28,7 +28,9 @@ const tabs = [
   { id: "overview", label: "Financial Overview", icon: <TrendingUp className="h-3.5 w-3.5" /> },
   { id: "invoices", label: "Invoices", icon: <Receipt className="h-3.5 w-3.5" /> },
   { id: "contracts", label: "Contracts", icon: <FileText className="h-3.5 w-3.5" /> },
-  { id: "legal", label: "Legal", icon: <Scale className="h-3.5 w-3.5" /> },
+  { id: "expenses", label: "Expenses", icon: <DollarSign className="h-3.5 w-3.5" /> },
+  { id: "profitability", label: "Profitability", icon: <TrendingUp className="h-3.5 w-3.5" /> },
+  { id: "legal", label: "Legal & SOPs", icon: <Scale className="h-3.5 w-3.5" /> },
 ];
 
 const expenses = [
@@ -292,6 +294,143 @@ export default function Finance() {
           </GlassCard>
         )}
 
+        {activeTab === "expenses" && (
+          <div className="space-y-6">
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Expense Tracker</h3>
+                <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"><Plus className="h-3 w-3 mr-1" />Log Expense</Button>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { desc: "OpenAI API Credits", category: "Software & Tools", amount: 450, date: "2026-03-28", status: "approved", recurring: true },
+                  { desc: "LinkedIn Sales Navigator", category: "Marketing", amount: 149, date: "2026-03-25", status: "approved", recurring: true },
+                  { desc: "Cloud Infrastructure (AWS)", category: "Operations", amount: 890, date: "2026-03-20", status: "approved", recurring: true },
+                  { desc: "Cybersecurity Conference", category: "Marketing", amount: 2500, date: "2026-03-15", status: "pending", recurring: false },
+                  { desc: "Legal Review — NDA Template", category: "Operations", amount: 750, date: "2026-03-10", status: "approved", recurring: false },
+                  { desc: "Contractor — Pen Testing", category: "Personnel", amount: 3200, date: "2026-03-05", status: "approved", recurring: false },
+                ].map((exp, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{exp.desc}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Badge variant="outline" className="text-[9px]">{exp.category}</Badge>
+                          <span className="text-[10px] text-muted-foreground">{exp.date}</span>
+                          {exp.recurring && <Badge variant="outline" className="text-[9px] border-info/30 text-info">Recurring</Badge>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-sm font-bold">${exp.amount.toLocaleString()}</span>
+                      <StatusBadge variant={exp.status === "approved" ? "active" : "pending"} label={exp.status} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-4 gap-4">
+              {expenses.map((exp) => (
+                <GlassCard key={exp.category} className="text-center">
+                  <p className="text-xl font-bold gradient-text-crimson">${exp.amount.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground">{exp.category}</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">{exp.pct}% of total</p>
+                </GlassCard>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "profitability" && (() => {
+          const margin = totalInvoiced > 0 ? Math.round(((totalInvoiced - expenses.reduce((s, e) => s + e.amount, 0)) / totalInvoiced) * 100) : 0;
+          const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+          const netProfit = totalInvoiced - totalExpenses;
+          return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <GlassCard className="text-center" glow={netProfit > 0 ? "success" : "crimson"}>
+                <p className={`text-2xl font-bold ${netProfit > 0 ? "text-success" : "text-crimson"}`}>${netProfit.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">Net Profit</p>
+              </GlassCard>
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold gradient-text-crimson">{margin}%</p>
+                <p className="text-[10px] text-muted-foreground">Profit Margin</p>
+              </GlassCard>
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold text-success">${totalInvoiced.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">Total Revenue</p>
+              </GlassCard>
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold text-warning">${totalExpenses.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">Total Expenses</p>
+              </GlassCard>
+            </div>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Profitability by Client</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {(() => {
+                  const clientMap: Record<string, { invoiced: number; count: number }> = {};
+                  invoiceList.forEach((inv: any) => {
+                    const name = inv.clientName ?? inv.client_name ?? "Unknown";
+                    if (!clientMap[name]) clientMap[name] = { invoiced: 0, count: 0 };
+                    clientMap[name].invoiced += Number(inv.amount ?? 0);
+                    clientMap[name].count++;
+                  });
+                  const clients = Object.entries(clientMap).sort(([, a], [, b]) => b.invoiced - a.invoiced);
+                  return clients.length > 0 ? clients.map(([name, data]) => (
+                    <div key={name} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                      <div>
+                        <p className="text-sm font-medium">{name}</p>
+                        <p className="text-[10px] text-muted-foreground">{data.count} invoice(s)</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold gradient-text-crimson">${data.invoiced.toLocaleString()}</span>
+                        <ConfidenceMeter score={Math.min(Math.round(data.invoiced / (totalInvoiced || 1) * 100), 100)} size="sm" className="w-16" showLabel={false} />
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No invoice data for profitability analysis</p>
+                  );
+                })()}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Contract Review Flags</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {contractList.filter((c: any) => {
+                  const end = c.endDate ?? c.end_date;
+                  if (!end) return false;
+                  const daysLeft = (new Date(end).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+                  return daysLeft < 30 && daysLeft > 0;
+                }).map((c: any) => (
+                  <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border border-warning/20 bg-warning/5">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">{c.title ?? "Contract"}</p>
+                        <p className="text-[10px] text-muted-foreground">Expires: {new Date(c.endDate ?? c.end_date).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg">Review</Button>
+                  </div>
+                ))}
+                {contractList.filter((c: any) => {
+                  const end = c.endDate ?? c.end_date;
+                  if (!end) return false;
+                  const daysLeft = (new Date(end).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+                  return daysLeft < 30 && daysLeft > 0;
+                }).length === 0 && (
+                  <div className="py-4 text-center text-xs text-muted-foreground">No contracts expiring within 30 days</div>
+                )}
+              </div>
+            </GlassCard>
+          </div>
+          );
+        })()}
+
         {activeTab === "legal" && (
           <div className="space-y-6">
             <GlassCard className="p-0 overflow-hidden">
@@ -330,6 +469,56 @@ export default function Finance() {
                     When a matter exceeds standard template boundaries, the system will flag it with: <StatusBadge variant="human-required" />. Always consult qualified legal counsel.
                   </p>
                 </div>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Standard Operating Procedures (SOPs)</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { name: "Client Onboarding Process", domain: "crm", version: "v2.1", lastReview: "2026-01-15", status: "active" },
+                  { name: "Incident Response Protocol", domain: "production", version: "v3.0", lastReview: "2026-02-01", status: "active" },
+                  { name: "Invoice Approval Workflow", domain: "finance", version: "v1.3", lastReview: "2026-01-20", status: "active" },
+                  { name: "Lead Qualification Checklist", domain: "outreach", version: "v2.0", lastReview: "2025-12-15", status: "needs_review" },
+                  { name: "Content Publishing Guidelines", domain: "marketing", version: "v1.5", lastReview: "2026-02-10", status: "active" },
+                  { name: "Security Assessment Methodology", domain: "production", version: "v4.0", lastReview: "2026-01-08", status: "active" },
+                ].map((sop) => (
+                  <div key={sop.name} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{sop.name}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Badge variant="outline" className="text-[9px]">{sop.domain}</Badge>
+                        <Badge variant="outline" className="text-[9px]">{sop.version}</Badge>
+                        <span className="text-[10px] text-muted-foreground">Reviewed: {sop.lastReview}</span>
+                      </div>
+                    </div>
+                    <StatusBadge variant={sop.status === "active" ? "active" : "warning"} label={sop.status === "needs_review" ? "Needs Review" : sop.status} />
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Quality Assurance Rules</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { rule: "All proposals require manager sign-off before sending", domain: "crm", compliance: 100 },
+                  { rule: "Invoices > $10K require double approval", domain: "finance", compliance: 95 },
+                  { rule: "Content must pass brand guidelines check", domain: "marketing", compliance: 88 },
+                  { rule: "Security reports must include CVSS scoring", domain: "production", compliance: 100 },
+                  { rule: "Client data handling follows DPA requirements", domain: "legal", compliance: 100 },
+                ].map((qa) => (
+                  <div key={qa.rule} className="p-3 rounded-lg glass-surface">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-medium">{qa.rule}</p>
+                      <Badge variant="outline" className="text-[9px]">{qa.domain}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ConfidenceMeter score={qa.compliance} className="flex-1" showLabel={false} />
+                      <span className={`text-xs font-bold ${qa.compliance === 100 ? "text-success" : "text-warning"}`}>{qa.compliance}%</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </GlassCard>
           </div>

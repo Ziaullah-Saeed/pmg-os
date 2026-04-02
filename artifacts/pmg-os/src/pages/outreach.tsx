@@ -23,6 +23,9 @@ const tabs = [
   { id: "pipeline", label: "Lead Pipeline", icon: <Target className="h-3.5 w-3.5" /> },
   { id: "sequences", label: "Outbound Sequences", icon: <Send className="h-3.5 w-3.5" /> },
   { id: "qualification", label: "Qualification", icon: <ListChecks className="h-3.5 w-3.5" /> },
+  { id: "enrichment", label: "Enrichment", icon: <Sparkles className="h-3.5 w-3.5" /> },
+  { id: "pain-map", label: "Pain Mapping", icon: <AlertCircle className="h-3.5 w-3.5" /> },
+  { id: "routing", label: "Routing Logic", icon: <ArrowRight className="h-3.5 w-3.5" /> },
 ];
 
 export default function Outreach() {
@@ -241,6 +244,207 @@ export default function Outreach() {
               ))}
             </div>
           </GlassCard>
+        )}
+        {activeTab === "enrichment" && (
+          <div className="space-y-6">
+            <GlassCard glow="blue" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-info" />
+                  <h3 className="text-sm font-semibold">Lead Enrichment Pipeline</h3>
+                </div>
+                <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"><Sparkles className="h-3 w-3 mr-1" />Enrich All</Button>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {leadList.map((lead: any) => {
+                  const hasEmail = !!(lead.email);
+                  const hasPhone = !!(lead.phone);
+                  const hasPain = !!(lead.painPoints ?? lead.pain_points);
+                  const hasAngle = !!(lead.bestAngle ?? lead.best_angle);
+                  const enriched = [hasEmail, hasPhone, hasPain, hasAngle].filter(Boolean).length;
+                  const total = 4;
+                  const pct = Math.round((enriched / total) * 100);
+                  return (
+                    <div key={lead.id} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${pct === 100 ? "bg-success/20 text-success" : pct >= 50 ? "bg-warning/20 text-warning" : "bg-crimson/20 text-crimson"}`}>{pct}%</div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{lead.companyName ?? lead.company_name}</p>
+                          <p className="text-[10px] text-muted-foreground">{lead.contactName ?? lead.contact_name} · {lead.source}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Badge variant="outline" className={`text-[9px] ${hasEmail ? "border-success/30 text-success" : "border-crimson/30 text-crimson"}`}>Email</Badge>
+                        <Badge variant="outline" className={`text-[9px] ${hasPhone ? "border-success/30 text-success" : "border-crimson/30 text-crimson"}`}>Phone</Badge>
+                        <Badge variant="outline" className={`text-[9px] ${hasPain ? "border-success/30 text-success" : "border-crimson/30 text-crimson"}`}>Pain</Badge>
+                        <Badge variant="outline" className={`text-[9px] ${hasAngle ? "border-success/30 text-success" : "border-crimson/30 text-crimson"}`}>Angle</Badge>
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2"><Sparkles className="h-3 w-3 mr-1" />Enrich</Button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {leadList.length === 0 && <div className="py-6 text-center text-sm text-muted-foreground">No leads to enrich</div>}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Verification Status</h3>
+                <div className="space-y-2">
+                  {[
+                    { label: "Email Verified", count: leadList.filter((l: any) => l.email).length, total: leadList.length, color: "bg-success" },
+                    { label: "Phone Available", count: leadList.filter((l: any) => l.phone).length, total: leadList.length, color: "bg-info" },
+                    { label: "Company Matched", count: leadList.filter((l: any) => l.companyId ?? l.company_id).length, total: leadList.length, color: "bg-warning" },
+                  ].map((item) => (
+                    <div key={item.label} className="space-y-1">
+                      <div className="flex justify-between text-xs"><span>{item.label}</span><span className="tabular-nums">{item.count}/{item.total}</span></div>
+                      <div className="h-1.5 rounded-full bg-white/5"><div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.total ? (item.count / item.total) * 100 : 0}%` }} /></div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Authority Detection</h3>
+                <div className="space-y-2">
+                  {leadList.slice(0, 5).map((lead: any) => (
+                    <div key={lead.id} className="flex items-center justify-between p-2 rounded-lg glass-surface text-xs">
+                      <span className="truncate">{lead.contactName ?? lead.contact_name ?? "Unknown"}</span>
+                      <Badge variant="outline" className={`text-[9px] ${lead.priority === "critical" ? "border-crimson/30 text-crimson" : lead.priority === "high" ? "border-warning/30 text-warning" : "border-info/30 text-info"}`}>
+                        {lead.priority === "critical" ? "C-Suite" : lead.priority === "high" ? "VP/Director" : "Manager"}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+              <GlassCard>
+                <h3 className="text-sm font-semibold mb-3">Discovery Queue</h3>
+                <div className="space-y-2">
+                  {companyList.slice(0, 5).map((company: any) => (
+                    <div key={company.id} className="flex items-center justify-between p-2 rounded-lg glass-surface text-xs">
+                      <span className="truncate">{company.name}</span>
+                      <span className="text-muted-foreground">{company.industry}</span>
+                    </div>
+                  ))}
+                  {companyList.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">No companies discovered</p>}
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "pain-map" && (
+          <div className="space-y-6">
+            <GlassCard glow="crimson" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Pain Point Matrix — Derived from {leadList.length} Leads</h3>
+                </div>
+                <StatusBadge variant="ai-executed" label="AI Analyzed" />
+              </div>
+              <div className="px-5 pb-4 space-y-3">
+                {(() => {
+                  const painMap: Record<string, { count: number; leads: string[] }> = {};
+                  leadList.forEach((l: any) => {
+                    const pain = l.painPoints ?? l.pain_points;
+                    if (pain) {
+                      if (!painMap[pain]) painMap[pain] = { count: 0, leads: [] };
+                      painMap[pain].count++;
+                      painMap[pain].leads.push(l.companyName ?? l.company_name ?? "Unknown");
+                    }
+                  });
+                  const sorted = Object.entries(painMap).sort(([, a], [, b]) => b.count - a.count);
+                  return sorted.length > 0 ? sorted.map(([pain, data]) => (
+                    <div key={pain} className="p-3 rounded-lg glass-surface">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold">{pain}</p>
+                        <Badge variant="outline" className="text-[10px]">{data.count} leads</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {data.leads.map((name, i) => <Badge key={i} variant="outline" className="text-[9px]">{name}</Badge>)}
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="py-6 text-center">
+                      <AlertCircle className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No pain points mapped yet. Enrich leads to detect pain signals.</p>
+                    </div>
+                  );
+                })()}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-gold" />
+                <h3 className="text-sm font-semibold">Outreach Angle Generator</h3>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {leadList.filter((l: any) => l.bestAngle ?? l.best_angle).slice(0, 6).map((lead: any) => (
+                  <div key={lead.id} className="flex items-start gap-3 p-3 rounded-lg glass-surface">
+                    <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold">{lead.companyName ?? lead.company_name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{lead.bestAngle ?? lead.best_angle}</p>
+                    </div>
+                  </div>
+                ))}
+                {leadList.filter((l: any) => l.bestAngle ?? l.best_angle).length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">Enrich leads to generate outreach angles</p>
+                )}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "routing" && (
+          <div className="space-y-6">
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ArrowRight className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Lead Routing Rules</h3>
+                </div>
+                <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"><Plus className="h-3 w-3 mr-1" />Add Rule</Button>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { condition: "Fit Score ≥ 80%", action: "Route to CRM → Discovery Stage", priority: "critical", status: "active" },
+                  { condition: "Fit Score 60-79%", action: "Add to Nurture Sequence", priority: "high", status: "active" },
+                  { condition: "Fit Score < 60%", action: "Queue for Review", priority: "medium", status: "active" },
+                  { condition: "Pain = Compliance", action: "Route to Compliance Team", priority: "high", status: "active" },
+                  { condition: "Source = Referral", action: "Priority Queue + Personal Outreach", priority: "critical", status: "active" },
+                  { condition: "Decision Maker Identified", action: "Direct Outreach Sequence", priority: "high", status: "active" },
+                ].map((rule, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${rule.priority === "critical" ? "bg-crimson" : rule.priority === "high" ? "bg-warning" : "bg-info"}`} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{rule.condition}</p>
+                        <p className="text-[10px] text-muted-foreground">{rule.action}</p>
+                      </div>
+                    </div>
+                    <StatusBadge variant="active" label={rule.status} />
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold gradient-text-crimson">{leadList.filter((l: any) => (l.fitScore ?? l.fit_score ?? 0) >= 80).length}</p>
+                <p className="text-[10px] text-muted-foreground">Auto-Routed to CRM</p>
+              </GlassCard>
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold text-warning">{leadList.filter((l: any) => { const f = l.fitScore ?? l.fit_score ?? 0; return f >= 60 && f < 80; }).length}</p>
+                <p className="text-[10px] text-muted-foreground">In Nurture Queue</p>
+              </GlassCard>
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold text-info">{leadList.filter((l: any) => (l.fitScore ?? l.fit_score ?? 0) < 60).length}</p>
+                <p className="text-[10px] text-muted-foreground">Pending Review</p>
+              </GlassCard>
+            </div>
+          </div>
         )}
       </motion.div>
       </ModeAwareWrapper>

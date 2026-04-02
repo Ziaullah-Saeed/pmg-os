@@ -21,7 +21,7 @@ import {
   Briefcase, Plus, DollarSign, TrendingUp, Clock, AlertTriangle,
   ArrowRight, FileText, Phone, Calendar, ChevronRight, Bot, Target, Users,
   GripVertical, Pencil, Save, X, Loader2, Building2, User, MessageSquare,
-  CheckCircle2, Send, Sparkles, History
+  CheckCircle2, Send, Sparkles, History, RefreshCw
 } from "lucide-react";
 import { CreateLeadForm } from "@/components/forms/create-lead-form";
 import { CreateOpportunityForm } from "@/components/forms/create-opportunity-form";
@@ -41,6 +41,8 @@ const pmgTabs = [
   { id: "routing", label: "GHL Routing", icon: <ArrowRight className="h-3.5 w-3.5" /> },
   { id: "sequences", label: "Sequences", icon: <Clock className="h-3.5 w-3.5" /> },
   { id: "insights", label: "AI Insights", icon: <Bot className="h-3.5 w-3.5" /> },
+  { id: "meetings", label: "Meetings", icon: <Calendar className="h-3.5 w-3.5" /> },
+  { id: "sync-center", label: "Sync Center", icon: <RefreshCw className="h-3.5 w-3.5" /> },
 ];
 
 const clientTabs = [
@@ -212,6 +214,7 @@ export default function CRM() {
   const { isHuman, isHybrid, isAuto } = useAiModeContext();
 
   const leadList = (leads ?? []) as any[];
+  const companyList = (companies ?? []) as any[];
 
   const oppList = (opportunities ?? []) as any[];
   const commList = (communications ?? []) as any[];
@@ -662,6 +665,127 @@ export default function CRM() {
                 <p className="mt-2">Top conversion opportunity: <strong>{oppList[0]?.title ?? "No deals yet"}</strong> at {oppList[0]?.probability ?? 0}% probability.</p>
               </div>
             </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "meetings" && (
+          <div className="space-y-6">
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-crimson" />
+                  <h3 className="text-sm font-semibold">Upcoming Meetings</h3>
+                </div>
+                <Button className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg"><Plus className="h-3 w-3 mr-1" />Schedule Meeting</Button>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { title: "Discovery Call — Acme Corp", type: "Discovery", date: "Apr 4, 10:00 AM", duration: "30 min", attendees: ["SherShah K.", "John Smith (Acme)"], stage: "discovery", deal: "Acme Security Audit" },
+                  { title: "Proposal Review — DataVault Inc", type: "Proposal", date: "Apr 5, 2:00 PM", duration: "45 min", attendees: ["SherShah K.", "Sarah Chen (DataVault)", "Legal Team"], stage: "proposal", deal: "DataVault Compliance Package" },
+                  { title: "QBR — TechStart LLC", type: "Account Review", date: "Apr 7, 11:00 AM", duration: "60 min", attendees: ["SherShah K.", "Mike Johnson (TechStart)"], stage: "closed_won", deal: "TechStart Managed Security" },
+                  { title: "Demo — SecureNet Solutions", type: "Demo", date: "Apr 8, 3:30 PM", duration: "45 min", attendees: ["SherShah K.", "Lisa Park (SecureNet)", "CTO"], stage: "qualification", deal: "SecureNet Pen Testing" },
+                ].map((meeting, i) => (
+                  <div key={i} className="p-3 rounded-lg glass-surface">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">{meeting.title}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Badge variant="outline" className="text-[9px]">{meeting.type}</Badge>
+                          <Badge variant="outline" className="text-[9px]">{meeting.duration}</Badge>
+                          <span className="text-[10px] text-crimson font-medium">{meeting.date}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg"><Sparkles className="h-3 w-3 mr-1" />Prep Brief</Button>
+                        <Button className="btn-premium text-white text-xs px-2 py-1 rounded-lg">Join</Button>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {meeting.attendees.map((a, j) => <Badge key={j} variant="outline" className="text-[9px]">{a}</Badge>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold">Recent Meeting Notes</h3></div>
+              <div className="px-5 pb-4 space-y-2">
+                {commList.filter((c: any) => c.type === "meeting").slice(0, 5).map((comm: any) => (
+                  <div key={comm.id} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium">{comm.subject}</p>
+                      <p className="text-[10px] text-muted-foreground">{comm.createdAt ? new Date(comm.createdAt).toLocaleDateString() : ""} · {comm.duration ? `${comm.duration} min` : ""}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusBadge variant={comm.sentiment === "positive" ? "success" : "pending"} label={comm.sentiment ?? "neutral"} />
+                      <Button variant="ghost" size="sm" className="h-6 text-[9px] px-2">View Notes</Button>
+                    </div>
+                  </div>
+                ))}
+                {commList.filter((c: any) => c.type === "meeting").length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">No meeting notes recorded yet</p>
+                )}
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {activeTab === "sync-center" && (
+          <div className="space-y-6">
+            <GlassCard glow="blue" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 text-info" />
+                  <h3 className="text-sm font-semibold">CRM Sync Status</h3>
+                </div>
+                <Button className="btn-glass text-foreground text-xs px-3 py-1.5 rounded-lg"><RefreshCw className="h-3 w-3 mr-1" />Sync All</Button>
+              </div>
+              <div className="px-5 pb-4 space-y-2">
+                {[
+                  { entity: "Leads", source: "GoHighLevel", lastSync: "5 min ago", synced: leadList.length, pending: 0, status: "synced" },
+                  { entity: "Opportunities", source: "Internal CRM", lastSync: "2 min ago", synced: oppList.length, pending: 0, status: "synced" },
+                  { entity: "Contacts", source: "GoHighLevel", lastSync: "10 min ago", synced: commList.length, pending: 2, status: "partial" },
+                  { entity: "Companies", source: "Intelligence Module", lastSync: "15 min ago", synced: companyList.length, pending: 0, status: "synced" },
+                  { entity: "Communications", source: "Multi-Channel", lastSync: "1 min ago", synced: commList.length, pending: 0, status: "synced" },
+                ].map((sync) => (
+                  <div key={sync.entity} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${sync.status === "synced" ? "bg-success" : sync.status === "partial" ? "bg-warning" : "bg-crimson"}`} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{sync.entity}</p>
+                        <p className="text-[10px] text-muted-foreground">{sync.source} · Last: {sync.lastSync}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <p className="text-xs font-bold">{sync.synced}</p>
+                        <p className="text-[9px] text-muted-foreground">synced</p>
+                      </div>
+                      {sync.pending > 0 && (
+                        <Badge variant="outline" className="text-[9px] border-warning/30 text-warning">{sync.pending} pending</Badge>
+                      )}
+                      <StatusBadge variant={sync.status === "synced" ? "active" : "warning"} label={sync.status} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold gradient-text-crimson">{leadList.length + oppList.length + companyList.length}</p>
+                <p className="text-[10px] text-muted-foreground">Total Records Synced</p>
+              </GlassCard>
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold text-success">98.5%</p>
+                <p className="text-[10px] text-muted-foreground">Sync Health Score</p>
+              </GlassCard>
+              <GlassCard className="text-center">
+                <p className="text-2xl font-bold text-info">2</p>
+                <p className="text-[10px] text-muted-foreground">Pending Conflicts</p>
+              </GlassCard>
+            </div>
           </div>
         )}
 

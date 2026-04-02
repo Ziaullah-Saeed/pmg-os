@@ -11,15 +11,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { useUpdateDocumentMut } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
+import { ConfidenceMeter } from "@/components/ui/confidence-meter";
 import {
-  Palette, FileText, CheckCircle2, Clock, Edit, Plus, Eye, Image, Film, Layout, Type,
+  Palette, FileText, CheckCircle2, Clock, Edit, Plus, Eye, EyeOff, Image, Film, Layout, Type,
   RotateCcw, ArrowRight, Sparkles, History, Ban, Layers, Settings, Download,
   ChevronLeft, ChevronRight, Maximize2, ZoomIn, ZoomOut, PanelLeftClose, PanelRightClose,
   Wand2, RefreshCw, MessageSquare, Star, Folder, Search, Grid3X3, List, Monitor,
   Smartphone, Tablet, Play, Pause, SkipForward, Volume2, Paintbrush, Shapes,
   AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, Copy, Trash2,
   Move, SquareDashedBottom, BookOpen, Pen, Video, Mic, Camera, Globe, FileImage,
-  PenTool, Brush, Crop, FlipHorizontal, RotateCw, Save, Upload, Send, Check
+  PenTool, Brush, Crop, FlipHorizontal, RotateCw, Save, Upload, Send, Check,
+  Lock, Unlock, AlertTriangle, Users, Shield, Package, Megaphone, Mail,
+  ChevronDown, ChevronUp, Pin, ThumbsUp, ThumbsDown, UserCheck, FileCheck,
+  Rocket, ExternalLink, Printer, Share2
 } from "lucide-react";
 import { CreateDocumentForm } from "@/components/forms/create-document-form";
 
@@ -75,7 +79,7 @@ export default function Production() {
   const [showCreateDoc, setShowCreateDoc] = useState(false);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  const [rightPanel, setRightPanel] = useState<"properties" | "brand" | "layers" | "comments" | "history">("properties");
+  const [rightPanel, setRightPanel] = useState<"properties" | "brand" | "layers" | "comments" | "history" | "finalize">("properties");
   const [leftPanel, setLeftPanel] = useState<"projects" | "assets" | "templates">("projects");
   const [zoomLevel, setZoomLevel] = useState(100);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -379,10 +383,10 @@ export default function Production() {
               )}
 
               {showReviewPanel && (
-                <div className="border-t border-white/5 bg-[hsl(214,65%,5%)] px-4 py-3 max-h-[200px] overflow-y-auto">
+                <div className="border-t border-white/5 bg-[hsl(214,65%,5%)] px-4 py-3 max-h-[280px] overflow-y-auto">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xs font-semibold flex items-center gap-2">
-                      <MessageSquare className="h-3.5 w-3.5 text-crimson" />Review & Comments
+                      <MessageSquare className="h-3.5 w-3.5 text-crimson" />Review & Approval
                     </h3>
                     <div className="flex gap-1">
                       <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-red-400" onClick={() => handleReject(selectedProject)} disabled={updateDoc.isPending}>
@@ -396,18 +400,67 @@ export default function Production() {
                       </Button>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="p-2 rounded-lg bg-white/5">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-5 h-5 rounded-full bg-crimson/30 flex items-center justify-center text-[8px] font-bold">SK</div>
-                        <span className="text-[10px] font-medium">SherShah K.</span>
-                        <span className="text-[9px] text-muted-foreground ml-auto">Just now</span>
+
+                  <div className="grid grid-cols-[1fr_auto] gap-3">
+                    <div className="space-y-2">
+                      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Comments & Annotations</p>
+                      {[
+                        { initials: "SK", name: "SherShah K.", time: "Just now", text: "Ready for review. Check brand alignment and messaging accuracy.", pinned: true, resolved: false },
+                        { initials: "AI", name: "AI Review Agent", time: "2 min ago", text: "Brand colors verified ✓ · Font hierarchy consistent ✓ · CTA contrast ratio passes WCAG AA", pinned: false, resolved: false },
+                        { initials: "JD", name: "Design Lead", time: "15 min ago", text: "Headline spacing could be tighter — reduce top margin by 8px.", pinned: false, resolved: true },
+                      ].map((c, i) => (
+                        <div key={i} className={`p-2 rounded-lg ${c.resolved ? "bg-green-500/5 border border-green-500/10" : "bg-white/5"}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold ${c.initials === "AI" ? "bg-green-500/30" : "bg-crimson/30"}`}>{c.initials}</div>
+                            <span className="text-[10px] font-medium">{c.name}</span>
+                            {c.pinned && <Pin className="h-2.5 w-2.5 text-yellow-400" />}
+                            {c.resolved && <CheckCircle2 className="h-2.5 w-2.5 text-green-400" />}
+                            <span className="text-[9px] text-muted-foreground ml-auto">{c.time}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300">{c.text}</p>
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <Button variant="ghost" size="sm" className="h-4 px-1 text-[8px]"><ThumbsUp className="h-2 w-2 mr-0.5" />Agree</Button>
+                            <Button variant="ghost" size="sm" className="h-4 px-1 text-[8px]"><MessageSquare className="h-2 w-2 mr-0.5" />Reply</Button>
+                            {!c.resolved && <Button variant="ghost" size="sm" className="h-4 px-1 text-[8px] text-green-400"><Check className="h-2 w-2 mr-0.5" />Resolve</Button>}
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex gap-2 mt-2">
+                        <Input placeholder="Add review comment..." className="h-7 text-[11px] bg-white/5 border-white/10 flex-1" />
+                        <Button size="sm" className="h-7 px-3 text-[10px] btn-premium text-white"><Send className="h-3 w-3" /></Button>
                       </div>
-                      <p className="text-[11px] text-slate-300">Ready for review. Check brand alignment and messaging accuracy.</p>
                     </div>
-                    <div className="flex gap-2 mt-2">
-                      <Input placeholder="Add review comment..." className="h-7 text-[11px] bg-white/5 border-white/10 flex-1" />
-                      <Button size="sm" className="h-7 px-3 text-[10px] btn-premium text-white"><Send className="h-3 w-3" /></Button>
+
+                    <div className="w-44 space-y-3">
+                      <div>
+                        <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Approval Matrix</p>
+                        {[
+                          { role: "Creative Lead", name: "SherShah K.", status: "approved" },
+                          { role: "Brand Manager", name: "Pending", status: "pending" },
+                          { role: "Client Rep", name: "Pending", status: "pending" },
+                        ].map((a, i) => (
+                          <div key={i} className="flex items-center gap-1.5 py-1">
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center ${a.status === "approved" ? "bg-green-500/20" : "bg-white/10"}`}>
+                              {a.status === "approved" ? <Check className="h-2.5 w-2.5 text-green-400" /> : <Clock className="h-2.5 w-2.5 text-muted-foreground" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[9px] font-medium truncate">{a.role}</p>
+                              <p className="text-[8px] text-muted-foreground truncate">{a.name}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">QA Checklist</p>
+                        {["Brand colors correct", "Copy proofread", "CTA visible", "Mobile responsive", "Legal disclaimer"].map((item, i) => (
+                          <div key={i} className="flex items-center gap-1.5 py-0.5">
+                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${i < 3 ? "bg-green-500/20 border-green-500/40" : "border-white/20"}`}>
+                              {i < 3 && <Check className="h-2 w-2 text-green-400" />}
+                            </div>
+                            <span className="text-[9px]">{item}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -483,7 +536,9 @@ export default function Production() {
                     { id: "properties", icon: <Settings className="h-3 w-3" />, label: "Props" },
                     { id: "brand", icon: <Star className="h-3 w-3" />, label: "Brand" },
                     { id: "layers", icon: <Layers className="h-3 w-3" />, label: "Layers" },
+                    { id: "comments", icon: <MessageSquare className="h-3 w-3" />, label: "Comments" },
                     { id: "history", icon: <History className="h-3 w-3" />, label: "History" },
+                    { id: "finalize", icon: <Rocket className="h-3 w-3" />, label: "Finalize" },
                   ] as const).map(tab => (
                     <Button
                       key={tab.id}
@@ -618,16 +673,122 @@ export default function Production() {
                 )}
 
                 {rightPanel === "layers" && (
-                  <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Layer Stack</p>
-                    <div className="space-y-1">
-                      {["Background", "Header Text", "Body Copy", "CTA Button", "Logo", "Accent Shape"].map((layer, i) => (
-                        <div key={layer} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${i === 0 ? "bg-crimson/10 border border-crimson/20" : "bg-white/5 hover:bg-white/10"} cursor-pointer`}>
-                          <Eye className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-[10px] flex-1">{layer}</span>
-                          <GlassCard className="!p-0 w-4 h-4 rounded flex items-center justify-center">
-                            <span className="text-[7px]">{6 - i}</span>
-                          </GlassCard>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Layer Stack</p>
+                        <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[8px]"><Plus className="h-2.5 w-2.5 mr-0.5" />Add</Button>
+                      </div>
+                      <div className="space-y-1">
+                        {[
+                          { name: "Logo", type: "image", visible: true, locked: true, opacity: 100 },
+                          { name: "Header Text", type: "text", visible: true, locked: false, opacity: 100 },
+                          { name: "Body Copy", type: "text", visible: true, locked: false, opacity: 100 },
+                          { name: "CTA Button", type: "shape", visible: true, locked: false, opacity: 95 },
+                          { name: "Accent Shape", type: "shape", visible: true, locked: false, opacity: 60 },
+                          { name: "Background", type: "fill", visible: true, locked: true, opacity: 100 },
+                        ].map((layer, i) => (
+                          <div key={layer.name} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors ${i === 0 ? "bg-crimson/10 border border-crimson/20" : "bg-white/5 hover:bg-white/10"} cursor-pointer group`}>
+                            <Button variant="ghost" size="sm" className="h-4 w-4 p-0 opacity-50 group-hover:opacity-100">
+                              {layer.visible ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5 text-muted-foreground" />}
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-4 w-4 p-0 opacity-50 group-hover:opacity-100">
+                              {layer.locked ? <Lock className="h-2.5 w-2.5 text-yellow-400" /> : <Unlock className="h-2.5 w-2.5" />}
+                            </Button>
+                            <span className="text-[10px] flex-1 truncate">{layer.name}</span>
+                            <span className="text-[8px] text-muted-foreground">{layer.opacity}%</span>
+                            <GlassCard className="!p-0 w-4 h-4 rounded flex items-center justify-center">
+                              <span className="text-[7px]">{6 - i}</span>
+                            </GlassCard>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {isAuto && (
+                      <div>
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">AI Regenerate</p>
+                        <div className="space-y-1.5">
+                          <Textarea placeholder="Describe changes... e.g. 'Make CTA more prominent, use golden gradient'" className="text-[10px] bg-white/5 border-white/10 min-h-[60px] resize-none" />
+                          <div className="flex gap-1">
+                            <Button size="sm" className="h-6 px-2 text-[9px] flex-1 bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30">
+                              <Sparkles className="h-2.5 w-2.5 mr-1" />Regenerate Selected
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-6 px-2 text-[9px]">
+                              <RefreshCw className="h-2.5 w-2.5 mr-1" />Variations
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Layer Actions</p>
+                      <div className="grid grid-cols-3 gap-1">
+                        {[
+                          { icon: <ChevronUp className="h-3 w-3" />, label: "Up" },
+                          { icon: <ChevronDown className="h-3 w-3" />, label: "Down" },
+                          { icon: <Copy className="h-3 w-3" />, label: "Dupe" },
+                          { icon: <Trash2 className="h-3 w-3" />, label: "Delete" },
+                          { icon: <Lock className="h-3 w-3" />, label: "Lock" },
+                          { icon: <Eye className="h-3 w-3" />, label: "Show" },
+                        ].map(a => (
+                          <Button key={a.label} variant="ghost" size="sm" className="h-7 text-[9px] flex-col gap-0.5">
+                            {a.icon}
+                            <span>{a.label}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {rightPanel === "comments" && (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Review Comments</p>
+                      <div className="space-y-2">
+                        {[
+                          { initials: "SK", name: "SherShah K.", time: "5 min ago", text: "Ensure CTA placement follows brand guide. Check headline contrast ratio.", pinned: true, resolved: false },
+                          { initials: "AI", name: "Brand Agent", time: "10 min ago", text: "Automated check: colors ✓, fonts ✓, logo placement ✓, spacing ✓", pinned: false, resolved: false },
+                          { initials: "TM", name: "Team Member", time: "1h ago", text: "Can we try a darker gradient overlay? Current version feels too washed out.", pinned: false, resolved: true },
+                        ].map((c, i) => (
+                          <div key={i} className={`p-2 rounded-lg ${c.resolved ? "bg-green-500/5 border border-green-500/10" : "bg-white/5"}`}>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold ${c.initials === "AI" ? "bg-green-500/30" : "bg-crimson/30"}`}>{c.initials}</div>
+                              <span className="text-[9px] font-medium flex-1">{c.name}</span>
+                              {c.pinned && <Pin className="h-2 w-2 text-yellow-400" />}
+                              {c.resolved && <CheckCircle2 className="h-2 w-2 text-green-400" />}
+                            </div>
+                            <p className="text-[10px] text-slate-300 leading-relaxed">{c.text}</p>
+                            <div className="flex gap-1 mt-1">
+                              <Button variant="ghost" size="sm" className="h-4 px-1 text-[7px]"><ThumbsUp className="h-2 w-2" /></Button>
+                              <Button variant="ghost" size="sm" className="h-4 px-1 text-[7px]"><MessageSquare className="h-2 w-2" /></Button>
+                              {!c.resolved && <Button variant="ghost" size="sm" className="h-4 px-1 text-[7px] text-green-400"><Check className="h-2 w-2" /></Button>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-1.5 mt-2">
+                        <Input placeholder="Add comment..." className="h-6 text-[10px] bg-white/5 border-white/10 flex-1" />
+                        <Button size="sm" className="h-6 w-6 p-0 btn-premium text-white"><Send className="h-2.5 w-2.5" /></Button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Stakeholder Sign-offs</p>
+                      {[
+                        { role: "Creative Director", signed: true, by: "SherShah K." },
+                        { role: "Brand Manager", signed: false, by: "—" },
+                        { role: "Client Approver", signed: false, by: "—" },
+                      ].map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 py-1.5 border-b border-white/5 last:border-0">
+                          {s.signed ? <UserCheck className="h-3 w-3 text-green-400" /> : <Clock className="h-3 w-3 text-muted-foreground" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[9px] font-medium">{s.role}</p>
+                            <p className="text-[8px] text-muted-foreground">{s.by}</p>
+                          </div>
+                          {!s.signed && <Button variant="ghost" size="sm" className="h-5 px-2 text-[8px] text-crimson">Request</Button>}
                         </div>
                       ))}
                     </div>
@@ -639,21 +800,118 @@ export default function Production() {
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Version History</p>
                     <div className="space-y-1.5">
                       {[
-                        { ver: `v${selectedProject.version}`, action: "Current version", time: "Now", actor: "You" },
-                        { ver: `v${Math.max(1, (selectedProject.version ?? 1) - 1)}`, action: "Previous edit", time: "2h ago", actor: isAuto ? "AI Agent" : "You" },
-                        { ver: "v1", action: "Initial draft", time: "Yesterday", actor: isAuto ? "AI Auto" : "Manual" },
+                        { ver: `v${selectedProject.version}`, action: "Current version", time: "Now", actor: "You", changes: "+3 layers, copy update" },
+                        { ver: `v${Math.max(1, (selectedProject.version ?? 1) - 1)}`, action: "Review feedback applied", time: "2h ago", actor: isAuto ? "AI Agent" : "You", changes: "CTA color, headline size" },
+                        { ver: "v1", action: "Initial draft", time: "Yesterday", actor: isAuto ? "AI Auto" : "Manual", changes: "Created from template" },
                       ].map((h, i) => (
-                        <div key={i} className="p-2 rounded-lg bg-white/5 flex items-center gap-2">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold ${i === 0 ? "bg-crimson/30" : "bg-white/10"}`}>
-                            {h.ver.replace("v", "")}
+                        <div key={i} className="p-2 rounded-lg bg-white/5">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold ${i === 0 ? "bg-crimson/30" : "bg-white/10"}`}>
+                              {h.ver.replace("v", "")}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-medium">{h.action}</p>
+                              <p className="text-[8px] text-muted-foreground">{h.actor} · {h.time}</p>
+                            </div>
+                            {i > 0 && <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[8px]"><RotateCcw className="h-2.5 w-2.5" /></Button>}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-medium">{h.action}</p>
-                            <p className="text-[8px] text-muted-foreground">{h.actor} · {h.time}</p>
-                          </div>
-                          {i > 0 && <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[8px]"><RotateCcw className="h-2.5 w-2.5" /></Button>}
+                          <p className="text-[8px] text-muted-foreground mt-1 ml-7">{h.changes}</p>
                         </div>
                       ))}
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Compare Versions</p>
+                      <div className="flex gap-1.5">
+                        <Select defaultValue="current">
+                          <SelectTrigger className="h-6 text-[9px] bg-white/5 border-white/10 flex-1"><SelectValue /></SelectTrigger>
+                          <SelectContent><SelectItem value="current">Current (v{selectedProject.version})</SelectItem><SelectItem value="prev">Previous</SelectItem></SelectContent>
+                        </Select>
+                        <span className="text-[9px] text-muted-foreground self-center">vs</span>
+                        <Select defaultValue="prev">
+                          <SelectTrigger className="h-6 text-[9px] bg-white/5 border-white/10 flex-1"><SelectValue /></SelectTrigger>
+                          <SelectContent><SelectItem value="prev">v{Math.max(1, (selectedProject.version ?? 1) - 1)}</SelectItem><SelectItem value="v1">v1</SelectItem></SelectContent>
+                        </Select>
+                      </div>
+                      <Button variant="ghost" size="sm" className="w-full h-6 text-[9px] mt-1.5 border border-white/10"><Eye className="h-2.5 w-2.5 mr-1" />Side-by-Side Diff</Button>
+                    </div>
+                  </div>
+                )}
+
+                {rightPanel === "finalize" && (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pre-Flight Checklist</p>
+                      {[
+                        { label: "Brand compliance verified", done: true },
+                        { label: "Copy proofread & approved", done: true },
+                        { label: "All stakeholders signed off", done: false },
+                        { label: "Responsive preview checked", done: true },
+                        { label: "Accessibility audit passed", done: false },
+                        { label: "Legal/disclaimer present", done: true },
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-2 py-1">
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${item.done ? "bg-green-500/20 border-green-500/40" : "border-white/20"}`}>
+                            {item.done && <Check className="h-2.5 w-2.5 text-green-400" />}
+                          </div>
+                          <span className={`text-[10px] ${item.done ? "text-slate-300" : "text-muted-foreground"}`}>{item.label}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
+                        <AlertTriangle className="h-3 w-3 text-yellow-400 shrink-0" />
+                        <span className="text-[9px] text-yellow-400">2 items incomplete — resolve before finalizing</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Export Formats</p>
+                      <div className="grid grid-cols-2 gap-1">
+                        {[
+                          { format: "PNG", desc: "High-res raster" },
+                          { format: "PDF", desc: "Print-ready" },
+                          { format: "SVG", desc: "Vector format" },
+                          { format: "MP4", desc: "Video render" },
+                        ].map(f => (
+                          <Button key={f.format} variant="ghost" size="sm" className="h-10 text-[9px] flex-col gap-0.5 bg-white/5 border border-white/10 hover:bg-white/10">
+                            <Download className="h-3 w-3" />
+                            <span className="font-bold">{f.format}</span>
+                            <span className="text-muted-foreground text-[7px]">{f.desc}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Publish Destinations</p>
+                      <div className="space-y-1">
+                        {[
+                          { dest: "GoHighLevel CRM", icon: <Globe className="h-3 w-3" />, status: "ready" },
+                          { dest: "Social Channels", icon: <Share2 className="h-3 w-3" />, status: "ready" },
+                          { dest: "Email Campaign", icon: <Mail className="h-3 w-3" />, status: "draft" },
+                          { dest: "Client Portal", icon: <ExternalLink className="h-3 w-3" />, status: "ready" },
+                          { dest: "Print Queue", icon: <Printer className="h-3 w-3" />, status: "pending" },
+                        ].map(d => (
+                          <div key={d.dest} className="flex items-center gap-2 p-1.5 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer">
+                            <div className="text-muted-foreground">{d.icon}</div>
+                            <span className="text-[10px] flex-1">{d.dest}</span>
+                            <Badge className={`text-[7px] ${d.status === "ready" ? "bg-green-500/20 text-green-400 border-green-500/30" : d.status === "draft" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"}`}>{d.status}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Button className="w-full h-8 text-[10px] btn-premium text-white" onClick={() => { updateDoc.mutate({ id: selectedProject.id, data: { status: "published" } }, { onSuccess: () => toast({ title: "Asset finalized & published!" }) }); }} disabled={updateDoc.isPending || selectedProject.lifecycle === "finalize"}>
+                        <Rocket className="h-3 w-3 mr-1" />Finalize & Publish
+                      </Button>
+                      {selectedProject.lifecycle === "finalize" && (
+                        <div className="flex items-center gap-2 p-2 rounded-lg bg-green-500/10 border border-green-500/20">
+                          <CheckCircle2 className="h-4 w-4 text-green-400" />
+                          <div>
+                            <p className="text-[10px] text-green-400 font-medium">Published & Live</p>
+                            <p className="text-[8px] text-green-400/60">All destinations delivered</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
