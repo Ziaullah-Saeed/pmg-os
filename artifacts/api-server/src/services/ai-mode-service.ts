@@ -29,6 +29,13 @@ const DEFAULT_WORKFLOW_MODES: Record<string, { mode: AiMode; description: string
   "asset_review": { mode: "ai_autonomous", description: "AI Asset Review & Quality Check" },
   "design_brief": { mode: "ai_autonomous", description: "Design Brief Generation" },
   "asset_finalization": { mode: "human_controlled", description: "Asset Finalization & Publication" },
+  "invoice_lifecycle": { mode: "hybrid", description: "Invoice Lifecycle Management" },
+  "expense_approval": { mode: "human_controlled", description: "Expense Approval Workflow" },
+  "contract_review": { mode: "ai_autonomous", description: "AI Contract Review & Risk Detection" },
+  "contract_generation": { mode: "hybrid", description: "AI Contract Generation" },
+  "quality_enforcement": { mode: "ai_autonomous", description: "Quality Checkpoint Enforcement" },
+  "sop_enforcement": { mode: "ai_autonomous", description: "SOP Compliance Enforcement" },
+  "overdue_detection": { mode: "ai_autonomous", description: "Overdue Invoice Detection" },
 };
 
 export async function getGlobalMode(): Promise<AiMode> {

@@ -17,6 +17,7 @@ import { initToolChainTemplates } from "./services/tool-chain-service";
 import { registerAllTools } from "./services/tool-registry";
 import { startAgentExecution } from "./services/agent-executor";
 import { initProductionStudio } from "./services/production-studio-service";
+import { initFinanceLegalService } from "./services/finance-legal-service";
 
 const rawPort = process.env["PORT"];
 
@@ -53,12 +54,13 @@ server.listen(port, () => {
   registerAllTools();
   initToolChainTemplates();
   initProductionStudio();
-  logger.info("Phase 6: Tool chain framework initialized with 34 tools and 9 chain templates (including production studio)");
+  initFinanceLegalService();
+  logger.info("Phase 7: Tool chain framework initialized with 44 tools and 12 chain templates (production studio + finance/legal/quality)");
 
   initEmbeddingColumn().catch(err => logger.error(err, "Embedding column init failed"));
 
   startAgentExecution(45000);
-  logger.info("Phase 6: Agent executor started — 42 agents mapped to real tools (including 15 production agents)");
+  logger.info("Phase 7: Agent executor started — 50 agents mapped to real tools (including finance-legal agents with lifecycle workflows)");
 
-  logger.info("All engines initialized: tri-mode, tool-chains, agent-executor, embedding, intelligence, outreach-pipeline, comms-intelligence, messaging, booking, production-studio");
+  logger.info("All engines initialized: tri-mode, tool-chains, agent-executor, embedding, intelligence, outreach-pipeline, comms-intelligence, messaging, booking, production-studio, finance-legal-quality");
 });

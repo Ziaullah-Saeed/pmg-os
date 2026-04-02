@@ -6,6 +6,13 @@ import { processTranscript, analyzeCallSentiment, detectObjections, generateFoll
 import { sendEmail, sendSMS } from "./messaging-service";
 import { createBooking, getAvailableSlots } from "./booking-service";
 import { generateAsset, aiReviewAsset, generateDesignBrief, suggestRevisions, submitForReview, reviewAsset, finalizeAsset, createAssetVersion, routeCreativeRequest, getDefaultBrandKit, type AssetType } from "./production-studio-service";
+import {
+  transitionInvoice, recordPayment, checkOverdueInvoices,
+  submitExpense, reviewExpense,
+  reviewContract, generateContractFromTemplate,
+  enforceQualityCheckpoints, runQualityCheckpoints,
+  checkSOPCompliance, aiAuditSOPCompliance,
+} from "./finance-legal-service";
 import { db, leadsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -646,6 +653,157 @@ export function registerAllTools(): void {
       { toolName: "suggest_asset_revisions" },
       { toolName: "create_asset_version", inputMapping: { assetId: "assetId", content: "suggestions" } },
       { toolName: "ai_review_asset", inputMapping: { assetId: "id" } },
+    ],
+  });
+
+  registerTool({
+    name: "transition_invoice",
+    description: "Transition an invoice through its lifecycle (draft → sent → viewed → overdue → partially_paid → paid)",
+    domain: "finance_legal",
+    inputKeys: ["invoiceId", "targetStatus", "actor", "notes"],
+    outputKeys: ["success", "invoice"],
+    costCredits: 0,
+    execute: async (input) => {
+      return await transitionInvoice({ invoiceId: input.invoiceId, targetStatus: input.targetStatus, actor: input.actor ?? "agent", notes: input.notes });
+    },
+  });
+
+  registerTool({
+    name: "record_payment",
+    description: "Record a payment against an invoice and auto-transition status",
+    domain: "finance_legal",
+    inputKeys: ["invoiceId", "amount", "method", "reference", "notes", "actor"],
+    outputKeys: ["success", "payment", "invoice"],
+    costCredits: 0,
+    execute: async (input) => {
+      return await recordPayment({ invoiceId: input.invoiceId, amount: input.amount, method: input.method, reference: input.reference, notes: input.notes, actor: input.actor ?? "agent" });
+    },
+  });
+
+  registerTool({
+    name: "check_overdue_invoices",
+    description: "Scan and auto-mark overdue invoices past their due date",
+    domain: "finance_legal",
+    inputKeys: ["actor"],
+    outputKeys: ["overdueCount", "totalOverdue"],
+    costCredits: 0,
+    execute: async (input) => {
+      return await checkOverdueInvoices(input.actor);
+    },
+  });
+
+  registerTool({
+    name: "submit_expense",
+    description: "Submit an expense for approval — creates approval record and notifies reviewers",
+    domain: "finance_legal",
+    inputKeys: ["expenseId", "actor"],
+    outputKeys: ["success", "approvalId"],
+    costCredits: 0,
+    execute: async (input) => {
+      return await submitExpense({ expenseId: input.expenseId, actor: input.actor ?? "agent" });
+    },
+  });
+
+  registerTool({
+    name: "review_expense",
+    description: "Approve or reject a submitted expense",
+    domain: "finance_legal",
+    inputKeys: ["expenseId", "decision", "reviewer", "notes", "rejectionReason"],
+    outputKeys: ["success"],
+    costCredits: 0,
+    execute: async (input) => {
+      return await reviewExpense({ expenseId: input.expenseId, decision: input.decision, reviewer: input.reviewer ?? "agent", notes: input.notes, rejectionReason: input.rejectionReason });
+    },
+  });
+
+  registerTool({
+    name: "ai_contract_review",
+    description: "AI-powered contract review — flags risky clauses, detects missing protections, scores overall risk",
+    domain: "finance_legal",
+    inputKeys: ["contractId"],
+    outputKeys: ["riskScore", "flaggedClauses", "missingClauses", "complianceIssues", "overallAssessment", "confidence"],
+    costCredits: 10,
+    execute: async (input) => {
+      return await reviewContract(input.contractId);
+    },
+  });
+
+  registerTool({
+    name: "generate_contract",
+    description: "AI-generate a contract from template parameters (MSA, SOW, NDA, etc.)",
+    domain: "finance_legal",
+    inputKeys: ["type", "companyName", "companyId", "serviceDescription", "term", "value", "actor"],
+    outputKeys: ["contract", "confidence"],
+    costCredits: 8,
+    execute: async (input) => {
+      return await generateContractFromTemplate({ type: input.type, companyName: input.companyName, companyId: input.companyId, serviceDescription: input.serviceDescription, term: input.term, value: input.value, actor: input.actor });
+    },
+  });
+
+  registerTool({
+    name: "quality_checkpoint",
+    description: "Run quality checkpoints on an entity — validates required fields, data completeness, and business rules",
+    domain: "finance_legal",
+    inputKeys: ["entity", "entityType", "entityId", "domain", "actor", "createIssuesOnFailure"],
+    outputKeys: ["passed", "results", "criticalFailures"],
+    costCredits: 0,
+    execute: async (input) => {
+      return await enforceQualityCheckpoints({ entity: input.entity, entityType: input.entityType, entityId: input.entityId, domain: input.domain, actor: input.actor, createIssuesOnFailure: input.createIssuesOnFailure !== false });
+    },
+  });
+
+  registerTool({
+    name: "check_sop_compliance",
+    description: "Check if required SOPs exist for a business action",
+    domain: "finance_legal",
+    inputKeys: ["action"],
+    outputKeys: ["compliant", "requiredSOPs", "missingSops", "activeSopCount"],
+    costCredits: 0,
+    execute: async (input) => {
+      return await checkSOPCompliance(input.action);
+    },
+  });
+
+  registerTool({
+    name: "ai_sop_audit",
+    description: "AI-powered SOP compliance audit — checks whether an action follows established procedures",
+    domain: "finance_legal",
+    inputKeys: ["action", "entityType", "entityContext"],
+    outputKeys: ["compliant", "findings", "recommendations", "confidence"],
+    costCredits: 5,
+    execute: async (input) => {
+      return await aiAuditSOPCompliance({ action: input.action, entityType: input.entityType, entityContext: input.entityContext });
+    },
+  });
+
+  registerChainTemplate({
+    name: "invoice_lifecycle",
+    description: "Invoice lifecycle: quality check → send → track overdue",
+    domain: "finance_legal",
+    steps: [
+      { toolName: "quality_checkpoint", inputMapping: { entity: "entity", entityType: "entityType", entityId: "invoiceId", domain: "domain" } },
+      { toolName: "transition_invoice", inputMapping: { invoiceId: "invoiceId", targetStatus: "targetStatus", actor: "actor" } },
+    ],
+  });
+
+  registerChainTemplate({
+    name: "contract_review_pipeline",
+    description: "Contract review pipeline: AI review → SOP compliance check → quality checkpoint",
+    domain: "finance_legal",
+    steps: [
+      { toolName: "ai_contract_review", inputMapping: { contractId: "contractId" } },
+      { toolName: "check_sop_compliance", inputMapping: { action: "action" } },
+      { toolName: "quality_checkpoint", inputMapping: { entity: "entity", entityType: "entityType", entityId: "contractId", domain: "domain" } },
+    ],
+  });
+
+  registerChainTemplate({
+    name: "expense_approval_pipeline",
+    description: "Expense approval: quality check → submit → (awaits human review)",
+    domain: "finance_legal",
+    steps: [
+      { toolName: "quality_checkpoint", inputMapping: { entity: "entity", entityType: "entityType", entityId: "expenseId", domain: "domain" } },
+      { toolName: "submit_expense", inputMapping: { expenseId: "expenseId", actor: "actor" } },
     ],
   });
 }

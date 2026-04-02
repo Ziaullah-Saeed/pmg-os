@@ -14,6 +14,13 @@ import {
   createAssetVersion, regenerateAssetVersion, getVersionHistory,
   getDefaultBrandKit,
 } from "../services/production-studio-service";
+import {
+  transitionInvoice, recordPayment, checkOverdueInvoices,
+  submitExpense, reviewExpense,
+  reviewContract, generateContractFromTemplate,
+  enforceQualityCheckpoints, getQualityCheckpointsForType, runQualityCheckpoints,
+  checkSOPCompliance, aiAuditSOPCompliance,
+} from "../services/finance-legal-service";
 
 const router = Router();
 
@@ -470,6 +477,121 @@ router.get("/production/route/:type", async (req, res) => {
 router.get("/production/brand-kit", async (_req, res) => {
   const kit = await getDefaultBrandKit();
   res.json(kit ?? { message: "No brand kit configured" });
+});
+
+router.post("/invoice/transition", async (req, res) => {
+  try {
+    const { invoiceId, targetStatus, actor, notes } = req.body;
+    if (!invoiceId || !targetStatus || !actor) {
+      res.status(400).json({ error: "invoiceId, targetStatus, and actor are required" }); return;
+    }
+    const result = await transitionInvoice({ invoiceId, targetStatus, actor, notes });
+    if (!result.success) { res.status(422).json({ error: result.error }); return; }
+    res.json(result);
+  } catch (err: any) { handleAIError(err, res); }
+});
+
+router.post("/invoice/record-payment", async (req, res) => {
+  try {
+    const { invoiceId, amount, method, reference, notes, actor } = req.body;
+    if (!invoiceId || !amount || !actor) {
+      res.status(400).json({ error: "invoiceId, amount, and actor are required" }); return;
+    }
+    const result = await recordPayment({ invoiceId, amount, method, reference, notes, actor });
+    if (!result.success) { res.status(422).json({ error: result.error }); return; }
+    res.json(result);
+  } catch (err: any) { handleAIError(err, res); }
+});
+
+router.post("/invoice/check-overdue", async (req, res) => {
+  try {
+    const result = await checkOverdueInvoices(req.body.actor);
+    res.json(result);
+  } catch (err: any) { handleAIError(err, res); }
+});
+
+router.post("/expense/submit", async (req, res) => {
+  try {
+    const { expenseId, actor } = req.body;
+    if (!expenseId || !actor) {
+      res.status(400).json({ error: "expenseId and actor are required" }); return;
+    }
+    const result = await submitExpense({ expenseId, actor });
+    if (!result.success) { res.status(422).json({ error: result.error }); return; }
+    res.json(result);
+  } catch (err: any) { handleAIError(err, res); }
+});
+
+router.post("/expense/review", async (req, res) => {
+  try {
+    const { expenseId, decision, reviewer, notes, rejectionReason } = req.body;
+    if (!expenseId || !decision || !reviewer) {
+      res.status(400).json({ error: "expenseId, decision (approved|rejected), and reviewer are required" }); return;
+    }
+    if (!["approved", "rejected"].includes(decision)) {
+      res.status(400).json({ error: 'decision must be "approved" or "rejected"' }); return;
+    }
+    const result = await reviewExpense({ expenseId, decision, reviewer, notes, rejectionReason });
+    if (!result.success) { res.status(422).json({ error: result.error }); return; }
+    res.json(result);
+  } catch (err: any) { handleAIError(err, res); }
+});
+
+router.post("/contract/review", async (req, res) => {
+  try {
+    const { contractId } = req.body;
+    if (!contractId) { res.status(400).json({ error: "contractId is required" }); return; }
+    const result = await reviewContract(contractId);
+    res.json(result);
+  } catch (err: any) { handleAIError(err, res); }
+});
+
+router.post("/contract/generate", async (req, res) => {
+  try {
+    const { type, companyName, companyId, serviceDescription, term, value, actor } = req.body;
+    if (!type) { res.status(400).json({ error: "type is required" }); return; }
+    const result = await generateContractFromTemplate({ type, companyName, companyId, serviceDescription, term, value, actor });
+    res.status(201).json(result);
+  } catch (err: any) { handleAIError(err, res); }
+});
+
+router.post("/quality/check", async (req, res) => {
+  try {
+    const { entity, entityType, entityId, domain, actor, createIssuesOnFailure } = req.body;
+    if (!entity || !entityType || !entityId || !domain) {
+      res.status(400).json({ error: "entity, entityType, entityId, and domain are required" }); return;
+    }
+    const result = await enforceQualityCheckpoints({ entity, entityType, entityId, domain, actor, createIssuesOnFailure });
+    res.json(result);
+  } catch (err: any) { handleAIError(err, res); }
+});
+
+router.get("/quality/checkpoints/:entityType", async (req, res) => {
+  const { entityType } = req.params;
+  const domain = req.query.domain as string | undefined;
+  res.json(getQualityCheckpointsForType(entityType, domain).map(cp => ({
+    domain: cp.domain, entityType: cp.entityType, checkType: cp.checkType, description: cp.description, severity: cp.severity,
+  })));
+});
+
+router.post("/sop/check", async (req, res) => {
+  try {
+    const { action } = req.body;
+    if (!action) { res.status(400).json({ error: "action is required" }); return; }
+    const result = await checkSOPCompliance(action);
+    res.json(result);
+  } catch (err: any) { handleAIError(err, res); }
+});
+
+router.post("/sop/audit", async (req, res) => {
+  try {
+    const { action, entityType, entityContext } = req.body;
+    if (!action || !entityType || !entityContext) {
+      res.status(400).json({ error: "action, entityType, and entityContext are required" }); return;
+    }
+    const result = await aiAuditSOPCompliance({ action, entityType, entityContext });
+    res.json(result);
+  } catch (err: any) { handleAIError(err, res); }
 });
 
 export default router;
