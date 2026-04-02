@@ -19,6 +19,7 @@ import { startAgentExecution } from "./services/agent-executor";
 import { initProductionStudio } from "./services/production-studio-service";
 import { initFinanceLegalService } from "./services/finance-legal-service";
 import { initIntegrationHub } from "./services/integration-hub-service";
+import { initReportingKnowledge } from "./services/reporting-knowledge-service";
 
 const rawPort = process.env["PORT"];
 
@@ -57,12 +58,13 @@ server.listen(port, () => {
   initProductionStudio();
   initFinanceLegalService();
   initIntegrationHub();
-  logger.info("Phase 8: Tool chain framework initialized with 44 tools and 12 chain templates");
+  initReportingKnowledge().catch(err => logger.error(err, "ReportingKnowledge init failed"));
+  logger.info("Phase 9: All service layers initialized");
 
   initEmbeddingColumn().catch(err => logger.error(err, "Embedding column init failed"));
 
   startAgentExecution(45000);
-  logger.info("Phase 8: Agent executor started — 50 agents mapped to real tools");
+  logger.info("Phase 9: Agent executor started — 50 agents mapped to real tools");
 
-  logger.info("All engines initialized: tri-mode, tool-chains, agent-executor, embedding, intelligence, outreach-pipeline, comms-intelligence, messaging, booking, production-studio, finance-legal-quality, integration-hub");
+  logger.info("All engines initialized: tri-mode, tool-chains, agent-executor, embedding, intelligence, outreach-pipeline, comms-intelligence, messaging, booking, production-studio, finance-legal-quality, integration-hub, reporting-knowledge");
 });

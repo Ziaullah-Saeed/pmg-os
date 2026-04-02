@@ -45,6 +45,7 @@ import sequenceEnrollmentsRouter from "./sequence-enrollments";
 import pendingActionsRouter from "./pending-actions";
 import brandKitsRouter from "./brand-kits";
 import integrationHubRouter from "./integration-hub";
+import reportingKnowledgeRouter from "./reporting-knowledge";
 import { processInboundWebhook } from "../services/integration-hub-service";
 
 const router: IRouter = Router();
@@ -131,5 +132,6 @@ router.use("/sequence-enrollments", sequenceEnrollmentsRouter);
 router.use(pendingActionsRouter);
 router.use(brandKitsRouter);
 router.use(integrationHubRouter);
+router.use(reportingKnowledgeRouter);
 
 export default router;
