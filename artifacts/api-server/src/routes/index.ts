@@ -47,6 +47,7 @@ import brandKitsRouter from "./brand-kits";
 import integrationHubRouter from "./integration-hub";
 import reportingKnowledgeRouter from "./reporting-knowledge";
 import testingRouter from "./testing";
+import channelHealthRouter from "./channel-health";
 import { processInboundWebhook } from "../services/integration-hub-service";
 
 const router: IRouter = Router();
@@ -135,5 +136,6 @@ router.use(brandKitsRouter);
 router.use(integrationHubRouter);
 router.use(reportingKnowledgeRouter);
 router.use(testingRouter);
+router.use(channelHealthRouter);
 
 export default router;

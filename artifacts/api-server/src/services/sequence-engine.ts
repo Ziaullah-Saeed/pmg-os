@@ -4,6 +4,7 @@ import { emit } from "./event-bus";
 import { createNotification } from "./notification-service";
 import { logAudit } from "./audit-service";
 import { executeOrQueue, registerActionExecutor } from "./mode-action-service";
+import { isOptedOut, canSendToday, recordSend, checkCrossSequenceCollision } from "./channel-health-service";
 
 type SequenceStep = {
   type: string;
@@ -36,6 +37,15 @@ export async function enrollContact(params: {
 
   const steps = (sequence.steps as SequenceStep[]) ?? [];
   if (steps.length === 0) return { success: false, error: "Sequence has no steps" };
+
+  if (isOptedOut(params.contactEmail)) {
+    return { success: false, error: "Contact has opted out of communications" };
+  }
+
+  const collision = await checkCrossSequenceCollision(params.contactEmail, params.sequenceId);
+  if (collision.hasCollision) {
+    return { success: false, error: `Contact is already active in ${collision.activeSequences} other sequence(s). Remove from existing sequences first to avoid over-messaging.` };
+  }
 
   const [existingEnrollment] = await db.select().from(sequenceEnrollmentsTable)
     .where(and(
@@ -91,6 +101,53 @@ async function directExecuteStep(enrollment: any, sequence: any): Promise<void> 
     if (day === 0 || day === 6) return;
   }
 
+  if (isOptedOut(enrollment.contactEmail)) {
+    await db.update(sequenceEnrollmentsTable).set({
+      status: "removed",
+      exitReason: "opted_out",
+      completedAt: new Date(),
+    }).where(eq(sequenceEnrollmentsTable.id, enrollment.id));
+    await logAudit({
+      eventType: "sequence_opt_out",
+      domain: "outreach",
+      action: "contact_opted_out",
+      description: `${enrollment.contactEmail} opted out — removed from sequence`,
+      entityType: "sequence_enrollment",
+      entityId: enrollment.id,
+      actor: "channel_health_service",
+      actorType: "system",
+    });
+    return;
+  }
+
+  if (safetyControls.stopOnReply) {
+    const { communicationsTable } = await import("@workspace/db");
+    const [recentReply] = await db.select().from(communicationsTable)
+      .where(and(
+        eq(communicationsTable.direction, "inbound"),
+        eq(communicationsTable.contactId, enrollment.leadId ?? 0),
+      ));
+    if (recentReply) {
+      await db.update(sequenceEnrollmentsTable).set({
+        status: "completed",
+        exitReason: "replied",
+        completedAt: new Date(),
+      }).where(eq(sequenceEnrollmentsTable.id, enrollment.id));
+      await db.update(outreachSequencesTable)
+        .set({ totalResponded: sql`${outreachSequencesTable.totalResponded} + 1` })
+        .where(eq(outreachSequencesTable.id, enrollment.sequenceId));
+      return;
+    }
+  }
+
+  const channelType = step.type === "sms" ? "sms" : step.type === "linkedin_message" ? "linkedin_message" : "email";
+  const dailyCheck = canSendToday(channelType);
+  if (safetyControls.maxPerDay && !dailyCheck.allowed) {
+    const nextStepAt = new Date(Date.now() + 86400000);
+    await db.update(sequenceEnrollmentsTable).set({ nextStepAt }).where(eq(sequenceEnrollmentsTable.id, enrollment.id));
+    return;
+  }
+
   try {
     switch (step.type) {
       case "email":
@@ -123,6 +180,7 @@ async function directExecuteStep(enrollment: any, sequence: any): Promise<void> 
               body,
               source: "sequence_engine",
             });
+            recordSend(channelType);
           } catch (sendErr: any) {
             console.log(`[SequenceEngine] Send fallback for ${step.type}: ${sendErr.message}`);
             await createNotification({

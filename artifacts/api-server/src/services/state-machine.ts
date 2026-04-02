@@ -4,6 +4,7 @@ type StateConfig = {
   transitions: Record<string, string[]>;
   initial: string;
   terminal: string[];
+  qualityGates?: Record<string, string[]>;
 };
 
 const LEAD_STATES: StateConfig = {
@@ -22,6 +23,9 @@ const LEAD_STATES: StateConfig = {
     closed_lost: [],
     disqualified: [],
   },
+  qualityGates: {
+    qualified: ["data_completeness", "company_required"],
+  },
 };
 
 const OPPORTUNITY_STATES: StateConfig = {
@@ -35,6 +39,10 @@ const OPPORTUNITY_STATES: StateConfig = {
     closing: ["won", "lost", "negotiation"],
     won: [],
     lost: [],
+  },
+  qualityGates: {
+    proposal: ["value_required", "close_date_required"],
+    closing: ["value_required", "close_date_required"],
   },
 };
 
@@ -75,6 +83,10 @@ const CONTRACT_STATES: StateConfig = {
     active: ["renewal", "terminated"],
     renewal: ["review", "terminated"],
     terminated: [],
+  },
+  qualityGates: {
+    review: ["content_required", "dates_required"],
+    approved: ["content_required", "dates_required"],
   },
 };
 
@@ -120,7 +132,8 @@ export async function validateTransition(params: {
   currentState: string;
   targetState: string;
   actor?: string;
-}): Promise<{ valid: boolean; error?: string }> {
+  entity?: any;
+}): Promise<{ valid: boolean; error?: string; qualityIssues?: string[] }> {
   const machine = STATE_MACHINES[params.entityType];
   if (!machine) return { valid: true };
 
@@ -141,6 +154,44 @@ export async function validateTransition(params: {
       valid: false,
       error: `Invalid transition: ${params.currentState} → ${params.targetState}. Allowed: ${allowed.join(", ") || "none (terminal state)"}`,
     };
+  }
+
+  if (machine.qualityGates && machine.qualityGates[params.targetState] && params.entity) {
+    const { runQualityCheckpoints } = await import("./finance-legal-service");
+    const result = runQualityCheckpoints(params.entity, params.entityType);
+    const requiredChecks = machine.qualityGates[params.targetState];
+    const failedGates = result.results.filter(r =>
+      !r.passed && requiredChecks.includes(r.checkType)
+    );
+
+    if (failedGates.length > 0) {
+      const issues = failedGates.map(f => f.issue ?? f.description);
+      await createNotification({
+        type: "quality_gate_blocked",
+        severity: "warning",
+        title: `Quality Gate Blocked: ${params.entityType} #${params.entityId}`,
+        message: `Cannot transition to "${params.targetState}" — ${failedGates.length} quality check(s) failed: ${issues.join("; ")}`,
+        domain: "system",
+        entityType: params.entityType,
+        entityId: params.entityId,
+        actor: params.actor ?? "quality_engine",
+      });
+
+      const { emit } = await import("./event-bus");
+      await emit("quality.gate_failed", {
+        entityType: params.entityType,
+        entityId: params.entityId,
+        domain: params.entityType === "lead" || params.entityType === "opportunity" ? "crm" : "finance_legal",
+        actor: params.actor ?? "quality_engine",
+        data: { targetState: params.targetState, criticalFailures: failedGates.length, issues, message: issues.join("; ") },
+      });
+
+      return {
+        valid: false,
+        error: `Quality gate failed for "${params.targetState}": ${issues.join("; ")}`,
+        qualityIssues: issues,
+      };
+    }
   }
 
   return { valid: true };

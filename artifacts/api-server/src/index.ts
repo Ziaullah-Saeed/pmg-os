@@ -20,6 +20,8 @@ import { initProductionStudio } from "./services/production-studio-service";
 import { initFinanceLegalService } from "./services/finance-legal-service";
 import { initIntegrationHub } from "./services/integration-hub-service";
 import { initReportingKnowledge } from "./services/reporting-knowledge-service";
+import { initChannelHealthService } from "./services/channel-health-service";
+import { initSlackSurfaceService } from "./services/slack-surface-service";
 
 const rawPort = process.env["PORT"];
 
@@ -58,6 +60,8 @@ server.listen(port, () => {
   initProductionStudio();
   initFinanceLegalService();
   initIntegrationHub();
+  initChannelHealthService();
+  initSlackSurfaceService();
   initReportingKnowledge().catch(err => logger.error(err, "ReportingKnowledge init failed"));
   logger.info("Phase 9: All service layers initialized");
 
