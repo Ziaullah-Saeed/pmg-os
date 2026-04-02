@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { companiesTable } from "./companies";
@@ -20,6 +20,11 @@ export const leadsTable = pgTable("leads", {
   notes: text("notes"),
   aiModeOverride: text("ai_mode_override"),
   channelSource: text("channel_source"),
+  externalCrmId: text("external_crm_id"),
+  routingDestination: text("routing_destination").default("pmg"),
+  retainCopy: boolean("retain_copy").notNull().default(true),
+  routedAt: timestamp("routed_at", { withTimezone: true }),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
   qualifiedAt: timestamp("qualified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

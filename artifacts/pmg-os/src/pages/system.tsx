@@ -14,6 +14,8 @@ import {
   useAiMode, useSetAiMode, useWorkflowModes, useSetWorkflowMode,
   useWalletBalance, useWalletTransactions, useCommandCenter,
   useGHLConfig, useSaveGHLConfig, useTestGHLConnection, useGHLCRMMode, useSetGHLCRMMode,
+  useGHLFieldMapping, useSaveGHLFieldMapping, useGHLPipelineMapping, useSaveGHLPipelineMapping,
+  useGHLSyncHealth, useGHLRoutingSummary, useGHLSyncLogs, useGHLRetryQueue, useGHLRetryAllFailed, useGHLSyncRetry,
   useIntegrationConnectors, useIntegrationStatus, useConnectIntegration, useDisconnectIntegration,
   useSyncHealth, useSyncLogs, useTriggerSync, useImportCsv
 } from "@/hooks/use-api";
@@ -23,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Settings, CheckCircle2, Database, Shield, Server, Users,
   Lock, Eye, Activity, Clock, Globe, Cpu, Bot, Wallet, Zap,
-  TrendingUp, AlertTriangle, Loader2, Save, PlugZap, RefreshCw, Plus
+  TrendingUp, AlertTriangle, Loader2, Save, PlugZap, RefreshCw, Plus, ArrowRight
 } from "lucide-react";
 
 const roles = [
@@ -126,6 +128,16 @@ export default function System() {
   const testGHL = useTestGHLConnection();
   const { data: crmModeData } = useGHLCRMMode();
   const setCRMMode = useSetGHLCRMMode();
+  const { data: fieldMappingData } = useGHLFieldMapping();
+  const saveFieldMapping = useSaveGHLFieldMapping();
+  const { data: pipelineMappingData } = useGHLPipelineMapping();
+  const savePipelineMapping = useSaveGHLPipelineMapping();
+  const { data: ghlSyncHealth } = useGHLSyncHealth();
+  const { data: routingSummary } = useGHLRoutingSummary();
+  const { data: ghlSyncLogsData } = useGHLSyncLogs();
+  const { data: retryQueueData } = useGHLRetryQueue();
+  const retryAllFailed = useGHLRetryAllFailed();
+  const syncRetry = useGHLSyncRetry();
   const { data: connectors } = useIntegrationConnectors();
   const { data: integrationStatus } = useIntegrationStatus();
   const connectIntegration = useConnectIntegration();
@@ -137,6 +149,8 @@ export default function System() {
   const [ghlForm, setGhlForm] = useState({ apiKey: "", locationId: "", webhookUrl: "" });
   const [connectForm, setConnectForm] = useState({ provider: "", apiKey: "" });
   const [csvForm, setCsvForm] = useState({ entityType: "leads", csvContent: "", dryRun: true });
+  const [fieldMapEdits, setFieldMapEdits] = useState<Record<string, string>>({});
+  const [pipelineMapEdits, setPipelineMapEdits] = useState<Record<string, string>>({});
 
   const connectorList = (connectors ?? []) as any[];
   const syncHealth = syncHealthData as any;
@@ -786,6 +800,152 @@ export default function System() {
                     {saveGHL.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
                     Save Configuration
                   </Button>
+                </div>
+              </div>
+            </GlassCard>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Field Mapping — PMG → GHL</h3>
+                  <Badge variant="outline" className="text-[10px]">Data Sync</Badge>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {Object.entries(fieldMappingData?.defaults ?? {
+                    contactName: "contact_name", companyName: "company_name", email: "email",
+                    phone: "phone", fitScore: "custom_fit_score", source: "source", status: "status"
+                  }).map(([pmgField, defaultGhl]) => (
+                    <div key={pmgField} className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <Label className="text-[10px] text-muted-foreground">PMG: {pmgField}</Label>
+                      </div>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <div className="flex-1">
+                        <Input
+                          className="bg-white/5 border-white/10 text-white text-xs h-7"
+                          value={fieldMapEdits[pmgField] ?? (fieldMappingData?.fieldMapping?.[pmgField] || defaultGhl as string)}
+                          onChange={e => setFieldMapEdits(prev => ({ ...prev, [pmgField]: e.target.value }))}
+                          placeholder={defaultGhl as string}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg w-full mt-2"
+                    disabled={saveFieldMapping.isPending || Object.keys(fieldMapEdits).length === 0}
+                    onClick={async () => {
+                      const merged = { ...(fieldMappingData?.fieldMapping ?? {}), ...fieldMapEdits };
+                      await saveFieldMapping.mutateAsync(merged);
+                      setFieldMapEdits({});
+                      toast({ title: "Field mapping saved" });
+                    }}
+                  >
+                    {saveFieldMapping.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                    Save Field Mapping
+                  </Button>
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Pipeline Mapping — Stages</h3>
+                  <Badge variant="outline" className="text-[10px]">Deal Flow</Badge>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {(pipelineMappingData?.pmgStages ?? ["discovery", "qualification", "proposal", "negotiation", "closed_won", "closed_lost"]).map((stage: string) => (
+                    <div key={stage} className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <Label className="text-[10px] text-muted-foreground capitalize">PMG: {stage.replace(/_/g, " ")}</Label>
+                      </div>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <div className="flex-1">
+                        <Input
+                          className="bg-white/5 border-white/10 text-white text-xs h-7"
+                          value={pipelineMapEdits[stage] ?? (pipelineMappingData?.pipelineMapping?.[stage] || "")}
+                          onChange={e => setPipelineMapEdits(prev => ({ ...prev, [stage]: e.target.value }))}
+                          placeholder={`GHL stage for ${stage}`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    className="btn-premium text-white text-xs px-3 py-1.5 rounded-lg w-full mt-2"
+                    disabled={savePipelineMapping.isPending || Object.keys(pipelineMapEdits).length === 0}
+                    onClick={async () => {
+                      const merged = { ...(pipelineMappingData?.pipelineMapping ?? {}), ...pipelineMapEdits };
+                      await savePipelineMapping.mutateAsync(merged);
+                      setPipelineMapEdits({});
+                      toast({ title: "Pipeline mapping saved" });
+                    }}
+                  >
+                    {savePipelineMapping.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                    Save Pipeline Mapping
+                  </Button>
+                </div>
+              </GlassCard>
+            </div>
+
+            <GlassCard glow="blue" className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-info" />
+                  <h3 className="text-sm font-semibold">Sync Health Dashboard</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(retryQueueData?.queue ?? []).length > 0 && (
+                    <Button
+                      className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg"
+                      onClick={() => retryAllFailed.mutate(undefined, { onSuccess: (r: any) => toast({ title: `Retried ${r?.retried ?? 0} failed syncs` }) })}
+                      disabled={retryAllFailed.isPending}
+                    >
+                      {retryAllFailed.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                      Retry All Failed
+                    </Button>
+                  )}
+                  <Badge variant="outline" className="text-[10px]">Live</Badge>
+                </div>
+              </div>
+              <div className="px-5 pb-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  <div className="p-3 rounded-lg glass-surface text-center">
+                    <p className="text-lg font-bold text-success">{(ghlSyncHealth as any)?.totalSynced ?? 0}</p>
+                    <p className="text-[10px] text-muted-foreground">Synced</p>
+                  </div>
+                  <div className="p-3 rounded-lg glass-surface text-center">
+                    <p className="text-lg font-bold text-red-400">{(ghlSyncHealth as any)?.totalFailed ?? 0}</p>
+                    <p className="text-[10px] text-muted-foreground">Failed</p>
+                  </div>
+                  <div className="p-3 rounded-lg glass-surface text-center">
+                    <p className="text-lg font-bold text-yellow-400">{(retryQueueData?.queue ?? []).length}</p>
+                    <p className="text-[10px] text-muted-foreground">In Retry Queue</p>
+                  </div>
+                  <div className="p-3 rounded-lg glass-surface text-center">
+                    <p className="text-lg font-bold text-info">{(ghlSyncHealth as any)?.healthScore ?? "—"}%</p>
+                    <p className="text-[10px] text-muted-foreground">Health Score</p>
+                  </div>
+                </div>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {(ghlSyncLogsData?.logs ?? []).slice(0, 10).map((log: any) => (
+                    <div key={log.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${log.status === "success" ? "bg-green-400" : log.status === "failed" ? "bg-red-400" : "bg-yellow-400"}`} />
+                        <span className="truncate">{log.entityType}#{log.entityId}</span>
+                        <span className="text-muted-foreground truncate">{log.direction ?? "outbound"} · {log.action ?? "sync"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {log.status === "failed" && (
+                          <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-red-400"
+                            onClick={() => syncRetry.mutate(log.id, { onSuccess: () => toast({ title: "Retry triggered" }) })}>
+                            Retry
+                          </Button>
+                        )}
+                        <span className="text-[10px] text-muted-foreground">{log.createdAt ? new Date(log.createdAt).toLocaleString() : "—"}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {(ghlSyncLogsData?.logs ?? []).length === 0 && (
+                    <div className="py-4 text-center text-muted-foreground text-xs">No sync logs yet</div>
+                  )}
                 </div>
               </div>
             </GlassCard>

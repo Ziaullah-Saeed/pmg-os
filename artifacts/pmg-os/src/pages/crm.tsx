@@ -27,7 +27,13 @@ import { CreateLeadForm } from "@/components/forms/create-lead-form";
 import { CreateOpportunityForm } from "@/components/forms/create-opportunity-form";
 import { CreateCompanyForm } from "@/components/forms/create-company-form";
 import { CreateContactForm } from "@/components/forms/create-contact-form";
-import { useDeleteLead, useUpdateLead, useRouteLead, useLeadActivities, useUpdateOpportunityMut, useNotes, useCreateNote, useFollowUps, useCreateFollowUp, useUpdateFollowUp } from "@/hooks/use-api";
+import {
+  useDeleteLead, useUpdateLead, useRouteLead, useLeadActivities, useUpdateOpportunityMut,
+  useNotes, useCreateNote, useFollowUps, useCreateFollowUp, useUpdateFollowUp,
+  useGHLSyncLogs, useGHLSyncHealth, useGHLRoutingSummary, useGHLRetryQueue,
+  useGHLRetryAllFailed, useGHLSyncRetry, useGHLRouteLeadEnhanced, useGHLRouteBulk,
+  useGHLSyncContact, useGHLSyncNotes
+} from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
@@ -211,6 +217,17 @@ export default function CRM() {
   const { data: leads } = useListLeads();
   const deleteLead = useDeleteLead();
   const routeLead = useRouteLead();
+  const routeLeadGHL = useGHLRouteLeadEnhanced();
+  const routeBulk = useGHLRouteBulk();
+  const { data: ghlSyncHealth } = useGHLSyncHealth();
+  const { data: ghlRoutingSummary } = useGHLRoutingSummary();
+  const { data: ghlSyncLogsData } = useGHLSyncLogs();
+  const { data: retryQueueData } = useGHLRetryQueue();
+  const retryAllFailed = useGHLRetryAllFailed();
+  const syncRetry = useGHLSyncRetry();
+  const syncContact = useGHLSyncContact();
+  const syncNotes = useGHLSyncNotes();
+  const [selectedLeadIds, setSelectedLeadIds] = useState<number[]>([]);
   const { isHuman, isHybrid, isAuto } = useAiModeContext();
 
   const leadList = (leads ?? []) as any[];
@@ -490,46 +507,108 @@ export default function CRM() {
         {activeTab === "routing" && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <KpiCard label="Routed to PMG" value={leadList.filter((l: any) => l.status === "qualified" || l.status === "scored").length} icon={<Target className="h-4 w-4" />} accent="crimson" />
-              <KpiCard label="Routed to GHL" value={leadList.filter((l: any) => l.status === "contacted").length} icon={<Send className="h-4 w-4" />} accent="blue" />
-              <KpiCard label="Routed to Both" value={0} icon={<Users className="h-4 w-4" />} accent="gold" />
-              <KpiCard label="Held for Review" value={leadList.filter((l: any) => l.status === "new").length} icon={<Clock className="h-4 w-4" />} accent="default" />
+              <KpiCard label="Routed to PMG" value={(ghlRoutingSummary as any)?.pmg ?? leadList.filter((l: any) => l.routingDestination === "pmg" || (!l.routingDestination && (l.status === "qualified" || l.status === "scored"))).length} icon={<Target className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="Routed to GHL" value={(ghlRoutingSummary as any)?.ghl ?? leadList.filter((l: any) => l.routingDestination === "ghl").length} icon={<Send className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="Routed to Both" value={(ghlRoutingSummary as any)?.both ?? leadList.filter((l: any) => l.routingDestination === "both").length} icon={<Users className="h-4 w-4" />} accent="gold" />
+              <KpiCard label="Held / Unrouted" value={(ghlRoutingSummary as any)?.hold ?? leadList.filter((l: any) => !l.routingDestination || l.routingDestination === "hold").length} icon={<Clock className="h-4 w-4" />} accent="default" />
             </div>
+
+            {selectedLeadIds.length > 0 && (
+              <GlassCard glow="crimson">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">{selectedLeadIds.length} lead{selectedLeadIds.length > 1 ? "s" : ""} selected</p>
+                  <div className="flex items-center gap-1">
+                    {(["pmg", "ghl", "both", "hold"] as const).map(dest => (
+                      <Button key={dest} variant="ghost" size="sm"
+                        className={`h-7 px-2 text-[10px] border ${
+                          dest === "pmg" ? "border-crimson/30 text-crimson hover:bg-crimson/10" :
+                          dest === "ghl" ? "border-blue-500/30 text-blue-400 hover:bg-blue-500/10" :
+                          dest === "both" ? "border-green-500/30 text-green-400 hover:bg-green-500/10" :
+                          "border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                        }`}
+                        onClick={() => {
+                          routeBulk.mutate({ leadIds: selectedLeadIds, destination: dest }, {
+                            onSuccess: (r: any) => { toast({ title: `Bulk routed ${r?.results?.length ?? selectedLeadIds.length} leads → ${dest.toUpperCase()}` }); setSelectedLeadIds([]); }
+                          });
+                        }}
+                        disabled={routeBulk.isPending}
+                      >
+                        {dest.toUpperCase()}
+                      </Button>
+                    ))}
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-muted-foreground" onClick={() => setSelectedLeadIds([])}>Clear</Button>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
 
             <GlassCard>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold flex items-center gap-2"><ArrowRight className="h-4 w-4 text-crimson" />Lead Routing Center</h3>
-                <Badge variant="outline" className="text-[10px]">GoHighLevel Connected</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className={`text-[10px] ${(ghlSyncHealth as any)?.status === "healthy" ? "border-green-500/30 text-green-400" : "border-yellow-500/30 text-yellow-400"}`}>
+                    {(ghlSyncHealth as any)?.status === "healthy" ? "GHL Connected" : "GHL Standby"}
+                  </Badge>
+                </div>
               </div>
               <div className="space-y-2">
-                {leadList.map((lead: any) => (
-                  <div key={lead.id} className="flex items-center justify-between p-3 rounded-lg glass-surface">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div>
-                        <p className="text-sm font-medium">{lead.companyName ?? `Lead #${lead.id}`}</p>
-                        <p className="text-[10px] text-muted-foreground">{lead.contactName} · Score: {lead.fitScore ?? "Pending"}</p>
+                {leadList.map((lead: any) => {
+                  const dest = lead.routingDestination;
+                  const isSelected = selectedLeadIds.includes(lead.id);
+                  return (
+                    <div key={lead.id} className={`flex items-center justify-between p-3 rounded-lg glass-surface transition-all ${isSelected ? "ring-1 ring-crimson/30 bg-crimson/5" : ""}`}>
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <input type="checkbox" checked={isSelected} onChange={e => {
+                          setSelectedLeadIds(prev => e.target.checked ? [...prev, lead.id] : prev.filter(x => x !== lead.id));
+                        }} className="accent-crimson" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium truncate">{lead.companyName ?? `Lead #${lead.id}`}</p>
+                            {dest && (
+                              <Badge variant="outline" className={`text-[8px] shrink-0 ${
+                                dest === "pmg" ? "border-crimson/30 text-crimson" :
+                                dest === "ghl" ? "border-blue-500/30 text-blue-400" :
+                                dest === "both" ? "border-green-500/30 text-green-400" :
+                                "border-yellow-500/30 text-yellow-400"
+                              }`}>
+                                {dest.toUpperCase()}
+                              </Badge>
+                            )}
+                            {lead.retainCopy && dest && dest !== "pmg" && (
+                              <Badge variant="outline" className="text-[7px] border-emerald-500/20 text-emerald-400">Copy Retained</Badge>
+                            )}
+                            {lead.externalCrmId && (
+                              <Badge variant="outline" className="text-[7px] border-blue-500/20 text-blue-300">GHL: {lead.externalCrmId.slice(0, 8)}...</Badge>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">{lead.contactName} · Score: {lead.fitScore ?? "Pending"}{lead.lastSyncedAt ? ` · Synced: ${new Date(lead.lastSyncedAt).toLocaleString()}` : ""}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {(["pmg", "ghl", "both", "hold"] as const).map(d => (
+                          <Button key={d} variant="ghost" size="sm"
+                            className={`h-7 px-2 text-[10px] border ${
+                              d === dest ? "ring-1 ring-white/20 font-bold" : ""
+                            } ${
+                              d === "pmg" ? "border-crimson/30 text-crimson hover:bg-crimson/10" :
+                              d === "ghl" ? "border-blue-500/30 text-blue-400 hover:bg-blue-500/10" :
+                              d === "both" ? "border-green-500/30 text-green-400 hover:bg-green-500/10" :
+                              "border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                            }`}
+                            onClick={() => {
+                              routeLead.mutate({ id: lead.id, destination: d }, {
+                                onSuccess: () => toast({ title: `Routed → ${d.toUpperCase()}`, description: "Copy retained in PMG" })
+                              });
+                            }}
+                            disabled={routeLead.isPending}
+                          >
+                            {d.toUpperCase()}
+                          </Button>
+                        ))}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] border border-crimson/30 text-crimson hover:bg-crimson/10"
-                        onClick={() => { routeLead.mutate({ id: lead.id, destination: "internal" }, { onSuccess: () => toast({ title: "Routed to PMG CRM" }) }); }}>
-                        PMG
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] border border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                        onClick={() => { routeLead.mutate({ id: lead.id, destination: "ghl" }, { onSuccess: () => toast({ title: "Routed to GoHighLevel" }) }); }}>
-                        GHL
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] border border-green-500/30 text-green-400 hover:bg-green-500/10"
-                        onClick={() => { routeLead.mutate({ id: lead.id, destination: "both" }, { onSuccess: () => toast({ title: "Routed to Both" }) }); }}>
-                        Both
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
-                        onClick={() => toast({ title: "Held for review" })}>
-                        Hold
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {leadList.length === 0 && (
                   <div className="py-8 text-center text-muted-foreground text-xs">No leads pending routing</div>
                 )}
@@ -537,22 +616,39 @@ export default function CRM() {
             </GlassCard>
 
             <GlassCard>
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><History className="h-4 w-4 text-crimson" />Sync History</h3>
-              <div className="space-y-1.5">
-                {[
-                  { time: "2 min ago", action: "Lead synced to GHL", status: "success", lead: "TechCorp Inc." },
-                  { time: "15 min ago", action: "Contact updated in GHL", status: "success", lead: "SecureNet Solutions" },
-                  { time: "1 hr ago", action: "Lead sync failed — retrying", status: "error", lead: "DataVault Systems" },
-                ].map((log, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-white/5 text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${log.status === "success" ? "bg-green-400" : "bg-red-400"}`} />
-                      <span>{log.lead}</span>
-                      <span className="text-muted-foreground">{log.action}</span>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2"><History className="h-4 w-4 text-crimson" />Recent Sync Activity</h3>
+                {(retryQueueData?.queue ?? []).length > 0 && (
+                  <Button className="btn-glass text-foreground text-[10px] px-2 py-1 rounded-lg"
+                    onClick={() => retryAllFailed.mutate(undefined, { onSuccess: (r: any) => toast({ title: `Retried ${r?.retried ?? 0} failed` }) })}
+                    disabled={retryAllFailed.isPending}
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />Retry Failed ({(retryQueueData?.queue ?? []).length})
+                  </Button>
+                )}
+              </div>
+              <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                {(ghlSyncLogsData?.logs ?? []).slice(0, 15).map((log: any) => (
+                  <div key={log.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${log.status === "success" ? "bg-green-400" : log.status === "failed" ? "bg-red-400" : "bg-yellow-400"}`} />
+                      <span className="font-medium">{log.entityType}#{log.entityId}</span>
+                      <span className="text-muted-foreground truncate">{log.direction ?? "outbound"} · {log.action ?? "sync"}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{log.time}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {log.status === "failed" && (
+                        <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-red-400 hover:bg-red-500/10"
+                          onClick={() => syncRetry.mutate(log.id, { onSuccess: () => toast({ title: "Retry triggered" }) })}>
+                          Retry
+                        </Button>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">{log.createdAt ? new Date(log.createdAt).toLocaleString() : "—"}</span>
+                    </div>
                   </div>
                 ))}
+                {(ghlSyncLogsData?.logs ?? []).length === 0 && (
+                  <div className="py-4 text-center text-muted-foreground text-xs">No sync activity yet — route a lead to start</div>
+                )}
               </div>
             </GlassCard>
           </div>
@@ -733,59 +829,122 @@ export default function CRM() {
 
         {activeTab === "sync-center" && (
           <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <KpiCard label="Total Synced" value={(ghlSyncHealth as any)?.totalSynced ?? (ghlSyncLogsData?.succeeded ?? 0)} icon={<CheckCircle2 className="h-4 w-4" />} accent="success" />
+              <KpiCard label="Failed Syncs" value={(ghlSyncHealth as any)?.totalFailed ?? (ghlSyncLogsData?.failed ?? 0)} icon={<AlertTriangle className="h-4 w-4" />} accent="crimson" />
+              <KpiCard label="Health Score" value={`${(ghlSyncHealth as any)?.healthScore ?? 100}%`} icon={<TrendingUp className="h-4 w-4" />} accent="blue" />
+              <KpiCard label="Retry Queue" value={(retryQueueData?.queue ?? []).length} icon={<RefreshCw className="h-4 w-4" />} accent="gold" />
+            </div>
+
             <GlassCard glow="blue" className="p-0 overflow-hidden">
               <div className="px-5 pt-4 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <RefreshCw className="h-4 w-4 text-info" />
                   <h3 className="text-sm font-semibold">CRM Sync Status</h3>
                 </div>
-                <Button className="btn-glass text-foreground text-xs px-3 py-1.5 rounded-lg"><RefreshCw className="h-3 w-3 mr-1" />Sync All</Button>
+                <div className="flex items-center gap-2">
+                  {(retryQueueData?.queue ?? []).length > 0 && (
+                    <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg"
+                      onClick={() => retryAllFailed.mutate(undefined, { onSuccess: (r: any) => toast({ title: `Retried ${r?.retried ?? 0} failed syncs` }) })}
+                      disabled={retryAllFailed.isPending}
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />Retry All Failed
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="px-5 pb-4 space-y-2">
                 {[
-                  { entity: "Leads", source: "GoHighLevel", lastSync: "5 min ago", synced: leadList.length, pending: 0, status: "synced" },
-                  { entity: "Opportunities", source: "Internal CRM", lastSync: "2 min ago", synced: oppList.length, pending: 0, status: "synced" },
-                  { entity: "Contacts", source: "GoHighLevel", lastSync: "10 min ago", synced: commList.length, pending: 2, status: "partial" },
-                  { entity: "Companies", source: "Intelligence Module", lastSync: "15 min ago", synced: companyList.length, pending: 0, status: "synced" },
-                  { entity: "Communications", source: "Multi-Channel", lastSync: "1 min ago", synced: commList.length, pending: 0, status: "synced" },
-                ].map((sync) => (
-                  <div key={sync.entity} className="flex items-center justify-between p-3 rounded-lg glass-surface">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${sync.status === "synced" ? "bg-success" : sync.status === "partial" ? "bg-warning" : "bg-crimson"}`} />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">{sync.entity}</p>
-                        <p className="text-[10px] text-muted-foreground">{sync.source} · Last: {sync.lastSync}</p>
+                  { entity: "Leads", synced: leadList.filter((l: any) => l.externalCrmId || l.routingDestination).length, total: leadList.length, source: "PMG ↔ GHL" },
+                  { entity: "Opportunities", synced: oppList.length, total: oppList.length, source: "PMG Internal" },
+                  { entity: "Contacts", synced: commList.length, total: commList.length, source: "PMG ↔ GHL" },
+                  { entity: "Companies", synced: companyList.length, total: companyList.length, source: "Intelligence" },
+                ].map((sync) => {
+                  const pct = sync.total > 0 ? Math.round((sync.synced / sync.total) * 100) : 100;
+                  const status = pct === 100 ? "synced" : pct > 50 ? "partial" : "behind";
+                  return (
+                    <div key={sync.entity} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${status === "synced" ? "bg-success" : status === "partial" ? "bg-warning" : "bg-crimson"}`} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{sync.entity}</p>
+                          <p className="text-[10px] text-muted-foreground">{sync.source}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <p className="text-xs font-bold">{sync.synced}/{sync.total}</p>
+                          <p className="text-[9px] text-muted-foreground">{pct}% synced</p>
+                        </div>
+                        <StatusBadge variant={status === "synced" ? "active" : "warning"} label={status} />
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="text-right">
-                        <p className="text-xs font-bold">{sync.synced}</p>
-                        <p className="text-[9px] text-muted-foreground">synced</p>
-                      </div>
-                      {sync.pending > 0 && (
-                        <Badge variant="outline" className="text-[9px] border-warning/30 text-warning">{sync.pending} pending</Badge>
-                      )}
-                      <StatusBadge variant={sync.status === "synced" ? "active" : "warning"} label={sync.status} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </GlassCard>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <GlassCard className="text-center">
-                <p className="text-2xl font-bold gradient-text-crimson">{leadList.length + oppList.length + companyList.length}</p>
-                <p className="text-[10px] text-muted-foreground">Total Records Synced</p>
+            <GlassCard className="p-0 overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Sync Log — All Activity</h3>
+                <Badge variant="outline" className="text-[10px]">{ghlSyncLogsData?.total ?? 0} total entries</Badge>
+              </div>
+              <div className="px-5 pb-4 space-y-1.5 max-h-64 overflow-y-auto">
+                {(ghlSyncLogsData?.logs ?? []).map((log: any) => (
+                  <div key={log.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${log.status === "success" ? "bg-green-400" : log.status === "failed" ? "bg-red-400" : "bg-yellow-400"}`} />
+                      <span className="font-medium">{log.entityType}#{log.entityId}</span>
+                      <span className="text-muted-foreground truncate">{log.direction ?? "outbound"} · {log.action ?? "sync"}</span>
+                      {log.retryCount > 0 && <Badge variant="outline" className="text-[8px] border-yellow-500/20 text-yellow-400">retry #{log.retryCount}</Badge>}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {log.status === "failed" && (
+                        <Button variant="ghost" size="sm" className="h-5 px-1 text-[9px] text-red-400 hover:bg-red-500/10"
+                          onClick={() => syncRetry.mutate(log.id, { onSuccess: () => toast({ title: "Retry triggered" }) })}>
+                          Retry
+                        </Button>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">{log.createdAt ? new Date(log.createdAt).toLocaleString() : "—"}</span>
+                    </div>
+                  </div>
+                ))}
+                {(ghlSyncLogsData?.logs ?? []).length === 0 && (
+                  <div className="py-6 text-center text-muted-foreground text-xs">No sync logs yet — route a lead to generate sync activity</div>
+                )}
+              </div>
+            </GlassCard>
+
+            {(retryQueueData?.queue ?? []).length > 0 && (
+              <GlassCard glow="crimson" className="p-0 overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-400" />
+                    Retry Queue ({(retryQueueData?.queue ?? []).length})
+                  </h3>
+                  <Button className="btn-glass text-foreground text-xs px-2 py-1 rounded-lg"
+                    onClick={() => retryAllFailed.mutate(undefined, { onSuccess: (r: any) => toast({ title: `Retried ${r?.retried ?? 0} items` }) })}
+                    disabled={retryAllFailed.isPending}
+                  >
+                    Retry All
+                  </Button>
+                </div>
+                <div className="px-5 pb-4 space-y-1.5">
+                  {(retryQueueData?.queue ?? []).map((item: any) => (
+                    <div key={item.id} className="flex items-center justify-between p-2 rounded-lg bg-red-500/5 border border-red-500/10 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{item.entityType}#{item.entityId}</span>
+                        <span className="text-red-400 truncate max-w-48">{item.errorMessage ?? "Sync failed"}</span>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-5 px-2 text-[9px] text-crimson"
+                        onClick={() => syncRetry.mutate(item.id, { onSuccess: () => toast({ title: "Retrying..." }) })}>
+                        Retry
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </GlassCard>
-              <GlassCard className="text-center">
-                <p className="text-2xl font-bold text-success">98.5%</p>
-                <p className="text-[10px] text-muted-foreground">Sync Health Score</p>
-              </GlassCard>
-              <GlassCard className="text-center">
-                <p className="text-2xl font-bold text-info">2</p>
-                <p className="text-[10px] text-muted-foreground">Pending Conflicts</p>
-              </GlassCard>
-            </div>
+            )}
           </div>
         )}
 

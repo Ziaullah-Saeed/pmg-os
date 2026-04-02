@@ -320,10 +320,126 @@ export function useSetGHLCRMMode() {
   });
 }
 
-export function useGHLSyncLogs() {
+export function useGHLSyncLogs(filters?: { entityType?: string; status?: string; direction?: string }) {
+  const params = new URLSearchParams();
+  if (filters?.entityType) params.set("entityType", filters.entityType);
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.direction) params.set("direction", filters.direction);
+  const qs = params.toString();
   return useQuery({
-    queryKey: ["ghl", "sync-logs"],
-    queryFn: () => apiFetch<{ logs: any[]; total: number }>("/ghl/sync-logs"),
+    queryKey: ["ghl", "sync-logs", filters],
+    queryFn: () => apiFetch<{ logs: any[]; total: number; failed: number; succeeded: number }>(`/ghl/sync-logs${qs ? `?${qs}` : ""}`),
+  });
+}
+
+export function useGHLFieldMapping() {
+  return useQuery({
+    queryKey: ["ghl", "field-mapping"],
+    queryFn: () => apiFetch<{ fieldMapping: Record<string, string>; defaults: Record<string, string> }>("/ghl/field-mapping"),
+  });
+}
+
+export function useSaveGHLFieldMapping() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (fieldMapping: Record<string, string>) => apiFetch<any>("/ghl/field-mapping", { method: "PUT", body: JSON.stringify({ fieldMapping }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl"] }); },
+  });
+}
+
+export function useGHLPipelineMapping() {
+  return useQuery({
+    queryKey: ["ghl", "pipeline-mapping"],
+    queryFn: () => apiFetch<{ pipelineMapping: Record<string, string>; pmgStages: string[] }>("/ghl/pipeline-mapping"),
+  });
+}
+
+export function useSaveGHLPipelineMapping() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (pipelineMapping: Record<string, string>) => apiFetch<any>("/ghl/pipeline-mapping", { method: "PUT", body: JSON.stringify({ pipelineMapping }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl"] }); },
+  });
+}
+
+export function useGHLSyncHealth() {
+  return useQuery({
+    queryKey: ["ghl", "sync-health"],
+    queryFn: () => apiFetch<any>("/ghl/sync-health"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useGHLRoutingSummary() {
+  return useQuery({
+    queryKey: ["ghl", "routing-summary"],
+    queryFn: () => apiFetch<any>("/ghl/routing-summary"),
+  });
+}
+
+export function useGHLRetryQueue() {
+  return useQuery({
+    queryKey: ["ghl", "retry-queue"],
+    queryFn: () => apiFetch<{ queue: any[]; total: number }>("/ghl/retry-queue"),
+  });
+}
+
+export function useGHLSyncRetry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (logId: number) => apiFetch<any>(`/ghl/sync-retry/${logId}`, { method: "POST" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl"] }); invalidateEntity(qc, "leads"); },
+  });
+}
+
+export function useGHLRetryAllFailed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<any>("/ghl/retry-all-failed", { method: "POST" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl"] }); invalidateEntity(qc, "leads"); },
+  });
+}
+
+export function useGHLRouteLeadEnhanced() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, destination }: { id: number; destination: string }) =>
+      apiFetch<any>(`/ghl/route-lead/${id}`, { method: "POST", body: JSON.stringify({ destination }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl"] }); invalidateEntity(qc, "leads"); },
+  });
+}
+
+export function useGHLRouteBulk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ leadIds, destination }: { leadIds: number[]; destination: string }) =>
+      apiFetch<any>("/ghl/route-bulk", { method: "POST", body: JSON.stringify({ leadIds, destination }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl"] }); invalidateEntity(qc, "leads"); },
+  });
+}
+
+export function useGHLSyncNotes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entityType, entityId, notes }: { entityType: string; entityId: number; notes: string }) =>
+      apiFetch<any>("/ghl/sync-notes", { method: "POST", body: JSON.stringify({ entityType, entityId, notes }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl", "sync-logs"] }); },
+  });
+}
+
+export function useGHLSyncContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (contactId: number) => apiFetch<any>(`/ghl/sync-contact/${contactId}`, { method: "POST" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl"] }); invalidateEntity(qc, "contacts"); },
+  });
+}
+
+export function useGHLPullContacts() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (limit: number = 50) => apiFetch<any>("/ghl/pull-contacts", { method: "POST", body: JSON.stringify({ limit }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["ghl"] }); invalidateEntity(qc, "contacts"); },
   });
 }
 

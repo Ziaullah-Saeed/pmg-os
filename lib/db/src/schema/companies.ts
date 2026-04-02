@@ -15,6 +15,8 @@ export const companiesTable = pgTable("companies", {
   fitScore: integer("fit_score"),
   painPoints: text("pain_points"),
   notes: text("notes"),
+  externalCrmId: text("external_crm_id"),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

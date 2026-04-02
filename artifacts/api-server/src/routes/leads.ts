@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, and } from "drizzle-orm";
 import { db, leadsTable, companiesTable, contactsTable, activitiesTable, aiRunsTable } from "@workspace/db";
+import { requireRole } from "../middleware/rbac";
 import {
   ListLeadsQueryParams,
   ListLeadsResponse,
@@ -56,6 +57,11 @@ router.get("/leads", async (req, res): Promise<void> => {
       assignedTo: leadsTable.assignedTo,
       notes: leadsTable.notes,
       qualifiedAt: leadsTable.qualifiedAt,
+      routingDestination: leadsTable.routingDestination,
+      retainCopy: leadsTable.retainCopy,
+      externalCrmId: leadsTable.externalCrmId,
+      routedAt: leadsTable.routedAt,
+      lastSyncedAt: leadsTable.lastSyncedAt,
       createdAt: leadsTable.createdAt,
       updatedAt: leadsTable.updatedAt,
     })
@@ -208,6 +214,11 @@ router.get("/leads/:id", async (req, res): Promise<void> => {
       assignedTo: leadsTable.assignedTo,
       notes: leadsTable.notes,
       qualifiedAt: leadsTable.qualifiedAt,
+      routingDestination: leadsTable.routingDestination,
+      retainCopy: leadsTable.retainCopy,
+      externalCrmId: leadsTable.externalCrmId,
+      routedAt: leadsTable.routedAt,
+      lastSyncedAt: leadsTable.lastSyncedAt,
       createdAt: leadsTable.createdAt,
       updatedAt: leadsTable.updatedAt,
     })
@@ -297,11 +308,12 @@ router.patch("/leads/:id", async (req, res): Promise<void> => {
   res.json(UpdateLeadResponse.parse(lead));
 });
 
-router.post("/leads/:id/route", async (req, res): Promise<void> => {
+router.post("/leads/:id/route", requireRole("manager"), async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   const { destination } = req.body;
-  if (!["internal", "ghl", "both", "hold"].includes(destination)) {
-    res.status(400).json({ error: "Destination must be internal, ghl, both, or hold" });
+  const validDests = ["internal", "pmg", "ghl", "both", "hold"];
+  if (!validDests.includes(destination)) {
+    res.status(400).json({ error: "Destination must be pmg, ghl, both, or hold" });
     return;
   }
 
@@ -311,21 +323,28 @@ router.post("/leads/:id/route", async (req, res): Promise<void> => {
     return;
   }
 
-  const result = await routeLead(id, destination);
+  const normalizedDest = destination === "internal" ? "pmg" : destination;
+  const routeArg = normalizedDest === "pmg" ? "internal" : normalizedDest;
+  const result = await routeLead(id, routeArg as any);
 
   const newStatus = destination === "hold" ? "hold" : "routed";
-  await db.update(leadsTable).set({ status: newStatus }).where(eq(leadsTable.id, id));
+  const updateData: any = { status: newStatus, routingDestination: normalizedDest, retainCopy: true, routedAt: new Date() };
+  if (result.ghlResult?.ghlContactId) {
+    updateData.externalCrmId = result.ghlResult.ghlContactId;
+    updateData.lastSyncedAt = new Date();
+  }
+  await db.update(leadsTable).set(updateData).where(eq(leadsTable.id, id));
 
   await db.insert(activitiesTable).values({
     action: "lead_routed",
-    description: `Lead Routed → ${destination} — ${result.routed ? "Success" : "Pending"}`,
+    description: `Lead Routed → ${normalizedDest} — ${result.routed ? "Success" : "Pending"}`,
     entityType: "lead",
     entityId: id,
     performedBy: "system",
-    metadata: JSON.stringify({ destination, result }),
+    metadata: JSON.stringify({ destination: normalizedDest, result }),
   });
 
-  res.json({ success: true, ...result });
+  res.json({ success: true, ...result, routingDestination: normalizedDest, retainCopy: true });
 });
 
 router.get("/leads/:id/activities", async (req, res): Promise<void> => {

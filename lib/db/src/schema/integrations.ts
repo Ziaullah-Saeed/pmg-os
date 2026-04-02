@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -30,6 +30,9 @@ export const syncLogsTable = pgTable("sync_logs", {
   status: text("status").notNull(),
   error: text("error"),
   payload: jsonb("payload"),
+  retryCount: integer("retry_count").default(0),
+  retriedAt: timestamp("retried_at", { withTimezone: true }),
+  routingDestination: text("routing_destination"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -56,3 +56,42 @@ The system features a cinematic glassmorphic dark-first design, utilizing a prim
 *   **CRM/Marketing Integrations:** GoHighLevel
 *   **Email Service:** nodemailer (SMTP)
 *   **UI Components:** @dnd-kit (for drag-and-drop)
+
+## Phase 4: CRM + GHL + External Routing (Completed)
+
+Phase 4 makes routing real, sync visible, and ensures PMG never loses visibility after external handoff.
+
+**Schema Changes:**
+- `leads`: Added `externalCrmId`, `routingDestination` (pmg/ghl/both/hold), `retainCopy` (always true), `routedAt`, `lastSyncedAt`
+- `contacts`, `companies`, `opportunities`: Added `externalCrmId`, `lastSyncedAt`
+- `sync_logs`: Added `retryCount`, `retriedAt`, `routingDestination`
+
+**API Enhancements (ghl.ts routes):**
+- Field mapping CRUD (`/ghl/field-mapping` GET/PUT)
+- Pipeline mapping CRUD (`/ghl/pipeline-mapping` GET/PUT)
+- Per-lead routing (`/ghl/route-lead/:id` POST) with retainCopy
+- Bulk routing (`/ghl/route-bulk` POST)
+- Enhanced sync logs with filtering (`/ghl/sync-logs`)
+- Retry queue (`/ghl/retry-queue` GET, `/ghl/retry-all-failed` POST)
+- Sync health dashboard (`/ghl/sync-health` GET) with totalSynced, totalFailed, healthScore, status
+- Routing summary (`/ghl/routing-summary` GET)
+- Note sync, contact sync endpoints
+- Legacy `/leads/:id/route` updated to accept `pmg` destination and write routing fields
+
+**Frontend (15 new hooks in use-api.ts):**
+- `useGHLFieldMapping`, `useSaveGHLFieldMapping`, `useGHLPipelineMapping`, `useSaveGHLPipelineMapping`
+- `useGHLSyncHealth`, `useGHLRoutingSummary`, `useGHLRetryQueue`, `useGHLSyncRetry`
+- `useGHLRetryAllFailed`, `useGHLRouteLeadEnhanced`, `useGHLRouteBulk`
+- `useGHLSyncNotes`, `useGHLSyncContact`, `useGHLPullContacts`
+
+**System Page (GHL Setup tab) enhancements:**
+- Field Mapping editor (PMG → GHL field name mapping with save)
+- Pipeline Mapping editor (stage name mapping)
+- Sync Health Dashboard with live metrics and sync log viewer
+- Retry queue management with per-item and batch retry
+
+**CRM Page enhancements:**
+- GHL Routing tab: Real per-lead routing with PMG/GHL/Both/Hold buttons, bulk routing via checkboxes, routing destination badges, "Copy Retained" indicator, GHL external ID display, sync timestamp
+- Sync Center tab: Live KPIs (Total Synced, Failed, Health Score, Retry Queue), entity sync status with percentages, full sync log with retry buttons, dedicated retry queue panel
+
+**Security:** `/leads/:id/route` now requires `manager` role via RBAC middleware.
