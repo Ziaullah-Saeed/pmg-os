@@ -522,6 +522,44 @@ export function useLeadAiRuns(leadId: number) {
   });
 }
 
+export function useConvertLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      apiFetch<any>(`/leads/${id}/convert`, { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      invalidateEntity(qc, "leads");
+      invalidateEntity(qc, "opportunities");
+    },
+  });
+}
+
+export function useCloseLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason, notes }: { id: number; reason: string; notes?: string }) =>
+      apiFetch<any>(`/leads/${id}/close`, { method: "POST", body: JSON.stringify({ reason, notes }) }),
+    onSuccess: () => { invalidateEntity(qc, "leads"); },
+  });
+}
+
+export function useDeleteOpportunity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiFetch<void>(`/opportunities/${id}`, { method: "DELETE" }),
+    onSuccess: () => { invalidateEntity(qc, "opportunities"); },
+  });
+}
+
+export function useGetOpportunity(id: number | null) {
+  return useQuery({
+    queryKey: ["opportunities", id],
+    queryFn: () => apiFetch<any>(`/opportunities/${id}`),
+    enabled: !!id,
+  });
+}
+
 export function useKnowledgeLibrary(limit = 100) {
   return useQuery({
     queryKey: ["knowledge", limit],

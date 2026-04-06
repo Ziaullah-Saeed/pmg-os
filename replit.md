@@ -23,7 +23,7 @@ All agents use Claude as primary AI engine. Zero AI fluff, human tone only.
 
 ### Build Progress
 - **Session 1 (COMPLETE):** Foundation cleanup, new 6-section sidebar, Dashboard, Settings, Outreach (fully functional), 32 agent registry, placeholder pages for CRM/Marketing/Production/Admin/Finance
-- **Session 2:** CRM section (pipeline, lead scoring, call intelligence, proposals)
+- **Session 2 (COMPLETE):** Full CRM section — 5 tabs: Pipeline (kanban board, deal creation, stage progression, deal health, notes), Lead Qualification (5-dimension scoring, tier filtering Hot/Warm/Cold/Disqualified, convert/disqualify actions), Call Intelligence (pre-call prep, coaching cards with objection responses, transcript upload), Proposals (pricing tiers Starter/Growth/Enterprise, lifecycle tracking Draft→Sent→Viewed→Accepted/Rejected), CRM Sync (GHL main + partner sub-account, HubSpot, sync logs, routing config)
 - **Session 3:** Marketing + Production sections
 - **Session 4:** Admin + Finance + Legal + Video Guides + Polish
 
