@@ -801,10 +801,34 @@ export function useUpdateOpportunityMut() {
   });
 }
 
+export function useListCampaigns() {
+  return useQuery({
+    queryKey: ["campaigns"],
+    queryFn: () => apiFetch<any[]>("/campaigns"),
+  });
+}
+
 export function useCreateCampaignMut() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Record<string, unknown>) => apiFetch<any>("/campaigns", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => { invalidateEntity(qc, "campaigns"); },
+  });
+}
+
+export function useUpdateCampaignMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      apiFetch<any>(`/campaigns/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => { invalidateEntity(qc, "campaigns"); },
+  });
+}
+
+export function useDeleteCampaignMut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<void>(`/campaigns/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidateEntity(qc, "campaigns"); },
   });
 }
