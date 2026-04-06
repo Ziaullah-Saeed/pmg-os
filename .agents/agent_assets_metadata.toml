@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "vRvefJ1ZaQkBHL5xk_1gM"
+uri = "file://PMG-OS-COMPLETE-ARCHITECTURE.md"
+type = "text"
+title = "PMG Group OS - Complete System Architecture & Guide"
