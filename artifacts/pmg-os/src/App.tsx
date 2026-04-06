@@ -8,25 +8,14 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { OverlayProvider } from "@/hooks/use-overlay";
 import Dashboard from "@/pages/dashboard";
-import Intelligence from "@/pages/intelligence";
 import Outreach from "@/pages/outreach";
 import CRM from "@/pages/crm";
 import Marketing from "@/pages/marketing";
 import Production from "@/pages/production";
-import Communications from "@/pages/communications";
-import Execution from "@/pages/execution";
-import Finance from "@/pages/finance";
-import Reports from "@/pages/reports";
-import System from "@/pages/system";
-import Automation from "@/pages/automation";
-import Quality from "@/pages/quality";
 import Admin from "@/pages/admin";
+import Finance from "@/pages/finance";
+import SettingsPage from "@/pages/settings";
 import Login from "@/pages/login";
-import AiAuto from "@/pages/ai-auto";
-import Hybrid from "@/pages/hybrid";
-import Human from "@/pages/human";
-import Agents from "@/pages/agents";
-import Channels from "@/pages/channels";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -56,24 +45,13 @@ function AppRouter() {
         <SidebarLayout>
           <Switch>
             <Route path="/" component={Dashboard} />
-            <Route path="/intelligence" component={Intelligence} />
             <Route path="/outreach" component={Outreach} />
+            <Route path="/crm" component={CRM} />
             <Route path="/marketing" component={Marketing} />
             <Route path="/production" component={Production} />
-            <Route path="/crm" component={CRM} />
-            <Route path="/communications" component={Communications} />
-            <Route path="/execution" component={Execution} />
-            <Route path="/finance" component={Finance} />
-            <Route path="/reports" component={Reports} />
-            <Route path="/system" component={System} />
-            <Route path="/automation" component={Automation} />
-            <Route path="/quality" component={Quality} />
             <Route path="/admin" component={Admin} />
-            <Route path="/auto" component={AiAuto} />
-            <Route path="/hybrid" component={Hybrid} />
-            <Route path="/human" component={Human} />
-            <Route path="/agents" component={Agents} />
-            <Route path="/channels" component={Channels} />
+            <Route path="/finance" component={Finance} />
+            <Route path="/settings" component={SettingsPage} />
             <Route component={NotFound} />
           </Switch>
         </SidebarLayout>

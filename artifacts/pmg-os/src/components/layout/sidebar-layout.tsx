@@ -1,28 +1,17 @@
 import { Link, useLocation } from "wouter";
 import {
-  BarChart3,
-  BrainCircuit,
   Target,
+  Briefcase,
   Megaphone,
   Palette,
-  Briefcase,
-  MessagesSquare,
-  Zap,
+  Shield,
   Landmark,
-  FileBox,
   Settings,
   Menu,
-  Bot,
-  Shield,
-  ShieldCheck,
-  BookOpen,
   ChevronLeft,
   ChevronRight,
-  Workflow,
-  User,
-  ArrowLeftRight,
-  Cpu,
-  Radio,
+  LogOut,
+  LayoutDashboard,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -34,32 +23,38 @@ import { AiModeToggle } from "@/components/ai-mode-toggle";
 import { WalletDisplay } from "@/components/wallet-display";
 import { GlobalSearch } from "@/components/global-search";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut } from "lucide-react";
 
-const navItems = [
-  { href: "/", label: "Command Center", icon: BarChart3, domain: "command" },
-  { href: "/intelligence", label: "Intelligence", icon: BrainCircuit, domain: "intelligence" },
-  { href: "/outreach", label: "Outreach", icon: Target, domain: "outreach" },
-  { href: "/marketing", label: "Marketing", icon: Megaphone, domain: "marketing" },
-  { href: "/production", label: "Production", icon: Palette, domain: "production" },
-  { href: "/crm", label: "CRM Pipeline", icon: Briefcase, domain: "crm" },
-  { href: "/communications", label: "Communications", icon: MessagesSquare, domain: "comms" },
-  { href: "/execution", label: "Execution", icon: Zap, domain: "execution" },
-  { href: "/finance", label: "Finance & Legal", icon: Landmark, domain: "finance" },
-  { href: "/reports", label: "Reports & Archive", icon: FileBox, domain: "reports" },
-  { href: "/automation", label: "Automation", icon: Workflow, domain: "automation" },
-  { href: "/quality", label: "Quality", icon: ShieldCheck, domain: "quality" },
-  { href: "/admin", label: "Administrative", icon: BookOpen, domain: "admin" },
-  { href: "/agents", label: "Agent Orchestration", icon: Cpu, domain: "agents" },
-  { href: "/channels", label: "Channels", icon: Radio, domain: "channels" },
-  { href: "/system", label: "System", icon: Settings, domain: "system" },
+const navSections = [
+  {
+    label: "Main",
+    items: [
+      { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Revenue Engine",
+    items: [
+      { href: "/outreach", label: "Outreach", icon: Target },
+      { href: "/crm", label: "CRM", icon: Briefcase },
+    ],
+  },
+  {
+    label: "Growth",
+    items: [
+      { href: "/marketing", label: "Marketing", icon: Megaphone },
+      { href: "/production", label: "Production", icon: Palette },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { href: "/admin", label: "Admin", icon: Shield },
+      { href: "/finance", label: "Finance", icon: Landmark },
+    ],
+  },
 ];
 
-const modeItems = [
-  { href: "/auto", label: "AI Auto", icon: Bot, domain: "mode" },
-  { href: "/hybrid", label: "Hybrid", icon: ArrowLeftRight, domain: "mode" },
-  { href: "/human", label: "Manual", icon: User, domain: "mode" },
-];
+const settingsItem = { href: "/settings", label: "Settings", icon: Settings };
 
 function Logo({ collapsed }: { collapsed?: boolean }) {
   return (
@@ -82,31 +77,11 @@ function Logo({ collapsed }: { collapsed?: boolean }) {
               PMG <span className="text-crimson">OS</span>
             </div>
             <div className="text-[10px] text-muted-foreground uppercase tracking-widest -mt-0.5 whitespace-nowrap">
-              AI Operating System
+              Business Operating System
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-function AiModeIndicator({ collapsed }: { collapsed?: boolean }) {
-  return (
-    <div className={cn(
-      "flex items-center gap-2 px-3 py-2 rounded-lg glass-surface",
-      collapsed && "justify-center px-2"
-    )}>
-      <div className="relative">
-        <Bot className="h-4 w-4 text-info" />
-        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-success animate-pulse" />
-      </div>
-      {!collapsed && (
-        <div className="overflow-hidden">
-          <div className="text-[10px] uppercase tracking-wider text-info font-medium whitespace-nowrap">AI Active</div>
-          <div className="text-[9px] text-muted-foreground whitespace-nowrap">Hybrid Mode</div>
-        </div>
-      )}
     </div>
   );
 }
@@ -116,7 +91,7 @@ function NavLink({
   isActive,
   collapsed,
 }: {
-  item: typeof navItems[0];
+  item: { href: string; label: string; icon: any };
   isActive: boolean;
   collapsed?: boolean;
 }) {
@@ -184,6 +159,37 @@ function UserProfile({ collapsed }: { collapsed?: boolean }) {
   );
 }
 
+function SidebarNav({ collapsed, location }: { collapsed?: boolean; location: string }) {
+  return (
+    <>
+      {navSections.map((section, si) => (
+        <div key={section.label}>
+          {si > 0 && <div className={cn("my-2 border-t border-border/20", collapsed ? "mx-1.5" : "mx-3")} />}
+          {!collapsed && (
+            <div className="px-5 py-1.5">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium">{section.label}</span>
+            </div>
+          )}
+          {section.items.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              isActive={item.href === "/" ? location === "/" : location.startsWith(item.href)}
+              collapsed={collapsed}
+            />
+          ))}
+        </div>
+      ))}
+      <div className={cn("my-2 border-t border-border/20", collapsed ? "mx-1.5" : "mx-3")} />
+      <NavLink
+        item={settingsItem}
+        isActive={location.startsWith("/settings")}
+        collapsed={collapsed}
+      />
+    </>
+  );
+}
+
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -193,7 +199,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       <header className="md:hidden border-b border-border glass-panel p-4 flex items-center justify-between sticky top-0 z-50">
         <Logo />
         <div className="flex items-center gap-2">
-          <AiModeIndicator collapsed />
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden btn-glass">
@@ -204,28 +209,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               <div className="p-5 border-b border-border">
                 <Logo />
               </div>
-              <div className="p-3">
-                <AiModeIndicator />
-              </div>
-              <nav className="space-y-0.5 mt-2 pb-4">
-                {navItems.map((item) => (
-                  <NavLink
-                    key={item.href}
-                    item={item}
-                    isActive={location === item.href}
-                  />
-                ))}
-                <div className="mx-3 my-2 border-t border-border/30" />
-                <div className="px-3 py-1">
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Operating Mode</span>
-                </div>
-                {modeItems.map((item) => (
-                  <NavLink
-                    key={item.href}
-                    item={item}
-                    isActive={location === item.href}
-                  />
-                ))}
+              <nav className="space-y-0.5 mt-2 pb-4 overflow-y-auto">
+                <SidebarNav location={location} />
               </nav>
             </SheetContent>
           </Sheet>
@@ -234,7 +219,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
       <aside className={cn(
         "hidden md:flex flex-col border-r border-border/50 sticky top-0 h-screen shrink-0 transition-all duration-300",
-        collapsed ? "w-16" : "w-60",
+        collapsed ? "w-16" : "w-56",
         "bg-gradient-to-b from-[hsl(222_47%_3%)] via-[hsl(214_65%_5%)] to-[hsl(222_47%_3%)]"
       )}>
         <div className={cn(
@@ -259,28 +244,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 overflow-y-auto py-2 space-y-0.5">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.href}
-              item={item}
-              isActive={location === item.href}
-              collapsed={collapsed}
-            />
-          ))}
-          <div className={cn("my-2 border-t border-border/30", collapsed ? "mx-1.5" : "mx-3")} />
-          {!collapsed && (
-            <div className="px-5 py-1">
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Operating Mode</span>
-            </div>
-          )}
-          {modeItems.map((item) => (
-            <NavLink
-              key={item.href}
-              item={item}
-              isActive={location === item.href}
-              collapsed={collapsed}
-            />
-          ))}
+          <SidebarNav collapsed={collapsed} location={location} />
         </nav>
 
         <UserProfile collapsed={collapsed} />

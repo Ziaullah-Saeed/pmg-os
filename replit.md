@@ -1,66 +1,69 @@
-# PMG Group OS
+# PMG Group OS — v3.0 Rebuild
 
 ## Overview
 
-PMG Group OS is an AI-native enterprise business operating system for PMG Group LLC, a cybersecurity and IT services agency. It aims to unify and intelligentize business operations across 11 core domains: command center, intelligence, outreach, marketing, production, CRM, communications, execution, finance & legal, reports & archive, and system management. The system leverages AI for lead enrichment, scoring, report generation, and multi-tool orchestration to enhance efficiency, automate tasks, and provide intelligent insights for operational excellence and growth.
+PMG Group OS is an AI-native business operating system for PMG Group LLC, a niche digital marketing agency serving exclusively cybersecurity and IT sector companies. Core promise: "Generate 20 ready-to-close deals in your first month."
 
-## User Preferences
+**Rebuild Status:** The system has been redesigned from a complex 11-domain/112-agent system into a clean 6-section/32-agent streamlined system. The blueprint is in `PMG-OS-FINAL-BLUEPRINT-v3.md`.
 
-I prefer iterative development, with a focus on delivering working software incrementally. Please ask before making major architectural changes or introducing new dependencies. I prefer clear and concise explanations, avoiding overly technical jargon where possible. For code, I appreciate well-structured, readable TypeScript with a preference for functional patterns when appropriate.
+## Architecture (v3.0)
+
+### 6 Sections (replacing old 11 domains)
+1. **Outreach** — Prospect discovery, Social Command Center, strategy, message composition, follow-ups, analytics (6 agents)
+2. **CRM** — Lead qualification, deal intelligence, call coaching, proposals, CRM sync (5 agents)
+3. **Marketing** — Content strategy, advertising, SEO, campaign orchestration, competitor intelligence (5 agents)
+4. **Production** — Client onboarding, creative direction, image/video gen, documents, brand kit, content library, QA (8 agents)
+5. **Admin** — Operations management, knowledge base, executive briefing, system evolution (4 agents)
+6. **Finance** — Billing & revenue, contracts & expenses (2 agents)
+7. **Settings** — AI modes, wallet, users & roles, channels, integrations, API keys
++ 2 Cross-System agents: Legal & Compliance, Video Guide System
+
+### 32 PhD-Level Agents (replacing old 112)
+All agents use Claude as primary AI engine. Zero AI fluff, human tone only.
+
+### Build Progress
+- **Session 1 (COMPLETE):** Foundation cleanup, new 6-section sidebar, Dashboard, Settings, Outreach (fully functional), 32 agent registry, placeholder pages for CRM/Marketing/Production/Admin/Finance
+- **Session 2:** CRM section (pipeline, lead scoring, call intelligence, proposals)
+- **Session 3:** Marketing + Production sections
+- **Session 4:** Admin + Finance + Legal + Video Guides + Polish
 
 ## System Architecture
 
 PMG Group OS is a pnpm workspace monorepo built with TypeScript and Node.js.
 
-**UI/UX Decisions:**
-The system features a cinematic glassmorphic dark-first design, utilizing a primary color palette of Crimson, Navy Blue, and Golden Yellow. The frontend is developed with React 19, Vite, TailwindCSS, shadcn/ui, Recharts, and Framer Motion.
+**UI/UX:** Cinematic glassmorphic dark-first design with Crimson, Navy Blue, and Golden Yellow palette. React 19, Vite, TailwindCSS, shadcn/ui, Framer Motion.
 
-**Technical Implementations & Design Choices:**
+**Key Technical Components (kept from v2):**
+- Session-based authentication with PostgreSQL-backed sessions and RBAC
+- Tri-Mode System: AI Autonomous, Hybrid, Human Controlled (global + per-section + per-agent + per-record level)
+- Wallet management with budget pools (standard, premium, creative, system)
+- State machines, event bus, WebSocket real-time updates
+- Job queue with priority and retries
+- Integration hub (GHL, HubSpot, Hunter.io, Zoom, Stripe)
+- Anti-spam protection across all channels
 
-*   **Monorepo Structure:** Organizes `api-server`, `pmg-os` (React frontend), `mockup-sandbox`, and shared libraries.
-*   **Authentication & Permissions:** Session-based authentication with PostgreSQL-backed sessions and role-based access control (RBAC).
-*   **AI Integration & Tri-Mode System:** Integrates OpenAI via Replit AI Integrations, with a "Tri-Mode System" (AI Autonomous, Hybrid, Human Controlled) for flexible AI operation and confidence-based handoffs.
-*   **Core Engine Services:** Includes wallet management, state machines, CRM lead routing, knowledge library, notification system, and an event bus.
-*   **Automated Workflow Engines:** Features an Automation Rules Engine, Outreach Sequence Execution Engine, Task Auto-Assignment Router, and a Pipeline Engine.
-*   **Data & Realtime:** Utilizes an in-memory LRU cache and WebSocket server for real-time updates. File uploads are handled via Multer.
-*   **Global Error Handling:** Comprehensive Express global error handling with structured JSON responses.
-*   **Job Queue:** DB-backed background job queue with priority, exponential backoff retries, and a dead-letter queue.
-*   **Overlay Engine:** Centralized React overlay manager supporting stacked modals/drawers/sheets/command palette.
-*   **Audit Service:** Logs critical actions to an `audit_events` table.
-*   **AI Agent & Tool Orchestration:** Manages 112 agents across 11 domains, with 21 mapped to AI tools and chains. Supports multi-tool orchestration with 34 registered tools and 9 chain templates.
-*   **Vector Embeddings & Semantic Search:** Knowledge entries are auto-embedded using OpenAI for semantic search.
-*   **Communication & Production AI:** Includes AI for structured outreach, communication intelligence, follow-up draft generation, and a Production Studio for asset generation with brand kit enforcement and AI review.
-*   **Finance, Legal & Quality:** Implements state machines for invoice/expense approval, AI-powered contract review, and quality checkpoints with SOP enforcement.
-*   **Channel Health & Safety:** A channel health service tracks bounce rates, complaint rates, daily send limits, opt-out lists, and cross-sequence collision detection.
-*   **Slack Communication Surface:** Routes operational alerts to dedicated Slack channels.
-*   **Integration Hub:** Provides a unified layer for third-party integrations (e.g., GoHighLevel, HubSpot, Stripe) with OAuth2, API key auth, webhooks, CSV import, and bidirectional sync.
-*   **Reporting & Knowledge Memory:** Offers scheduled/event-triggered reports with AI-powered content, knowledge auto-population, and a permission-aware archive.
-*   **Wallet & Cost Control (Phase 7):** Enhanced wallet with balance reservation (reserve/commit/release), per-provider and per-workflow spend tracking with proper daily/monthly reset logic, configurable spend thresholds (daily/monthly limits per provider/workflow/global), anomaly detection, and dummy no-spend mode. Includes an intelligent 8-category semantic cache (reasoning/enrichment/research/report_component/manual_guide/production_asset/crm_summary/outreach_structure) with DB-backed persistence and in-memory L1 LRU that intercepts AI calls to reduce repeated costs. Finance page has a "Wallet & Cost Control" tab with KPI cards, provider/domain spend charts, action ledger, controls (dummy mode toggle, fund wallet), threshold CRUD, and cache statistics.
-*   **Channels & Integrations (Phase 8):** Full channel management across 22 channel types covering PMG website, PMG landing pages, client websites, client landing pages, LinkedIn (profile/company/Sales Navigator), Facebook/Meta, Instagram, X/Twitter, YouTube, TikTok, email, phone/SMS, forms, widgets, webinars, calendars/booking, Google Ads, Meta Ads, referrals, and direct. Supports both automatic and manual integration modes. Manual integration includes CSV import/export with field mapping, manual sync triggers, reconciliation, attribution correction, and reconnect flows. DB schema includes `channels`, `channel_sources`, `attribution_events`, `channel_forms`, `landing_pages`, and `manual_imports` tables. Frontend `/channels` page with 4 tabs: Channel Overview (22-card grid with category filters, connect/disconnect/sync), Manual Integration (CSV import with paste, reconciliation, capabilities grid), Attribution (30-day summary chart, attribution models), Forms & Pages (CRUD for forms and landing pages). Credentials/secrets are stripped from API responses.
-*   **Testing & Validation:** Features a built-in test harness with a "Dummy Mode" for simulating AI responses.
-*   **Operating Mode Pages:** Dedicated dashboards at `/auto`, `/hybrid`, `/human` for AI Autonomous, Hybrid, and Human Manual operating modes, respectively, with real-time data and workflow guides.
-*   **User Management & Governance (Phase 9):** Full governance system with 4 role levels (Super Admin, Admin, Manager, User) and granular governance permissions stored as structured JSONB (`governancePermissions`). Covers 11 permission categories: domain access (16 domains), action permissions (CRUD), approval rights, publishing rights, financial visibility, CRM visibility, archive visibility, integration access, AI mode privileges (full/hybrid_only/read_only/none), wallet permissions, and manual integration permissions. Backend `governance-service.ts` handles user creation with bcrypt password hashing, deactivation/reactivation, role changes with hierarchy enforcement (can't assign higher role), governance permission CRUD, and comprehensive audit trail (`user_audit_log` table). Auth middleware enforces domain-based access control using governance permissions (with safe role-based defaults when null). Super Admin controls all permissions. System page "Users & Permissions" tab rebuilt with real API data: user table with role selectors, create user form, inline permission editor with toggle buttons for all 11 categories, governance audit trail with color-coded entries, RBAC reference cards with live user counts, and permission matrix.
-*   **Testing Framework (Phase 11):** Comprehensive tri-mode system testing with 12 test suites and 62 tests total. Phase 1 (dummy/no cost): `dummy_mode`, `crm_integration`, `finance_integration`, `event_bus_integration`, `tool_chain_integration`, `reporting_knowledge_integration`, `e2e_workflow`, `tri_mode_ai` (8 tests — mode switching, AI permissions, dummy callAI, cache, memory ingestion, event triggers, routing, handoff), `tri_mode_hybrid` (9 tests — confidence thresholds, action queuing, approvals, rejections, corrections, memory updates), `tri_mode_human` (8 tests — AI blocking, pending actions, manual tasks, approvals, record-level overrides, manual knowledge), `retry_failure` (6 tests — job queue retry, dead letter, state machine, cache invalidation, TTL expiry). Phase 2 (real providers): `phase2_real` (6 tests — real AI calls, wallet deductions, knowledge ingestion, CRM routing, reporting). Frontend Testing Dashboard tab on System page with KPI cards, suite runner, results display, dummy mode toggle, and test history viewer. All tests accessible via `/api/testing/run`, `/api/testing/suites`, `/api/testing/history`.
-*   **Knowledge Library / Memory / Archive (Phase 10):** Self-updating intelligence library storing 22+ content categories: strategy, sales knowledge, marketing knowledge, SOPs, workflows, meeting transcripts, objection patterns, successful responses, AI outputs, corrections, approvals, rejections, campaign lessons, performance data, failure cases, deal/lead/finance/legal intelligence, competitive, market research, and reporting. `memory-service.ts` provides specialized ingestion functions for each content type. `callAI()` automatically injects relevant institutional memory into every AI call via semantic search (OpenAI `text-embedding-3-small`), falling back to keyword context. AI outputs auto-ingested into knowledge base on completion (confidence >= 60). 21 event types in `KNOWLEDGE_EVENT_MAP` auto-populate knowledge from system activity (CRM, deals, leads, campaigns, calls, meetings, tasks, workflows, reports, corrections, approvals, rejections, SOPs, strategy, performance). Knowledge usage tracked and incremented when AI pulls context. Frontend Knowledge Library tab has stats KPIs (total entries, categories, weekly new, AI usage, AI generated, auto events), category distribution with clickable filters, "Add Knowledge" manual entry form, source badges (ai/auto/correction/approval/rejection/manual), AI usage metrics, and full semantic + keyword search. Archive tab with search filtering.
-*   **Tool Orchestration Engine:** An 8-step pipeline for orchestrating agents, including provider selection, wallet charging, execution, result processing, confidence checks, archiving, auditing, and reporting. It supports dynamic provider scoring and fallback chains.
-*   **Enhanced Agent Registry:** All agents have detailed definitions covering purpose, triggers, tool access, confidence models, output structures, wallet behavior, fallback behavior, and archive behavior.
+**Frontend Pages:**
+- `/` — Dashboard (Command Center)
+- `/outreach` — Outreach section (6 tabs: Prospect Finder, Social Command, Strategy, Compose, Follow-ups, Analytics)
+- `/crm` — CRM Pipeline
+- `/marketing` — Marketing
+- `/production` — Production
+- `/admin` — Admin
+- `/finance` — Finance
+- `/settings` — Settings (6 tabs: AI Modes, Wallet, Users & Roles, Channels, Integrations, API Keys)
 
-*   **Phase 12 — Final Delivery & Walkthrough:** Complete system verification confirming all 11 domains operational (50 activities, 12 leads, 23 contacts, 6 opportunities, 3 campaigns, 34 assets, 18 tasks, 8 communications, 3 invoices, 37 reports, 96 knowledge entries), all 3 modes working (ai_autonomous, hybrid, human_controlled), wallet active ($390.96 balance), GHL integration configured (hybrid mode), cache functioning (73.6% hit rate, 18 entries), 112 agents registered, 62/62 tests passing across 12 suites (Phase 1 + Phase 2). Animated video walkthrough presentation created at `/pmg-walkthrough/` covering all domains, tri-mode operation, intelligence engine, and system capabilities.
+**API Server:** Express 5 on port 8080, all routes under `/api`
+
+**Admin Credentials:** `shershah_nawabi@pmggroup-llc.com` / `PMGAdmin2024!`
 
 ## External Dependencies
 
-*   **Monorepo Tool:** pnpm workspaces
-*   **Frontend Frameworks:** React 19, Vite, TailwindCSS, shadcn/ui, Recharts, Framer Motion
-*   **Backend Framework:** Express 5
-*   **Database:** PostgreSQL
-*   **ORM:** Drizzle ORM
-*   **Authentication Libraries:** bcryptjs, express-session, connect-pg-simple
-*   **Realtime Communication:** ws (WebSocket)
-*   **File Uploads:** multer
-*   **Job Scheduler:** node-cron
-*   **Validation:** Zod (`zod/v4`), `drizzle-zod`
-*   **API Codegen:** Orval
-*   **AI Service:** OpenAI (via Replit AI Integrations proxy)
-*   **CRM/Marketing Integrations:** GoHighLevel
-*   **Email Service:** nodemailer (SMTP)
-*   **UI Components:** @dnd-kit (for drag-and-drop)
+- **Monorepo:** pnpm workspaces
+- **Frontend:** React 19, Vite, TailwindCSS, shadcn/ui, Recharts, Framer Motion
+- **Backend:** Express 5
+- **Database:** PostgreSQL (Drizzle ORM)
+- **Auth:** bcryptjs, express-session, connect-pg-simple
+- **Realtime:** ws (WebSocket)
+- **AI:** Claude (primary), OpenAI DALL-E 3 (images), Runway ML (video), ElevenLabs (voice), OpenAI GPT-4o (fallback)
+- **Validation:** Zod, drizzle-zod
+- **API Codegen:** Orval
