@@ -1,51 +1,317 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { GlassCard } from "@/components/ui/glass-card";
+import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import {
-  Landmark, Receipt, FileText, Shield, TrendingUp
+  Landmark, Receipt, FileText, TrendingUp, DollarSign,
+  Sparkles, CheckCircle2, Clock, AlertTriangle, ArrowRight,
+  Plus, Send, Eye, Download, ArrowUpRight, ArrowDownRight,
+  Calendar, Users, Shield, AlertCircle, BarChart3, Star,
+  CreditCard, Wallet, Bell, RefreshCw
 } from "lucide-react";
 
+const tabs = [
+  { id: "billing", label: "Billing & Revenue", icon: <Receipt className="h-4 w-4" /> },
+  { id: "contracts", label: "Contracts & Expenses", icon: <FileText className="h-4 w-4" /> },
+];
+
 export default function Finance() {
-  const agents = [
-    { name: "Billing & Revenue", desc: "Invoice creation, payment tracking, wallet management, revenue dashboard", icon: <Receipt className="h-5 w-5" />, color: "text-crimson" },
-    { name: "Contract & Expense", desc: "Contract lifecycle tracking, expense management, revenue forecasting", icon: <FileText className="h-5 w-5" />, color: "text-info" },
-  ];
+  const [activeTab, setActiveTab] = useState("billing");
+  const { isHuman } = useAiModeContext();
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
         title="Finance"
-        subtitle="Billing, invoicing, contracts, expenses, and revenue forecasting"
+        subtitle={isHuman ? "Invoicing, payments, contracts, and expenses" : "AI-powered financial management and forecasting"}
         icon={<Landmark className="h-5 w-5" />}
+        actions={
+          <Button className="btn-premium text-white text-sm">
+            <Plus className="h-4 w-4 mr-2" />New Invoice
+          </Button>
+        }
       />
 
-      <GlassCard variant="insight">
-        <div className="flex items-center gap-3 mb-2">
-          <Landmark className="h-5 w-5 text-gold" />
-          <h3 className="text-sm font-semibold">Coming in Session 4</h3>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          The Finance section with 2 specialized agents is being built in Session 4.
-          Full billing, invoicing, contract management, and revenue forecasting.
-        </p>
-      </GlassCard>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KpiCard label="MRR" value="$17,500" icon={<TrendingUp className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Outstanding" value="$12,500" icon={<Clock className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Collected (MTD)" value="$12,500" icon={<DollarSign className="h-4 w-4" />} accent="success" />
+        <KpiCard label="Active Contracts" value={4} icon={<FileText className="h-4 w-4" />} accent="blue" />
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {agents.map((agent) => (
-          <GlassCard key={agent.name} variant="interactive" className="cursor-pointer">
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`p-2 rounded-lg glass-surface ${agent.color}`}>
-                {agent.icon}
-              </div>
-              <div>
-                <p className="text-sm font-semibold">{agent.name}</p>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">{agent.desc}</p>
-            <Badge variant="outline" className="mt-3 text-xs">Session 4</Badge>
-          </GlassCard>
+      <div className="flex gap-1 border-b border-white/5">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === tab.id
+                ? "border-crimson text-white"
+                : "border-transparent text-muted-foreground hover:text-white"
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
         ))}
       </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2 }}
+        >
+          {activeTab === "billing" && <BillingTab isHuman={isHuman} />}
+          {activeTab === "contracts" && <ContractsTab isHuman={isHuman} />}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function BillingTab({ isHuman }: { isHuman: boolean }) {
+  const invoices = [
+    { id: "INV-001", client: "SecureNet Solutions", amount: 5000, status: "paid", type: "recurring", date: "Mar 1", paidDate: "Mar 3", package: "Growth" },
+    { id: "INV-002", client: "CyberGuard MSP", amount: 2500, status: "paid", type: "recurring", date: "Mar 1", paidDate: "Mar 5", package: "Starter" },
+    { id: "INV-003", client: "ShieldTech IT", amount: 10000, status: "sent", type: "one-time", date: "Mar 15", paidDate: null, package: "Enterprise" },
+    { id: "INV-004", client: "SecureNet Solutions", amount: 5000, status: "draft", type: "recurring", date: "Apr 1", paidDate: null, package: "Growth" },
+    { id: "INV-005", client: "DataVault MSP", amount: 2500, status: "overdue", type: "one-time", date: "Feb 15", paidDate: null, package: "Starter" },
+  ];
+
+  const revenueByClient = [
+    { client: "SecureNet Solutions", revenue: 15000, cost: 2100, package: "Growth ($5K/mo)", months: 3 },
+    { client: "CyberGuard MSP", revenue: 5000, cost: 800, package: "Starter ($2.5K/mo)", months: 2 },
+    { client: "ShieldTech IT", revenue: 10000, cost: 1500, package: "Enterprise ($10K/mo)", months: 1 },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-lg glass-surface p-3">
+          <p className="text-[10px] text-muted-foreground">Total Revenue</p>
+          <p className="text-lg font-bold text-success">$30,000</p>
+          <p className="text-[9px] text-success flex items-center gap-0.5"><ArrowUpRight className="h-2.5 w-2.5" />+67% vs last month</p>
+        </div>
+        <div className="rounded-lg glass-surface p-3">
+          <p className="text-[10px] text-muted-foreground">Avg Client Value</p>
+          <p className="text-lg font-bold text-gold">$5,833</p>
+          <p className="text-[9px] text-muted-foreground">/month</p>
+        </div>
+        <div className="rounded-lg glass-surface p-3">
+          <p className="text-[10px] text-muted-foreground">Overdue</p>
+          <p className="text-lg font-bold text-red-400">$2,500</p>
+          <p className="text-[9px] text-red-400">1 invoice (20 days)</p>
+        </div>
+        <div className="rounded-lg glass-surface p-3">
+          <p className="text-[10px] text-muted-foreground">Wallet Balance</p>
+          <p className="text-lg font-bold text-blue-400">$358</p>
+          <p className="text-[9px] text-muted-foreground">AI API credits</p>
+        </div>
+      </div>
+
+      <GlassCard>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Invoices</h3>
+          <div className="flex gap-2">
+            {!isHuman && (
+              <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
+                <Sparkles className="h-3 w-3 mr-1" />Auto-Generate Monthly
+              </Button>
+            )}
+            <Button size="sm" className="btn-premium text-white text-xs">
+              <Plus className="h-3 w-3 mr-1" />New Invoice
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-3 p-2 text-[10px] text-muted-foreground uppercase tracking-wider">
+            <span className="w-20">Invoice</span>
+            <span className="flex-1">Client</span>
+            <span className="w-16">Package</span>
+            <span className="w-16 text-right">Amount</span>
+            <span className="w-14 text-center">Type</span>
+            <span className="w-14 text-center">Status</span>
+            <span className="w-14 text-center">Date</span>
+            <span className="w-20" />
+          </div>
+          {invoices.map((inv) => (
+            <div key={inv.id} className={`flex items-center gap-3 p-2.5 rounded-lg glass-surface ${inv.status === "overdue" ? "ring-1 ring-red-500/20" : ""}`}>
+              <span className="w-20 text-xs font-mono">{inv.id}</span>
+              <span className="flex-1 text-xs font-medium">{inv.client}</span>
+              <Badge variant="outline" className="text-[9px] w-16 justify-center">{inv.package}</Badge>
+              <span className="w-16 text-right text-xs font-bold">${inv.amount.toLocaleString()}</span>
+              <Badge variant="outline" className="text-[9px] w-14 justify-center">{inv.type}</Badge>
+              <Badge variant="outline" className={`text-[9px] w-14 justify-center ${
+                inv.status === "paid" ? "text-success border-success/20" :
+                inv.status === "sent" ? "text-blue-400 border-blue-500/20" :
+                inv.status === "overdue" ? "text-red-400 border-red-500/20" :
+                "text-muted-foreground"
+              }`}>{inv.status}</Badge>
+              <span className="w-14 text-center text-[10px] text-muted-foreground">{inv.date}</span>
+              <div className="w-20 flex gap-1 justify-end">
+                {inv.status === "draft" && (
+                  <Button size="sm" variant="ghost" className="h-6 px-1.5 text-blue-400"><Send className="h-3 w-3" /></Button>
+                )}
+                {inv.status === "overdue" && (
+                  <Button size="sm" variant="ghost" className="h-6 px-1.5 text-red-400"><Bell className="h-3 w-3" /></Button>
+                )}
+                <Button size="sm" variant="ghost" className="h-6 px-1.5"><Eye className="h-3 w-3" /></Button>
+                <Button size="sm" variant="ghost" className="h-6 px-1.5"><Download className="h-3 w-3" /></Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-3">Client Profitability</h3>
+        <div className="space-y-2">
+          {revenueByClient.map((client) => {
+            const profit = client.revenue - client.cost;
+            const margin = Math.round((profit / client.revenue) * 100);
+            return (
+              <div key={client.client} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
+                <div className="flex-1">
+                  <p className="text-xs font-semibold">{client.client}</p>
+                  <p className="text-[10px] text-muted-foreground">{client.package} · {client.months} months</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-success font-semibold">${profit.toLocaleString()} profit</p>
+                  <p className="text-[10px] text-muted-foreground">${client.revenue.toLocaleString()} rev — ${client.cost.toLocaleString()} cost</p>
+                </div>
+                <div className="w-16 text-center">
+                  <p className="text-sm font-bold text-success">{margin}%</p>
+                  <p className="text-[9px] text-muted-foreground">margin</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+function ContractsTab({ isHuman }: { isHuman: boolean }) {
+  const contracts = [
+    { client: "SecureNet Solutions", package: "Growth", value: "$5,000/mo", start: "Jan 1, 2024", end: "Dec 31, 2024", renewal: "275 days", status: "active" },
+    { client: "CyberGuard MSP", package: "Starter", value: "$2,500/mo", start: "Feb 1, 2024", end: "Jan 31, 2025", renewal: "306 days", status: "active" },
+    { client: "ShieldTech IT", package: "Enterprise", value: "$10,000/mo", start: "Mar 15, 2024", end: "Mar 14, 2025", renewal: "349 days", status: "active" },
+    { client: "TechGuard Inc", package: "Growth", value: "$5,000/mo", start: "Oct 1, 2023", end: "Mar 31, 2024", renewal: "3 days", status: "expiring" },
+  ];
+
+  const expenses = [
+    { category: "AI APIs", items: [{ name: "Claude (Anthropic)", cost: 120 }, { name: "OpenAI (DALL-E 3)", cost: 80 }, { name: "ElevenLabs", cost: 22 }, { name: "Runway ML", cost: 35 }], total: 257 },
+    { category: "Advertising", items: [{ name: "LinkedIn Ads", cost: 210 }, { name: "Google Ads", cost: 150 }, { name: "Facebook/IG Ads", cost: 90 }], total: 450 },
+    { category: "Tools & Software", items: [{ name: "GoHighLevel", cost: 97 }, { name: "Replit", cost: 25 }, { name: "Domain & Hosting", cost: 15 }], total: 137 },
+  ];
+
+  const totalExpenses = expenses.reduce((s, e) => s + e.total, 0);
+
+  const scenarios = [
+    { label: "Close 2 more deals (Starter)", revenue: "$22,500/mo", newMRR: "+$5,000" },
+    { label: "Close 1 Enterprise deal", revenue: "$27,500/mo", newMRR: "+$10,000" },
+    { label: "Upsell SecureNet to Enterprise", revenue: "$22,500/mo", newMRR: "+$5,000" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <GlassCard>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Active Contracts</h3>
+          {!isHuman && (
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
+              <Sparkles className="h-3 w-3 mr-1" />Draft New Contract
+            </Button>
+          )}
+        </div>
+        <div className="space-y-2">
+          {contracts.map((contract) => (
+            <div key={contract.client} className={`flex items-center gap-3 p-3 rounded-lg glass-surface ${contract.status === "expiring" ? "ring-1 ring-red-500/20" : ""}`}>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold">{contract.client}</p>
+                  <Badge variant="outline" className="text-[9px]">{contract.package}</Badge>
+                  <Badge variant="outline" className={`text-[9px] ${contract.status === "expiring" ? "text-red-400 border-red-500/20" : "text-success border-success/20"}`}>
+                    {contract.status}
+                  </Badge>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{contract.start} → {contract.end}</p>
+              </div>
+              <span className="text-xs font-bold text-gold">{contract.value}</span>
+              <div className="text-right">
+                <p className={`text-[10px] ${contract.status === "expiring" ? "text-red-400 font-semibold" : "text-muted-foreground"}`}>
+                  {contract.status === "expiring" ? "⚠ Expiring in " : "Renewal in "}{contract.renewal}
+                </p>
+              </div>
+              <div className="flex gap-1">
+                {contract.status === "expiring" && (
+                  <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2">
+                    <RefreshCw className="h-2.5 w-2.5 mr-1" />Renew
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" className="h-6 px-1.5"><Eye className="h-3 w-3" /></Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-3">Monthly Expenses — ${totalExpenses.toLocaleString()}</h3>
+        <div className="space-y-3">
+          {expenses.map((cat) => (
+            <div key={cat.category}>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-semibold">{cat.category}</p>
+                <span className="text-xs font-bold text-crimson">${cat.total}/mo</span>
+              </div>
+              <div className="space-y-1">
+                {cat.items.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between p-2 rounded-lg glass-surface text-[10px]">
+                    <span className="text-muted-foreground">{item.name}</span>
+                    <span className="text-white font-medium">${item.cost}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="flex items-center justify-between p-3 rounded-lg bg-crimson/5 border border-crimson/10">
+            <span className="text-xs font-semibold">Monthly P&L</span>
+            <div className="text-right">
+              <p className="text-xs text-success font-bold">+$16,656 profit</p>
+              <p className="text-[10px] text-muted-foreground">$17,500 MRR — ${totalExpenses} expenses</p>
+            </div>
+          </div>
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-3">Revenue Forecasting — Scenarios</h3>
+        <div className="space-y-2">
+          {scenarios.map((scenario) => (
+            <div key={scenario.label} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
+              <TrendingUp className="h-4 w-4 text-success flex-shrink-0" />
+              <span className="text-xs flex-1">{scenario.label}</span>
+              <span className="text-xs font-bold text-success">{scenario.newMRR}</span>
+              <span className="text-xs font-bold text-gold">{scenario.revenue}</span>
+            </div>
+          ))}
+        </div>
+        {!isHuman && (
+          <Button size="sm" variant="outline" className="mt-3 text-xs border-crimson/30 text-crimson">
+            <Sparkles className="h-3 w-3 mr-1" />Run Custom Scenario
+          </Button>
+        )}
+      </GlassCard>
     </div>
   );
 }
