@@ -6,3 +6,9 @@ id = "vRvefJ1ZaQkBHL5xk_1gM"
 uri = "file://PMG-OS-COMPLETE-ARCHITECTURE.md"
 type = "text"
 title = "PMG Group OS - Complete System Architecture & Guide"
+
+[[outputs]]
+id = "d8Hcq4xFk7osBn2VTSF_i"
+uri = "file://PMG-OS-FINAL-BLUEPRINT.md"
+type = "text"
+title = "PMG Group OS — Final Blueprint v1.0"
