@@ -13,16 +13,22 @@ import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import {
   Settings, Brain, Wallet, Users, Radio, Shield, Globe, Key,
   Linkedin, Facebook, Twitter, Youtube, Mail, MessageSquare,
-  CheckCircle2, AlertCircle, Zap, Bot, User, ArrowLeftRight
+  CheckCircle2, AlertCircle, Zap, Bot, User, ArrowLeftRight,
+  Building2, Bell, Activity, FileText, Lock, Scale, Eye,
+  AlertTriangle, Database, Cpu, Server, Clock, Palette
 } from "lucide-react";
 
 const tabs = [
+  { id: "general", label: "General", icon: <Building2 className="h-3.5 w-3.5" /> },
   { id: "ai-modes", label: "AI Modes", icon: <Brain className="h-3.5 w-3.5" /> },
   { id: "wallet", label: "Wallet", icon: <Wallet className="h-3.5 w-3.5" /> },
   { id: "users", label: "Users & Roles", icon: <Users className="h-3.5 w-3.5" /> },
   { id: "channels", label: "Channels", icon: <Radio className="h-3.5 w-3.5" /> },
   { id: "integrations", label: "Integrations", icon: <Globe className="h-3.5 w-3.5" /> },
   { id: "api-keys", label: "API Keys", icon: <Key className="h-3.5 w-3.5" /> },
+  { id: "legal", label: "Legal & Compliance", icon: <Scale className="h-3.5 w-3.5" /> },
+  { id: "notifications", label: "Notifications", icon: <Bell className="h-3.5 w-3.5" /> },
+  { id: "system-health", label: "System Health", icon: <Activity className="h-3.5 w-3.5" /> },
 ];
 
 function AiModesTab() {
@@ -420,8 +426,436 @@ function ApiKeysTab() {
   );
 }
 
+function GeneralTab() {
+  return (
+    <div className="space-y-6">
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-4">Company Information</h3>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-crimson to-crimson/60 flex items-center justify-center text-white shrink-0">
+              <Shield className="h-8 w-8" />
+            </div>
+            <div className="flex-1">
+              <Label className="text-sm">Company Logo</Label>
+              <p className="text-xs text-muted-foreground mb-2">Upload your company logo (PNG, SVG, or JPG)</p>
+              <Button size="sm" variant="outline" className="text-xs">
+                <Palette className="h-3 w-3 mr-1" />Upload Logo
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm">Company Name</Label>
+              <Input defaultValue="PMG Group LLC" className="mt-1 bg-white/5 border-white/10" />
+            </div>
+            <div>
+              <Label className="text-sm">Website</Label>
+              <Input defaultValue="https://pmggroup-llc.com" className="mt-1 bg-white/5 border-white/10" />
+            </div>
+            <div>
+              <Label className="text-sm">Industry Focus</Label>
+              <Input defaultValue="Cybersecurity & IT Services" className="mt-1 bg-white/5 border-white/10" readOnly />
+            </div>
+            <div>
+              <Label className="text-sm">Timezone</Label>
+              <Select defaultValue="america_new_york">
+                <SelectTrigger className="mt-1 bg-white/5 border-white/10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="america_new_york">America/New_York (EST)</SelectItem>
+                  <SelectItem value="america_chicago">America/Chicago (CST)</SelectItem>
+                  <SelectItem value="america_denver">America/Denver (MST)</SelectItem>
+                  <SelectItem value="america_los_angeles">America/Los_Angeles (PST)</SelectItem>
+                  <SelectItem value="utc">UTC</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-4">Brand Identity</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-3 rounded-lg glass-surface">
+            <div className="w-full h-8 rounded bg-crimson mb-2" />
+            <p className="text-[10px] text-muted-foreground">Primary Color</p>
+            <p className="text-xs font-medium">#DC2626 (Crimson)</p>
+          </div>
+          <div className="p-3 rounded-lg glass-surface">
+            <div className="w-full h-8 rounded bg-[#0F172A] border border-white/10 mb-2" />
+            <p className="text-[10px] text-muted-foreground">Background</p>
+            <p className="text-xs font-medium">#0F172A (Navy)</p>
+          </div>
+          <div className="p-3 rounded-lg glass-surface">
+            <div className="w-full h-8 rounded bg-white/90 mb-2" />
+            <p className="text-[10px] text-muted-foreground">Text</p>
+            <p className="text-xs font-medium">#F8FAFC (White)</p>
+          </div>
+          <div className="p-3 rounded-lg glass-surface">
+            <div className="w-full h-8 rounded bg-gold mb-2" />
+            <p className="text-[10px] text-muted-foreground">Accent</p>
+            <p className="text-xs font-medium">#F59E0B (Gold)</p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label className="text-sm">Primary Font</Label>
+            <Input defaultValue="Inter" className="mt-1 bg-white/5 border-white/10" />
+          </div>
+          <div>
+            <Label className="text-sm">Display Font</Label>
+            <Input defaultValue="Clash Display" className="mt-1 bg-white/5 border-white/10" />
+          </div>
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-4">Brand Voice</h3>
+        <div className="space-y-2">
+          {[
+            { label: "Tone", value: "Authoritative, data-driven, honest" },
+            { label: "Terminology", value: "NIST, SOC 2, SIEM, EDR, MDR, XDR — use naturally" },
+            { label: "Forbidden Words", value: "leverage, synergy, cutting-edge, game-changing, innovative" },
+            { label: "Content Rule", value: "Zero AI fluff. Every piece sounds human-written." },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-3 p-2.5 rounded-lg glass-surface">
+              <span className="text-xs font-medium w-28 shrink-0">{item.label}</span>
+              <span className="text-xs text-muted-foreground">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <div className="flex justify-end">
+        <Button className="btn-premium text-white text-sm">
+          <CheckCircle2 className="h-4 w-4 mr-2" />Save Changes
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function LegalComplianceTab() {
+  return (
+    <div className="space-y-6">
+      <GlassCard>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-lg glass-surface text-crimson"><Scale className="h-5 w-5" /></div>
+          <div>
+            <h3 className="text-sm font-semibold">Communication Compliance</h3>
+            <p className="text-xs text-muted-foreground">Automated enforcement across all outbound channels</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {[
+            { label: "CAN-SPAM Compliance", desc: "Unsubscribe links, physical address, opt-out handling in every email", enabled: true, status: "active" },
+            { label: "GDPR Compliance", desc: "Consent tracking, data deletion rights, DPA management for EU contacts", enabled: true, status: "active" },
+            { label: "TCPA Compliance", desc: "Do-not-call list checking, calling hours enforcement", enabled: true, status: "active" },
+            { label: "Platform Rate Limits", desc: "LinkedIn connection limits, Facebook messaging policies, Instagram DM rules", enabled: true, status: "active" },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">{item.label}</p>
+                  <Badge variant="outline" className="text-[10px] text-success border-success/20">{item.status}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+              </div>
+              <Switch defaultChecked={item.enabled} />
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-4">Anti-Spam Enforcement</h3>
+        <div className="space-y-3">
+          {[
+            { rule: "Email warm-up sequences", desc: "New accounts start slow, gradually increase volume", value: "Enabled" },
+            { rule: "Bounce rate monitoring", desc: "Auto-pauses if bounce rate exceeds threshold", value: "5% max" },
+            { rule: "Domain reputation tracking", desc: "Monitors email domain health and blacklist status", value: "Healthy" },
+            { rule: "Business hours only", desc: "Only sends during business hours in recipient's timezone", value: "Enabled" },
+            { rule: "Personalization required", desc: "AI never sends generic templates — every message references specific details", value: "Enforced" },
+          ].map((item) => (
+            <div key={item.rule} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+              <div className="flex-1">
+                <p className="text-sm font-medium">{item.rule}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+              </div>
+              <Badge variant="outline" className="text-[10px] text-success border-success/20">{item.value}</Badge>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-4">Contract Compliance</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[
+            { doc: "NDA Template", status: "configured", icon: <Lock className="h-4 w-4" /> },
+            { doc: "Terms of Service", status: "configured", icon: <FileText className="h-4 w-4" /> },
+            { doc: "Data Processing Agreement (DPA)", status: "configured", icon: <Database className="h-4 w-4" /> },
+            { doc: "Service Level Agreement (SLA)", status: "needs_review", icon: <Scale className="h-4 w-4" /> },
+          ].map((item) => (
+            <div key={item.doc} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
+              <div className="text-muted-foreground">{item.icon}</div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">{item.doc}</p>
+              </div>
+              <Badge variant="outline" className={`text-[10px] ${
+                item.status === "configured" ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"
+              }`}>{item.status.replace("_", " ")}</Badge>
+              <Button size="sm" variant="outline" className="text-xs h-7">Edit</Button>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-4">Opt-Out Management</h3>
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="rounded-lg glass-surface p-3 text-center">
+            <p className="text-lg font-bold">12</p>
+            <p className="text-[10px] text-muted-foreground">Total Opt-Outs</p>
+          </div>
+          <div className="rounded-lg glass-surface p-3 text-center">
+            <p className="text-lg font-bold text-success">100%</p>
+            <p className="text-[10px] text-muted-foreground">Compliance Rate</p>
+          </div>
+          <div className="rounded-lg glass-surface p-3 text-center">
+            <p className="text-lg font-bold">0</p>
+            <p className="text-[10px] text-muted-foreground">Violations</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="text-xs">
+            <Eye className="h-3 w-3 mr-1" />View Opt-Out List
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs">
+            <FileText className="h-3 w-3 mr-1" />Export Compliance Report
+          </Button>
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+function NotificationsTab() {
+  const categories = [
+    {
+      category: "Pipeline & Deals",
+      items: [
+        { label: "New lead arrives in CRM", inApp: true, email: true, slack: true },
+        { label: "Deal moves to next stage", inApp: true, email: false, slack: true },
+        { label: "Deal at risk (health turns red)", inApp: true, email: true, slack: true },
+        { label: "Deal won / lost", inApp: true, email: true, slack: true },
+      ],
+    },
+    {
+      category: "Outreach & Messages",
+      items: [
+        { label: "Hot lead response received", inApp: true, email: true, slack: true },
+        { label: "Follow-up due", inApp: true, email: false, slack: false },
+        { label: "Prospect profile viewed your content", inApp: true, email: false, slack: false },
+      ],
+    },
+    {
+      category: "Production & Content",
+      items: [
+        { label: "Content ready for review", inApp: true, email: false, slack: true },
+        { label: "Quality check completed", inApp: true, email: false, slack: false },
+        { label: "Client report generated", inApp: true, email: true, slack: true },
+      ],
+    },
+    {
+      category: "Finance & Billing",
+      items: [
+        { label: "Invoice payment received", inApp: true, email: true, slack: false },
+        { label: "Invoice overdue (7+ days)", inApp: true, email: true, slack: true },
+        { label: "Wallet balance low", inApp: true, email: true, slack: true },
+        { label: "Contract renewal approaching", inApp: true, email: true, slack: false },
+      ],
+    },
+    {
+      category: "System",
+      items: [
+        { label: "AI agent error or failure", inApp: true, email: true, slack: true },
+        { label: "API health issue detected", inApp: true, email: true, slack: true },
+        { label: "New system update available", inApp: true, email: false, slack: false },
+        { label: "Compliance violation detected", inApp: true, email: true, slack: true },
+      ],
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-semibold mb-1">Notification Preferences</h3>
+        <p className="text-xs text-muted-foreground mb-4">Choose how you want to be notified for each event type</p>
+      </div>
+
+      {categories.map((cat) => (
+        <GlassCard key={cat.category}>
+          <h3 className="text-sm font-semibold mb-3">{cat.category}</h3>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] text-muted-foreground uppercase tracking-wider">
+              <span className="flex-1">Event</span>
+              <span className="w-14 text-center">In-App</span>
+              <span className="w-14 text-center">Email</span>
+              <span className="w-14 text-center">Slack</span>
+            </div>
+            {cat.items.map((item) => (
+              <div key={item.label} className="flex items-center gap-3 px-3 py-2 rounded-lg glass-surface">
+                <span className="text-xs flex-1">{item.label}</span>
+                <div className="w-14 flex justify-center"><Switch defaultChecked={item.inApp} /></div>
+                <div className="w-14 flex justify-center"><Switch defaultChecked={item.email} /></div>
+                <div className="w-14 flex justify-center"><Switch defaultChecked={item.slack} /></div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      ))}
+
+      <div className="flex justify-end">
+        <Button className="btn-premium text-white text-sm">
+          <CheckCircle2 className="h-4 w-4 mr-2" />Save Preferences
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SystemHealthTab() {
+  const agents = [
+    { name: "Prospect Intelligence", section: "Outreach", status: "operational", lastRun: "2 min ago", calls: 142 },
+    { name: "Social Command Center", section: "Outreach", status: "operational", lastRun: "30 sec ago", calls: 89 },
+    { name: "Lead Qualification", section: "CRM", status: "operational", lastRun: "1 min ago", calls: 78 },
+    { name: "Deal Intelligence", section: "CRM", status: "operational", lastRun: "5 min ago", calls: 56 },
+    { name: "Content Strategist", section: "Marketing", status: "operational", lastRun: "10 min ago", calls: 34 },
+    { name: "Creative Production", section: "Production", status: "warning", lastRun: "15 min ago", calls: 23 },
+    { name: "Operations Manager", section: "Admin", status: "operational", lastRun: "3 min ago", calls: 67 },
+    { name: "Billing & Revenue", section: "Finance", status: "operational", lastRun: "20 min ago", calls: 12 },
+    { name: "Legal & Compliance", section: "Cross-System", status: "operational", lastRun: "1 min ago", calls: 198 },
+  ];
+
+  const apis = [
+    { name: "Claude API (Anthropic)", status: "healthy", latency: "320ms", uptime: "99.9%" },
+    { name: "OpenAI (DALL-E 3)", status: "healthy", latency: "1.2s", uptime: "99.7%" },
+    { name: "Runway ML", status: "degraded", latency: "3.4s", uptime: "98.2%" },
+    { name: "ElevenLabs", status: "healthy", latency: "450ms", uptime: "99.8%" },
+    { name: "Hunter.io", status: "healthy", latency: "200ms", uptime: "99.9%" },
+    { name: "SendGrid", status: "healthy", latency: "180ms", uptime: "99.9%" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <GlassCard>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground mb-1">System Status</p>
+            <p className="text-lg font-bold text-success">Operational</p>
+          </div>
+        </GlassCard>
+        <GlassCard>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground mb-1">Active Agents</p>
+            <p className="text-lg font-bold">32 / 32</p>
+          </div>
+        </GlassCard>
+        <GlassCard>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground mb-1">API Calls Today</p>
+            <p className="text-lg font-bold text-crimson">699</p>
+          </div>
+        </GlassCard>
+        <GlassCard>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground mb-1">Database</p>
+            <p className="text-lg font-bold text-success">Healthy</p>
+          </div>
+        </GlassCard>
+      </div>
+
+      <GlassCard>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Agent Status</h3>
+          <Button size="sm" variant="outline" className="text-xs">
+            <Activity className="h-3 w-3 mr-1" />Run Health Check
+          </Button>
+        </div>
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] text-muted-foreground uppercase tracking-wider">
+            <span className="flex-1">Agent</span>
+            <span className="w-20">Section</span>
+            <span className="w-20 text-center">Status</span>
+            <span className="w-20 text-center">Last Run</span>
+            <span className="w-16 text-center">Calls</span>
+          </div>
+          {agents.map((agent) => (
+            <div key={agent.name} className="flex items-center gap-3 px-3 py-2 rounded-lg glass-surface">
+              <div className="flex items-center gap-2 flex-1">
+                <div className={`h-2 w-2 rounded-full ${agent.status === "operational" ? "bg-success" : "bg-yellow-400"}`} />
+                <span className="text-xs font-medium">{agent.name}</span>
+              </div>
+              <span className="w-20 text-[10px] text-muted-foreground">{agent.section}</span>
+              <div className="w-20 flex justify-center">
+                <Badge variant="outline" className={`text-[9px] ${
+                  agent.status === "operational" ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"
+                }`}>{agent.status}</Badge>
+              </div>
+              <span className="w-20 text-center text-[10px] text-muted-foreground">{agent.lastRun}</span>
+              <span className="w-16 text-center text-[10px]">{agent.calls}</span>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-3">API Health</h3>
+        <div className="space-y-2">
+          {apis.map((api) => (
+            <div key={api.name} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
+              <div className={`h-2.5 w-2.5 rounded-full ${api.status === "healthy" ? "bg-success" : "bg-yellow-400"}`} />
+              <div className="flex-1">
+                <p className="text-sm font-medium">{api.name}</p>
+              </div>
+              <div className="flex items-center gap-4 text-[10px]">
+                <span className="text-muted-foreground">Latency: <span className="text-white">{api.latency}</span></span>
+                <span className="text-muted-foreground">Uptime: <span className="text-success">{api.uptime}</span></span>
+                <Badge variant="outline" className={`text-[9px] ${
+                  api.status === "healthy" ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"
+                }`}>{api.status}</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-3">Database Stats</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Total Records", value: "2,847" },
+            { label: "Leads", value: "342" },
+            { label: "Contacts", value: "1,205" },
+            { label: "Assets", value: "156" },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-lg glass-surface p-3 text-center">
+              <p className="text-lg font-bold">{stat.value}</p>
+              <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("ai-modes");
+  const [activeTab, setActiveTab] = useState("general");
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
@@ -439,12 +873,16 @@ export default function SettingsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
       >
+        {activeTab === "general" && <GeneralTab />}
         {activeTab === "ai-modes" && <AiModesTab />}
         {activeTab === "wallet" && <WalletTab />}
         {activeTab === "users" && <UsersTab />}
         {activeTab === "channels" && <ChannelsTab />}
         {activeTab === "integrations" && <IntegrationsTab />}
         {activeTab === "api-keys" && <ApiKeysTab />}
+        {activeTab === "legal" && <LegalComplianceTab />}
+        {activeTab === "notifications" && <NotificationsTab />}
+        {activeTab === "system-health" && <SystemHealthTab />}
       </motion.div>
     </div>
   );

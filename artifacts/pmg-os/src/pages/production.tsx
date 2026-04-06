@@ -22,6 +22,7 @@ const tabs = [
   { id: "audit", label: "Marketing Audit", icon: <BarChart3 className="h-4 w-4" /> },
   { id: "creative", label: "Creative Production", icon: <PenTool className="h-4 w-4" /> },
   { id: "leads", label: "Lead Generator", icon: <Target className="h-4 w-4" /> },
+  { id: "campaigns", label: "Campaigns & Funnels", icon: <Megaphone className="h-4 w-4" /> },
   { id: "reporting", label: "Reporting", icon: <FileText className="h-4 w-4" /> },
   { id: "integrations", label: "Client CRM Sync", icon: <RefreshCw className="h-4 w-4" /> },
   { id: "library", label: "Content Library", icon: <Folder className="h-4 w-4" /> },
@@ -88,6 +89,7 @@ export default function Production() {
           {activeTab === "audit" && <AuditTab isHuman={isHuman} />}
           {activeTab === "creative" && <CreativeTab isHuman={isHuman} />}
           {activeTab === "leads" && <LeadGenTab isHuman={isHuman} />}
+          {activeTab === "campaigns" && <CampaignsFunnelsTab isHuman={isHuman} />}
           {activeTab === "reporting" && <ReportingTab isHuman={isHuman} />}
           {activeTab === "integrations" && <IntegrationsTab isHuman={isHuman} />}
           {activeTab === "library" && <LibraryTab isHuman={isHuman} />}
@@ -486,6 +488,200 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
             <p className="text-lg font-bold text-success">70%</p>
             <p className="text-[9px] text-muted-foreground">Monthly target</p>
           </div>
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
+  const campaigns = [
+    {
+      client: "SecureNet Solutions",
+      name: "EDR Solutions LinkedIn Campaign",
+      channel: "LinkedIn Ads",
+      status: "active",
+      funnel: "Ad → Landing Page → Form → Email Nurture → Sales Call",
+      metrics: { visitors: 1240, leads: 68, meetings: 12, clients: 3 },
+      conversionRate: "5.5%",
+      budget: "$800",
+      spent: "$620",
+    },
+    {
+      client: "CyberGuard MSP",
+      name: "Google Search — Managed Security",
+      channel: "Google Ads",
+      status: "active",
+      funnel: "Search → Landing Page → Lead Capture → Retarget → Call",
+      metrics: { visitors: 890, leads: 42, meetings: 8, clients: 2 },
+      conversionRate: "4.7%",
+      budget: "$600",
+      spent: "$445",
+    },
+    {
+      client: "ShieldTech IT",
+      name: "Facebook Lead Gen — Compliance Audit",
+      channel: "Facebook Ads",
+      status: "draft",
+      funnel: "Ad → Lead Form → Email Sequence → Booking Page",
+      metrics: { visitors: 0, leads: 0, meetings: 0, clients: 0 },
+      conversionRate: "—",
+      budget: "$500",
+      spent: "$0",
+    },
+  ];
+
+  const funnelStages = [
+    { stage: "Awareness", desc: "Ads, content, social posts", icon: <Eye className="h-3.5 w-3.5" />, color: "text-blue-400" },
+    { stage: "Landing Page", desc: "Headlines, copy, social proof", icon: <Globe className="h-3.5 w-3.5" />, color: "text-crimson" },
+    { stage: "Lead Capture", desc: "Forms, CTAs, lead magnets", icon: <Target className="h-3.5 w-3.5" />, color: "text-gold" },
+    { stage: "Email Nurture", desc: "Automated sequences (5-7 emails)", icon: <Mail className="h-3.5 w-3.5" />, color: "text-success" },
+    { stage: "Sales Call", desc: "Booking page, call coaching", icon: <Phone className="h-3.5 w-3.5" />, color: "text-crimson" },
+  ];
+
+  const abTests = [
+    { element: "Landing Page Headline", variantA: "Stop Losing Clients to Competitors", variantB: "Get 20 Qualified Leads in 30 Days", winner: "B", lift: "+34% conversion" },
+    { element: "CTA Button Color", variantA: "Blue (#3B82F6)", variantB: "Red (#DC2626)", winner: "B", lift: "+18% clicks" },
+    { element: "Email Subject Line", variantA: "Your cybersecurity marketing is broken", variantB: "3 reasons your competitors get more clients", winner: "A", lift: "+22% open rate" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold">Client Campaigns & Funnels</h3>
+          <p className="text-xs text-muted-foreground">Build campaigns, landing pages, and conversion funnels for clients</p>
+        </div>
+        <div className="flex gap-2">
+          {!isHuman && (
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
+              <Sparkles className="h-3 w-3 mr-1" />AI Build Funnel
+            </Button>
+          )}
+          <Button size="sm" className="btn-premium text-white text-xs">
+            <Plus className="h-3 w-3 mr-1" />New Campaign
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-lg glass-surface p-3">
+          <p className="text-[10px] text-muted-foreground">Active Campaigns</p>
+          <p className="text-lg font-bold text-crimson">2</p>
+        </div>
+        <div className="rounded-lg glass-surface p-3">
+          <p className="text-[10px] text-muted-foreground">Total Leads Generated</p>
+          <p className="text-lg font-bold text-success">110</p>
+        </div>
+        <div className="rounded-lg glass-surface p-3">
+          <p className="text-[10px] text-muted-foreground">Avg Conversion Rate</p>
+          <p className="text-lg font-bold text-gold">5.1%</p>
+        </div>
+        <div className="rounded-lg glass-surface p-3">
+          <p className="text-[10px] text-muted-foreground">Pipeline from Campaigns</p>
+          <p className="text-lg font-bold text-blue-400">$62,500</p>
+        </div>
+      </div>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-3">Funnel Builder Template</h3>
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          {funnelStages.map((stage, idx) => (
+            <div key={stage.stage} className="flex items-center gap-2 flex-shrink-0">
+              <div className="rounded-lg glass-surface p-3 text-center min-w-[120px]">
+                <div className={`mx-auto mb-1.5 ${stage.color}`}>{stage.icon}</div>
+                <p className="text-[10px] font-semibold">{stage.stage}</p>
+                <p className="text-[8px] text-muted-foreground">{stage.desc}</p>
+              </div>
+              {idx < funnelStages.length - 1 && (
+                <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              )}
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <div className="space-y-3">
+        {campaigns.map((campaign) => (
+          <GlassCard key={campaign.name}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`p-2 rounded-lg glass-surface ${campaign.status === "active" ? "text-success" : "text-muted-foreground"}`}>
+                <Megaphone className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold">{campaign.name}</p>
+                  <Badge variant="outline" className={`text-[10px] ${
+                    campaign.status === "active" ? "text-success border-success/20" : "text-muted-foreground"
+                  }`}>{campaign.status}</Badge>
+                </div>
+                <p className="text-[10px] text-muted-foreground">{campaign.client} · {campaign.channel}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-semibold">{campaign.spent} / {campaign.budget}</p>
+                <p className="text-[9px] text-muted-foreground">Budget</p>
+              </div>
+            </div>
+            <div className="p-2 rounded-lg bg-white/[0.02] mb-3">
+              <p className="text-[10px] text-muted-foreground mb-1">Funnel Flow</p>
+              <p className="text-[10px] text-white font-mono">{campaign.funnel}</p>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              <div className="text-center p-2 rounded glass-surface">
+                <p className="text-sm font-bold">{campaign.metrics.visitors.toLocaleString()}</p>
+                <p className="text-[8px] text-muted-foreground">Visitors</p>
+              </div>
+              <div className="text-center p-2 rounded glass-surface">
+                <p className="text-sm font-bold text-blue-400">{campaign.metrics.leads}</p>
+                <p className="text-[8px] text-muted-foreground">Leads</p>
+              </div>
+              <div className="text-center p-2 rounded glass-surface">
+                <p className="text-sm font-bold text-gold">{campaign.metrics.meetings}</p>
+                <p className="text-[8px] text-muted-foreground">Meetings</p>
+              </div>
+              <div className="text-center p-2 rounded glass-surface">
+                <p className="text-sm font-bold text-success">{campaign.metrics.clients}</p>
+                <p className="text-[8px] text-muted-foreground">Clients Won</p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <Button size="sm" variant="outline" className="text-[10px] h-6 px-2">
+                <Eye className="h-2.5 w-2.5 mr-1" />View Funnel
+              </Button>
+              <Button size="sm" variant="outline" className="text-[10px] h-6 px-2">
+                <BarChart3 className="h-2.5 w-2.5 mr-1" />A/B Tests
+              </Button>
+              {campaign.status === "draft" && (
+                <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2">
+                  <Play className="h-2.5 w-2.5 mr-1" />Launch
+                </Button>
+              )}
+            </div>
+          </GlassCard>
+        ))}
+      </div>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-3">A/B Test Results</h3>
+        <div className="space-y-2">
+          {abTests.map((test) => (
+            <div key={test.element} className="p-3 rounded-lg glass-surface">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold">{test.element}</span>
+                <Badge variant="outline" className="text-[10px] text-success border-success/20">{test.lift}</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className={`p-1.5 rounded ${test.winner === "A" ? "ring-1 ring-success/30 bg-success/5" : "bg-white/[0.02]"}`}>
+                  <span className="text-muted-foreground">A: </span><span>{test.variantA}</span>
+                  {test.winner === "A" && <Badge className="ml-1 bg-success/20 text-success text-[8px] h-3 px-1">Winner</Badge>}
+                </div>
+                <div className={`p-1.5 rounded ${test.winner === "B" ? "ring-1 ring-success/30 bg-success/5" : "bg-white/[0.02]"}`}>
+                  <span className="text-muted-foreground">B: </span><span>{test.variantB}</span>
+                  {test.winner === "B" && <Badge className="ml-1 bg-success/20 text-success text-[8px] h-3 px-1">Winner</Badge>}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </GlassCard>
     </div>
