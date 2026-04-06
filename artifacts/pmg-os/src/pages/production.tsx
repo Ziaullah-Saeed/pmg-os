@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
+import { AiResultPanel } from "@/components/ai-result-panel";
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -60,15 +61,14 @@ export default function Production() {
         icon={<Palette className="h-5 w-5" />}
         actions={
           <div className="flex gap-2">
-            {!isHuman && (
-              <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
+                          <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
                 disabled={createImage.isPending}
                 onClick={() => createImage.mutate({ type: "social_graphic", description: "Cybersecurity marketing visual", brandColors: "#001a4d #8B0000 #FFD700" }, {
                   onSuccess: (data) => setAiResult({ type: "image_prompt", data }),
                 })}>
                 {createImage.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}AI Generate Assets
               </Button>
-            )}
+            
             <Button className="btn-premium text-white text-sm">
               <Plus className="h-4 w-4 mr-2" />New Client
             </Button>
@@ -165,8 +165,7 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
-      {!isHuman && (
-        <GlassCard className="border border-crimson/10 bg-crimson/5">
+              <GlassCard className="border border-crimson/10 bg-crimson/5">
           <div className="flex items-center gap-3">
             <Sparkles className="h-5 w-5 text-crimson" />
             <div className="flex-1">
@@ -175,7 +174,7 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
             </div>
           </div>
         </GlassCard>
-      )}
+      
 
       <div className="space-y-3">
         {clients.map((client) => (
@@ -266,20 +265,20 @@ function AuditTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Client Audit" />}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold">Client Marketing Audit</h3>
           <p className="text-xs text-muted-foreground">Brutally honest assessment of current marketing effectiveness</p>
         </div>
-        {!isHuman && (
-          <Button size="sm" className="btn-premium text-white text-xs"
+                  <Button size="sm" className="btn-premium text-white text-xs"
             disabled={auditClient.isPending}
             onClick={() => auditClient.mutate({ clientName: "Client", websiteUrl: "https://example.com" }, {
               onSuccess: (data) => setAiResult({ type: "audit", data }),
             })}>
             {auditClient.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Run Full Audit
           </Button>
-        )}
+        
       </div>
 
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
@@ -315,15 +314,14 @@ function AuditTab({ isHuman }: { isHuman: boolean }) {
                   </li>
                 ))}
               </ul>
-              {!isHuman && (
-                <Button size="sm" variant="outline" className="mt-2 text-[10px] border-crimson/20 text-crimson h-6 px-2"
+                              <Button size="sm" variant="outline" className="mt-2 text-[10px] border-crimson/20 text-crimson h-6 px-2"
                   disabled={auditClient.isPending}
                   onClick={() => auditClient.mutate({ clientName: item.area, websiteUrl: "https://example.com" }, {
                     onSuccess: (data) => setAiResult({ type: "fix_plan", data }),
                   })}>
                   {auditClient.isPending ? <RefreshCw className="h-2.5 w-2.5 mr-1 animate-spin" /> : <Sparkles className="h-2.5 w-2.5 mr-1" />}Generate Fix Plan
                 </Button>
-              )}
+              
             </div>
           ))}
         </div>
@@ -363,8 +361,8 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
-      {!isHuman && (
-        <GlassCard className="border border-crimson/10 bg-crimson/5">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Creative Assets" />}
+              <GlassCard className="border border-crimson/10 bg-crimson/5">
           <div className="flex items-center gap-3">
             <Sparkles className="h-5 w-5 text-crimson" />
             <div className="flex-1">
@@ -376,7 +374,7 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
             </Button>
           </div>
         </GlassCard>
-      )}
+      
 
       <div>
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -458,6 +456,7 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Lead Generation" />}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Leads Delivered (Month)</p>
@@ -484,15 +483,14 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Generated Leads — Quality Verified (80+ Score Only)</h3>
-          {!isHuman && (
-            <Button size="sm" className="btn-premium text-white text-xs"
+                      <Button size="sm" className="btn-premium text-white text-xs"
               disabled={generateLeads.isPending}
               onClick={() => generateLeads.mutate({ clientName: "PMG Group", targetMarket: "Enterprise Cybersecurity", industryFocus: "Tech, Finance, Healthcare" }, {
                 onSuccess: (data) => setAiResult({ type: "leads", data }),
               })}>
               {generateLeads.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Generate More Leads
             </Button>
-          )}
+          
         </div>
         <div className="space-y-2">
           {sampleLeads.map((lead) => (
@@ -592,21 +590,21 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Campaign Builder" />}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold">Client Campaigns & Funnels</h3>
           <p className="text-xs text-muted-foreground">Build campaigns, landing pages, and conversion funnels for clients</p>
         </div>
         <div className="flex gap-2">
-          {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
               disabled={buildCampaign.isPending}
               onClick={() => buildCampaign.mutate({ campaignType: "lead_gen", targetAudience: "CISOs and IT Directors", marketingGap: "not generating enough leads" }, {
                 onSuccess: (data) => setAiResult({ type: "campaign", data }),
               })}>
               {buildCampaign.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Build Funnel
             </Button>
-          )}
+          
           <Button size="sm" className="btn-premium text-white text-xs">
             <Plus className="h-3 w-3 mr-1" />New Campaign
           </Button>
@@ -750,18 +748,18 @@ function ReportingTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Performance Report" />}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Client Performance Report</h3>
         <div className="flex gap-2">
-          {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
               disabled={generateReport.isPending}
               onClick={() => generateReport.mutate({ reportType: "monthly", timeframe: "last 30 days" }, {
                 onSuccess: (data) => setAiResult({ type: "report", data }),
               })}>
               {generateReport.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Generate Report
             </Button>
-          )}
+          
           <Button size="sm" variant="outline" className="text-xs">
             <Download className="h-3 w-3 mr-1" />Export PDF
           </Button>
@@ -1036,6 +1034,7 @@ function QualityTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Quality Review" />}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {qualityMetrics.map((m) => (
           <div key={m.label} className="rounded-lg glass-surface p-3">
@@ -1091,11 +1090,10 @@ function QualityTab({ isHuman }: { isHuman: boolean }) {
                     <Button size="sm" variant="outline" className="text-[10px] border-yellow-500/20 text-yellow-400 h-6 px-2">
                       <PenTool className="h-2.5 w-2.5 mr-1" />Edit
                     </Button>
-                    {!isHuman && (
-                      <Button size="sm" variant="outline" className="text-[10px] border-crimson/20 text-crimson h-6 px-2">
+                                          <Button size="sm" variant="outline" className="text-[10px] border-crimson/20 text-crimson h-6 px-2">
                         <Sparkles className="h-2.5 w-2.5 mr-1" />Auto-Fix
                       </Button>
-                    )}
+                    
                   </>
                 )}
                 {item.score === "Needs Rewrite" && !isHuman && (

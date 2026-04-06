@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { useToast } from "@/hooks/use-toast";
+import { AiResultPanel } from "@/components/ai-result-panel";
 import {
   Target, Users, CheckCircle2, Send, Sparkles, Plus, Search, Globe,
   Building2, Mail, Phone, Linkedin, ArrowRight, Clock, AlertCircle,
@@ -40,6 +41,7 @@ function ProspectFinder() {
   const { isHuman, isAuto } = useAiModeContext();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [aiResult, setAiResult] = useState<any>(null);
   const leadList = (leads ?? []) as any[];
   const companyList = (companies ?? []) as any[];
 
@@ -89,6 +91,7 @@ function ProspectFinder() {
 
   const handleAiProspect = useCallback(async () => {
     setIsProspecting(true);
+    setAiResult(null);
     try {
       const res = await fetch(`${API_BASE}/outreach/find-prospects`, {
         method: "POST",
@@ -102,10 +105,15 @@ function ProspectFinder() {
         }),
       });
       const data = await res.json();
-      toast({ title: "AI Prospecting Complete", description: data.data ? `Found prospects with ${data.confidence}% confidence` : "Prospect research initiated" });
+      if (!res.ok) {
+        toast({ title: "AI Error", description: data.error || "Request failed", variant: "destructive" });
+        return;
+      }
+      setAiResult(data);
+      toast({ title: "AI Prospecting Complete", description: `Found prospects with ${data.confidence}% confidence` });
       queryClient.invalidateQueries({ queryKey: ["/leads"] });
-    } catch {
-      toast({ title: "AI Prospecting", description: "Prospecting task queued. AI will research and add leads shortly." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to reach AI", variant: "destructive" });
     } finally {
       setIsProspecting(false);
     }
@@ -142,20 +150,18 @@ function ProspectFinder() {
           <Button className="btn-premium text-white text-sm" onClick={() => setShowAddLead(true)}>
             <Plus className="h-4 w-4 mr-2" />Add Lead
           </Button>
-          {!isHuman && (
-            <Button
-              className="btn-glass text-foreground text-sm"
-              onClick={handleAiProspect}
-              disabled={isProspecting}
-            >
-              {isProspecting ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              AI Prospect
-            </Button>
-          )}
+          <Button
+            className="btn-glass text-foreground text-sm"
+            onClick={handleAiProspect}
+            disabled={isProspecting}
+          >
+            {isProspecting ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            AI Prospect
+          </Button>
         </div>
       </div>
 
@@ -170,12 +176,16 @@ function ProspectFinder() {
             <Button className="btn-premium text-white text-sm" onClick={() => setShowAddLead(true)}>
               <Plus className="h-4 w-4 mr-2" />Add Manually
             </Button>
-            {!isHuman && (
-              <Button className="btn-glass text-foreground text-sm" onClick={handleAiProspect} disabled={isProspecting}>
-                <Sparkles className="h-4 w-4 mr-2" />Find with AI
-              </Button>
-            )}
+            <Button className="btn-glass text-foreground text-sm" onClick={handleAiProspect} disabled={isProspecting}>
+              {isProspecting ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              Find with AI
+            </Button>
           </div>
+          {aiResult && (
+            <div className="mt-4 text-left">
+              <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="AI Prospects Found" />
+            </div>
+          )}
         </GlassCard>
       ) : (
         <div className="space-y-2">
@@ -428,11 +438,9 @@ function StrategyTab() {
       <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Outreach Strategy Builder</h3>
-          {!isHuman && (
-            <Button className="btn-glass text-foreground text-sm">
-              <Sparkles className="h-4 w-4 mr-2" />AI Generate Strategy
-            </Button>
-          )}
+          <Button className="btn-glass text-foreground text-sm">
+            <Sparkles className="h-4 w-4 mr-2" />AI Generate Strategy
+          </Button>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
           Select a prospect from the pipeline, and the Outreach Strategist will build a personalized multi-channel approach plan.
@@ -557,12 +565,10 @@ function ComposeTab() {
               </div>
               <div className="flex justify-between">
                 <div className="flex gap-2">
-                  {!isHuman && (
-                    <Button className="btn-glass text-foreground text-sm">
-                      <Sparkles className="h-4 w-4 mr-2" />AI Draft
-                    </Button>
-                  )}
-                  {body && !isHuman && (
+                  <Button className="btn-glass text-foreground text-sm">
+                    <Sparkles className="h-4 w-4 mr-2" />AI Draft
+                  </Button>
+                  {body && (
                     <Button variant="outline" className="text-sm">
                       <RefreshCw className="h-4 w-4 mr-2" />Rewrite
                     </Button>

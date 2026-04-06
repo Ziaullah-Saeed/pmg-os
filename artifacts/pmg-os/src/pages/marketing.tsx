@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
+import { AiResultPanel } from "@/components/ai-result-panel";
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -64,15 +65,14 @@ export default function Marketing() {
         icon={<Megaphone className="h-5 w-5" />}
         actions={
           <div className="flex gap-2">
-            {!isHuman && (
-              <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
+                          <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
                 disabled={createContent.isPending}
                 onClick={() => createContent.mutate({ type: "content_plan", description: "Weekly content plan for cybersecurity marketing", tone: "professional", wordCount: 1000 }, {
                   onSuccess: (data) => setAiResult({ type: "content_plan", data }),
                 })}>
                 {createContent.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}AI Content Plan
               </Button>
-            )}
+            
             <Button className="btn-premium text-white text-sm" onClick={() => { setActiveTab("campaigns"); setShowNewCampaign(true); }}>
               <Plus className="h-4 w-4 mr-2" />New Campaign
             </Button>
@@ -150,6 +150,7 @@ function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman:
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Content Strategy" />}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {channelSchedule.map((ch) => (
           <div key={ch.channel} className="rounded-lg glass-surface p-3 text-center">
@@ -160,8 +161,7 @@ function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman:
         ))}
       </div>
 
-      {!isHuman && (
-        <GlassCard className="border border-crimson/10 bg-crimson/5">
+              <GlassCard className="border border-crimson/10 bg-crimson/5">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg glass-surface text-crimson">
               <Sparkles className="h-5 w-5" />
@@ -179,7 +179,7 @@ function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman:
             </Button>
           </div>
         </GlassCard>
-      )}
+      
 
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
@@ -388,7 +388,7 @@ function CampaignsTab({ campaigns, isHuman, showNew, setShowNew }: { campaigns: 
         </div>
       )}
 
-      {!isHuman && campaigns.length > 0 && (
+      {campaigns.length > 0 && (
         <GlassCard className="border border-crimson/10 bg-crimson/5">
           <div className="flex items-center gap-3">
             <Sparkles className="h-5 w-5 text-crimson" />
@@ -431,6 +431,7 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="SEO Audit" />}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Tracked Keywords</p>
@@ -451,8 +452,7 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
       </div>
 
       <div className="flex gap-2">
-        {!isHuman && (
-          <Button variant="outline" className="text-sm border-crimson/30 text-crimson"
+                  <Button variant="outline" className="text-sm border-crimson/30 text-crimson"
             disabled={seoAudit.isPending}
             onClick={() => {
               if (!showAudit) seoAudit.mutate({ websiteUrl: "client website", competitors: ["competitor1", "competitor2"] }, {
@@ -462,7 +462,7 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
             }}>
             {seoAudit.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}{showAudit ? "Hide Audit" : "Run SEO Audit"}
           </Button>
-        )}
+        
         <Button variant="outline" className="text-sm" onClick={() => setShowAudit(!showAudit)}>
           <Search className="h-4 w-4 mr-2" />{showAudit ? "Show Keywords" : "View Audit"}
         </Button>
@@ -551,6 +551,7 @@ function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: bo
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Campaign Sprint" />}
       <GlassCard>
         <h3 className="text-sm font-semibold mb-3">Full Journey Funnel</h3>
         <div className="flex items-end gap-2 h-32">
@@ -576,15 +577,14 @@ function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: bo
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Campaign Sprint Timeline</h3>
-          {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
               disabled={orchestrateCampaign.isPending}
               onClick={() => orchestrateCampaign.mutate({ campaignName: "Sprint Campaign", channels: ["linkedin", "email", "ads"], goals: "Generate 20 qualified leads", timeline: "4 weeks" }, {
                 onSuccess: (data) => setAiResult({ type: "campaign_sprint", data }),
               })}>
               {orchestrateCampaign.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Plan Sprint
             </Button>
-          )}
+          
         </div>
         <div className="space-y-3">
           {timeline.map((week) => (
@@ -673,6 +673,7 @@ function CompetitorIntelTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Competitor Intelligence" />}
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Competitors Tracked</p>
@@ -703,15 +704,14 @@ function CompetitorIntelTab({ isHuman }: { isHuman: boolean }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">Battle Cards</h3>
-          {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
               disabled={competitorIntel.isPending}
               onClick={() => competitorIntel.mutate({ competitors: ["HubSpot", "Directive", "SmartBug"] }, {
                 onSuccess: (data) => setAiResult({ type: "competitor_intel", data }),
               })}>
               {competitorIntel.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Refresh Analysis
             </Button>
-          )}
+          
         </div>
         {competitors.map((comp) => (
           <GlassCard key={comp.name}>

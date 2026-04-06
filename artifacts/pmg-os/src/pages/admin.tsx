@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
+import { AiResultPanel } from "@/components/ai-result-panel";
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +121,7 @@ function OperationsTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Task Assignment" />}
       <GlassCard>
         <h3 className="text-sm font-semibold mb-3">Team Workload</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -146,15 +148,14 @@ function OperationsTab({ isHuman }: { isHuman: boolean }) {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Task Board</h3>
           <div className="flex gap-2">
-            {!isHuman && (
-              <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
                 disabled={assignTasks.isPending}
                 onClick={() => assignTasks.mutate({ teamMembers: ["Shershah"] }, {
                   onSuccess: (data) => setAiResult({ type: "tasks", data }),
                 })}>
                 {assignTasks.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Assign
               </Button>
-            )}
+            
             <Button size="sm" variant="outline" className="text-xs">
               <Plus className="h-3 w-3 mr-1" />Add Task
             </Button>
@@ -258,8 +259,7 @@ function KnowledgeTab({ isHuman }: { isHuman: boolean }) {
         </div>
       </GlassCard>
 
-      {!isHuman && (
-        <GlassCard className="border border-crimson/10 bg-crimson/5">
+              <GlassCard className="border border-crimson/10 bg-crimson/5">
           <div className="flex items-center gap-3">
             <Sparkles className="h-5 w-5 text-crimson" />
             <div className="flex-1">
@@ -268,7 +268,7 @@ function KnowledgeTab({ isHuman }: { isHuman: boolean }) {
             </div>
           </div>
         </GlassCard>
-      )}
+      
     </div>
   );
 }
@@ -305,6 +305,7 @@ function BriefingTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Executive Briefing" />}
       <GlassCard className="border border-crimson/10">
         <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/5">
           <Sun className="h-5 w-5 text-gold" />
@@ -312,15 +313,14 @@ function BriefingTab({ isHuman }: { isHuman: boolean }) {
             <p className="text-sm font-semibold">Morning Briefing</p>
             <p className="text-[10px] text-muted-foreground">{morningBriefing.date}</p>
           </div>
-          {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson ml-auto"
+                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson ml-auto"
               disabled={executiveBriefing.isPending}
               onClick={() => executiveBriefing.mutate(undefined, {
                 onSuccess: (data) => setAiResult({ type: "briefing", data }),
               })}>
               {executiveBriefing.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Regenerate
             </Button>
-          )}
+          
         </div>
 
         <div className="space-y-4">
@@ -449,6 +449,7 @@ function EvolutionTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="System Evolution" />}
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-lg font-bold text-success">{updates.filter(u => u.status === "recommended").length}</p>
@@ -464,8 +465,7 @@ function EvolutionTab({ isHuman }: { isHuman: boolean }) {
         </div>
       </div>
 
-      {!isHuman && (
-        <GlassCard className="border border-crimson/10 bg-crimson/5">
+              <GlassCard className="border border-crimson/10 bg-crimson/5">
           <div className="flex items-center gap-3">
             <Sparkles className="h-5 w-5 text-crimson" />
             <div className="flex-1">
@@ -477,7 +477,7 @@ function EvolutionTab({ isHuman }: { isHuman: boolean }) {
             </Button>
           </div>
         </GlassCard>
-      )}
+      
 
       <GlassCard>
         <h3 className="text-sm font-semibold mb-3">What's New — Technology Updates</h3>

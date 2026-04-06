@@ -29,6 +29,7 @@ All agents use Claude as primary AI engine. Zero AI fluff, human tone only.
   - **Production:** Client Onboarding (7-step checklist, 3 demo clients), Marketing Audit (6-area scoring, prioritized fix plan), Creative Production (image/video/document types with AI tools), Lead Generator (qualified leads with scores, PMG 20-lead promise tracker), Reporting (monthly performance, ROI summary, progress charts), Client CRM Sync (GHL main + sub-account, HubSpot, sync activity, field mapping), Content Library (searchable asset table with type/status filters), Quality Review (review queue with scoring, 5 quality checks)
   - **Admin:** Operations (team workload, task board with source/priority/assignee), Knowledge Base (searchable docs, 4 categories, auto-learning from wins/losses), Executive Briefing (morning briefing with urgent/priorities/wins, weekly metrics), System Evolution (tech update scanner, approve/explore/skip workflow)
   - **Finance:** Billing & Revenue (invoice table with lifecycle, client profitability analysis), Contracts & Expenses (contract tracking with renewal alerts, expense breakdown by category, monthly P&L, revenue forecasting scenarios)
+- **Session 5 (COMPLETE):** Full AI Integration — 32 AI endpoints wired to gpt-4o-mini via Replit AI Integrations, 36 frontend hooks, all AI buttons visible in every mode (removed isHuman gates), AiResultPanel component renders AI responses inline with copy/collapse/close controls. Integration endpoints for LinkedIn, GHL, Google Ads, Stripe.
 - **Remaining:** Legal & Compliance agent, Video Guide system, final polish
 
 ## System Architecture
@@ -68,6 +69,6 @@ PMG Group OS is a pnpm workspace monorepo built with TypeScript and Node.js.
 - **Database:** PostgreSQL (Drizzle ORM)
 - **Auth:** bcryptjs, express-session, connect-pg-simple
 - **Realtime:** ws (WebSocket)
-- **AI:** Claude (primary), OpenAI DALL-E 3 (images), Runway ML (video), ElevenLabs (voice), OpenAI GPT-4o (fallback)
+- **AI:** gpt-4o-mini via Replit AI Integrations (AI_INTEGRATIONS_OPENAI_BASE_URL/KEY), with wallet-based billing, caching, and tri-mode governance
 - **Validation:** Zod, drizzle-zod
 - **API Codegen:** Orval

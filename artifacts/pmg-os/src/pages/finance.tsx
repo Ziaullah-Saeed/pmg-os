@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
+import { AiResultPanel } from "@/components/ai-result-panel";
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -103,6 +104,7 @@ function BillingTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Invoice Generation" />}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Total Revenue</p>
@@ -130,15 +132,14 @@ function BillingTab({ isHuman }: { isHuman: boolean }) {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Invoices</h3>
           <div className="flex gap-2">
-            {!isHuman && (
-              <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
                 disabled={createInvoice.isPending}
                 onClick={() => createInvoice.mutate({ clientName: "All Clients", amount: 5000, services: ["Lead Generation", "Campaign Management"], dueDate: "30 days" }, {
                   onSuccess: (data) => setAiResult({ type: "invoice", data }),
                 })}>
                 {createInvoice.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Generate Monthly
               </Button>
-            )}
+            
             <Button size="sm" className="btn-premium text-white text-xs">
               <Plus className="h-3 w-3 mr-1" />New Invoice
             </Button>
@@ -240,18 +241,18 @@ function ContractsTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Contract Management" />}
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Active Contracts</h3>
-          {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
               disabled={manageContracts.isPending}
               onClick={() => manageContracts.mutate({ clientName: "New Client", serviceType: "Lead Generation", duration: "12 months", monthlyValue: 5000 }, {
                 onSuccess: (data) => setAiResult({ type: "contract", data }),
               })}>
               {manageContracts.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Draft New Contract
             </Button>
-          )}
+          
         </div>
         <div className="space-y-2">
           {contracts.map((contract) => (
@@ -326,15 +327,14 @@ function ContractsTab({ isHuman }: { isHuman: boolean }) {
             </div>
           ))}
         </div>
-        {!isHuman && (
-          <Button size="sm" variant="outline" className="mt-3 text-xs border-crimson/30 text-crimson"
+                  <Button size="sm" variant="outline" className="mt-3 text-xs border-crimson/30 text-crimson"
             disabled={createInvoice.isPending}
             onClick={() => createInvoice.mutate({ clientName: "Custom Scenario", amount: 10000, services: ["Full Service Package"], dueDate: "NET 15" }, {
               onSuccess: (data) => setAiResult({ type: "scenario", data }),
             })}>
             {createInvoice.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Run Custom Scenario
           </Button>
-        )}
+        
       </GlassCard>
     </div>
   );

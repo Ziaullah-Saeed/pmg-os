@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useListOpportunities, useListLeads, useListCompanies } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
+import { AiResultPanel } from "@/components/ai-result-panel";
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -102,21 +103,22 @@ export default function CRM() {
         icon={<Briefcase className="h-5 w-5" />}
         actions={
           <div className="flex gap-2">
-            {!isHuman && (
-              <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
+                          <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
                 disabled={manageDeal.isPending}
                 onClick={() => manageDeal.mutate({ companyName: "Pipeline Review", dealValue: totalPipeline, interactions: ["review all deals"] }, {
                   onSuccess: (data) => setAiResult({ type: "pipeline_review", data }),
                 })}>
                 {manageDeal.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}AI Pipeline Review
               </Button>
-            )}
+            
             <Button className="btn-premium text-white text-sm" onClick={() => { setActiveTab("pipeline"); setShowNewDealForm(true); }}>
               <Plus className="h-4 w-4 mr-2" />New Deal
             </Button>
           </div>
         }
       />
+
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Pipeline Review" />}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KpiCard label="Active Deals" value={activeDeals} icon={<Briefcase className="h-4 w-4" />} accent="blue" />
@@ -331,6 +333,7 @@ function DealDetailPanel({ deal, onClose, onStageChange, isHuman }: {
   return (
     <GlassCard className="border border-white/10">
       <div className="flex items-start justify-between mb-4">
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Deal Intelligence" />}
         <div>
           <h3 className="text-base font-semibold">{deal.title}</h3>
           <div className="flex items-center gap-2 mt-1">
@@ -401,15 +404,14 @@ function DealDetailPanel({ deal, onClose, onStageChange, isHuman }: {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {!isHuman && (
-          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                  <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
             disabled={manageDeal.isPending}
             onClick={() => manageDeal.mutate({ companyName: deal.title || deal.companyName, dealValue: deal.value, interactions: [deal.stage] }, {
               onSuccess: (data) => setAiResult({ type: "next_action", data }),
             })}>
             {manageDeal.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Next Best Action
           </Button>
-        )}
+        
         {deal.stage !== "closed_won" && deal.stage !== "closed_lost" && (
           <>
             <Button size="sm" variant="outline" className="text-xs border-success/30 text-success" onClick={() => onStageChange(deal.id, "closed_won")}>
@@ -532,8 +534,7 @@ function QualificationTab({ leads, isHuman }: { leads: any[]; isHuman: boolean }
         )}
       </div>
 
-      {!isHuman && (
-        <GlassCard className="border border-crimson/10 bg-crimson/5">
+              <GlassCard className="border border-crimson/10 bg-crimson/5">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg glass-surface text-crimson">
               <Sparkles className="h-5 w-5" />
@@ -544,7 +545,7 @@ function QualificationTab({ leads, isHuman }: { leads: any[]; isHuman: boolean }
             </div>
           </div>
         </GlassCard>
-      )}
+      
 
       <div className="space-y-2">
         {filtered.length === 0 ? (
@@ -745,11 +746,10 @@ function CallIntelligenceTab({ deals, leads, isHuman }: { deals: any[]; leads: a
                   <p className="text-xs text-muted-foreground">{deal.companyName ?? "Unknown company"} · Stage: {deal.stage}</p>
                 </div>
                 <div className="flex gap-2">
-                  {!isHuman && (
-                    <Button size="sm" variant="outline" className="text-xs border-blue-500/30 text-blue-400 h-7">
+                                      <Button size="sm" variant="outline" className="text-xs border-blue-500/30 text-blue-400 h-7">
                       <Sparkles className="h-3 w-3 mr-1" />Generate Briefing
                     </Button>
-                  )}
+                  
                   <Button size="sm" variant="outline" className="text-xs h-7">
                     <Calendar className="h-3 w-3 mr-1" />Set Meeting
                   </Button>
@@ -812,11 +812,10 @@ function CallIntelligenceTab({ deals, leads, isHuman }: { deals: any[]; leads: a
               </div>
             </GlassCard>
           ))}
-          {!isHuman && (
-            <Button variant="outline" className="w-full text-xs border-crimson/30 text-crimson">
+                      <Button variant="outline" className="w-full text-xs border-crimson/30 text-crimson">
               <Sparkles className="h-3 w-3 mr-2" />Generate Custom Coaching Cards for Selected Deal
             </Button>
-          )}
+          
         </div>
       )}
 
@@ -961,11 +960,10 @@ function ProposalsTab({ deals, isHuman }: { deals: any[]; isHuman: boolean }) {
                     <div className="flex gap-1.5">
                       {(!deal.proposalStatus || deal.proposalStatus === "none") && (
                         <>
-                          {!isHuman && (
-                            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson h-7" onClick={() => handleProposalAction(deal.id, "draft")}>
+                                                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson h-7" onClick={() => handleProposalAction(deal.id, "draft")}>
                               <Sparkles className="h-3 w-3 mr-1" />AI Generate
                             </Button>
-                          )}
+                          
                           <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleProposalAction(deal.id, "draft")}>
                             <FileText className="h-3 w-3 mr-1" />Create Draft
                           </Button>
