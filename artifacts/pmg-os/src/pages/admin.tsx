@@ -8,6 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import {
+  useAiAssignTasks,
+  useAiManageKnowledge,
+  useAiExecutiveBriefing,
+  useAiSystemEvolution,
+} from "@/hooks/use-api";
+import {
   Shield, ClipboardList, BookOpen, BarChart3, RefreshCw,
   Sparkles, CheckCircle2, Clock, AlertTriangle, ArrowRight,
   Users, Calendar, Search, TrendingUp, Zap, Star, Eye,
@@ -24,7 +30,12 @@ const tabs = [
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("operations");
+  const [aiResult, setAiResult] = useState<any>(null);
   const { isHuman } = useAiModeContext();
+  const assignTasks = useAiAssignTasks();
+  const manageKnowledge = useAiManageKnowledge();
+  const executiveBriefing = useAiExecutiveBriefing();
+  const systemEvolution = useAiSystemEvolution();
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
@@ -34,8 +45,12 @@ export default function Admin() {
         icon={<Shield className="h-5 w-5" />}
         actions={
           !isHuman ? (
-            <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10">
-              <Sparkles className="h-4 w-4 mr-2" />Generate Morning Briefing
+            <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
+              disabled={executiveBriefing.isPending}
+              onClick={() => executiveBriefing.mutate(undefined, {
+                onSuccess: (data) => setAiResult({ type: "briefing", data }),
+              })}>
+              {executiveBriefing.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}Generate Morning Briefing
             </Button>
           ) : undefined
         }
@@ -84,6 +99,8 @@ export default function Admin() {
 }
 
 function OperationsTab({ isHuman }: { isHuman: boolean }) {
+  const assignTasks = useAiAssignTasks();
+  const [aiResult, setAiResult] = useState<any>(null);
   const teamMembers = [
     { name: "Sher Shah", role: "CEO / Strategy", tasks: 3, completed: 8, overdue: 0 },
     { name: "Marketing Lead", role: "Content & Campaigns", tasks: 5, completed: 12, overdue: 1 },
@@ -130,8 +147,12 @@ function OperationsTab({ isHuman }: { isHuman: boolean }) {
           <h3 className="text-sm font-semibold">Task Board</h3>
           <div className="flex gap-2">
             {!isHuman && (
-              <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
-                <Sparkles className="h-3 w-3 mr-1" />Auto-Assign
+              <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                disabled={assignTasks.isPending}
+                onClick={() => assignTasks.mutate({ teamMembers: ["Shershah"] }, {
+                  onSuccess: (data) => setAiResult({ type: "tasks", data }),
+                })}>
+                {assignTasks.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Assign
               </Button>
             )}
             <Button size="sm" variant="outline" className="text-xs">
@@ -253,6 +274,8 @@ function KnowledgeTab({ isHuman }: { isHuman: boolean }) {
 }
 
 function BriefingTab({ isHuman }: { isHuman: boolean }) {
+  const executiveBriefing = useAiExecutiveBriefing();
+  const [aiResult, setAiResult] = useState<any>(null);
   const morningBriefing = {
     date: "Monday, March 28, 2024",
     urgent: [
@@ -290,8 +313,12 @@ function BriefingTab({ isHuman }: { isHuman: boolean }) {
             <p className="text-[10px] text-muted-foreground">{morningBriefing.date}</p>
           </div>
           {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson ml-auto">
-              <Sparkles className="h-3 w-3 mr-1" />Regenerate
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson ml-auto"
+              disabled={executiveBriefing.isPending}
+              onClick={() => executiveBriefing.mutate(undefined, {
+                onSuccess: (data) => setAiResult({ type: "briefing", data }),
+              })}>
+              {executiveBriefing.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Regenerate
             </Button>
           )}
         </div>
@@ -370,6 +397,8 @@ function BriefingTab({ isHuman }: { isHuman: boolean }) {
 }
 
 function EvolutionTab({ isHuman }: { isHuman: boolean }) {
+  const systemEvolution = useAiSystemEvolution();
+  const [aiResult, setAiResult] = useState<any>(null);
   const updates = [
     {
       title: "Claude 4 Released — All Agents Upgrade",

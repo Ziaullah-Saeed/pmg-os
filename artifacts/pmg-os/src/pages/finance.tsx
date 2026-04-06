@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import {
+  useAiCreateInvoice,
+  useAiManageContracts,
+} from "@/hooks/use-api";
+import {
   Landmark, Receipt, FileText, TrendingUp, DollarSign,
   Sparkles, CheckCircle2, Clock, AlertTriangle, ArrowRight,
   Plus, Send, Eye, Download, ArrowUpRight, ArrowDownRight,
@@ -22,7 +26,10 @@ const tabs = [
 
 export default function Finance() {
   const [activeTab, setActiveTab] = useState("billing");
+  const [aiResult, setAiResult] = useState<any>(null);
   const { isHuman } = useAiModeContext();
+  const createInvoice = useAiCreateInvoice();
+  const manageContracts = useAiManageContracts();
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
@@ -78,6 +85,8 @@ export default function Finance() {
 }
 
 function BillingTab({ isHuman }: { isHuman: boolean }) {
+  const createInvoice = useAiCreateInvoice();
+  const [aiResult, setAiResult] = useState<any>(null);
   const invoices = [
     { id: "INV-001", client: "SecureNet Solutions", amount: 5000, status: "paid", type: "recurring", date: "Mar 1", paidDate: "Mar 3", package: "Growth" },
     { id: "INV-002", client: "CyberGuard MSP", amount: 2500, status: "paid", type: "recurring", date: "Mar 1", paidDate: "Mar 5", package: "Starter" },
@@ -122,8 +131,12 @@ function BillingTab({ isHuman }: { isHuman: boolean }) {
           <h3 className="text-sm font-semibold">Invoices</h3>
           <div className="flex gap-2">
             {!isHuman && (
-              <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
-                <Sparkles className="h-3 w-3 mr-1" />Auto-Generate Monthly
+              <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                disabled={createInvoice.isPending}
+                onClick={() => createInvoice.mutate({ clientName: "All Clients", amount: 5000, services: ["Lead Generation", "Campaign Management"], dueDate: "30 days" }, {
+                  onSuccess: (data) => setAiResult({ type: "invoice", data }),
+                })}>
+                {createInvoice.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Generate Monthly
               </Button>
             )}
             <Button size="sm" className="btn-premium text-white text-xs">
@@ -201,6 +214,9 @@ function BillingTab({ isHuman }: { isHuman: boolean }) {
 }
 
 function ContractsTab({ isHuman }: { isHuman: boolean }) {
+  const manageContracts = useAiManageContracts();
+  const createInvoice = useAiCreateInvoice();
+  const [aiResult, setAiResult] = useState<any>(null);
   const contracts = [
     { client: "SecureNet Solutions", package: "Growth", value: "$5,000/mo", start: "Jan 1, 2024", end: "Dec 31, 2024", renewal: "275 days", status: "active" },
     { client: "CyberGuard MSP", package: "Starter", value: "$2,500/mo", start: "Feb 1, 2024", end: "Jan 31, 2025", renewal: "306 days", status: "active" },
@@ -228,8 +244,12 @@ function ContractsTab({ isHuman }: { isHuman: boolean }) {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Active Contracts</h3>
           {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
-              <Sparkles className="h-3 w-3 mr-1" />Draft New Contract
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+              disabled={manageContracts.isPending}
+              onClick={() => manageContracts.mutate({ clientName: "New Client", serviceType: "Lead Generation", duration: "12 months", monthlyValue: 5000 }, {
+                onSuccess: (data) => setAiResult({ type: "contract", data }),
+              })}>
+              {manageContracts.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Draft New Contract
             </Button>
           )}
         </div>
@@ -307,8 +327,12 @@ function ContractsTab({ isHuman }: { isHuman: boolean }) {
           ))}
         </div>
         {!isHuman && (
-          <Button size="sm" variant="outline" className="mt-3 text-xs border-crimson/30 text-crimson">
-            <Sparkles className="h-3 w-3 mr-1" />Run Custom Scenario
+          <Button size="sm" variant="outline" className="mt-3 text-xs border-crimson/30 text-crimson"
+            disabled={createInvoice.isPending}
+            onClick={() => createInvoice.mutate({ clientName: "Custom Scenario", amount: 10000, services: ["Full Service Package"], dueDate: "NET 15" }, {
+              onSuccess: (data) => setAiResult({ type: "scenario", data }),
+            })}>
+            {createInvoice.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Run Custom Scenario
           </Button>
         )}
       </GlassCard>

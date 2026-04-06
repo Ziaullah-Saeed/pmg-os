@@ -9,6 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import {
+  useAiOnboardClient,
+  useAiAuditClient,
+  useAiCreateImage,
+  useAiCreateVideo,
+  useAiCreateDocument,
+  useAiGenerateLeads,
+  useAiBuildCampaign,
+  useAiGenerateClientReport,
+} from "@/hooks/use-api";
+import {
   Palette, Image, Video, FileText, Folder, PenTool, UserCheck, BookOpen,
   Plus, Sparkles, CheckCircle2, X, ArrowRight, Clock, AlertTriangle,
   Download, Eye, Star, Shield, Layers, Search, Filter, RefreshCw,
@@ -31,7 +41,16 @@ const tabs = [
 
 export default function Production() {
   const [activeTab, setActiveTab] = useState("onboarding");
+  const [aiResult, setAiResult] = useState<any>(null);
   const { isHuman } = useAiModeContext();
+  const onboardClient = useAiOnboardClient();
+  const auditClient = useAiAuditClient();
+  const createImage = useAiCreateImage();
+  const createVideo = useAiCreateVideo();
+  const createDocument = useAiCreateDocument();
+  const generateLeads = useAiGenerateLeads();
+  const buildCampaign = useAiBuildCampaign();
+  const generateReport = useAiGenerateClientReport();
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
@@ -42,8 +61,12 @@ export default function Production() {
         actions={
           <div className="flex gap-2">
             {!isHuman && (
-              <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10">
-                <Sparkles className="h-4 w-4 mr-2" />AI Generate Assets
+              <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
+                disabled={createImage.isPending}
+                onClick={() => createImage.mutate({ type: "social_graphic", description: "Cybersecurity marketing visual", brandColors: "#001a4d #8B0000 #FFD700" }, {
+                  onSuccess: (data) => setAiResult({ type: "image_prompt", data }),
+                })}>
+                {createImage.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}AI Generate Assets
               </Button>
             )}
             <Button className="btn-premium text-white text-sm">
@@ -230,6 +253,8 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
 }
 
 function AuditTab({ isHuman }: { isHuman: boolean }) {
+  const auditClient = useAiAuditClient();
+  const [aiResult, setAiResult] = useState<any>(null);
   const auditResults = [
     { area: "Website", score: 42, issues: ["No clear value proposition above fold", "Missing case studies page", "No lead capture forms", "Page load 5.1s mobile"], priority: "critical" },
     { area: "Social Media", score: 28, issues: ["LinkedIn: 2 posts/month (need 12+)", "No consistent branding across platforms", "Zero engagement strategy", "No video content"], priority: "critical" },
@@ -247,8 +272,12 @@ function AuditTab({ isHuman }: { isHuman: boolean }) {
           <p className="text-xs text-muted-foreground">Brutally honest assessment of current marketing effectiveness</p>
         </div>
         {!isHuman && (
-          <Button size="sm" className="btn-premium text-white text-xs">
-            <Sparkles className="h-3 w-3 mr-1" />Run Full Audit
+          <Button size="sm" className="btn-premium text-white text-xs"
+            disabled={auditClient.isPending}
+            onClick={() => auditClient.mutate({ clientName: "Client", websiteUrl: "https://example.com" }, {
+              onSuccess: (data) => setAiResult({ type: "audit", data }),
+            })}>
+            {auditClient.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Run Full Audit
           </Button>
         )}
       </div>
@@ -287,8 +316,12 @@ function AuditTab({ isHuman }: { isHuman: boolean }) {
                 ))}
               </ul>
               {!isHuman && (
-                <Button size="sm" variant="outline" className="mt-2 text-[10px] border-crimson/20 text-crimson h-6 px-2">
-                  <Sparkles className="h-2.5 w-2.5 mr-1" />Generate Fix Plan
+                <Button size="sm" variant="outline" className="mt-2 text-[10px] border-crimson/20 text-crimson h-6 px-2"
+                  disabled={auditClient.isPending}
+                  onClick={() => auditClient.mutate({ clientName: item.area, websiteUrl: "https://example.com" }, {
+                    onSuccess: (data) => setAiResult({ type: "fix_plan", data }),
+                  })}>
+                  {auditClient.isPending ? <RefreshCw className="h-2.5 w-2.5 mr-1 animate-spin" /> : <Sparkles className="h-2.5 w-2.5 mr-1" />}Generate Fix Plan
                 </Button>
               )}
             </div>
@@ -300,6 +333,10 @@ function AuditTab({ isHuman }: { isHuman: boolean }) {
 }
 
 function CreativeTab({ isHuman }: { isHuman: boolean }) {
+  const createImage = useAiCreateImage();
+  const createVideo = useAiCreateVideo();
+  const createDocument = useAiCreateDocument();
+  const [aiResult, setAiResult] = useState<any>(null);
   const imageTypes = [
     { type: "Social Graphics", tool: "DALL-E 3", formats: "PNG, JPG, WebP", icon: <Camera className="h-4 w-4" /> },
     { type: "Ad Creatives", tool: "DALL-E 3", formats: "PNG, JPG (all ad sizes)", icon: <Megaphone className="h-4 w-4" /> },
@@ -410,6 +447,8 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
 }
 
 function LeadGenTab({ isHuman }: { isHuman: boolean }) {
+  const generateLeads = useAiGenerateLeads();
+  const [aiResult, setAiResult] = useState<any>(null);
   const sampleLeads = [
     { company: "Fortress Cybersecurity", contact: "James Chen, CEO", email: "j.chen@fortresscyber.com", phone: "(512) 555-0142", score: 92, pain: "No marketing presence, losing to competitors with worse service", approach: "Reference competitor analysis showing their gap", status: "delivered" },
     { company: "DataVault MSP", contact: "Sarah Williams, VP Sales", email: "sarah@datavaultmsp.com", phone: "(213) 555-0198", score: 88, pain: "Spending $4k/mo on ads with zero leads", approach: "Show ROI data from similar-sized MSP client", status: "delivered" },
@@ -446,8 +485,12 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Generated Leads — Quality Verified (80+ Score Only)</h3>
           {!isHuman && (
-            <Button size="sm" className="btn-premium text-white text-xs">
-              <Sparkles className="h-3 w-3 mr-1" />Generate More Leads
+            <Button size="sm" className="btn-premium text-white text-xs"
+              disabled={generateLeads.isPending}
+              onClick={() => generateLeads.mutate({ clientName: "PMG Group", targetMarket: "Enterprise Cybersecurity", industryFocus: "Tech, Finance, Healthcare" }, {
+                onSuccess: (data) => setAiResult({ type: "leads", data }),
+              })}>
+              {generateLeads.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Generate More Leads
             </Button>
           )}
         </div>
@@ -495,6 +538,8 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
 }
 
 function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
+  const buildCampaign = useAiBuildCampaign();
+  const [aiResult, setAiResult] = useState<any>(null);
   const campaigns = [
     {
       client: "SecureNet Solutions",
@@ -554,8 +599,12 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
         </div>
         <div className="flex gap-2">
           {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
-              <Sparkles className="h-3 w-3 mr-1" />AI Build Funnel
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+              disabled={buildCampaign.isPending}
+              onClick={() => buildCampaign.mutate({ campaignType: "lead_gen", targetAudience: "CISOs and IT Directors", marketingGap: "not generating enough leads" }, {
+                onSuccess: (data) => setAiResult({ type: "campaign", data }),
+              })}>
+              {buildCampaign.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Build Funnel
             </Button>
           )}
           <Button size="sm" className="btn-premium text-white text-xs">
@@ -689,6 +738,8 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
 }
 
 function ReportingTab({ isHuman }: { isHuman: boolean }) {
+  const generateReport = useAiGenerateClientReport();
+  const [aiResult, setAiResult] = useState<any>(null);
   const reportSections = [
     { name: "Lead Generation", metric: "14 leads delivered", change: "+40% vs last month", status: "positive" },
     { name: "Content Performance", metric: "12 pieces published", change: "3.2% avg engagement", status: "positive" },
@@ -703,8 +754,12 @@ function ReportingTab({ isHuman }: { isHuman: boolean }) {
         <h3 className="text-sm font-semibold">Client Performance Report</h3>
         <div className="flex gap-2">
           {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
-              <Sparkles className="h-3 w-3 mr-1" />Auto-Generate Report
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+              disabled={generateReport.isPending}
+              onClick={() => generateReport.mutate({ reportType: "monthly", timeframe: "last 30 days" }, {
+                onSuccess: (data) => setAiResult({ type: "report", data }),
+              })}>
+              {generateReport.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Generate Report
             </Button>
           )}
           <Button size="sm" variant="outline" className="text-xs">
@@ -962,6 +1017,8 @@ function LibraryTab({ isHuman }: { isHuman: boolean }) {
 }
 
 function QualityTab({ isHuman }: { isHuman: boolean }) {
+  const auditClient = useAiAuditClient();
+  const [aiResult, setAiResult] = useState<any>(null);
   const reviewQueue = [
     { name: "LinkedIn Post — EDR vs MDR Comparison", type: "content", score: "Ready to Publish", issues: [], details: "Human tone verified. Correct terminology. 1,200 characters — within LinkedIn limits." },
     { name: "Product Demo — MDR Services", type: "video", score: "Needs Minor Edits", issues: ["Audio volume inconsistent at 0:42-0:55", "End card missing PMG logo"], details: "Content accurate. Brand colors correct. Good pacing." },

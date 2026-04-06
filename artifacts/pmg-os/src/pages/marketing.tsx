@@ -13,6 +13,11 @@ import {
   useCreateCampaignMut,
   useUpdateCampaignMut,
   useDeleteCampaignMut,
+  useAiCreateContent,
+  useAiCreateAd,
+  useAiSeoAudit,
+  useAiOrchestrateCampaign,
+  useAiCompetitorIntel,
 } from "@/hooks/use-api";
 import {
   Megaphone, FileText, Search, BarChart3, Globe, Zap, Plus,
@@ -34,8 +39,14 @@ const tabs = [
 export default function Marketing() {
   const [activeTab, setActiveTab] = useState("content");
   const [showNewCampaign, setShowNewCampaign] = useState(false);
+  const [aiResult, setAiResult] = useState<any>(null);
   const { data: campaigns } = useListCampaigns();
   const { isHuman } = useAiModeContext();
+  const createContent = useAiCreateContent();
+  const createAd = useAiCreateAd();
+  const seoAudit = useAiSeoAudit();
+  const orchestrateCampaign = useAiOrchestrateCampaign();
+  const competitorIntel = useAiCompetitorIntel();
 
   const campaignList = useMemo(() => (campaigns ?? []) as any[], [campaigns]);
 
@@ -54,8 +65,12 @@ export default function Marketing() {
         actions={
           <div className="flex gap-2">
             {!isHuman && (
-              <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10">
-                <Sparkles className="h-4 w-4 mr-2" />AI Content Plan
+              <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
+                disabled={createContent.isPending}
+                onClick={() => createContent.mutate({ type: "content_plan", description: "Weekly content plan for cybersecurity marketing", tone: "professional", wordCount: 1000 }, {
+                  onSuccess: (data) => setAiResult({ type: "content_plan", data }),
+                })}>
+                {createContent.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}AI Content Plan
               </Button>
             )}
             <Button className="btn-premium text-white text-sm" onClick={() => { setActiveTab("campaigns"); setShowNewCampaign(true); }}>
@@ -109,7 +124,9 @@ export default function Marketing() {
   );
 }
 
-function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: boolean }) {
+function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: boolean; }) {
+  const createContent = useAiCreateContent();
+  const [aiResult, setAiResult] = useState<any>(null);
   const contentCalendar = [
     { day: "Mon", channel: "LinkedIn", type: "Article", topic: "Why MSSPs Need Dedicated Marketing Partners", status: "scheduled" },
     { day: "Mon", channel: "X/Twitter", type: "Thread", topic: "5 Signs Your Cybersecurity Company Needs Marketing Help", status: "draft" },
@@ -153,8 +170,12 @@ function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman:
               <p className="text-sm font-semibold">Content Repurposing Engine</p>
               <p className="text-xs text-muted-foreground">1 blog post auto-generates: LinkedIn article + 5 social posts + email excerpt + video script</p>
             </div>
-            <Button size="sm" className="btn-premium text-white text-xs">
-              <PenTool className="h-3 w-3 mr-1" />Generate Content
+            <Button size="sm" className="btn-premium text-white text-xs"
+              disabled={createContent.isPending}
+              onClick={() => createContent.mutate({ type: "blog_post", description: "Cybersecurity lead generation best practices", tone: "professional", wordCount: 800 }, {
+                onSuccess: (data) => setAiResult({ type: "content", data }),
+              })}>
+              {createContent.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <PenTool className="h-3 w-3 mr-1" />}Generate Content
             </Button>
           </div>
         </GlassCard>
@@ -384,6 +405,8 @@ function CampaignsTab({ campaigns, isHuman, showNew, setShowNew }: { campaigns: 
 }
 
 function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
+  const seoAudit = useAiSeoAudit();
+  const [aiResult, setAiResult] = useState<any>(null);
   const [showAudit, setShowAudit] = useState(false);
 
   const keywords = [
@@ -429,8 +452,15 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
 
       <div className="flex gap-2">
         {!isHuman && (
-          <Button variant="outline" className="text-sm border-crimson/30 text-crimson" onClick={() => setShowAudit(!showAudit)}>
-            <Sparkles className="h-4 w-4 mr-2" />{showAudit ? "Hide Audit" : "Run SEO Audit"}
+          <Button variant="outline" className="text-sm border-crimson/30 text-crimson"
+            disabled={seoAudit.isPending}
+            onClick={() => {
+              if (!showAudit) seoAudit.mutate({ websiteUrl: "client website", competitors: ["competitor1", "competitor2"] }, {
+                onSuccess: (data) => setAiResult({ type: "seo_audit", data }),
+              });
+              setShowAudit(!showAudit);
+            }}>
+            {seoAudit.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}{showAudit ? "Hide Audit" : "Run SEO Audit"}
           </Button>
         )}
         <Button variant="outline" className="text-sm" onClick={() => setShowAudit(!showAudit)}>
@@ -499,6 +529,8 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
 }
 
 function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: boolean }) {
+  const orchestrateCampaign = useAiOrchestrateCampaign();
+  const [aiResult, setAiResult] = useState<any>(null);
   const activeCampaigns = campaigns.filter((c: any) => c.status === "active");
 
   const timeline = [
@@ -545,8 +577,12 @@ function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: bo
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Campaign Sprint Timeline</h3>
           {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
-              <Sparkles className="h-3 w-3 mr-1" />AI Plan Sprint
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+              disabled={orchestrateCampaign.isPending}
+              onClick={() => orchestrateCampaign.mutate({ campaignName: "Sprint Campaign", channels: ["linkedin", "email", "ads"], goals: "Generate 20 qualified leads", timeline: "4 weeks" }, {
+                onSuccess: (data) => setAiResult({ type: "campaign_sprint", data }),
+              })}>
+              {orchestrateCampaign.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Plan Sprint
             </Button>
           )}
         </div>
@@ -601,6 +637,8 @@ function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: bo
 }
 
 function CompetitorIntelTab({ isHuman }: { isHuman: boolean }) {
+  const competitorIntel = useAiCompetitorIntel();
+  const [aiResult, setAiResult] = useState<any>(null);
   const competitors = [
     {
       name: "CyberFunnel Agency",
@@ -666,8 +704,12 @@ function CompetitorIntelTab({ isHuman }: { isHuman: boolean }) {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">Battle Cards</h3>
           {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
-              <Sparkles className="h-3 w-3 mr-1" />Refresh Analysis
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+              disabled={competitorIntel.isPending}
+              onClick={() => competitorIntel.mutate({ competitors: ["HubSpot", "Directive", "SmartBug"] }, {
+                onSuccess: (data) => setAiResult({ type: "competitor_intel", data }),
+              })}>
+              {competitorIntel.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Refresh Analysis
             </Button>
           )}
         </div>

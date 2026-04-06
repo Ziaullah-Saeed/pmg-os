@@ -1761,4 +1761,274 @@ export function useRoleDefaults(role: string) {
   return useQuery({ queryKey: ["role-defaults", role], queryFn: () => apiFetch<any>(`/users/role-defaults/${role}`) });
 }
 
+export function useAiFindProspects() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { industry?: string; region?: string; companySize?: string; marketingGaps?: string }) =>
+      apiFetch<any>("/outreach/find-prospects", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
+  });
+}
+
+export function useAiMonitorChannels() {
+  return useMutation({
+    mutationFn: (data: { channels?: string[] }) =>
+      apiFetch<any>("/outreach/monitor-channels", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiPlanApproach() {
+  return useMutation({
+    mutationFn: (data: { prospectName?: string; companyName?: string; industryContext?: string; painPoints?: string }) =>
+      apiFetch<any>("/outreach/plan-approach", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiComposeMessage() {
+  return useMutation({
+    mutationFn: (data: { channel?: string; prospectName?: string; companyName?: string; painPoints?: string; solution?: string }) =>
+      apiFetch<any>("/outreach/compose-message", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiScheduleFollowup() {
+  return useMutation({
+    mutationFn: (data: { prospectId?: number; lastContactDate?: string; channel?: string; nextStep?: string }) =>
+      apiFetch<any>("/outreach/schedule-followup", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiOutreachAnalytics() {
+  return useMutation({
+    mutationFn: (data: { timeframe?: string }) =>
+      apiFetch<any>("/outreach/analytics", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiQualifyLead() {
+  return useMutation({
+    mutationFn: (data: { leadData?: any; companyName?: string; problemStatement?: string }) =>
+      apiFetch<any>("/crm/qualify-lead", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiManageDeal() {
+  return useMutation({
+    mutationFn: (data: { dealId?: number; companyName?: string; dealValue?: number; interactions?: string[] }) =>
+      apiFetch<any>("/crm/manage-deal", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiPrepareCall() {
+  return useMutation({
+    mutationFn: (data: { prospectName?: string; companyName?: string; callObjective?: string; priorContext?: string }) =>
+      apiFetch<any>("/crm/prepare-call", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiCreateProposal() {
+  return useMutation({
+    mutationFn: (data: { prospectName?: string; companyName?: string; discoveryFindings?: string; budget?: number }) =>
+      apiFetch<any>("/crm/create-proposal", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiSyncGhl() {
+  return useMutation({
+    mutationFn: (data: { leadId?: number; companyName?: string; contactEmail?: string; dealValue?: number; platform?: string }) =>
+      apiFetch<any>("/crm/sync-ghl", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiCreateContent() {
+  return useMutation({
+    mutationFn: (data: { type?: string; description?: string; tone?: string; wordCount?: number }) =>
+      apiFetch<any>("/marketing/create-content", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiCreateAd() {
+  return useMutation({
+    mutationFn: (data: { platform?: string; audience?: string; objective?: string; briefing?: string }) =>
+      apiFetch<any>("/marketing/create-ad", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiSeoAudit() {
+  return useMutation({
+    mutationFn: (data: { websiteUrl?: string; competitors?: string[] }) =>
+      apiFetch<any>("/marketing/seo-audit", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiOrchestrateCampaign() {
+  return useMutation({
+    mutationFn: (data: { campaignName?: string; channels?: string[]; goals?: string; timeline?: string }) =>
+      apiFetch<any>("/marketing/orchestrate-campaign", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiCompetitorIntel() {
+  return useMutation({
+    mutationFn: (data: { competitors?: string[] }) =>
+      apiFetch<any>("/marketing/competitor-intel", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiOnboardClient() {
+  return useMutation({
+    mutationFn: (data: { clientName?: string; companyName?: string }) =>
+      apiFetch<any>("/production/onboard-client", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiAuditClient() {
+  return useMutation({
+    mutationFn: (data: { clientId?: number; clientName?: string; websiteUrl?: string }) =>
+      apiFetch<any>("/production/audit-client", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiCreateImage() {
+  return useMutation({
+    mutationFn: (data: { type?: string; description?: string; brandColors?: string }) =>
+      apiFetch<any>("/production/create-image", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiCreateVideo() {
+  return useMutation({
+    mutationFn: (data: { type?: string; description?: string; duration?: number }) =>
+      apiFetch<any>("/production/create-video", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiCreateDocument() {
+  return useMutation({
+    mutationFn: (data: { docType?: string; title?: string; content?: string }) =>
+      apiFetch<any>("/production/create-document", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiGenerateLeads() {
+  return useMutation({
+    mutationFn: (data: { clientId?: number; clientName?: string; targetMarket?: string; industryFocus?: string }) =>
+      apiFetch<any>("/production/generate-leads", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiBuildCampaign() {
+  return useMutation({
+    mutationFn: (data: { clientId?: number; campaignType?: string; targetAudience?: string; marketingGap?: string }) =>
+      apiFetch<any>("/production/build-campaign", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiGenerateClientReport() {
+  return useMutation({
+    mutationFn: (data: { clientId?: number; reportType?: string; timeframe?: string }) =>
+      apiFetch<any>("/production/generate-report", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiAssignTasks() {
+  return useMutation({
+    mutationFn: (data: { teamMembers?: string[] }) =>
+      apiFetch<any>("/admin/assign-tasks", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiManageKnowledge() {
+  return useMutation({
+    mutationFn: (data: { documentType?: string; topic?: string }) =>
+      apiFetch<any>("/admin/manage-knowledge", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiExecutiveBriefing() {
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<any>("/admin/executive-briefing", { method: "POST", body: JSON.stringify({}) }),
+  });
+}
+
+export function useAiSystemEvolution() {
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<any>("/admin/system-evolution", { method: "POST", body: JSON.stringify({}) }),
+  });
+}
+
+export function useAiCreateInvoice() {
+  return useMutation({
+    mutationFn: (data: { clientId?: number; clientName?: string; amount?: number; services?: string[]; dueDate?: string }) =>
+      apiFetch<any>("/finance/create-invoice", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiManageContracts() {
+  return useMutation({
+    mutationFn: (data: { clientId?: number; clientName?: string; serviceType?: string; duration?: string; monthlyValue?: number }) =>
+      apiFetch<any>("/finance/manage-contracts", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiCheckCompliance() {
+  return useMutation({
+    mutationFn: (data: { contentType?: string; content?: string; channel?: string }) =>
+      apiFetch<any>("/legal/check-compliance", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiGetGuide() {
+  return useMutation({
+    mutationFn: (data: { section?: string }) =>
+      apiFetch<any>("/video/get-guide", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiLinkedInSync() {
+  return useMutation({
+    mutationFn: (data: { prospectId?: number; linkedinUrl?: string }) =>
+      apiFetch<any>("/integrations/linkedin/sync", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiGhlSync() {
+  return useMutation({
+    mutationFn: (data: { leadId?: number; ghlApiKey?: string }) =>
+      apiFetch<any>("/integrations/ghl/sync", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiGoogleAdsSync() {
+  return useMutation({
+    mutationFn: (data: { campaignId?: number }) =>
+      apiFetch<any>("/integrations/google-ads/sync", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useAiStripePayment() {
+  return useMutation({
+    mutationFn: (data: { invoiceId?: number; amount?: number; clientName?: string }) =>
+      apiFetch<any>("/integrations/stripe/create-payment", { method: "POST", body: JSON.stringify(data) }),
+  });
+}
+
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: ["dashboard", "stats"],
+    queryFn: () => apiFetch<any>("/dashboard/stats"),
+    refetchInterval: 30000,
+  });
+}
+
+export function useDashboardRecentActivities() {
+  return useQuery({
+    queryKey: ["dashboard", "recent-activities"],
+    queryFn: () => apiFetch<any>("/dashboard/recent-activities"),
+    refetchInterval: 15000,
+  });
+}
+
 export { apiFetch };

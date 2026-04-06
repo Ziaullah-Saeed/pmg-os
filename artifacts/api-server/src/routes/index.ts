@@ -50,6 +50,7 @@ import testingRouter from "./testing";
 import channelHealthRouter from "./channel-health";
 import jobQueueRouter from "./job-queue";
 import channelsRouter from "./channels";
+import guideEndpointsRouter from "./guide-endpoints";
 import { processInboundWebhook } from "../services/integration-hub-service";
 
 const router: IRouter = Router();
@@ -141,5 +142,6 @@ router.use(testingRouter);
 router.use(channelHealthRouter);
 router.use(jobQueueRouter);
 router.use("/channels", channelsRouter);
+router.use(guideEndpointsRouter);
 
 export default router;

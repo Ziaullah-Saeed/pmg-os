@@ -15,6 +15,11 @@ import {
   useConvertLead,
   useCloseLead,
   useDeleteOpportunity,
+  useAiQualifyLead,
+  useAiManageDeal,
+  useAiPrepareCall,
+  useAiCreateProposal,
+  useAiSyncGhl,
 } from "@/hooks/use-api";
 import {
   Briefcase, DollarSign, TrendingUp, Users, Phone, FileText,
@@ -62,10 +67,16 @@ function getDealHealth(deal: any) {
 export default function CRM() {
   const [activeTab, setActiveTab] = useState("pipeline");
   const [showNewDealForm, setShowNewDealForm] = useState(false);
+  const [aiResult, setAiResult] = useState<any>(null);
   const { data: opportunities } = useListOpportunities();
   const { data: leads } = useListLeads();
   const { data: companies } = useListCompanies();
   const { isHuman, isAuto } = useAiModeContext();
+  const qualifyLead = useAiQualifyLead();
+  const manageDeal = useAiManageDeal();
+  const prepareCall = useAiPrepareCall();
+  const createProposal = useAiCreateProposal();
+  const syncGhl = useAiSyncGhl();
 
   const oppList = useMemo(() => (opportunities ?? []) as any[], [opportunities]);
   const leadList = useMemo(() => (leads ?? []) as any[], [leads]);
@@ -92,8 +103,12 @@ export default function CRM() {
         actions={
           <div className="flex gap-2">
             {!isHuman && (
-              <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10">
-                <Sparkles className="h-4 w-4 mr-2" />AI Pipeline Review
+              <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
+                disabled={manageDeal.isPending}
+                onClick={() => manageDeal.mutate({ companyName: "Pipeline Review", dealValue: totalPipeline, interactions: ["review all deals"] }, {
+                  onSuccess: (data) => setAiResult({ type: "pipeline_review", data }),
+                })}>
+                {manageDeal.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}AI Pipeline Review
               </Button>
             )}
             <Button className="btn-premium text-white text-sm" onClick={() => { setActiveTab("pipeline"); setShowNewDealForm(true); }}>
@@ -305,6 +320,8 @@ function DealDetailPanel({ deal, onClose, onStageChange, isHuman }: {
   const currentStageIdx = stages.findIndex(s => s.id === deal.stage);
   const updateOpp = useUpdateOpportunityMut();
   const deleteOpp = useDeleteOpportunity();
+  const manageDeal = useAiManageDeal();
+  const [aiResult, setAiResult] = useState<any>(null);
   const [notes, setNotes] = useState(deal.notes ?? "");
 
   const saveNotes = () => {
@@ -385,8 +402,12 @@ function DealDetailPanel({ deal, onClose, onStageChange, isHuman }: {
 
       <div className="flex gap-2 flex-wrap">
         {!isHuman && (
-          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
-            <Sparkles className="h-3 w-3 mr-1" />AI Next Best Action
+          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+            disabled={manageDeal.isPending}
+            onClick={() => manageDeal.mutate({ companyName: deal.title || deal.companyName, dealValue: deal.value, interactions: [deal.stage] }, {
+              onSuccess: (data) => setAiResult({ type: "next_action", data }),
+            })}>
+            {manageDeal.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Next Best Action
           </Button>
         )}
         {deal.stage !== "closed_won" && deal.stage !== "closed_lost" && (

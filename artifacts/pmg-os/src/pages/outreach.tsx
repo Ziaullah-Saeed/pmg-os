@@ -90,17 +90,19 @@ function ProspectFinder() {
   const handleAiProspect = useCallback(async () => {
     setIsProspecting(true);
     try {
-      const res = await fetch(`${API_BASE}/ai/run`, {
+      const res = await fetch(`${API_BASE}/outreach/find-prospects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          agentId: "prospect-intelligence",
-          input: { task: "find_prospects", criteria: "cybersecurity companies, 50-500 employees, US-based, likely need marketing services" },
+          industry: "cybersecurity",
+          region: "USA",
+          companySize: "mid-market",
+          marketingGaps: "not enough qualified leads",
         }),
       });
       const data = await res.json();
-      toast({ title: "AI Prospecting", description: data.result?.summary ?? "Prospect research initiated. Results will appear as new leads." });
+      toast({ title: "AI Prospecting Complete", description: data.data ? `Found prospects with ${data.confidence}% confidence` : "Prospect research initiated" });
       queryClient.invalidateQueries({ queryKey: ["/leads"] });
     } catch {
       toast({ title: "AI Prospecting", description: "Prospecting task queued. AI will research and add leads shortly." });
