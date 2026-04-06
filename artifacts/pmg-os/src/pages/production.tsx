@@ -124,32 +124,14 @@ export default function Production() {
 }
 
 function OnboardingTab({ isHuman }: { isHuman: boolean }) {
-  const clients = [
-    {
-      name: "SecureNet Solutions",
-      status: "in_progress",
-      progress: 5,
-      total: 7,
-      currentStep: "Choose CRM setup",
-      startDate: "2024-03-15",
-    },
-    {
-      name: "CyberGuard MSP",
-      status: "completed",
-      progress: 7,
-      total: 7,
-      currentStep: "Complete",
-      startDate: "2024-02-01",
-    },
-    {
-      name: "ShieldTech IT",
-      status: "new",
-      progress: 1,
-      total: 7,
-      currentStep: "Collect brand assets",
-      startDate: "2024-03-28",
-    },
-  ];
+  const onboardClient = useAiOnboardClient();
+  const auditClient = useAiAuditClient();
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [clientsState, setClientsState] = useState([
+    { name: "SecureNet Solutions", status: "in_progress", progress: 5, total: 7, currentStep: "Choose CRM setup", startDate: "2024-03-15" },
+    { name: "CyberGuard MSP", status: "completed", progress: 7, total: 7, currentStep: "Complete", startDate: "2024-02-01" },
+    { name: "ShieldTech IT", status: "new", progress: 1, total: 7, currentStep: "Collect brand assets", startDate: "2024-03-28" },
+  ]);
 
   const checklistSteps = [
     { step: 1, label: "Collect brand assets (logo, colors, fonts, guidelines)", icon: <Palette className="h-3.5 w-3.5" /> },
@@ -163,21 +145,43 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
 
   const [expanded, setExpanded] = useState<string | null>("SecureNet Solutions");
 
+  const advanceStep = (clientName: string) => {
+    setClientsState(prev => prev.map(c => {
+      if (c.name !== clientName) return c;
+      const newProgress = Math.min(c.progress + 1, c.total);
+      const nextStep = newProgress >= c.total ? "Complete" : checklistSteps[newProgress]?.label.split("(")[0].trim() || "Next step";
+      const newStatus = newProgress >= c.total ? "completed" : "in_progress";
+      return { ...c, progress: newProgress, currentStep: nextStep, status: newStatus };
+    }));
+  };
+
+  const handleRunAudit = (clientName: string) => {
+    auditClient.mutate({ clientName, websiteUrl: `https://${clientName.toLowerCase().replace(/\s/g, "")}.com` }, {
+      onSuccess: (data) => setAiResult({ type: "onboarding_audit", data }),
+    });
+  };
+
+  const handleViewPlan = (clientName: string) => {
+    onboardClient.mutate({ clientName, companyName: clientName }, {
+      onSuccess: (data) => setAiResult({ type: "90_day_plan", data }),
+    });
+  };
+
   return (
     <div className="space-y-4">
-              <GlassCard className="border border-crimson/10 bg-crimson/5">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-crimson" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold">AI Onboarding Assistant</p>
-              <p className="text-xs text-muted-foreground">Auto-generates client brand profile, initial marketing audit, and 90-day success plan from collected info.</p>
-            </div>
+      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Onboarding Intelligence" />}
+      <GlassCard className="border border-crimson/10 bg-crimson/5">
+        <div className="flex items-center gap-3">
+          <Sparkles className="h-5 w-5 text-crimson" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">AI Onboarding Assistant</p>
+            <p className="text-xs text-muted-foreground">Auto-generates client brand profile, initial marketing audit, and 90-day success plan from collected info.</p>
           </div>
-        </GlassCard>
-      
+        </div>
+      </GlassCard>
 
       <div className="space-y-3">
-        {clients.map((client) => (
+        {clientsState.map((client) => (
           <GlassCard key={client.name} variant="interactive" className="cursor-pointer" onClick={() => setExpanded(expanded === client.name ? null : client.name)}>
             <div className="flex items-center gap-4">
               <div className={`p-2 rounded-lg glass-surface ${
@@ -225,8 +229,9 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
                         {step.label}
                       </span>
                       {current && client.status !== "completed" && (
-                        <Button size="sm" className="ml-auto btn-premium text-white text-[10px] h-6 px-2">
-                          <ArrowRight className="h-2.5 w-2.5 mr-1" />Start
+                        <Button size="sm" className="ml-auto btn-premium text-white text-[10px] h-6 px-2"
+                          onClick={(e) => { e.stopPropagation(); advanceStep(client.name); }}>
+                          <Check className="h-2.5 w-2.5 mr-1" />Complete Step
                         </Button>
                       )}
                     </div>
@@ -234,11 +239,17 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
                 })}
                 {client.status === "completed" && (
                   <div className="flex gap-2 mt-2">
-                    <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">
-                      <BarChart3 className="h-3 w-3 mr-1" />Run Marketing Audit
+                    <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+                      disabled={auditClient.isPending}
+                      onClick={(e) => { e.stopPropagation(); handleRunAudit(client.name); }}>
+                      {auditClient.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <BarChart3 className="h-3 w-3 mr-1" />}
+                      Run Marketing Audit
                     </Button>
-                    <Button size="sm" variant="outline" className="text-xs">
-                      <FileText className="h-3 w-3 mr-1" />View 90-Day Plan
+                    <Button size="sm" variant="outline" className="text-xs"
+                      disabled={onboardClient.isPending}
+                      onClick={(e) => { e.stopPropagation(); handleViewPlan(client.name); }}>
+                      {onboardClient.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <FileText className="h-3 w-3 mr-1" />}
+                      View 90-Day Plan
                     </Button>
                   </div>
                 )}
@@ -335,6 +346,8 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
   const createVideo = useAiCreateVideo();
   const createDocument = useAiCreateDocument();
   const [aiResult, setAiResult] = useState<any>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState("");
   const imageTypes = [
     { type: "Social Graphics", tool: "DALL-E 3", formats: "PNG, JPG, WebP", icon: <Camera className="h-4 w-4" /> },
     { type: "Ad Creatives", tool: "DALL-E 3", formats: "PNG, JPG (all ad sizes)", icon: <Megaphone className="h-4 w-4" /> },
@@ -359,22 +372,67 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
     { type: "Pitch Decks", formats: "PDF, PPTX", icon: <Clipboard className="h-4 w-4" /> },
   ];
 
+  const handleGenerate = () => {
+    if (!prompt || !selectedType) return;
+    const category = imageTypes.find(t => t.type === selectedType) ? "image" :
+                     videoTypes.find(t => t.type === selectedType) ? "video" : "document";
+    if (category === "image") {
+      createImage.mutate({ type: selectedType.toLowerCase().replace(/\s/g, "_"), description: prompt, brandColors: "#001a4d #8B0000 #FFD700" }, {
+        onSuccess: (data) => { setAiResult({ type: "creative_image", data }); setSelectedType(null); setPrompt(""); },
+      });
+    } else if (category === "video") {
+      createVideo.mutate({ type: selectedType.toLowerCase().replace(/\s/g, "_"), description: prompt, duration: 30 }, {
+        onSuccess: (data) => { setAiResult({ type: "creative_video", data }); setSelectedType(null); setPrompt(""); },
+      });
+    } else {
+      createDocument.mutate({ docType: selectedType.toLowerCase().replace(/\s/g, "_"), title: selectedType, content: prompt }, {
+        onSuccess: (data) => { setAiResult({ type: "creative_doc", data }); setSelectedType(null); setPrompt(""); },
+      });
+    }
+  };
+
+  const isGenerating = createImage.isPending || createVideo.isPending || createDocument.isPending;
+
   return (
     <div className="space-y-4">
       {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Creative Assets" />}
-              <GlassCard className="border border-crimson/10 bg-crimson/5">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-crimson" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold">Creative Production Engine</p>
-              <p className="text-xs text-muted-foreground">Describe what you need. AI generates preview. Review and download in any format.</p>
-            </div>
-            <Button size="sm" className="btn-premium text-white text-xs">
-              <Plus className="h-3 w-3 mr-1" />Create Asset
+
+      {selectedType && (
+        <GlassCard className="border border-crimson/20">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-4 w-4 text-crimson" />
+            <p className="text-sm font-semibold">Generate: {selectedType}</p>
+            <Button size="sm" variant="ghost" className="ml-auto h-6 px-2 text-xs" onClick={() => { setSelectedType(null); setPrompt(""); }}>
+              <X className="h-3 w-3 mr-1" />Cancel
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Textarea
+              placeholder={`Describe your ${selectedType.toLowerCase()}... (e.g., "Cybersecurity compliance infographic showing SOC 2 audit process")`}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="bg-white/5 border-white/10 text-sm min-h-[60px]"
+            />
+            <Button
+              className="btn-premium text-white text-sm shrink-0"
+              disabled={!prompt || isGenerating}
+              onClick={handleGenerate}
+            >
+              {isGenerating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             </Button>
           </div>
         </GlassCard>
-      
+      )}
+
+      <GlassCard className="border border-crimson/10 bg-crimson/5">
+        <div className="flex items-center gap-3">
+          <Sparkles className="h-5 w-5 text-crimson" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Creative Production Engine</p>
+            <p className="text-xs text-muted-foreground">Click any asset type below to start generating. Describe what you need and AI creates it.</p>
+          </div>
+        </div>
+      </GlassCard>
 
       <div>
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -382,7 +440,9 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
           {imageTypes.map((item) => (
-            <div key={item.type} className="rounded-lg glass-surface p-3 text-center hover:ring-1 hover:ring-crimson/20 transition-all cursor-pointer">
+            <div key={item.type}
+              onClick={() => { setSelectedType(item.type); setPrompt(""); }}
+              className={`rounded-lg glass-surface p-3 text-center hover:ring-1 hover:ring-crimson/20 transition-all cursor-pointer ${selectedType === item.type ? "ring-1 ring-crimson/40 bg-crimson/5" : ""}`}>
               <div className="text-crimson mx-auto mb-2">{item.icon}</div>
               <p className="text-xs font-semibold">{item.type}</p>
               <p className="text-[9px] text-muted-foreground mt-0.5">{item.tool}</p>
@@ -398,7 +458,9 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {videoTypes.map((item) => (
-            <div key={item.type} className="rounded-lg glass-surface p-3 text-center hover:ring-1 hover:ring-gold/20 transition-all cursor-pointer">
+            <div key={item.type}
+              onClick={() => { setSelectedType(item.type); setPrompt(""); }}
+              className={`rounded-lg glass-surface p-3 text-center hover:ring-1 hover:ring-gold/20 transition-all cursor-pointer ${selectedType === item.type ? "ring-1 ring-gold/40 bg-gold/5" : ""}`}>
               <div className="text-gold mx-auto mb-2">{item.icon}</div>
               <p className="text-xs font-semibold">{item.type}</p>
               <p className="text-[9px] text-muted-foreground mt-0.5">{item.tool}</p>
@@ -414,7 +476,9 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {docTypes.map((item) => (
-            <div key={item.type} className="rounded-lg glass-surface p-3 text-center hover:ring-1 hover:ring-blue-400/20 transition-all cursor-pointer">
+            <div key={item.type}
+              onClick={() => { setSelectedType(item.type); setPrompt(""); }}
+              className={`rounded-lg glass-surface p-3 text-center hover:ring-1 hover:ring-blue-400/20 transition-all cursor-pointer ${selectedType === item.type ? "ring-1 ring-blue-400/40 bg-blue-400/5" : ""}`}>
               <div className="text-blue-400 mx-auto mb-2">{item.icon}</div>
               <p className="text-xs font-semibold">{item.type}</p>
               <p className="text-[8px] text-muted-foreground/60">{item.formats}</p>
@@ -538,7 +602,8 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
 function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
   const buildCampaign = useAiBuildCampaign();
   const [aiResult, setAiResult] = useState<any>(null);
-  const campaigns = [
+  const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
+  const [campaignsState, setCampaignsState] = useState([
     {
       client: "SecureNet Solutions",
       name: "EDR Solutions LinkedIn Campaign",
@@ -572,7 +637,21 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
       budget: "$500",
       spent: "$0",
     },
-  ];
+  ]);
+
+  const handleLaunch = (campaignName: string) => {
+    setCampaignsState(prev => prev.map(c =>
+      c.name === campaignName ? { ...c, status: "active" } : c
+    ));
+  };
+
+  const handlePause = (campaignName: string) => {
+    setCampaignsState(prev => prev.map(c =>
+      c.name === campaignName ? { ...c, status: "paused" } : c
+    ));
+  };
+
+  const campaigns = campaignsState;
 
   const funnelStages = [
     { stage: "Awareness", desc: "Ads, content, social posts", icon: <Eye className="h-3.5 w-3.5" />, color: "text-blue-400" },
@@ -692,18 +771,52 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
               </div>
             </div>
             <div className="flex gap-2 mt-3">
-              <Button size="sm" variant="outline" className="text-[10px] h-6 px-2">
-                <Eye className="h-2.5 w-2.5 mr-1" />View Funnel
+              <Button size="sm" variant="outline" className="text-[10px] h-6 px-2"
+                onClick={() => setExpandedCampaign(expandedCampaign === campaign.name ? null : campaign.name)}>
+                <Eye className="h-2.5 w-2.5 mr-1" />{expandedCampaign === campaign.name ? "Hide" : "View"} Funnel
               </Button>
-              <Button size="sm" variant="outline" className="text-[10px] h-6 px-2">
+              <Button size="sm" variant="outline" className="text-[10px] h-6 px-2"
+                onClick={() => setExpandedCampaign(expandedCampaign === campaign.name ? null : campaign.name)}>
                 <BarChart3 className="h-2.5 w-2.5 mr-1" />A/B Tests
               </Button>
               {campaign.status === "draft" && (
-                <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2">
+                <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2"
+                  onClick={() => handleLaunch(campaign.name)}>
                   <Play className="h-2.5 w-2.5 mr-1" />Launch
                 </Button>
               )}
+              {campaign.status === "active" && (
+                <Button size="sm" variant="outline" className="text-[10px] h-6 px-2 border-yellow-500/20 text-yellow-400"
+                  onClick={() => handlePause(campaign.name)}>
+                  <Pause className="h-2.5 w-2.5 mr-1" />Pause
+                </Button>
+              )}
+              {campaign.status === "paused" && (
+                <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2"
+                  onClick={() => handleLaunch(campaign.name)}>
+                  <Play className="h-2.5 w-2.5 mr-1" />Resume
+                </Button>
+              )}
             </div>
+            {expandedCampaign === campaign.name && (
+              <div className="mt-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                <p className="text-[10px] font-semibold mb-2">Funnel Breakdown</p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {campaign.funnel.split(" → ").map((step, idx, arr) => (
+                    <span key={idx} className="flex items-center gap-1.5">
+                      <span className="text-[10px] px-2 py-1 rounded bg-crimson/10 text-crimson">{step}</span>
+                      {idx < arr.length - 1 && <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />}
+                    </span>
+                  ))}
+                </div>
+                <div className="grid grid-cols-4 gap-2 mt-3">
+                  <div className="text-center"><p className="text-[10px] text-muted-foreground">Step 1→2</p><p className="text-xs font-bold text-blue-400">{campaign.metrics.visitors > 0 ? `${((campaign.metrics.leads / campaign.metrics.visitors) * 100).toFixed(1)}%` : "—"}</p></div>
+                  <div className="text-center"><p className="text-[10px] text-muted-foreground">Step 2→3</p><p className="text-xs font-bold text-gold">{campaign.metrics.leads > 0 ? `${((campaign.metrics.meetings / campaign.metrics.leads) * 100).toFixed(1)}%` : "—"}</p></div>
+                  <div className="text-center"><p className="text-[10px] text-muted-foreground">Step 3→4</p><p className="text-xs font-bold text-crimson">{campaign.metrics.meetings > 0 ? `${((campaign.metrics.clients / campaign.metrics.meetings) * 100).toFixed(1)}%` : "—"}</p></div>
+                  <div className="text-center"><p className="text-[10px] text-muted-foreground">Overall</p><p className="text-xs font-bold text-success">{campaign.conversionRate}</p></div>
+                </div>
+              </div>
+            )}
           </GlassCard>
         ))}
       </div>
@@ -1017,13 +1130,43 @@ function LibraryTab({ isHuman }: { isHuman: boolean }) {
 function QualityTab({ isHuman }: { isHuman: boolean }) {
   const auditClient = useAiAuditClient();
   const [aiResult, setAiResult] = useState<any>(null);
-  const reviewQueue = [
-    { name: "LinkedIn Post — EDR vs MDR Comparison", type: "content", score: "Ready to Publish", issues: [], details: "Human tone verified. Correct terminology. 1,200 characters — within LinkedIn limits." },
+  const [reviewItems, setReviewItems] = useState([
+    { name: "LinkedIn Post — EDR vs MDR Comparison", type: "content", score: "Ready to Publish", issues: [] as string[], details: "Human tone verified. Correct terminology. 1,200 characters — within LinkedIn limits." },
     { name: "Product Demo — MDR Services", type: "video", score: "Needs Minor Edits", issues: ["Audio volume inconsistent at 0:42-0:55", "End card missing PMG logo"], details: "Content accurate. Brand colors correct. Good pacing." },
     { name: "SOC 2 Compliance Infographic", type: "image", score: "Needs Rewrite", issues: ["SOC 2 Type I vs Type II distinction incorrect", "Color scheme doesn't match brand guide", "Font is not Inter"], details: "Factual error in compliance flow. Visual brand violations." },
-    { name: "Email Sequence — Nurture Week 2", type: "content", score: "Ready to Publish", issues: [], details: "CAN-SPAM compliant. Unsubscribe link present. No AI-sounding phrases. Strong CTA." },
+    { name: "Email Sequence — Nurture Week 2", type: "content", score: "Ready to Publish", issues: [] as string[], details: "CAN-SPAM compliant. Unsubscribe link present. No AI-sounding phrases. Strong CTA." },
     { name: "Facebook Ad — Lead Gen V2", type: "image", score: "Needs Minor Edits", issues: ["Text exceeds 20% of image area (Facebook will limit reach)"], details: "Design strong. Copy compelling. Just needs text area reduction." },
-  ];
+  ]);
+
+  const handleApprove = (name: string) => {
+    setReviewItems(prev => prev.map(item =>
+      item.name === name ? { ...item, score: "Published", issues: [], details: item.details + " — Approved and published." } : item
+    ));
+  };
+
+  const handleAutoFix = (name: string) => {
+    auditClient.mutate({ clientName: name, websiteUrl: "auto-fix" }, {
+      onSuccess: (data) => {
+        setAiResult({ type: "auto_fix", data });
+        setReviewItems(prev => prev.map(item =>
+          item.name === name ? { ...item, score: "Ready to Publish", issues: [] } : item
+        ));
+      },
+    });
+  };
+
+  const handleRegenerate = (name: string) => {
+    auditClient.mutate({ clientName: name, websiteUrl: "regenerate" }, {
+      onSuccess: (data) => {
+        setAiResult({ type: "regenerated", data });
+        setReviewItems(prev => prev.map(item =>
+          item.name === name ? { ...item, score: "Ready to Publish", issues: [], details: "Regenerated content — ready for review." } : item
+        ));
+      },
+    });
+  };
+
+  const reviewQueue = reviewItems;
 
   const qualityMetrics = [
     { label: "Total Reviewed", value: 47, period: "This Month" },
@@ -1081,24 +1224,30 @@ function QualityTab({ isHuman }: { isHuman: boolean }) {
               <p className="text-[10px] text-muted-foreground">{item.details}</p>
               <div className="flex gap-2 mt-2">
                 {item.score === "Ready to Publish" && (
-                  <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2">
+                  <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2"
+                    onClick={() => handleApprove(item.name)}>
                     <CheckCircle2 className="h-2.5 w-2.5 mr-1" />Approve & Publish
                   </Button>
                 )}
+                {item.score === "Published" && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-success px-2 py-1 rounded bg-success/10">
+                    <CheckCircle2 className="h-3 w-3" />Published
+                  </span>
+                )}
                 {item.score === "Needs Minor Edits" && (
                   <>
-                    <Button size="sm" variant="outline" className="text-[10px] border-yellow-500/20 text-yellow-400 h-6 px-2">
-                      <PenTool className="h-2.5 w-2.5 mr-1" />Edit
+                    <Button size="sm" variant="outline" className="text-[10px] border-yellow-500/20 text-yellow-400 h-6 px-2"
+                      disabled={auditClient.isPending}
+                      onClick={() => handleAutoFix(item.name)}>
+                      {auditClient.isPending ? <RefreshCw className="h-2.5 w-2.5 mr-1 animate-spin" /> : <Sparkles className="h-2.5 w-2.5 mr-1" />}Auto-Fix
                     </Button>
-                                          <Button size="sm" variant="outline" className="text-[10px] border-crimson/20 text-crimson h-6 px-2">
-                        <Sparkles className="h-2.5 w-2.5 mr-1" />Auto-Fix
-                      </Button>
-                    
                   </>
                 )}
-                {item.score === "Needs Rewrite" && !isHuman && (
-                  <Button size="sm" variant="outline" className="text-[10px] border-crimson/20 text-crimson h-6 px-2">
-                    <Sparkles className="h-2.5 w-2.5 mr-1" />Regenerate
+                {item.score === "Needs Rewrite" && (
+                  <Button size="sm" variant="outline" className="text-[10px] border-crimson/20 text-crimson h-6 px-2"
+                    disabled={auditClient.isPending}
+                    onClick={() => handleRegenerate(item.name)}>
+                    {auditClient.isPending ? <RefreshCw className="h-2.5 w-2.5 mr-1 animate-spin" /> : <Sparkles className="h-2.5 w-2.5 mr-1" />}Regenerate
                   </Button>
                 )}
               </div>

@@ -119,6 +119,60 @@ function ProspectFinder() {
     }
   }, [toast, queryClient]);
 
+  const handleSaveProspect = useCallback(async (prospect: Record<string, any>) => {
+    const companyName = prospect.company_name || prospect.companyName || prospect.company || prospect.name || "";
+    const contact = prospect.decision_maker || prospect.contact || prospect.contactName || "";
+    const parts = contact.split(",");
+    const nameParts = (parts[0] || "").trim().split(" ");
+    const firstName = nameParts[0] || companyName.split(" ")[0] || "Contact";
+    const lastName = nameParts.slice(1).join(" ") || "";
+    const titleFromContact = (parts[1] || "").trim();
+    const email = prospect.email || "";
+    const phone = prospect.phone || "";
+    const score = prospect.fit_score || prospect.fitScore || prospect.score || prospect.estimated_fit || 0;
+
+    const res = await fetch(`${API_BASE}/leads`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        email,
+        phone,
+        company: companyName,
+        title: titleFromContact || prospect.industry || "Decision Maker",
+        source: "ai_prospecting",
+        status: "new",
+        confidenceScore: typeof score === "number" ? score : parseInt(score) || 75,
+      }),
+    });
+    if (!res.ok) throw new Error("Failed to save");
+    queryClient.invalidateQueries({ queryKey: ["/leads"] });
+    toast({ title: "Lead Saved", description: `${companyName} added to your pipeline` });
+  }, [toast, queryClient]);
+
+  const handleMoveToCrm = useCallback(async (leadId: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/leads/${leadId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "qualified" }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Failed to update lead status" }));
+        toast({ title: "Error", description: err.message || "Could not move lead to CRM. The lead may need to be scored first.", variant: "destructive" });
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["/leads"] });
+      toast({ title: "Moved to CRM", description: "Lead marked as qualified and ready for CRM pipeline" });
+      setSelectedLead(null);
+    } catch {
+      toast({ title: "Error", description: "Network error — could not reach the server.", variant: "destructive" });
+    }
+  }, [toast, queryClient]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -183,12 +237,15 @@ function ProspectFinder() {
           </div>
           {aiResult && (
             <div className="mt-4 text-left">
-              <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="AI Prospects Found" />
+              <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="AI Prospects Found" onSaveProspect={handleSaveProspect} />
             </div>
           )}
         </GlassCard>
       ) : (
         <div className="space-y-2">
+          {aiResult && (
+            <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="AI Prospects Found" onSaveProspect={handleSaveProspect} />
+          )}
           {filtered.map((lead: any) => (
             <motion.div
               key={lead.id}
@@ -336,7 +393,7 @@ function ProspectFinder() {
                 <Button variant="outline" className="text-sm flex-1">
                   <Target className="h-4 w-4 mr-2" />Plan Approach
                 </Button>
-                <Button variant="outline" className="text-sm">
+                <Button variant="outline" className="text-sm" onClick={() => handleMoveToCrm(selectedLead.id)}>
                   <ArrowRight className="h-4 w-4 mr-2" />Move to CRM
                 </Button>
               </div>
