@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page { margin: 40px 50px; size: A4; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; line-height: 1.6; font-size: 14px; max-width: 800px; margin: 0 auto; padding: 20px; }
+  h1 { color: #DC2626; font-size: 28px; border-bottom: 3px solid #DC2626; padding-bottom: 10px; margin-top: 40px; }
+  h2 { color: #1E3A5F; font-size: 22px; border-bottom: 2px solid #1E3A5F; padding-bottom: 8px; margin-top: 35px; }
+  h3 { color: #DC2626; font-size: 18px; margin-top: 25px; }
+  h4 { color: #1E3A5F; font-size: 16px; margin-top: 20px; }
+  table { border: 1px solid #ddd; }
+  th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+  tr:nth-child(even) { background: #f8f8f8; }
+  pre { background: #1a1a2e; color: #e0e0e0; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.4; }
+  code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  hr { border: none; border-top: 2px solid #eee; margin: 30px 0; }
+  li { margin: 4px 0; }
+  strong { color: #1E3A5F; }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+<h1>PMG GROUP OS — FINAL BLUEPRINT v3.0</h1>
+<h2>Complete, Enriched, Fully Functional, Zero Complexity</h2>
+
+<hr/>
+
+<h2>THE COMPANY</h2>
+
+<strong>PMG Group LLC</strong> — A niche digital marketing agency exclusively serving cybersecurity and IT sector companies. PMG helps these companies get more clients through digital marketing.
+
+<strong>Core Promise:</strong> "We generate 20 ready-to-close deals in your first month."
+
+<strong>Business Model:</strong>
+<li>Find cybersecurity/IT companies struggling to get clients</li>
+<li>Reach out through every channel (LinkedIn, Sales Nav, email, cold call, social media, ads)</li>
+<li>Both Inbound (they find PMG) and Outbound (PMG finds them)</li>
+<li>Close them as clients</li>
+<li>Analyze their marketing, find what's broken, fix it</li>
+<li>Generate leads for them using the same system</li>
+<li>Client CRM options: PMG's CRM (premium) or GHL/HubSpot (extra charge)</li>
+<li>Partner company provides closers — some leads push to their GHL sub-account</li>
+<li>Future: White-label for other agencies/sectors</li>
+
+<strong>System Priority:</strong> Generate leads for PMG FIRST → prove system works → replicate for clients → white-label
+
+<hr/>
+
+<h2>BUDGET</h2>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Category</td><td>Monthly Budget</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>APIs & Tools (Claude, OpenAI, Runway, Hunter, etc.)</td><td>$300-500</td></tr>
+<tr><td>Campaign Ad Spend (LinkedIn, Facebook, Google Ads)</td><td>$600</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>$900-1,100</strong></td></tr>
+<p></table></p>
+<strong>Scale Plan:</strong> After 4 clients, expand all budgets.
+
+<hr/>
+
+<h2>AI ENGINE</h2>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Role</td><td>Engine</td><td>Why</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Primary (all text)</td><td><strong>Claude (Anthropic)</strong></td><td>Human tone, no AI fluff, better reasoning</td></tr>
+<tr><td>Images</td><td><strong>OpenAI DALL-E 3</strong></td><td>Best API image generation</td></tr>
+<tr><td>Video</td><td><strong>Runway ML</strong></td><td>Cinematic realistic video</td></tr>
+<tr><td>Voice</td><td><strong>ElevenLabs</strong></td><td>Natural AI voiceover</td></tr>
+<tr><td>Fallback</td><td><strong>OpenAI GPT-4o</strong></td><td>Backup when Claude unavailable</td></tr>
+<p></table></p>
+<strong>Content Standard:</strong> Human tone. Zero AI fluff. No jargon. Realistic. Honest. Cinematic quality visuals. Every piece designed to catch human attention and stop scrolling.
+
+<hr/>
+
+<h2>SYSTEM ARCHITECTURE</h2>
+
+<pre>┌─────────────────────────────────────────────────────────────────────┐
+<p>│                      FRONTEND (React + Vite)                        │</p>
+<p>│                                                                     │</p>
+<p>│  ┌──────────┐ ┌─────┐ ┌───────────┐ ┌──────────┐ ┌─────┐ ┌───────┐│</p>
+<p>│  │ Outreach │→│ CRM │→│ Marketing │→│Production│→│Admin│→│Finance││</p>
+<p>│  └──────────┘ └─────┘ └───────────┘ └──────────┘ └─────┘ └───────┘│</p>
+<p>│                       ⚙️ Settings                                   │</p>
+<p>│                    [?] Video Guide in every section                  │</p>
+<p>├─────────────────────────────────────────────────────────────────────┤</p>
+<p>│                      BACKEND (Express + Node.js)                    │</p>
+<p>│                                                                     │</p>
+<p>│  ┌────────────┐ ┌───────────┐ ┌───────────┐ ┌──────────────┐      │</p>
+<p>│  │ AI ENGINE  │ │ WALLET    │ │ EVENT BUS │ │ STATE        │      │</p>
+<p>│  │ Claude +   │ │ $300-500  │ │ Connects  │ │ MACHINE      │      │</p>
+<p>│  │ OpenAI     │ │ Controls  │ │ All Parts │ │ Enforces     │      │</p>
+<p>│  └────────────┘ └───────────┘ └───────────┘ └──────────────┘      │</p>
+<p>│                                                                     │</p>
+<p>│  ┌──────────────────────────────────────────────────────────────┐  │</p>
+<p>│  │               32 PhD-LEVEL AI AGENTS                        │  │</p>
+<p>│  │         Single API Gateway (one config for migration)       │  │</p>
+<p>│  └──────────────────────────────────────────────────────────────┘  │</p>
+<p>├─────────────────────────────────────────────────────────────────────┤</p>
+<p>│                      DATABASE (PostgreSQL)                          │</p>
+<p>├─────────────────────────────────────────────────────────────────────┤</p>
+<p>│                   EXTERNAL INTEGRATIONS                             │</p>
+<p>│  LinkedIn | Sales Nav | Facebook | Instagram | X | YouTube | TikTok│</p>
+<p>│  Email | Slack | Hunter.io | Apollo | Google Ads | Zoom            │</p>
+<p>│  GoHighLevel (main + sub-accounts) | HubSpot | Stripe             │</p>
+<p>│  DALL-E 3 | Runway ML | ElevenLabs | Ahrefs/SEMrush               │</p>
+<p>│  + Any future platform                                             │</p>
+<p>└─────────────────────────────────────────────────────────────────────┘</p>
+<p></pre></p>
+
+<hr/>
+
+<h2>COMPLETE WORKFLOW CONNECTION MAP — A TO Z</h2>
+
+<p>This is how EVERYTHING connects. No dead ends. No orphan buttons. Every action triggers the next step.</p>
+
+<pre>═══════════════════════════════════════════════════════════════════
+<p>                    THE COMPLETE PMG OS FLOW</p>
+<p>═══════════════════════════════════════════════════════════════════</p>
+
+<p>OUTREACH                          MARKETING</p>
+<p>────────                          ─────────</p>
+<p>Agent 1 finds prospects           Agent 12 creates content</p>
+<p>    ↓                             Agent 13 creates ads</p>
+<p>Agent 3 plans approach            Agent 14 optimizes SEO</p>
+<p>    ↓                             Agent 15 runs campaigns</p>
+<p>Agent 4 writes messages               ↓</p>
+<p>    ↓                             Inbound leads arrive</p>
+<p>Agent 2 monitors channels             ↓</p>
+<p>    ↓                                 ↓</p>
+<p>Prospect responds ──────────→ LEAD ENTERS CRM</p>
+<p>                                      ↓</p>
+<p>                              ┌───────────────────┐</p>
+<p>                              │       CRM         │</p>
+<p>                              ├───────────────────┤</p>
+<p>                              │ Agent 7 scores    │</p>
+<p>                              │ & qualifies lead  │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Hot? → Continue   │</p>
+<p>                              │ Cold? → Nurture   │</p>
+<p>                              │ Bad? → Disqualify │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 8 manages   │</p>
+<p>                              │ deal pipeline     │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Meeting Set       │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 9 preps     │</p>
+<p>                              │ coaching cards    │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Discovery Call    │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 9 analyzes  │</p>
+<p>                              │ transcript        │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 10 creates  │</p>
+<p>                              │ proposal          │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Negotiation       │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ CLOSED WON ───────┤</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Partner deal? ────┤──→ Agent 11 pushes to</p>
+<p>                              │      ↓            │    GHL sub-account</p>
+<p>                              │ PMG client? ──────┤</p>
+<p>                              └───────┬───────────┘</p>
+<p>                                      ↓</p>
+<p>                              ┌───────────────────┐</p>
+<p>                              │    PRODUCTION     │</p>
+<p>                              ├───────────────────┤</p>
+<p>                              │ Agent 17 onboards │</p>
+<p>                              │ new client        │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 18 audits   │</p>
+<p>                              │ client marketing  │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 19 creates  │</p>
+<p>                              │ content/assets    │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 20 generates│</p>
+<p>                              │ 20 leads for      │</p>
+<p>                              │ client            │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 21 builds   │</p>
+<p>                              │ campaigns/funnels │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 24 quality  │</p>
+<p>                              │ checks everything │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 23 syncs to │</p>
+<p>                              │ client GHL/HS     │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 22 reports  │</p>
+<p>                              │ results to client │</p>
+<p>                              └───────┬───────────┘</p>
+<p>                                      ↓</p>
+<p>                              ┌───────────────────┐</p>
+<p>                              │     FINANCE       │</p>
+<p>                              ├───────────────────┤</p>
+<p>                              │ Agent 29 invoices │</p>
+<p>                              │ the client        │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Tracks payment    │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Agent 30 manages  │</p>
+<p>                              │ contract/expenses │</p>
+<p>                              │      ↓            │</p>
+<p>                              │ Revenue dashboard │</p>
+<p>                              └───────────────────┘</p>
+
+<p>ADMIN (runs across everything)</p>
+<p>──────────────────────────────</p>
+<p>Agent 25: Assigns tasks to team at every stage</p>
+<p>Agent 26: Maintains SOPs and knowledge for every process</p>
+<p>Agent 27: Morning briefing summarizing all sections</p>
+<p>Agent 28: Monitors market for new tech/tools to adopt</p>
+
+<p>CROSS-SYSTEM (always active)</p>
+<p>────────────────────────────</p>
+<p>Agent 31: Legal & Compliance — anti-spam, GDPR, contracts</p>
+<p>Agent 32: Video Guide — teaches your team every section</p>
+
+<p>SELF-UPDATING SYSTEM (Agent 28)</p>
+<p>────────────────────────────────</p>
+<p>Weekly: Scans for new AI tools, APIs, platforms</p>
+<p>Monthly: Presents "What's New" report with recommendations</p>
+<p>Quarterly: Proposes system roadmap updates</p>
+<p>You approve → System implements → Stays current</p>
+<p></pre></p>
+
+<h3>Mode Flow — How Modes Connect</h3>
+
+<pre>ANY ACTION IN THE SYSTEM
+<p>         ↓</p>
+<p>    Check Mode Setting</p>
+<p>    (Global → Section → Agent → Record)</p>
+<p>         ↓</p>
+<p>    ┌────────────────────────────────────────┐</p>
+<p>    │                                        │</p>
+<p>    ↓              ↓                ↓        │</p>
+<p>AI AUTONOMOUS    HYBRID         HUMAN       │</p>
+<p>    ↓              ↓                ↓        │</p>
+<p>Agent runs      Agent runs      AI blocked  │</p>
+<p>automatically   with check         ↓        │</p>
+<p>    ↓              ↓           User does    │</p>
+<p>Result stored   Confidence?    everything   │</p>
+<p>    ↓              ↓           manually     │</p>
+<p>Notification    ┌──┴──┐           ↓        │</p>
+<p>to user         ↓     ↓       Result       │</p>
+<p>    ↓          High   Low     stored       │</p>
+<p>    ↓        (>80%)  (<50%)      ↓        │</p>
+<p>    ↓           ↓      ↓     Notification │</p>
+<p>    ↓        Auto   Queue in     ↓        │</p>
+<p>    ↓        execute Pending     │        │</p>
+<p>    ↓           ↓    Actions     │        │</p>
+<p>    ↓           ↓      ↓        │        │</p>
+<p>    ↓           ↓   User sees   │        │</p>
+<p>    ↓           ↓   in queue    │        │</p>
+<p>    ↓           ↓      ↓        │        │</p>
+<p>    ↓           ↓   Approve/    │        │</p>
+<p>    ↓           ↓   Edit/       │        │</p>
+<p>    ↓           ↓   Reject/     │        │</p>
+<p>    ↓           ↓   Delegate    │        │</p>
+<p>    ↓           ↓      ↓        │        │</p>
+<p>    └───────────┴──────┴────────┘        │</p>
+<p>                   ↓                      │</p>
+<p>              NEXT STEP IN               │</p>
+<p>              WORKFLOW TRIGGERS          │</p>
+<p>              AUTOMATICALLY              │</p>
+<p>              (back to top) ─────────────┘</p>
+<p></pre></p>
+
+<h3>Button-to-Button Connection Examples</h3>
+
+<p>Every button triggers a real process that connects to the next:</p>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>You Click</td><td>What Happens</td><td>What Triggers Next</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>"Find Prospects" in Outreach</td><td>Agent 1 researches companies, returns ranked list</td><td>Each prospect gets "Plan Approach" button</td></tr>
+<tr><td>"Plan Approach" on a prospect</td><td>Agent 3 creates multi-channel strategy</td><td>"Draft Messages" button appears</td></tr>
+<tr><td>"Draft Messages"</td><td>Agent 4 writes personalized messages per channel</td><td>"Review & Send" buttons per message appear</td></tr>
+<tr><td>"Send" on a message</td><td>Message marked as sent, tracking begins</td><td>Agent 5 schedules follow-up automatically</td></tr>
+<tr><td>"Follow Up"</td><td>Agent 5 drafts follow-up referencing previous contact</td><td>"Send Follow-up" button appears</td></tr>
+<tr><td>Prospect replies (detected by Agent 2)</td><td>Message classified, lead scored</td><td>"Move to CRM" button appears (or auto-moves if AI Auto mode)</td></tr>
+<tr><td>"Move to CRM"</td><td>Lead created in CRM, Agent 7 auto-scores</td><td>Lead appears in pipeline with score</td></tr>
+<tr><td>"Set Meeting" on a lead</td><td>Calendar event created</td><td>Agent 9 generates prep briefing</td></tr>
+<tr><td>"Start Call Coaching"</td><td>Coaching cards appear on screen</td><td>After call: "Upload Transcript" button appears</td></tr>
+<tr><td>"Upload Transcript"</td><td>Agent 9 analyzes conversation</td><td>Deal stage updated, follow-up email drafted</td></tr>
+<tr><td>"Send Follow-up Email"</td><td>Email sent with meeting summary</td><td>Agent 8 recommends next step</td></tr>
+<tr><td>"Create Proposal"</td><td>Agent 10 generates customized proposal</td><td>"Send Proposal" button appears</td></tr>
+<tr><td>"Send Proposal"</td><td>Proposal sent, tracking begins</td><td>Status updates: Viewed, Under Review</td></tr>
+<tr><td>"Mark Won"</td><td>Deal closed, revenue recorded</td><td>"Start Onboarding" button appears in Production</td></tr>
+<tr><td>"Start Onboarding" in Production</td><td>Agent 17 runs checklist</td><td>Each step has action buttons</td></tr>
+<tr><td>"Run Marketing Audit"</td><td>Agent 18 analyzes client</td><td>Fix-it plan generated with action items</td></tr>
+<tr><td>"Create Content"</td><td>Agent 19 generates assets</td><td>Preview + Download + Publish buttons</td></tr>
+<tr><td>"Generate Leads"</td><td>Agent 20 finds 20 prospects for client</td><td>Lead list with "Push to Client CRM" button</td></tr>
+<tr><td>"Push to Client CRM"</td><td>Agent 23 syncs to GHL/HubSpot</td><td>Sync status shown</td></tr>
+<tr><td>"Generate Report"</td><td>Agent 22 creates performance report</td><td>"Send to Client" button appears</td></tr>
+<tr><td>"Create Invoice" in Finance</td><td>Agent 29 generates invoice</td><td>"Send Invoice" button appears</td></tr>
+<tr><td>"Send Invoice"</td><td>Invoice delivered, payment tracking begins</td><td>Reminders auto-scheduled</td></tr>
+<p></table></p>
+<strong>Every single button leads to the next action. No dead ends. No buttons that do nothing.</strong>
+
+<hr/>
+
+<h2>SIDEBAR</h2>
+
+<pre>┌──────────────────────────────┐
+<p>│  PMG GROUP OS                │</p>
+<p>│  ────────────────────────    │</p>
+<p>│                              │</p>
+<p>│  📡  Outreach         [?]   │</p>
+<p>│  👥  CRM              [?]   │</p>
+<p>│  📢  Marketing        [?]   │</p>
+<p>│  🎬  Production       [?]   │</p>
+<p>│  📋  Admin            [?]   │</p>
+<p>│  💰  Finance          [?]   │</p>
+<p>│                              │</p>
+<p>│  ────────────────────────    │</p>
+<p>│  ⚙️  Settings                │</p>
+<p>└──────────────────────────────┘</p>
+
+<p>[?] = Video guide for that section</p>
+<p></pre></p>
+
+<hr/>
+
+<h2>THE 32 PhD-LEVEL AGENTS — FINAL ENRICHED VERSION</h2>
+
+<hr/>
+
+<h3>SECTION 1: OUTREACH — 6 Agents</h3>
+<p>*Find cybersecurity/IT companies. Reach out. Get them into CRM.*</p>
+
+<h4>Agent 1: Prospect Intelligence Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior market research analyst specializing in the cybersecurity and IT services sector. You identify companies that need digital marketing help. You analyze their public presence to find weaknesses in their marketing. You verify contact information across multiple sources. You score every prospect on fit and accessibility. You never guess — you only report verified data. You write in clear, direct language with zero marketing jargon."
+
+<strong>Capabilities:</strong>
+<li>Cross-references Hunter.io, Apollo, LinkedIn, company websites, job boards, news</li>
+<li>Builds company profiles: size, revenue, marketing presence, tech stack, decision makers</li>
+<li>Detects buying signals: hiring marketers? weak website? no social? bad ads? competitor just failed?</li>
+<li>Scores: Fit (0-100) + Accessibility (0-100)</li>
+<li>Outputs: Ranked list with verified contacts, approach strategy, confidence score</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: User clicks "Find Prospects" or "Research Company"</li>
+<li>OUTPUT: Prospect cards appear → each has "Plan Approach" button → triggers Agent 3</li>
+
+<h4>Agent 2: Social Command Center Agent</h4>
+<strong>System Prompt Core:</strong> "You are an omnichannel communications manager monitoring all social media and messaging platforms simultaneously. You classify every incoming message by intent and urgency. You detect buyer signals in conversations. You never auto-send messages — you prepare drafts for human review. You alert the team immediately when high-value responses arrive."
+
+<strong>Capabilities:</strong>
+<li>Monitors ALL connected channels: LinkedIn, Facebook, Instagram, X, YouTube, TikTok, Email, Slack, website forms</li>
+<li>Unified inbox: all platforms, one view</li>
+<li>Classifies messages: 🔥 Hot Lead | 🟡 Warm | ❄️ Cold | 🚫 Spam</li>
+<li>Detects buyer signals: urgency, budget, timeline, competitor mentions</li>
+<li>Prepares response drafts — team sends manually</li>
+<li>Tracks channel performance: which brings most leads at lowest cost</li>
+<li><strong>Replaces Ulinc ($78/month saved)</strong> — does what Ulinc does (track LinkedIn campaigns, responses) PLUS works across all other platforms</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Messages arrive from any connected platform</li>
+<li>OUTPUT: Classified in unified inbox → response draft ready → "Send" button → if positive response: "Move to CRM" button → triggers Agent 7</li>
+
+<h4>Agent 3: Outreach Strategist Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior business development strategist with deep expertise in B2B outreach for the cybersecurity sector. You analyze prospects and determine the optimal multi-channel approach. You map decision-making chains. You identify specific pain points from public data. You plan multi-step sequences with precise timing. You think like a chess player — always 3 moves ahead."
+
+<strong>Capabilities:</strong>
+<li>Determines best channel/sequence per prospect</li>
+<li>Maps decision chain: CEO → CTO → Marketing Director → who first?</li>
+<li>Identifies prospect-specific pain points from public presence</li>
+<li>Plans sequences: Day 1 LinkedIn → Day 3 follow-up → Day 7 email → Day 14 call</li>
+<li>Guides team on setting up new social accounts for outreach</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Plan Approach" button on a prospect (from Agent 1)</li>
+<li>OUTPUT: Strategy card with sequence plan → "Draft Messages" button → triggers Agent 4</li>
+
+<h4>Agent 4: Message Composer Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior copywriter specializing in B2B cybersecurity outreach. Every message you write references specific details about the recipient's business — never generic. You write like a real human, never like AI. Your LinkedIn messages feel like natural conversation. Your emails have subject lines people actually open. Your call scripts handle every common objection with confidence and empathy. You never use words like 'leverage', 'synergy', 'cutting-edge', or 'game-changing'."
+
+<strong>Capabilities:</strong>
+<li>Personalized messages for every channel: LinkedIn, email, call scripts, social DMs</li>
+<li>Objection handling scripts for cold calls</li>
+<li>Tone adaptation: C-Suite (strategic), IT Directors (technical), Marketing (results)</li>
+<li>Every message references specific prospect details</li>
+<li>Zero spam, zero templates, zero AI fluff</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Draft Messages" button (from Agent 3's strategy)</li>
+<li>OUTPUT: Messages per channel with preview → "Review & Send" buttons → after send: triggers Agent 5 for follow-up scheduling</li>
+
+<h4>Agent 5: Follow-up Engine Agent</h4>
+<strong>System Prompt Core:</strong> "You are a client engagement specialist who never lets a prospect fall through the cracks. You track every outreach attempt across all channels. You know the optimal timing for follow-ups with cybersecurity executives. You detect signals — profile views, email opens, post engagements — and act on them. You escalate across channels when one goes cold. You know when to push and when to pause."
+
+<strong>Capabilities:</strong>
+<li>Tracks all outreach attempts with timestamps across all channels</li>
+<li>Optimal timing: best days/times for cybersec executives</li>
+<li>Follow-up drafts referencing previous touchpoints</li>
+<li>Escalation: 3 attempts on LinkedIn no response → switch to email → then phone</li>
+<li>Signal detection: profile view = warm → immediate follow-up</li>
+<li>Flags leads ready for CRM handoff</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Message sent (from Agent 4) → auto-schedules follow-up</li>
+<li>OUTPUT: Follow-up reminders appear → "Send Follow-up" button → if prospect responds positively: "Move to CRM" button → triggers Agent 7</li>
+<li>CONNECTS TO: Agent 2 (signals from Social Command Center)</li>
+
+<h4>Agent 6: Outreach Analytics Agent</h4>
+<strong>System Prompt Core:</strong> "You are a performance analyst who measures everything and recommends changes based on data, not opinions. You identify winning patterns and losing patterns. You track team activity objectively. You present data clearly with specific, actionable recommendations — never vague advice."
+
+<strong>Capabilities:</strong>
+<li>Measures: reply rates, open rates, acceptance rates per channel per message type</li>
+<li>Identifies winners: "Case study email has 34% reply rate vs 8% for intro"</li>
+<li>Team tracking: who sent what, who followed up, conversion rates per person</li>
+<li>Weekly report with specific actions: "Increase LinkedIn, reduce cold email"</li>
+<li>Budget allocation suggestions based on cost-per-lead per channel</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: All outreach activity data (from Agents 2, 4, 5)</li>
+<li>OUTPUT: Weekly analytics report → recommendations → "Apply Recommendation" buttons → updates Agent 3's strategies</li>
+
+<hr/>
+
+<h3>SECTION 2: CRM — 5 Agents</h3>
+<p>*Track leads. Score. Qualify. Close deals. Sync with GHL.*</p>
+
+<h4>Agent 7: Lead Qualification Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior sales intelligence analyst who evaluates leads with precision. You score on five specific dimensions with clear reasoning for every score. You never inflate scores — a bad lead gets a bad score with honest explanation. You enrich leads with publicly available data. You classify leads into clear categories that drive specific next actions."
+
+<strong>Capabilities:</strong>
+<li>Auto-receives leads from Outreach (Agent 2, 5) and Marketing (inbound)</li>
+<li>Scores on 5 dimensions (weighted):</li>
+<p>  1. Company Fit (30%): size, industry, revenue match</p>
+<p>  2. Marketing Need (25%): how badly they need help</p>
+<p>  3. Budget Likelihood (20%): revenue, funding, current spend</p>
+<p>  4. Timing Urgency (15%): hiring, contracts, growth signals</p>
+<p>  5. Authority Level (10%): is contact the decision maker</p>
+<li>Categories: 🔥 Hot (80+) | 🟡 Warm (50-79) | ❄️ Cold (20-49) | 🚫 Disqualified (<20)</li>
+<li>Explains reasoning for every score</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Lead arrives from Outreach or Marketing</li>
+<li>OUTPUT: Scored lead in pipeline → Hot leads: "Set Meeting" button → triggers Agent 9 prep | Warm leads: back to Agent 5 for nurturing | Cold: scheduled re-engagement</li>
+
+<h4>Agent 8: Deal Intelligence Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior sales consultant who monitors deal health obsessively. You detect risks before they kill deals. You recommend specific next actions — not vague advice. You track deal velocity and compare to historical patterns. You provide honest assessments, even when the news is bad."
+
+<strong>Capabilities:</strong>
+<li>Pipeline stages: New Lead → Meeting Set → Discovery Call → Proposal Sent → Negotiation → Closed Won/Lost</li>
+<li>Deal Health: 🟢 Green | 🟡 Yellow | 🔴 Red</li>
+<li>Risk detection: champion silent, competitor mentioned, budget concerns</li>
+<li>Exact next step: "Send ROI calculator to Sarah by Thursday"</li>
+<li>Win/loss analysis with patterns</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Lead scored by Agent 7 enters pipeline</li>
+<li>OUTPUT: Deal cards with health scores → action buttons per deal → "Create Proposal" triggers Agent 10 → "Mark Won" triggers Agent 17 (Production onboarding)</li>
+
+<h4>Agent 9: Call Intelligence Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior sales coach who prepares teams to win conversations. Before calls, you research everything about the prospect and create actionable briefings. Your coaching cards are specific and practical — not theoretical. After calls, you analyze transcripts for insights, missed opportunities, and next steps. You score calls objectively and help teams improve over time."
+
+<strong>Capabilities:</strong>
+<li><strong>Pre-call:</strong> Full briefing, talking points, objection cards, key questions</li>
+<li><strong>During call:</strong> Coaching cards on screen (cheat sheet):</li>
+<p>  - "If they say 'we already have an agency' → respond: 'What results are they getting? We guarantee 20 qualified leads in month one — can they match that?'"</p>
+<p>  - "If they say 'no budget' → respond: 'We start at $X with a performance guarantee. If we don't deliver, you don't pay.'"</p>
+<p>  - "If they say 'send me info' → respond: 'I'd love to, but every company's situation is unique. A 15-minute call lets me send you something actually relevant to your business instead of a generic brochure.'"</p>
+<li><strong>Post-call:</strong> Upload Zoom transcript → AI extracts decisions, sentiment, action items, deal stage update, follow-up email draft</li>
+<li><strong>Learning:</strong> Tracks what works → improves coaching cards over time</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Prep for Meeting" button on a deal (from Agent 8)</li>
+<li>OUTPUT: Briefing + coaching cards → after meeting: "Upload Transcript" button → analysis → deal stage updated → follow-up email drafted → "Send Follow-up" button</li>
+
+<h4>Agent 10: Proposal & Contract Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior business development manager who creates proposals that win. Every proposal is customized to the prospect's specific situation — never templated. You include realistic timelines, clear deliverables, and honest pricing. Your proposals address the prospect's specific pain points discovered during the sales process. You track proposal outcomes and learn what closes deals."
+
+<strong>Capabilities:</strong>
+<li>Custom proposals based on discovery findings:</li>
+<p>  - Scope tailored to prospect's marketing gaps</p>
+<p>  - Timeline: "Month 1: Audit + 20 leads. Month 2: Full campaign launch"</p>
+<p>  - Pricing tiers: Starter | Growth | Enterprise</p>
+<p>  - Case studies relevant to their vertical</p>
+<li>Tracks: Sent → Viewed → Reviewing → Accepted → Rejected</li>
+<li>If rejected: analyzes why, suggests modified approach</li>
+<li>Generates contracts from accepted proposals</li>
+<li>Renewal alerts 60 days before expiration</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Create Proposal" button on a deal (from Agent 8)</li>
+<li>OUTPUT: Proposal preview → "Send Proposal" button → tracking dashboard → if accepted: "Generate Contract" button → if signed: "Mark Won" → triggers Production Agent 17</li>
+
+<h4>Agent 11: CRM Sync Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior integration architect who ensures data flows perfectly between systems. You handle OAuth, field mapping, conflict resolution, and error recovery without user intervention. You log everything and alert only when human action is truly needed."
+
+<strong>Capabilities:</strong>
+<li>Syncs with: GHL main account, GHL sub-accounts (partner company), HubSpot</li>
+<li>Bidirectional: changes in either system update the other</li>
+<li>Custom field mapping per integration</li>
+<li>OAuth management, token refresh, reconnection</li>
+<li>Error recovery with retry queue</li>
+<li><strong>GHL Sub-account:</strong> Specific deals flagged as "Partner Close" auto-push to partner pipeline</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Deal marked as "Partner Close" OR client chooses GHL/HubSpot</li>
+<li>OUTPUT: Sync initiated → status shown → "View in GHL" link → bidirectional updates flowing</li>
+
+<hr/>
+
+<h3>SECTION 3: MARKETING — 5 Agents</h3>
+<p>*Promote PMG. Drive inbound leads. Content across all channels.*</p>
+
+<h4>Agent 12: Content Strategist Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior content director for a cybersecurity marketing agency. You create content that cybersecurity executives actually read — not fluff they scroll past. Every piece is SEO-optimized, industry-aware, and written in a human voice. You use correct industry terminology (NIST, SOC 2, SIEM, EDR) naturally. You repurpose content across platforms efficiently. You never write anything that sounds like AI generated it."
+
+<strong>Capabilities:</strong>
+<li>Content calendar across ALL channels: LinkedIn (3/week), Facebook/Instagram (5/week), Blog (2/month), X (daily), YouTube (2/month), TikTok (short-form), Email newsletter (bi-weekly)</li>
+<li>Writes all content in PMG brand voice: authoritative, data-driven, honest</li>
+<li>SEO-optimized: every article targets specific keywords</li>
+<li>Content repurposing: 1 blog → LinkedIn article → 5 social posts → email → video script</li>
+<li>Tracks performance, adjusts strategy</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Create Content" button in Marketing → or auto-scheduled from content calendar</li>
+<li>OUTPUT: Content preview → "Review" → "Approve" → "Publish to Channel" button → Agent 2 tracks engagement → if engagement generates lead: auto-flows to CRM Agent 7</li>
+
+<h4>Agent 13: Advertising Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior paid media strategist specializing in B2B cybersecurity lead generation. You create campaigns that generate leads, not just impressions. You work within tight budgets and optimize ruthlessly. You prepare everything ready to launch — targeting, copy, visuals, budget — so the team just reviews and clicks publish."
+
+<strong>Capabilities:</strong>
+<li>Creates campaigns: Facebook, Instagram, LinkedIn, Google, YouTube</li>
+<li>Prepares everything: copy, targeting, budget, schedule</li>
+<li>Multiple A/B test variations per campaign</li>
+<li>Team reviews and launches manually — never auto-publishes</li>
+<li>Tracks: cost per lead, cost per meeting, ROAS per platform</li>
+<li>Optimization: "Shift budget from Facebook to LinkedIn — half the cost per lead"</li>
+<li><strong>Budget-aware:</strong> Allocates $600 campaign budget efficiently</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Create Campaign" button in Marketing</li>
+<li>OUTPUT: Campaign package with all variations → "Review" → "Launch" (manual) → performance tracking → leads generated flow to CRM Agent 7 → analytics feed Agent 6</li>
+
+<h4>Agent 14: SEO & Growth Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior SEO strategist for the cybersecurity marketing niche. You find keywords with high intent and realistic competition levels. You audit websites and give specific fixes, not vague recommendations. You track rankings and organic traffic with real numbers."
+
+<strong>Capabilities:</strong>
+<li>Keyword research: "cybersecurity marketing agency", "IT company lead generation", "MSP marketing"</li>
+<li>Website audit: technical SEO, on-page, content gaps</li>
+<li>Monthly action plan with specific tasks</li>
+<li>Ranking and traffic tracking</li>
+<li>Backlink strategy: guest posts, partnerships, PR</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Run SEO Audit" button or monthly auto-schedule</li>
+<li>OUTPUT: Audit report with ranked fixes → "Create Content" buttons per keyword gap → triggers Agent 12 → published content tracked for rankings</li>
+
+<h4>Agent 15: Campaign Orchestrator Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior growth marketing manager who coordinates campaigns across multiple channels to work as one unified machine. You plan campaigns with clear timelines and measurable goals. You track the full journey from first impression to closed client."
+
+<strong>Capabilities:</strong>
+<li>Multi-channel coordination: LinkedIn + email + ads + blog working together</li>
+<li>Timeline: Week 1 awareness → Week 2 engagement → Week 3 conversion</li>
+<li>A/B testing across channels</li>
+<li>Full journey tracking: impression → visit → form → lead → meeting → client</li>
+<li>Budget reallocation to best-performing channels</li>
+<li>Weekly campaign report</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Plan Campaign" button or quarterly planning</li>
+<li>OUTPUT: Campaign plan with timeline → assigns tasks to Agents 12, 13, 14 → tracks results → leads flow to CRM → report generated</li>
+
+<h4>Agent 16: Competitor Intelligence Agent</h4>
+<strong>System Prompt Core:</strong> "You are a competitive intelligence analyst monitoring agencies that compete with PMG in the cybersecurity marketing space. You report facts, not speculation. You identify real gaps PMG can exploit. Your battle cards give the sales team specific talking points against each competitor."
+
+<strong>Capabilities:</strong>
+<li>Monitors competitors: content, ads, pricing, positioning</li>
+<li>Identifies gaps: "No competitor offers lead generation guarantees"</li>
+<li>Competitive battle cards for sales calls</li>
+<li>Alerts on competitor moves</li>
+<li>Quarterly landscape report</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Auto-runs monthly or "Refresh Competitor Analysis" button</li>
+<li>OUTPUT: Battle cards available in CRM for Agent 9's call coaching → positioning insights feed Agent 4's messaging</li>
+
+<hr/>
+
+<h3>SECTION 4: PRODUCTION — 8 Agents</h3>
+<p>*Create content and assets. Deliver client work. Everything previewed and downloadable.*</p>
+
+<h4>Agent 17: Client Onboarding Agent</h4>
+<strong>System Prompt Core:</strong> "You run a structured onboarding process that misses nothing. Every new client follows the same proven checklist. You collect everything needed before work begins. You set realistic expectations from day one."
+
+<strong>Capabilities:</strong>
+<li>Onboarding checklist:</li>
+<p>  1. Collect brand assets (logo, colors, fonts, guidelines)</p>
+<p>  2. Get access (website, socials, analytics, CRM)</p>
+<p>  3. Define target audience</p>
+<p>  4. Document services</p>
+<p>  5. Set goals (leads, revenue, growth)</p>
+<p>  6. Choose CRM: PMG's (included) or GHL/HubSpot (extra)</p>
+<p>  7. If partner close: configure GHL sub-account sync</p>
+<li>Creates client brand profile</li>
+<li>Generates initial marketing audit</li>
+<li>Creates 90-day success plan</li>
+<li>Sets up client Slack channel</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Start Onboarding" button (from CRM when deal marked won)</li>
+<li>OUTPUT: Checklist with step-by-step buttons → each step completed → unlocks next → all complete: "Run Marketing Audit" triggers Agent 18</li>
+
+<h4>Agent 18: Client Marketing Analyst Agent</h4>
+<strong>System Prompt Core:</strong> "You audit client marketing with brutal honesty. You tell them exactly what's broken and why. You prioritize fixes by impact — not by what's easiest. You present findings in plain language that non-marketers understand."
+
+<strong>Capabilities:</strong>
+<li>Deep audit: website, social, ads, email, competitors</li>
+<li>Identifies WHY they're not getting clients with specifics</li>
+<li>Prioritized fix-it plan</li>
+<li>Monthly progress updates comparing before/after</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Run Marketing Audit" (from Agent 17 onboarding completion)</li>
+<li>OUTPUT: Audit report with ranked priorities → "Start Fix" buttons per priority → triggers Agent 19 (content), Agent 21 (campaigns/funnels)</li>
+
+<h4>Agent 19: Creative Production Agent</h4>
+<strong>System Prompt Core:</strong> "You are a senior creative director producing cinematic-quality, human-catching content. Nothing you create looks like a template or AI output. Every visual stops scrolling. Every video captures attention in the first 2 seconds. You master every format: images, videos, documents, presentations, branding packages."
+
+<strong>Capabilities & Output Formats:</strong>
+
+<strong>TEXT-TO-IMAGE:</strong>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Product</td><td>AI Tool</td><td>Download Formats</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Social graphics</td><td>DALL-E 3</td><td>PNG, JPG, WebP</td></tr>
+<tr><td>Ad creatives</td><td>DALL-E 3</td><td>PNG, JPG (all ad sizes)</td></tr>
+<tr><td>Blog headers</td><td>DALL-E 3</td><td>PNG, JPG (1200x630)</td></tr>
+<tr><td>Infographics</td><td>DALL-E 3 + Claude</td><td>PNG, PDF</td></tr>
+<tr><td>Logo concepts</td><td>DALL-E 3</td><td>PNG (transparent), SVG</td></tr>
+<tr><td>Brand assets</td><td>DALL-E 3</td><td>PNG, JPG, PDF</td></tr>
+<tr><td>Thumbnails</td><td>DALL-E 3</td><td>PNG, JPG (1280x720)</td></tr>
+<p></table></p>
+<strong>TEXT-TO-VIDEO:</strong>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Product</td><td>AI Tool</td><td>Download Formats</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Social clips</td><td>Runway ML</td><td>MP4 (15-60 sec, 1080p)</td></tr>
+<tr><td>Ad videos</td><td>Runway ML + ElevenLabs</td><td>MP4 (15-30 sec, 1080p)</td></tr>
+<tr><td>Explainer videos</td><td>Runway ML + ElevenLabs</td><td>MP4 (2-5 min, 1080p)</td></tr>
+<tr><td>Product demos</td><td>Runway ML</td><td>MP4 (1-3 min, 1080p)</td></tr>
+<tr><td>Cinematic brand video</td><td>Runway ML</td><td>MP4 (30-60 sec, 4K)</td></tr>
+<p></table></p>
+<strong>DOCUMENTS:</strong>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Product</td><td>Tool</td><td>Download Formats</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Proposals</td><td>Claude + styled HTML</td><td>PDF, HTML</td></tr>
+<tr><td>Presentations</td><td>Claude + React slides</td><td>PDF, PPTX</td></tr>
+<tr><td>Case studies</td><td>Claude + DALL-E</td><td>PDF</td></tr>
+<tr><td>Whitepapers</td><td>Claude</td><td>PDF, DOCX</td></tr>
+<tr><td>One-pagers</td><td>Claude + DALL-E</td><td>PDF</td></tr>
+<tr><td>Reports</td><td>Claude</td><td>PDF, CSV</td></tr>
+<p></table></p>
+<strong>BRANDING:</strong>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Product</td><td>Tool</td><td>Download Formats</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Logo variations</td><td>DALL-E 3</td><td>PNG, SVG, PDF</td></tr>
+<tr><td>Color palette</td><td>Claude</td><td>PDF, JSON</td></tr>
+<tr><td>Typography guide</td><td>Claude</td><td>PDF</td></tr>
+<tr><td>Brand guidelines</td><td>Claude + DALL-E</td><td>PDF</td></tr>
+<tr><td>Social media kit</td><td>DALL-E 3</td><td>PNG pack (all platform sizes)</td></tr>
+<tr><td>Email signature</td><td>Claude + HTML</td><td>HTML, PNG</td></tr>
+<p></table></p>
+<strong>In-System Workflow:</strong>
+<li>Click "Create" → choose type (Image, Video, Document, Branding, Presentation)</li>
+<li>Describe what you want in plain words</li>
+<li>Choose: For PMG or For Client [select client]</li>
+<li>Agent creates using appropriate AI tool</li>
+<li>Preview appears in system</li>
+<li>Buttons: Download (all formats) | Edit | Approve | Publish to Channel | Share with Client</li>
+<li>Stored in <strong>Content Library</strong> with status: Draft → Review → Approved → Published</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Create [type]" button from Production page, or triggered by Agent 18 audit recommendations, or Agent 12 content calendar</li>
+<li>OUTPUT: Preview in Content Library → action buttons → if approved: available for publishing/download → Agent 24 quality checks before release</li>
+
+<h4>Agent 20: Client Lead Generator Agent</h4>
+<strong>System Prompt Core:</strong> "You deliver on PMG's core promise — 20 qualified, ready-to-close leads per client per month. You research thoroughly, verify meticulously, and only deliver leads that meet the quality bar. You provide full context on why each lead is a good fit, not just a name and email."
+
+<strong>Capabilities:</strong>
+<li>Researches client's target market using all data sources</li>
+<li>Each lead includes: company, decision maker, verified contact, pain points, approach strategy, readiness score</li>
+<li>Only delivers leads scoring 80+ on qualification</li>
+<li>Full context: "TechSecure needs endpoint security — vendor contract expires in 2 months"</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Generate Leads for [Client]" button or monthly auto-schedule</li>
+<li>OUTPUT: Lead list with quality scores → "Push to Client CRM" button → Agent 23 syncs → or "Add to PMG Pipeline" → triggers CRM Agent 7</li>
+
+<h4>Agent 21: Client Campaign & Funnel Agent</h4>
+<strong>System Prompt Core:</strong> "You build campaigns and funnels that convert visitors into leads and leads into clients. You design landing pages that capture attention. You write email sequences that nurture without annoying. You prepare everything ready for the team to launch."
+
+<strong>Capabilities:</strong>
+<li>Campaigns: Facebook, LinkedIn, Google, email for client's channels</li>
+<li>Landing pages: headlines, copy, forms, CTAs, social proof</li>
+<li>Funnels: Ad → Landing Page → Form → Email Nurture → Sales Call</li>
+<li>A/B testing elements</li>
+<li>Conversion tracking: visitor → lead → meeting → client rates</li>
+<li>Everything prepared — team launches manually</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Build Campaign" or "Build Funnel" button, or triggered by Agent 18 audit priorities</li>
+<li>OUTPUT: Campaign/funnel package with preview → "Review" → "Launch" (manual) → performance tracking → results feed Agent 22 reports</li>
+
+<h4>Agent 22: Client Report Agent</h4>
+<strong>System Prompt Core:</strong> "You create reports that prove PMG's value with real numbers, not fluff. Executive summaries are one page. Detailed reports have every data point. You show ROI clearly. You track progress against the 20-deal promise. You never hide bad results — you explain them and recommend fixes."
+
+<strong>Capabilities:</strong>
+<li>Weekly/monthly automated reports per client</li>
+<li>Executive format (1-page C-suite) + Detailed format (full data)</li>
+<li>Sections: leads, content, campaigns, pipeline, ROI</li>
+<li>Progress tracking against "20 deals in first month"</li>
+<li>ROI calculation: "$150K pipeline from $5K spend = 30x ROI"</li>
+<li>Exportable as PDF</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Generate Report" button or auto-scheduled weekly/monthly</li>
+<li>OUTPUT: Report preview → "Send to Client" button → also feeds Agent 27 (Executive Briefing)</li>
+
+<h4>Agent 23: Client Integration Agent</h4>
+<strong>System Prompt Core:</strong> "You ensure data flows perfectly between PMG and client CRMs without errors. You handle the technical complexity invisibly — users just see 'synced' or 'action needed'."
+
+<strong>Capabilities:</strong>
+<li>GoHighLevel (main + sub-accounts) and HubSpot sync</li>
+<li>Bidirectional: leads, contacts, pipeline, activities</li>
+<li>Custom field mapping per client</li>
+<li>Error handling, retry queue, conflict resolution</li>
+<li>Sync health dashboard</li>
+<li>GHL sub-account: partner company pipeline integration</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Client onboarded (Agent 17 chooses CRM) OR "Push Leads" button (from Agent 20)</li>
+<li>OUTPUT: Sync status dashboard → "View in GHL/HubSpot" links → errors auto-retry</li>
+
+<h4>Agent 24: Content Quality Agent</h4>
+<strong>System Prompt Core:</strong> "You are the last gate before any content leaves PMG. Nothing goes out that sounds like AI, has errors, violates brand guidelines, or makes false claims. You score quality objectively and explain every concern specifically."
+
+<strong>Capabilities:</strong>
+<li>Reviews ALL output before release:</li>
+<p>  - Human tone check — reject anything that sounds like AI</p>
+<p>  - Brand consistency — correct logos, colors, voice</p>
+<p>  - Factual accuracy — no false claims</p>
+<p>  - Platform compliance — correct sizes, formats, limits</p>
+<p>  - Grammar, spelling, formatting</p>
+<li>Score: Ready to Publish | Needs Minor Edits | Needs Rewrite</li>
+<li>Quality metrics tracking</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Auto-triggered when any content is created (from Agent 19, 12, 13)</li>
+<li>OUTPUT: Quality badge on content → if "Ready": publish buttons enabled → if "Needs Edits": feedback shown with "Regenerate" button</li>
+
+<hr/>
+
+<h3>SECTION 5: ADMIN — 4 Agents</h3>
+<p>*Manage team. Track tasks. Maintain knowledge. Morning briefings.*</p>
+
+<h4>Agent 25: Operations Manager Agent</h4>
+<strong>System Prompt Core:</strong> "You manage a team that may not be experts in marketing, sales, or closing. You give them specific, clear instructions — not vague directions. You track everything objectively and escalate before deadlines are missed, not after."
+
+<strong>Capabilities:</strong>
+<li>Assigns tasks based on skills, workload, urgency</li>
+<li>Daily action plans per team member with specific instructions</li>
+<li>Tracks completion, flags overdue</li>
+<li>Escalates before deadlines are missed</li>
+<li>Team productivity dashboard</li>
+<li>Posts to Slack</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Tasks generated from all sections (Outreach follow-ups, Marketing content to publish, Production deliverables)</li>
+<li>OUTPUT: Team dashboard with task cards → "Mark Complete" buttons → completion feeds Agent 27 briefing</li>
+
+<h4>Agent 26: Knowledge & Document Agent</h4>
+<strong>System Prompt Core:</strong> "You maintain the institutional memory of PMG Group. Every process, every lesson, every template is captured and searchable. When anyone asks 'how do I do X?' you have the answer."
+
+<strong>Capabilities:</strong>
+<li>Creates/maintains: SOPs, playbooks, templates, training</li>
+<li>Searchable knowledge base</li>
+<li>Auto-captures learnings from won/lost deals</li>
+<li>Version control on all documents</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Deal won → auto-captures "what worked"; Deal lost → auto-captures "what went wrong"; New process documented</li>
+<li>OUTPUT: Knowledge base searchable from every section → coaching content feeds Agent 9 (Call Intelligence)</li>
+
+<h4>Agent 27: Executive Briefing Agent</h4>
+<strong>System Prompt Core:</strong> "You are the chief of staff who gives the executive a complete picture every morning. You highlight what matters, not everything that happened. You detect risks early. You recommend priorities with clear reasoning."
+
+<strong>Capabilities:</strong>
+<li><strong>Morning:</strong> Overnight activity, urgent items, today's priorities</li>
+<li><strong>Weekly:</strong> Pipeline health, team performance, client status, revenue</li>
+<li><strong>Risk alerts:</strong> Overdue tasks, at-risk deals, budget warnings</li>
+<li>Posts to dashboard and Slack</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Data from ALL sections — Outreach activity, CRM pipeline, Marketing performance, Production delivery, Finance revenue</li>
+<li>OUTPUT: Briefing dashboard → priority action items with "Go to" buttons linking to relevant section</li>
+
+<h4>Agent 28: System Evolution Agent</h4>
+<strong>System Prompt Core:</strong> "You monitor the market for technologies, tools, and trends that could make PMG OS better. You evaluate each opportunity objectively — is it worth adopting? You present findings with clear cost/benefit analysis. You never recommend change for change's sake."
+
+<strong>Capabilities:</strong>
+<li><strong>Weekly scan:</strong> New AI tools, new social platforms, new marketing tech, new APIs</li>
+<li><strong>Monthly report:</strong> "What's New" with recommendations:</li>
+<p>  - "Runway ML v4 released — video quality improved 40%. Upgrade? Cost: same. Benefit: better videos."</p>
+<p>  - "New platform [X] gaining traction with cybersec companies — 200K monthly users. Add channel? Cost: 2 days dev. Benefit: new lead source."</p>
+<p>  - "Claude 4 released — faster, cheaper, better reasoning. Upgrade? Cost: none. Benefit: all agents improve."</p>
+<li><strong>Quarterly roadmap:</strong> Proposed system updates for next quarter</li>
+<li>You review → Approve / Explore Later / Skip</li>
+<li>Approved updates are flagged for development</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Auto-runs weekly (web research via Claude)</li>
+<li>OUTPUT: "What's New" dashboard in Settings → "Approve" / "Skip" buttons → approved items create tasks in Agent 25 (Operations)</li>
+
+<hr/>
+
+<h3>SECTION 6: FINANCE — 2 Agents</h3>
+<p>*Invoice. Track payments. Manage expenses. Forecast revenue.*</p>
+
+<h4>Agent 29: Billing & Revenue Agent</h4>
+<strong>System Prompt Core:</strong> "You handle money with precision. Invoices are professional and clear. Payment tracking is relentless but polite. Revenue reporting is honest — good months and bad months both get accurate numbers."
+
+<strong>Capabilities:</strong>
+<li>Invoices: one-time, recurring, usage-based</li>
+<li>Payment tracking: Draft → Sent → Viewed → Paid → Overdue</li>
+<li>Reminders at 7, 14, 30 days overdue</li>
+<li>Revenue dashboard: MRR, per client, growth trend</li>
+<li>Payment risk flags</li>
+<li>Client profitability: revenue minus cost to serve</li>
+<li>Wallet management: balance, limits, alerts</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Create Invoice" button OR auto-generated monthly for recurring clients (from Production Agent 22's report data)</li>
+<li>OUTPUT: Invoice preview → "Send" button → payment tracking → revenue feeds Agent 27 briefing → overdue items feed Agent 25 tasks</li>
+
+<h4>Agent 30: Contract & Expense Agent</h4>
+<strong>System Prompt Core:</strong> "You manage contracts with attention to every detail and track expenses with complete accuracy. You alert before problems occur — contract expiring, budget exceeded, unusual expense."
+
+<strong>Capabilities:</strong>
+<li>Drafts service agreements per package</li>
+<li>Contract lifecycle: track terms, renewal alerts (60 days before)</li>
+<li>Upsell suggestions based on performance</li>
+<li>Expense tracking: tools, ads, AI costs, salaries, subscriptions</li>
+<li>Monthly P&L</li>
+<li>Revenue forecasting from pipeline</li>
+<li>Scenario modeling: "If we close 3 deals, revenue = $X"</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: "Create Contract" (from CRM Agent 10 after proposal accepted) OR "Log Expense" OR auto-tracked from wallet</li>
+<li>OUTPUT: Contract status dashboard → renewal alerts → expense reports feed Agent 27 briefing → forecasts shown in Finance dashboard</li>
+
+<hr/>
+
+<h3>CROSS-SYSTEM — 2 Agents</h3>
+<p>*Always active across every section.*</p>
+
+<h4>Agent 31: Legal & Compliance Agent</h4>
+<strong>System Prompt Core:</strong> "You protect PMG from legal risk and platform bans. You enforce every compliance rule silently in the background. You only alert humans when something actually needs attention. You prevent problems before they happen."
+
+<strong>Capabilities:</strong>
+<li><strong>Communication compliance:</strong></li>
+<p>  - CAN-SPAM: unsubscribe links, physical address, opt-out in every email</p>
+<p>  - GDPR: consent tracking, data deletion rights, DPA management</p>
+<p>  - TCPA: do-not-call checking, calling hours enforcement</p>
+<p>  - Platform rules: LinkedIn connection limits, Facebook messaging policies, Instagram DM rules</p>
+<li><strong>Anti-spam enforcement:</strong></li>
+<p>  - Rate limiting on all outbound communications</p>
+<p>  - Warm-up sequences for new email accounts</p>
+<p>  - Bounce monitoring — auto-pauses if rate >5%</p>
+<p>  - Domain reputation monitoring</p>
+<p>  - Platform daily limits enforced</p>
+<p>  - Send only during business hours in recipient's timezone</p>
+<li><strong>Contract compliance:</strong></li>
+<p>  - Review contracts for missing clauses, unfavorable terms</p>
+<p>  - NDA templates, terms of service</p>
+<p>  - Data processing agreements</p>
+<li><strong>Advertising compliance:</strong></li>
+<p>  - No false claims in ads</p>
+<p>  - Required disclaimers</p>
+<p>  - Platform ad policy compliance</p>
+<li>Monthly compliance report</li>
+<li>Immediate alert on any violation detected</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: Auto-checks EVERY outgoing message (from Agent 4, 5), EVERY ad (from Agent 13), EVERY contract (from Agent 30)</li>
+<li>OUTPUT: Compliance badge on each item → blocks non-compliant items → fixes suggested → "Fix & Resend" button</li>
+
+<h4>Agent 32: Video Guide Agent</h4>
+<strong>System Prompt Core:</strong> "You teach PMG's team how to use every feature of the system through clear, step-by-step visual guides. You explain things simply — no technical jargon. You update guides when features change."
+
+<strong>Capabilities:</strong>
+<li>Built-in animated video guides for every section (HTML/React, not YouTube — loads instantly)</li>
+<li>Interactive: "Click here to see how to..." → highlights the feature</li>
+<li>Section-by-section:</li>
+<p>  - Outreach: finding prospects, messaging, follow-ups, channels</p>
+<p>  - CRM: pipeline, scoring, meetings, proposals, GHL sync</p>
+<p>  - Marketing: content, campaigns, SEO, ads</p>
+<p>  - Production: creating images/videos/docs, Content Library, client deliverables</p>
+<p>  - Admin: tasks, SOPs, briefings</p>
+<p>  - Finance: invoicing, expenses, wallet</p>
+<p>  - Settings: channels, users, modes, integrations</p>
+<li>Auto-updates when features change</li>
+
+<strong>Workflow Connection:</strong>
+<li>INPUT: [?] button in any section sidebar</li>
+<li>OUTPUT: Guided walkthrough plays → user follows along → "Next Step" / "Skip" / "Replay" buttons</li>
+
+<hr/>
+
+<h2>SETTINGS TAB — COMPLETE</h2>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Section</td><td>What's In It</td><td>Buttons</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td><strong>General</strong></td><td>Company name, logo, branding, timezone</td><td>Edit, Save</td></tr>
+<tr><td><strong>Connected Channels</strong></td><td>All social/tool connections with status</td><td>Connect, Disconnect, Test, Setup Guide</td></tr>
+<tr><td><strong>AI Configuration</strong></td><td>Global mode + per-section overrides + per-agent toggles</td><td>Switch mode, Enable/Disable agents</td></tr>
+<tr><td><strong>Wallet & Billing</strong></td><td>Balance, fund, limits (daily/monthly/per-action/per-section), history</td><td>Fund Wallet, Set Limits, View History</td></tr>
+<tr><td><strong>User Management</strong></td><td>Users list, roles, activity logs</td><td>Add User, Change Role, Deactivate</td></tr>
+<tr><td><strong>Integrations</strong></td><td>GHL (main + sub-accounts), HubSpot, Slack</td><td>Connect, Configure, Test, View Sync Status</td></tr>
+<tr><td><strong>Legal & Compliance</strong></td><td>Compliance settings, opt-out lists, rate limits, GDPR/CAN-SPAM</td><td>Configure, View Reports, Export Opt-out List</td></tr>
+<tr><td><strong>System Evolution</strong></td><td>What's New report, approved updates, roadmap</td><td>Approve, Skip, View Roadmap</td></tr>
+<tr><td><strong>Notifications</strong></td><td>In-app, email, Slack alert preferences</td><td>Toggle per type</td></tr>
+<tr><td><strong>System Health</strong></td><td>Agent status, API health, database stats</td><td>Run Health Check, View Logs</td></tr>
+<p></table></p>
+<hr/>
+
+<h2>USER ROLES — 4 LEVELS</h2>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Role</td><td>Can Do</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td><strong>Super Admin</strong></td><td>Everything. Settings, billing, users, all data, modes, wallet, delete</td></tr>
+<tr><td><strong>Admin</strong></td><td>Everything except settings/billing. Manage users (not Super Admin)</td></tr>
+<tr><td><strong>Manager</strong></td><td>Assigned sections. Approve actions. No settings/users</td></tr>
+<tr><td><strong>Viewer</strong></td><td>Read-only on assigned sections. No create/edit/delete. For clients viewing reports</td></tr>
+<p></table></p>
+<hr/>
+
+<h2>CONNECTED CHANNELS — Day by Day</h2>
+
+<strong>Phase 1 (Launch):</strong> LinkedIn, Sales Navigator, Email (Gmail/Outlook), Slack
+<strong>Phase 2 (Month 1-2):</strong> Facebook, Instagram, Google Ads, Website forms
+<strong>Phase 3 (Month 2-4):</strong> X, YouTube, TikTok, Google My Business
+<strong>Phase 4 (Ongoing):</strong> Reddit, Quora, WhatsApp, Telegram, Podcasts, Webinars, any new platform
+
+<hr/>
+
+<h2>SELF-UPDATING SYSTEM</h2>
+
+<pre>┌─── WEEKLY ────────────────────────────────────────┐
+<p>│ Agent 28 scans: new AI tools, APIs, platforms,    │</p>
+<p>│ market trends, competitor tools                    │</p>
+<p>│                    ↓                               │</p>
+<p>│ "What's New" notification in Settings              │</p>
+<p>└───────────────────┬────────────────────────────────┘</p>
+<p>                    ↓</p>
+<p>┌─── MONTHLY ───────────────────────────────────────┐</p>
+<p>│ Full report: new technologies, recommended         │</p>
+<p>│ upgrades, cost/benefit analysis                    │</p>
+<p>│                    ↓                               │</p>
+<p>│ You review: Approve | Explore Later | Skip         │</p>
+<p>│                    ↓                               │</p>
+<p>│ Approved items → development tasks created         │</p>
+<p>└───────────────────┬────────────────────────────────┘</p>
+<p>                    ↓</p>
+<p>┌─── QUARTERLY ─────────────────────────────────────┐</p>
+<p>│ System roadmap: planned upgrades, new features,    │</p>
+<p>│ technology migrations, channel additions           │</p>
+<p>│                    ↓                               │</p>
+<p>│ You approve roadmap → system updates over quarter  │</p>
+<p>│                    ↓                               │</p>
+<p>│ System stays current with best tools & processes   │</p>
+<p>└────────────────────────────────────────────────────┘</p>
+<p></pre></p>
+
+<hr/>
+
+<h2>BUDGET BREAKDOWN</h2>
+
+<h3>API & Tools ($300-500/month)</h3>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Service</td><td>Cost</td><td>What For</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Claude API</td><td>$40-60</td><td>All 32 agents text tasks</td></tr>
+<tr><td>OpenAI DALL-E 3</td><td>$20-30</td><td>Image generation</td></tr>
+<tr><td>Runway ML</td><td>$15-30</td><td>Video generation</td></tr>
+<tr><td>ElevenLabs</td><td>$5-10</td><td>Voice narration</td></tr>
+<tr><td>Hunter.io</td><td>$49</td><td>500 email lookups/month</td></tr>
+<tr><td>Apollo</td><td>$0-49</td><td>Prospect data (free tier to start)</td></tr>
+<tr><td>SendGrid</td><td>$0-20</td><td>Email delivery</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>$130-250</strong></td><td>Buffer: $50-370 for scaling</td></tr>
+<p></table></p>
+<h3>Campaign Budget ($600/month)</h3>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Channel</td><td>Budget</td><td>Purpose</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>LinkedIn Ads</td><td>$200</td><td>B2B targeting cybersec executives</td></tr>
+<tr><td>Facebook/Instagram Ads</td><td>$200</td><td>Lead generation, retargeting</td></tr>
+<tr><td>Google Ads</td><td>$200</td><td>Search + display</td></tr>
+<p></table></p>
+<h3>Content Production Capacity</h3>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Type</td><td>Monthly Volume</td><td>Cost</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>LinkedIn posts</td><td>12-15</td><td>~$3</td></tr>
+<tr><td>Blog articles</td><td>4-6</td><td>~$5</td></tr>
+<tr><td>Social graphics</td><td>20-30</td><td>~$15</td></tr>
+<tr><td>Ad creatives</td><td>10-15</td><td>~$10</td></tr>
+<tr><td>Short videos</td><td>4-6</td><td>~$15</td></tr>
+<tr><td>Cold emails</td><td>200-500 personalized</td><td>~$10</td></tr>
+<tr><td>Proposals</td><td>10-20</td><td>~$5</td></tr>
+<tr><td>Client reports</td><td>As needed</td><td>~$3</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>Massive volume</strong></td><td><strong>~$70/month</strong></td></tr>
+<p></table></p>
+<hr/>
+
+<h2>BUILD TIMELINE</h2>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>When</td><td>What Gets Built</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td><strong>This Week</strong></td><td>Complete system: all 6 sections, all 32 agents, clean database, all modes working</td></tr>
+<tr><td><strong>Week 2</strong></td><td>System live. Team starts outreach. First prospects contacted.</td></tr>
+<tr><td><strong>Week 3-4</strong></td><td>Meetings set. Call Intelligence coaching team. First proposals sent.</td></tr>
+<tr><td><strong>Month 2</strong></td><td>Pipeline building. Clients closing. System proving itself.</td></tr>
+<tr><td><strong>Month 3+</strong></td><td>4+ clients. Budget expands. Replicate for clients.</td></tr>
+<p></table></p>
+<hr/>
+
+<h2>MIGRATION TO PRIVATE SERVER</h2>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Component</td><td>Technology</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>Frontend</td><td>React + Vite → any web server</td></tr>
+<tr><td>Backend</td><td>Node.js + Express → Node.js 18+</td></tr>
+<tr><td>Database</td><td>PostgreSQL → PostgreSQL 14+</td></tr>
+<tr><td>Real-time</td><td>WebSocket → built into Node</td></tr>
+<p></table></p>
+<strong>Migration:</strong> git clone → pg_dump → setup server → change ONE API gateway config → npm install → npm start → done.
+
+<hr/>
+
+<h2>CLEAN START GUARANTEE</h2>
+
+<li>Fresh database — zero old data</li>
+<li>32 new agents replace 112 old agents</li>
+<li>6 sections replace 11 old domains</li>
+<li>Every button works — no dead ends</li>
+<li>Every workflow connects A-to-Z</li>
+<li>Three modes fully functional at every level</li>
+<li>No leftover complexity</li>
+<li>No broken features</li>
+<li>Simple, clear, functional</li>
+
+<hr/>
+
+<h2>AGENT SUMMARY</h2>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>#</td><td>Agent</td><td>Section</td><td>Primary Function</td></tr>
+<p></table></p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;margin:10px 0;font-size:13px"><tr><td>1</td><td>Prospect Intelligence</td><td>Outreach</td><td>Find and profile prospects</td></tr>
+<tr><td>2</td><td>Social Command Center</td><td>Outreach</td><td>Monitor all channels, unified inbox</td></tr>
+<tr><td>3</td><td>Outreach Strategist</td><td>Outreach</td><td>Plan approach per prospect</td></tr>
+<tr><td>4</td><td>Message Composer</td><td>Outreach</td><td>Write personalized messages</td></tr>
+<tr><td>5</td><td>Follow-up Engine</td><td>Outreach</td><td>Track and schedule follow-ups</td></tr>
+<tr><td>6</td><td>Outreach Analytics</td><td>Outreach</td><td>Measure and optimize outreach</td></tr>
+<tr><td>7</td><td>Lead Qualification</td><td>CRM</td><td>Score and qualify leads</td></tr>
+<tr><td>8</td><td>Deal Intelligence</td><td>CRM</td><td>Manage pipeline and deal health</td></tr>
+<tr><td>9</td><td>Call Intelligence</td><td>CRM</td><td>Pre/during/post call coaching</td></tr>
+<tr><td>10</td><td>Proposal & Contract</td><td>CRM</td><td>Create proposals and contracts</td></tr>
+<tr><td>11</td><td>CRM Sync</td><td>CRM</td><td>Sync with GHL/HubSpot</td></tr>
+<tr><td>12</td><td>Content Strategist</td><td>Marketing</td><td>Plan and create content</td></tr>
+<tr><td>13</td><td>Advertising</td><td>Marketing</td><td>Create ad campaigns</td></tr>
+<tr><td>14</td><td>SEO & Growth</td><td>Marketing</td><td>Keyword research and optimization</td></tr>
+<tr><td>15</td><td>Campaign Orchestrator</td><td>Marketing</td><td>Coordinate multi-channel campaigns</td></tr>
+<tr><td>16</td><td>Competitor Intelligence</td><td>Marketing</td><td>Monitor and analyze competitors</td></tr>
+<tr><td>17</td><td>Client Onboarding</td><td>Production</td><td>Onboard new clients</td></tr>
+<tr><td>18</td><td>Client Marketing Analyst</td><td>Production</td><td>Audit client marketing</td></tr>
+<tr><td>19</td><td>Creative Production</td><td>Production</td><td>Create images, videos, docs, branding</td></tr>
+<tr><td>20</td><td>Client Lead Generator</td><td>Production</td><td>Generate 20 leads per client</td></tr>
+<tr><td>21</td><td>Client Campaign & Funnel</td><td>Production</td><td>Build campaigns and funnels</td></tr>
+<tr><td>22</td><td>Client Report</td><td>Production</td><td>Generate performance reports</td></tr>
+<tr><td>23</td><td>Client Integration</td><td>Production</td><td>Sync with client CRMs</td></tr>
+<tr><td>24</td><td>Content Quality</td><td>Production</td><td>Quality check all output</td></tr>
+<tr><td>25</td><td>Operations Manager</td><td>Admin</td><td>Assign tasks, track team</td></tr>
+<tr><td>26</td><td>Knowledge & Document</td><td>Admin</td><td>Maintain SOPs and knowledge</td></tr>
+<tr><td>27</td><td>Executive Briefing</td><td>Admin</td><td>Morning briefings, risk alerts</td></tr>
+<tr><td>28</td><td>System Evolution</td><td>Admin</td><td>Monitor market, suggest updates</td></tr>
+<tr><td>29</td><td>Billing & Revenue</td><td>Finance</td><td>Invoicing, payments, wallet</td></tr>
+<tr><td>30</td><td>Contract & Expense</td><td>Finance</td><td>Contracts, expenses, forecasting</td></tr>
+<tr><td>31</td><td>Legal & Compliance</td><td>Cross-System</td><td>Anti-spam, GDPR, contracts</td></tr>
+<tr><td>32</td><td>Video Guide</td><td>Cross-System</td><td>Step-by-step system tutorials</td></tr>
+<p></table></p>
+<hr/>
+
+<strong>This is the final blueprint v3.0. Complete. Enriched. Every button works. Every workflow connects. Every agent has a clear job. Clean start from zero. Ready to build.</strong>
+
+</body>
+</html>

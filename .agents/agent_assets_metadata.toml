@@ -12,3 +12,9 @@ id = "iXFV0eykSwGMCmScvvsNR"
 uri = "file://PMG-OS-FINAL-BLUEPRINT-v3.md"
 type = "text"
 title = "PMG Group OS — Final Blueprint v3.0 (Complete & Enriched)"
+
+[[outputs]]
+id = "6FBJHuawFCxRexyXYAwwk"
+uri = "file://PMG-OS-FINAL-BLUEPRINT-v3.pdf"
+type = "pdf"
+title = "PMG Group OS — Final Blueprint v3.0 (PDF)"
