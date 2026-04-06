@@ -3,7 +3,7 @@ import { eq, sql, count, desc } from "drizzle-orm";
 import { emit } from "./event-bus";
 import { logAudit } from "./audit-service";
 
-let dummyModeEnabled = false;
+let dummyModeEnabled = process.env.NODE_ENV !== "production";
 const dummyResponses = new Map<string, (input: Record<string, any>) => Record<string, any>>();
 const testResults: TestRunResult[] = [];
 const MAX_HISTORY = 500;
