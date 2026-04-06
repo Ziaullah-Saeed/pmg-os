@@ -2,19 +2,13 @@ uploads = []
 generated = []
 
 [[outputs]]
-id = "vRvefJ1ZaQkBHL5xk_1gM"
-uri = "file://PMG-OS-COMPLETE-ARCHITECTURE.md"
-type = "text"
-title = "PMG Group OS - Complete System Architecture & Guide"
-
-[[outputs]]
-id = "d8Hcq4xFk7osBn2VTSF_i"
-uri = "file://PMG-OS-FINAL-BLUEPRINT.md"
-type = "text"
-title = "PMG Group OS — Final Blueprint v1.0"
-
-[[outputs]]
 id = "W55uSCcm_jm66vaCIL5Fa"
 uri = "file://PMG-OS-FINAL-BLUEPRINT-v2.md"
 type = "text"
 title = "PMG Group OS — Final Blueprint v2.0 (Complete)"
+
+[[outputs]]
+id = "iXFV0eykSwGMCmScvvsNR"
+uri = "file://PMG-OS-FINAL-BLUEPRINT-v3.md"
+type = "text"
+title = "PMG Group OS — Final Blueprint v3.0 (Complete & Enriched)"
