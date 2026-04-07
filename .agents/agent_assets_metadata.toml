@@ -18,3 +18,9 @@ id = "6FBJHuawFCxRexyXYAwwk"
 uri = "file://PMG-OS-FINAL-BLUEPRINT-v3.pdf"
 type = "pdf"
 title = "PMG Group OS — Final Blueprint v3.0 (PDF)"
+
+[[outputs]]
+id = "NJVMlcy5OAEQMc5Sg-fwk"
+uri = "file://attached_assets/PMG-OS-TESTING-CHECKLIST.md"
+type = "text"
+title = "PMG OS Complete Testing Checklist (170+ items)"
