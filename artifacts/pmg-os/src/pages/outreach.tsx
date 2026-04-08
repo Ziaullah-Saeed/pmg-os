@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { useToast } from "@/hooks/use-toast";
 import { AiResultPanel } from "@/components/ai-result-panel";
+import { ModeBadge } from "@/components/mode-badge";
 import {
   Target, Users, CheckCircle2, Send, Sparkles, Plus, Search, Globe,
   Building2, Mail, Phone, Linkedin, ArrowRight, Clock, AlertCircle,
@@ -339,6 +340,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium truncate">{getLeadName(lead)}</p>
                       <Badge variant="outline" className="text-[10px] capitalize shrink-0">{(lead.status ?? "new").replace(/_/g, " ")}</Badge>
+                      {lead.createdByMode && <ModeBadge mode={lead.createdByMode} />}
                       {isAuto && lead.fitScore && <Badge variant="outline" className="text-[9px] border-crimson/30 text-crimson shrink-0">AI Scored</Badge>}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">

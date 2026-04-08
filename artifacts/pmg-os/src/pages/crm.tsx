@@ -3,6 +3,7 @@ import { useListOpportunities, useListLeads, useListCompanies } from "@workspace
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { AiResultPanel } from "@/components/ai-result-panel";
+import { ModeBadge } from "@/components/mode-badge";
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -285,7 +286,10 @@ function PipelineTab({ deals, leads, isHuman, showNewDealForm, setShowNewDealFor
                       onClick={() => setSelectedDeal(deal)}
                       className="p-2.5 rounded-lg glass-surface cursor-pointer hover:glass-card-interactive text-xs group transition-all"
                     >
-                      <p className="font-medium truncate mb-1">{deal.title ?? deal.name}</p>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <p className="font-medium truncate flex-1">{deal.title ?? deal.name}</p>
+                        {deal.createdByMode && <ModeBadge mode={deal.createdByMode} />}
+                      </div>
                       <p className="text-crimson font-semibold">${((deal.value ?? 0) / 1000).toFixed(0)}k</p>
                       {deal.companyName && (
                         <p className="text-[10px] text-muted-foreground truncate mt-1">{deal.companyName}</p>
@@ -340,6 +344,7 @@ function DealDetailPanel({ deal, onClose, onStageChange, isHuman }: {
             <Badge className={stages[currentStageIdx]?.color ?? "bg-blue-500"}>
               {stages[currentStageIdx]?.label ?? deal.stage}
             </Badge>
+            {deal.createdByMode && <ModeBadge mode={deal.createdByMode} />}
             <span className={`text-xs ${health.color}`}>{health.label}</span>
             <span className="text-xs text-muted-foreground">|</span>
             <span className="text-sm font-semibold text-crimson">${((deal.value ?? 0) / 1000).toFixed(1)}k</span>
@@ -570,6 +575,7 @@ function QualificationTab({ leads, isHuman }: { leads: any[]; isHuman: boolean }
                   <p className="text-sm font-semibold truncate">{lead.contactName || lead.companyName || `Lead #${lead.id}`}</p>
                   {lead.companyName && lead.contactName && <span className="text-xs text-muted-foreground truncate">at {lead.companyName}</span>}
                   <Badge variant="outline" className="text-[10px]">{lead.source ?? "manual"}</Badge>
+                  {lead.createdByMode && <ModeBadge mode={lead.createdByMode} />}
                   <Badge variant="outline" className={`text-[10px] ${lead.tier.color}`}>{lead.tier.label}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground truncate mt-0.5">

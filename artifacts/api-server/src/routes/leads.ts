@@ -22,6 +22,7 @@ import { logAudit } from "../services/audit-service";
 import { emit } from "../services/event-bus";
 import { getSessionUser } from "../middleware/auth";
 import { opportunitiesTable } from "@workspace/db";
+import { getGlobalMode } from "../services/ai-mode-service";
 
 const router: IRouter = Router();
 
@@ -35,6 +36,9 @@ async function autoCreateDealForLead(leadId: number, companyName?: string | null
     ? `${companyName}${contactName ? ` — ${contactName}` : ""}`
     : contactName ?? `Lead #${leadId}`;
 
+  const currentMode = await getGlobalMode();
+  const modeLabel = currentMode === "ai_autonomous" ? "ai_auto" : currentMode === "hybrid" ? "hybrid" : "human";
+
   await db.insert(opportunitiesTable).values({
     title,
     leadId,
@@ -42,6 +46,7 @@ async function autoCreateDealForLead(leadId: number, companyName?: string | null
     value: 0,
     serviceType: "cybersecurity",
     probability: score ? Math.min(score, 100) : 50,
+    createdByMode: modeLabel,
   });
 }
 
@@ -82,6 +87,7 @@ router.get("/leads", async (req, res): Promise<void> => {
       externalCrmId: leadsTable.externalCrmId,
       routedAt: leadsTable.routedAt,
       lastSyncedAt: leadsTable.lastSyncedAt,
+      createdByMode: leadsTable.createdByMode,
       createdAt: leadsTable.createdAt,
       updatedAt: leadsTable.updatedAt,
     })
@@ -126,7 +132,9 @@ router.post("/leads", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const values = { ...parsed.data, status: parsed.data.status ?? getInitialState("lead") };
+  const currentMode = await getGlobalMode();
+  const modeLabel = currentMode === "ai_autonomous" ? "ai_auto" : currentMode === "hybrid" ? "hybrid" : "human";
+  const values = { ...parsed.data, status: parsed.data.status ?? getInitialState("lead"), createdByMode: modeLabel };
   const [lead] = await db.insert(leadsTable).values(values).returning();
 
   await db.insert(activitiesTable).values({

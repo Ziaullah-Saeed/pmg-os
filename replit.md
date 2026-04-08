@@ -44,6 +44,10 @@ All agents use Claude as primary AI engine. Zero AI fluff, human tone only.
   - Helper functions getLeadName(), getLeadCompany(), getLeadInitials() for consistent lead display
   - Strategy tab prospect selector uses correct field names
   - Lead detail dialog shows fitScore, confidenceScore, painPoints, nextAction, bestAngle
+- **Session 8 (COMPLETE):** Data reset & realistic dummy AI, mode labeling:
+  - All hardcoded demo data cleared to zero state across all 6 sections
+  - 40+ realistic cybersecurity dummy AI responses replacing `[DUMMY]` text (enrich, score, prospect, compose, report, contract, SEO audit, etc.)
+  - Mode labeling: `createdByMode` field on leads and opportunities tables. Captures current AI mode (ai_auto/hybrid/human) on data creation. `ModeBadge` component displays color-coded badges (red=AI Auto, blue=Hybrid, gold=Human) on leads in Outreach/CRM and deals in Pipeline
 - **Remaining:** Legal & Compliance agent, Video Guide system, final polish
 
 ## System Architecture

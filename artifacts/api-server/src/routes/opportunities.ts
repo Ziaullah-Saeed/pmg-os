@@ -50,6 +50,7 @@ router.get("/opportunities", async (req, res): Promise<void> => {
       wonAt: opportunitiesTable.wonAt,
       lostAt: opportunitiesTable.lostAt,
       lostReason: opportunitiesTable.lostReason,
+      createdByMode: opportunitiesTable.createdByMode,
       createdAt: opportunitiesTable.createdAt,
       updatedAt: opportunitiesTable.updatedAt,
     })

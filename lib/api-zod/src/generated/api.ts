@@ -338,6 +338,7 @@ export const ListLeadsResponseItem = zod.object({
   notes: zod.string().nullish(),
   channelSource: zod.string().nullish(),
   qualifiedAt: zod.coerce.date().nullish(),
+  createdByMode: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -472,6 +473,7 @@ export const ListOpportunitiesResponseItem = zod.object({
   wonAt: zod.coerce.date().nullish(),
   lostAt: zod.coerce.date().nullish(),
   lostReason: zod.string().nullish(),
+  createdByMode: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });

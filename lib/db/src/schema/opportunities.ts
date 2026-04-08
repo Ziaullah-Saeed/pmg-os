@@ -21,6 +21,7 @@ export const opportunitiesTable = pgTable("opportunities", {
   contractStatus: text("contract_status"),
   notes: text("notes"),
   aiModeOverride: text("ai_mode_override"),
+  createdByMode: text("created_by_mode"),
   wonAt: timestamp("won_at", { withTimezone: true }),
   lostAt: timestamp("lost_at", { withTimezone: true }),
   lostReason: text("lost_reason"),

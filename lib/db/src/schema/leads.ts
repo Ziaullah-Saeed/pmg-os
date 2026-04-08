@@ -19,6 +19,7 @@ export const leadsTable = pgTable("leads", {
   assignedTo: text("assigned_to"),
   notes: text("notes"),
   aiModeOverride: text("ai_mode_override"),
+  createdByMode: text("created_by_mode"),
   channelSource: text("channel_source"),
   externalCrmId: text("external_crm_id"),
   routingDestination: text("routing_destination").default("pmg"),
