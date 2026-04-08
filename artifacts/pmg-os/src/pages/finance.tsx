@@ -46,10 +46,10 @@ export default function Finance() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="MRR" value="$17,500" icon={<TrendingUp className="h-4 w-4" />} accent="crimson" />
-        <KpiCard label="Outstanding" value="$12,500" icon={<Clock className="h-4 w-4" />} accent="gold" />
-        <KpiCard label="Collected (MTD)" value="$12,500" icon={<DollarSign className="h-4 w-4" />} accent="success" />
-        <KpiCard label="Active Contracts" value={4} icon={<FileText className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="MRR" value="$0" icon={<TrendingUp className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Outstanding" value="$0" icon={<Clock className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Collected (MTD)" value="$0" icon={<DollarSign className="h-4 w-4" />} accent="success" />
+        <KpiCard label="Active Contracts" value={0} icon={<FileText className="h-4 w-4" />} accent="blue" />
       </div>
 
       <div className="flex gap-1 border-b border-white/5">
@@ -88,19 +88,9 @@ export default function Finance() {
 function BillingTab({ isHuman }: { isHuman: boolean }) {
   const createInvoice = useAiCreateInvoice();
   const [aiResult, setAiResult] = useState<any>(null);
-  const invoices = [
-    { id: "INV-001", client: "SecureNet Solutions", amount: 5000, status: "paid", type: "recurring", date: "Mar 1", paidDate: "Mar 3", package: "Growth" },
-    { id: "INV-002", client: "CyberGuard MSP", amount: 2500, status: "paid", type: "recurring", date: "Mar 1", paidDate: "Mar 5", package: "Starter" },
-    { id: "INV-003", client: "ShieldTech IT", amount: 10000, status: "sent", type: "one-time", date: "Mar 15", paidDate: null, package: "Enterprise" },
-    { id: "INV-004", client: "SecureNet Solutions", amount: 5000, status: "draft", type: "recurring", date: "Apr 1", paidDate: null, package: "Growth" },
-    { id: "INV-005", client: "DataVault MSP", amount: 2500, status: "overdue", type: "one-time", date: "Feb 15", paidDate: null, package: "Starter" },
-  ];
+  const invoices: {id:string;client:string;amount:number;status:string;type:string;date:string;paidDate:string|null;package:string}[] = [];
 
-  const revenueByClient = [
-    { client: "SecureNet Solutions", revenue: 15000, cost: 2100, package: "Growth ($5K/mo)", months: 3 },
-    { client: "CyberGuard MSP", revenue: 5000, cost: 800, package: "Starter ($2.5K/mo)", months: 2 },
-    { client: "ShieldTech IT", revenue: 10000, cost: 1500, package: "Enterprise ($10K/mo)", months: 1 },
-  ];
+  const revenueByClient: {client:string;revenue:number;cost:number;package:string;months:number}[] = [];
 
   return (
     <div className="space-y-4">
@@ -108,22 +98,22 @@ function BillingTab({ isHuman }: { isHuman: boolean }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Total Revenue</p>
-          <p className="text-lg font-bold text-success">$30,000</p>
-          <p className="text-[9px] text-success flex items-center gap-0.5"><ArrowUpRight className="h-2.5 w-2.5" />+67% vs last month</p>
+          <p className="text-lg font-bold text-success">${invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0).toLocaleString()}</p>
+          <p className="text-[9px] text-muted-foreground">{invoices.filter(i => i.status === "paid").length} paid invoices</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Avg Client Value</p>
-          <p className="text-lg font-bold text-gold">$5,833</p>
+          <p className="text-lg font-bold text-gold">${revenueByClient.length ? Math.round(revenueByClient.reduce((s, r) => s + r.revenue, 0) / revenueByClient.length).toLocaleString() : "0"}</p>
           <p className="text-[9px] text-muted-foreground">/month</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Overdue</p>
-          <p className="text-lg font-bold text-red-400">$2,500</p>
-          <p className="text-[9px] text-red-400">1 invoice (20 days)</p>
+          <p className="text-lg font-bold text-red-400">${invoices.filter(i => i.status === "overdue").reduce((s, i) => s + i.amount, 0).toLocaleString()}</p>
+          <p className="text-[9px] text-muted-foreground">{invoices.filter(i => i.status === "overdue").length} overdue</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Wallet Balance</p>
-          <p className="text-lg font-bold text-blue-400">$358</p>
+          <p className="text-lg font-bold text-blue-400">$355</p>
           <p className="text-[9px] text-muted-foreground">AI API credits</p>
         </div>
       </div>
@@ -218,26 +208,13 @@ function ContractsTab({ isHuman }: { isHuman: boolean }) {
   const manageContracts = useAiManageContracts();
   const createInvoice = useAiCreateInvoice();
   const [aiResult, setAiResult] = useState<any>(null);
-  const contracts = [
-    { client: "SecureNet Solutions", package: "Growth", value: "$5,000/mo", start: "Jan 1, 2024", end: "Dec 31, 2024", renewal: "275 days", status: "active" },
-    { client: "CyberGuard MSP", package: "Starter", value: "$2,500/mo", start: "Feb 1, 2024", end: "Jan 31, 2025", renewal: "306 days", status: "active" },
-    { client: "ShieldTech IT", package: "Enterprise", value: "$10,000/mo", start: "Mar 15, 2024", end: "Mar 14, 2025", renewal: "349 days", status: "active" },
-    { client: "TechGuard Inc", package: "Growth", value: "$5,000/mo", start: "Oct 1, 2023", end: "Mar 31, 2024", renewal: "3 days", status: "expiring" },
-  ];
+  const contracts: {client:string;package:string;value:string;start:string;end:string;renewal:string;status:string}[] = [];
 
-  const expenses = [
-    { category: "AI APIs", items: [{ name: "Claude (Anthropic)", cost: 120 }, { name: "OpenAI (DALL-E 3)", cost: 80 }, { name: "ElevenLabs", cost: 22 }, { name: "Runway ML", cost: 35 }], total: 257 },
-    { category: "Advertising", items: [{ name: "LinkedIn Ads", cost: 210 }, { name: "Google Ads", cost: 150 }, { name: "Facebook/IG Ads", cost: 90 }], total: 450 },
-    { category: "Tools & Software", items: [{ name: "GoHighLevel", cost: 97 }, { name: "Replit", cost: 25 }, { name: "Domain & Hosting", cost: 15 }], total: 137 },
-  ];
+  const expenses: {category:string;items:{name:string;cost:number}[];total:number}[] = [];
 
   const totalExpenses = expenses.reduce((s, e) => s + e.total, 0);
 
-  const scenarios = [
-    { label: "Close 2 more deals (Starter)", revenue: "$22,500/mo", newMRR: "+$5,000" },
-    { label: "Close 1 Enterprise deal", revenue: "$27,500/mo", newMRR: "+$10,000" },
-    { label: "Upsell SecureNet to Enterprise", revenue: "$22,500/mo", newMRR: "+$5,000" },
-  ];
+  const scenarios: {label:string;revenue:string;newMRR:string}[] = [];
 
   return (
     <div className="space-y-4">
@@ -308,8 +285,8 @@ function ContractsTab({ isHuman }: { isHuman: boolean }) {
           <div className="flex items-center justify-between p-3 rounded-lg bg-crimson/5 border border-crimson/10">
             <span className="text-xs font-semibold">Monthly P&L</span>
             <div className="text-right">
-              <p className="text-xs text-success font-bold">+$16,656 profit</p>
-              <p className="text-[10px] text-muted-foreground">$17,500 MRR — ${totalExpenses} expenses</p>
+              <p className="text-xs text-success font-bold">$0 profit</p>
+              <p className="text-[10px] text-muted-foreground">$0 MRR — ${totalExpenses} expenses</p>
             </div>
           </div>
         </div>

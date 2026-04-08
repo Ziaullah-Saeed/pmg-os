@@ -127,17 +127,7 @@ export default function Marketing() {
 function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: boolean; }) {
   const createContent = useAiCreateContent();
   const [aiResult, setAiResult] = useState<any>(null);
-  const contentCalendar = [
-    { day: "Mon", channel: "LinkedIn", type: "Article", topic: "Why MSSPs Need Dedicated Marketing Partners", status: "scheduled" },
-    { day: "Mon", channel: "X/Twitter", type: "Thread", topic: "5 Signs Your Cybersecurity Company Needs Marketing Help", status: "draft" },
-    { day: "Tue", channel: "Facebook", type: "Post", topic: "Case Study: 20 Leads in 30 Days for SecureNet", status: "scheduled" },
-    { day: "Wed", channel: "LinkedIn", type: "Post", topic: "NIST Framework Marketing Angle", status: "draft" },
-    { day: "Wed", channel: "Blog", type: "Article", topic: "The Complete Guide to Marketing for Cybersecurity Companies", status: "published" },
-    { day: "Thu", channel: "Instagram", type: "Carousel", topic: "Cybersecurity Marketing Do's and Don'ts", status: "draft" },
-    { day: "Thu", channel: "Email", type: "Newsletter", topic: "Weekly Cyber Marketing Digest", status: "scheduled" },
-    { day: "Fri", channel: "LinkedIn", type: "Post", topic: "Friday Wins: Client Results This Week", status: "draft" },
-    { day: "Fri", channel: "YouTube", type: "Short", topic: "60-Second Marketing Tip for IT Companies", status: "draft" },
-  ];
+  const contentCalendar: {day:string;channel:string;type:string;topic:string;status:string}[] = [];
 
   const channelSchedule = [
     { channel: "LinkedIn", frequency: "3/week", icon: <Linkedin className="h-4 w-4" />, color: "text-blue-400" },
@@ -409,25 +399,9 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
   const [aiResult, setAiResult] = useState<any>(null);
   const [showAudit, setShowAudit] = useState(false);
 
-  const keywords = [
-    { keyword: "cybersecurity marketing agency", volume: 1200, difficulty: 45, position: 8, trend: "up" },
-    { keyword: "IT company lead generation", volume: 890, difficulty: 38, position: 12, trend: "up" },
-    { keyword: "MSP marketing services", volume: 720, difficulty: 32, position: 5, trend: "stable" },
-    { keyword: "cybersecurity SEO", volume: 540, difficulty: 28, position: 3, trend: "up" },
-    { keyword: "MSSP marketing", volume: 480, difficulty: 25, position: 15, trend: "down" },
-    { keyword: "managed security marketing", volume: 390, difficulty: 22, position: null, trend: "new" },
-    { keyword: "cybersecurity content marketing", volume: 650, difficulty: 35, position: 7, trend: "stable" },
-    { keyword: "IT services marketing agency", volume: 820, difficulty: 42, position: 18, trend: "up" },
-  ];
+  const keywords: {keyword:string;volume:number;difficulty:number;position:number|null;trend:string}[] = [];
 
-  const auditItems = [
-    { category: "Technical", issue: "Missing meta descriptions on 12 pages", priority: "high", fix: "Add unique meta descriptions targeting primary keywords" },
-    { category: "Content", issue: "Blog posts under 1000 words not ranking", priority: "high", fix: "Expand top 5 posts to 2000+ words with data and examples" },
-    { category: "Speed", issue: "Mobile page load 4.2s (target: <2.5s)", priority: "medium", fix: "Compress images, enable lazy loading, defer scripts" },
-    { category: "Backlinks", issue: "Only 23 referring domains vs competitor avg 85", priority: "high", fix: "Guest post strategy: target 5 cybersecurity publications" },
-    { category: "Schema", issue: "No FAQ schema on service pages", priority: "medium", fix: "Add FAQ structured data to top 10 service pages" },
-    { category: "Internal", issue: "Orphaned pages (6 with no internal links)", priority: "low", fix: "Add contextual links from related blog posts" },
-  ];
+  const auditItems: {category:string;issue:string;priority:string;fix:string}[] = [];
 
   return (
     <div className="space-y-4">
@@ -443,7 +417,7 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Avg Position</p>
-          <p className="text-lg font-bold text-gold">{Math.round(keywords.filter(k => k.position).reduce((s, k) => s + (k.position ?? 0), 0) / keywords.filter(k => k.position).length)}</p>
+          <p className="text-lg font-bold text-gold">{keywords.filter(k => k.position).length ? Math.round(keywords.filter(k => k.position).reduce((s, k) => s + (k.position ?? 0), 0) / keywords.filter(k => k.position).length) : 0}</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Audit Issues</p>
@@ -533,30 +507,19 @@ function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: bo
   const [aiResult, setAiResult] = useState<any>(null);
   const activeCampaigns = campaigns.filter((c: any) => c.status === "active");
 
-  const timeline = [
-    { week: "Week 1", phase: "Awareness", channels: ["LinkedIn", "Blog"], actions: ["Publish 3 thought leadership posts", "Run awareness ads", "SEO content push"], status: "active" },
-    { week: "Week 2", phase: "Engagement", channels: ["Email", "LinkedIn", "Facebook"], actions: ["Retarget blog visitors", "Send nurture sequence", "Share case studies"], status: "upcoming" },
-    { week: "Week 3", phase: "Conversion", channels: ["LinkedIn", "Google", "Email"], actions: ["Run lead gen campaigns", "Book meetings from warm leads", "Send personalized outreach"], status: "upcoming" },
-    { week: "Week 4", phase: "Analysis", channels: ["All"], actions: ["Compile performance report", "Reallocate budget to winners", "Plan next sprint"], status: "upcoming" },
-  ];
+  const timeline: {week:string;phase:string;channels:string[];actions:string[];status:string}[] = [];
 
-  const journeyStages = [
-    { stage: "Impression", count: 15200, color: "bg-blue-500" },
-    { stage: "Visit", count: 3400, color: "bg-cyan-500" },
-    { stage: "Form Fill", count: 420, color: "bg-gold" },
-    { stage: "Lead", count: 85, color: "bg-orange-500" },
-    { stage: "Meeting", count: 22, color: "bg-crimson" },
-    { stage: "Client", count: 6, color: "bg-success" },
-  ];
+  const journeyStages: {stage:string;count:number;color:string}[] = [];
 
   return (
     <div className="space-y-4">
       {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Campaign Sprint" />}
+      {journeyStages.length > 0 && (
       <GlassCard>
         <h3 className="text-sm font-semibold mb-3">Full Journey Funnel</h3>
         <div className="flex items-end gap-2 h-32">
           {journeyStages.map((stage, idx) => {
-            const maxCount = journeyStages[0].count;
+            const maxCount = journeyStages[0]?.count || 1;
             const height = Math.max(15, (stage.count / maxCount) * 100);
             return (
               <div key={stage.stage} className="flex-1 flex flex-col items-center gap-1">
@@ -569,10 +532,11 @@ function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: bo
         </div>
         <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-white/5">
           <span className="text-xs text-muted-foreground">Conversion Rate:</span>
-          <span className="text-sm font-bold text-success">{((journeyStages[journeyStages.length - 1].count / journeyStages[0].count) * 100).toFixed(2)}%</span>
+          <span className="text-sm font-bold text-success">{journeyStages.length ? ((journeyStages[journeyStages.length - 1].count / journeyStages[0].count) * 100).toFixed(2) : "0.00"}%</span>
           <span className="text-xs text-muted-foreground">end-to-end</span>
         </div>
       </GlassCard>
+      )}
 
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
@@ -639,37 +603,9 @@ function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: bo
 function CompetitorIntelTab({ isHuman }: { isHuman: boolean }) {
   const competitorIntel = useAiCompetitorIntel();
   const [aiResult, setAiResult] = useState<any>(null);
-  const competitors = [
-    {
-      name: "CyberFunnel Agency",
-      positioning: "General cybersecurity marketing",
-      strengths: ["Large team", "Enterprise clients", "Strong PPC"],
-      weaknesses: ["No lead guarantee", "Generic content", "Expensive ($8k+ minimum)"],
-      battleCard: "They can't guarantee leads. We guarantee 20 in month one. They charge 3x more for generic campaigns.",
-    },
-    {
-      name: "SecureGrowth Marketing",
-      positioning: "IT/MSP marketing specialist",
-      strengths: ["MSP niche focus", "Good SEO", "Webinar expertise"],
-      weaknesses: ["No cybersecurity depth", "Slow turnaround", "Template-based approach"],
-      battleCard: "They know MSPs but not cybersecurity buyers. Our content uses real terminology (SIEM, SOC 2, EDR) that their content misses.",
-    },
-    {
-      name: "TechMarket Pro",
-      positioning: "Tech industry marketing agency",
-      strengths: ["Wide tech coverage", "Good design", "Social media"],
-      weaknesses: ["Not specialized in cybersecurity", "No outbound capabilities", "Content sounds AI-generated"],
-      battleCard: "Generalist agency pretending to know your sector. Ask what NIST framework is and watch them stumble. We live in this space.",
-    },
-  ];
+  const competitors: {name:string;positioning:string;strengths:string[];weaknesses:string[];battleCard:string}[] = [];
 
-  const gaps = [
-    "No competitor offers a 20-lead guarantee with performance-based pricing",
-    "Most competitors use generic content that doesn't resonate with CISOs",
-    "No competitor has an integrated AI system for prospect intelligence",
-    "Competitors charge 2-4x more without measurable ROI commitments",
-    "No competitor combines outbound prospecting with inbound marketing",
-  ];
+  const gaps: string[] = [];
 
   return (
     <div className="space-y-4">

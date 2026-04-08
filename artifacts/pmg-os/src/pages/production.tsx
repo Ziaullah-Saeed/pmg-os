@@ -77,10 +77,10 @@ export default function Production() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="Active Clients" value={3} icon={<UserCheck className="h-4 w-4" />} accent="crimson" />
-        <KpiCard label="Assets Created" value={47} icon={<Image className="h-4 w-4" />} accent="gold" />
-        <KpiCard label="Pending Review" value={5} icon={<BookOpen className="h-4 w-4" />} accent="blue" />
-        <KpiCard label="Quality Score" value="94%" icon={<Star className="h-4 w-4" />} accent="success" />
+        <KpiCard label="Active Clients" value={0} icon={<UserCheck className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Assets Created" value={0} icon={<Image className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Pending Review" value={0} icon={<BookOpen className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="Quality Score" value="—" icon={<Star className="h-4 w-4" />} accent="success" />
       </div>
 
       <div className="flex gap-1 border-b border-white/5 overflow-x-auto">
@@ -127,11 +127,7 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
   const onboardClient = useAiOnboardClient();
   const auditClient = useAiAuditClient();
   const [aiResult, setAiResult] = useState<any>(null);
-  const [clientsState, setClientsState] = useState([
-    { name: "SecureNet Solutions", status: "in_progress", progress: 5, total: 7, currentStep: "Choose CRM setup", startDate: "2024-03-15" },
-    { name: "CyberGuard MSP", status: "completed", progress: 7, total: 7, currentStep: "Complete", startDate: "2024-02-01" },
-    { name: "ShieldTech IT", status: "new", progress: 1, total: 7, currentStep: "Collect brand assets", startDate: "2024-03-28" },
-  ]);
+  const [clientsState, setClientsState] = useState<{name:string;status:string;progress:number;total:number;currentStep:string;startDate:string}[]>([]);
 
   const checklistSteps = [
     { step: 1, label: "Collect brand assets (logo, colors, fonts, guidelines)", icon: <Palette className="h-3.5 w-3.5" /> },
@@ -511,12 +507,7 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
 function LeadGenTab({ isHuman }: { isHuman: boolean }) {
   const generateLeads = useAiGenerateLeads();
   const [aiResult, setAiResult] = useState<any>(null);
-  const sampleLeads = [
-    { company: "Fortress Cybersecurity", contact: "James Chen, CEO", email: "j.chen@fortresscyber.com", phone: "(512) 555-0142", score: 92, pain: "No marketing presence, losing to competitors with worse service", approach: "Reference competitor analysis showing their gap", status: "delivered" },
-    { company: "DataVault MSP", contact: "Sarah Williams, VP Sales", email: "sarah@datavaultmsp.com", phone: "(213) 555-0198", score: 88, pain: "Spending $4k/mo on ads with zero leads", approach: "Show ROI data from similar-sized MSP client", status: "delivered" },
-    { company: "CyberShield IT", contact: "Mike Torres, Founder", email: "mike@cybershieldit.io", phone: "(312) 555-0267", score: 85, pain: "Growing team but all leads from referrals only", approach: "Discuss scalable lead gen beyond referral ceiling", status: "pending_review" },
-    { company: "TrustLayer Security", contact: "Priya Patel, CMO", email: "priya@trustlayer.com", phone: "(415) 555-0334", score: 81, pain: "Website gets 200 visits/mo, competitors get 5000+", approach: "SEO audit showing quick wins for traffic growth", status: "pending_review" },
-  ];
+  const sampleLeads: {company:string;contact:string;email:string;phone:string;score:number;pain:string;approach:string;status:string}[] = [];
 
   return (
     <div className="space-y-4">
@@ -524,22 +515,22 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Leads Delivered (Month)</p>
-          <p className="text-lg font-bold text-success">14</p>
+          <p className="text-lg font-bold text-success">0</p>
           <p className="text-[9px] text-muted-foreground">Target: 20</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Avg Quality Score</p>
-          <p className="text-lg font-bold text-gold">86.5</p>
+          <p className="text-lg font-bold text-gold">—</p>
           <p className="text-[9px] text-muted-foreground">Min threshold: 80</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Meetings Booked</p>
-          <p className="text-lg font-bold text-crimson">6</p>
+          <p className="text-lg font-bold text-crimson">0</p>
           <p className="text-[9px] text-muted-foreground">From delivered leads</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Pipeline Value</p>
-          <p className="text-lg font-bold text-blue-400">$42,000</p>
+          <p className="text-lg font-bold text-blue-400">$0</p>
           <p className="text-[9px] text-muted-foreground">From generated leads</p>
         </div>
       </div>
@@ -587,10 +578,10 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
           <Target className="h-5 w-5 text-success" />
           <div className="flex-1">
             <p className="text-sm font-semibold">PMG Core Promise: 20 Ready-to-Close Leads / Month</p>
-            <p className="text-xs text-muted-foreground">14 of 20 delivered this month. Each lead scored 80+ with verified contacts and approach strategy.</p>
+            <p className="text-xs text-muted-foreground">0 of 20 delivered this month. Each lead scored 80+ with verified contacts and approach strategy.</p>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-success">70%</p>
+            <p className="text-lg font-bold text-success">0%</p>
             <p className="text-[9px] text-muted-foreground">Monthly target</p>
           </div>
         </div>
@@ -603,41 +594,7 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
   const buildCampaign = useAiBuildCampaign();
   const [aiResult, setAiResult] = useState<any>(null);
   const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
-  const [campaignsState, setCampaignsState] = useState([
-    {
-      client: "SecureNet Solutions",
-      name: "EDR Solutions LinkedIn Campaign",
-      channel: "LinkedIn Ads",
-      status: "active",
-      funnel: "Ad → Landing Page → Form → Email Nurture → Sales Call",
-      metrics: { visitors: 1240, leads: 68, meetings: 12, clients: 3 },
-      conversionRate: "5.5%",
-      budget: "$800",
-      spent: "$620",
-    },
-    {
-      client: "CyberGuard MSP",
-      name: "Google Search — Managed Security",
-      channel: "Google Ads",
-      status: "active",
-      funnel: "Search → Landing Page → Lead Capture → Retarget → Call",
-      metrics: { visitors: 890, leads: 42, meetings: 8, clients: 2 },
-      conversionRate: "4.7%",
-      budget: "$600",
-      spent: "$445",
-    },
-    {
-      client: "ShieldTech IT",
-      name: "Facebook Lead Gen — Compliance Audit",
-      channel: "Facebook Ads",
-      status: "draft",
-      funnel: "Ad → Lead Form → Email Sequence → Booking Page",
-      metrics: { visitors: 0, leads: 0, meetings: 0, clients: 0 },
-      conversionRate: "—",
-      budget: "$500",
-      spent: "$0",
-    },
-  ]);
+  const [campaignsState, setCampaignsState] = useState<{client:string;name:string;channel:string;status:string;funnel:string;metrics:{visitors:number;leads:number;meetings:number;clients:number};conversionRate:string;budget:string;spent:string}[]>([]);
 
   const handleLaunch = (campaignName: string) => {
     setCampaignsState(prev => prev.map(c =>
@@ -851,13 +808,7 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
 function ReportingTab({ isHuman }: { isHuman: boolean }) {
   const generateReport = useAiGenerateClientReport();
   const [aiResult, setAiResult] = useState<any>(null);
-  const reportSections = [
-    { name: "Lead Generation", metric: "14 leads delivered", change: "+40% vs last month", status: "positive" },
-    { name: "Content Performance", metric: "12 pieces published", change: "3.2% avg engagement", status: "positive" },
-    { name: "Campaign ROI", metric: "$42K pipeline", change: "From $2.1K ad spend = 20x ROI", status: "positive" },
-    { name: "Pipeline Progress", metric: "6 meetings booked", change: "3 proposals sent", status: "neutral" },
-    { name: "Client Satisfaction", metric: "NPS: 72", change: "Above industry avg (45)", status: "positive" },
-  ];
+  const reportSections: {name:string;metric:string;change:string;status:string}[] = [];
 
   return (
     <div className="space-y-4">
@@ -884,7 +835,7 @@ function ReportingTab({ isHuman }: { isHuman: boolean }) {
           <div className="p-2 rounded-lg glass-surface text-crimson"><BarChart3 className="h-5 w-5" /></div>
           <div>
             <p className="text-sm font-semibold">Monthly Performance Summary</p>
-            <p className="text-[10px] text-muted-foreground">SecureNet Solutions — March 2024</p>
+            <p className="text-[10px] text-muted-foreground">No clients onboarded yet</p>
           </div>
           <Badge variant="outline" className="text-[10px] text-success border-success/20 ml-auto">On Track</Badge>
         </div>
@@ -904,7 +855,7 @@ function ReportingTab({ isHuman }: { isHuman: boolean }) {
 
         <div className="mt-4 p-3 rounded-lg bg-success/5 border border-success/10">
           <p className="text-xs font-semibold text-success">ROI Summary</p>
-          <p className="text-[10px] text-muted-foreground mt-1">"$42K pipeline from $5K total spend = 8.4x ROI. On track for 20 deals promise. 3 proposals in negotiation."</p>
+          <p className="text-[10px] text-muted-foreground mt-1">No data yet. Add clients and generate leads to see performance metrics.</p>
         </div>
       </GlassCard>
 
@@ -1036,16 +987,7 @@ function LibraryTab({ isHuman }: { isHuman: boolean }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
 
-  const assets = [
-    { name: "LinkedIn Post — NIST Framework", type: "content", format: "Text", date: "Mar 28", status: "published", score: 95 },
-    { name: "SecureNet Case Study", type: "document", format: "PDF", date: "Mar 25", status: "approved", score: 92 },
-    { name: "Cyber Marketing Guide Header", type: "image", format: "PNG", date: "Mar 22", status: "approved", score: 88 },
-    { name: "Product Demo — MDR Services", type: "video", format: "MP4", date: "Mar 20", status: "in_review", score: null },
-    { name: "Monthly Newsletter — March", type: "content", format: "HTML", date: "Mar 18", status: "published", score: 90 },
-    { name: "Facebook Ad — Lead Gen Campaign", type: "image", format: "JPG", date: "Mar 15", status: "approved", score: 85 },
-    { name: "SOC 2 Compliance Infographic", type: "image", format: "PNG", date: "Mar 12", status: "draft", score: null },
-    { name: "Proposal Template — Growth Tier", type: "document", format: "PDF", date: "Mar 10", status: "approved", score: 94 },
-  ];
+  const assets: {name:string;type:string;format:string;date:string;status:string;score:number|null}[] = [];
 
   const types = ["all", "content", "image", "video", "document"];
 
@@ -1130,13 +1072,7 @@ function LibraryTab({ isHuman }: { isHuman: boolean }) {
 function QualityTab({ isHuman }: { isHuman: boolean }) {
   const auditClient = useAiAuditClient();
   const [aiResult, setAiResult] = useState<any>(null);
-  const [reviewItems, setReviewItems] = useState([
-    { name: "LinkedIn Post — EDR vs MDR Comparison", type: "content", score: "Ready to Publish", issues: [] as string[], details: "Human tone verified. Correct terminology. 1,200 characters — within LinkedIn limits." },
-    { name: "Product Demo — MDR Services", type: "video", score: "Needs Minor Edits", issues: ["Audio volume inconsistent at 0:42-0:55", "End card missing PMG logo"], details: "Content accurate. Brand colors correct. Good pacing." },
-    { name: "SOC 2 Compliance Infographic", type: "image", score: "Needs Rewrite", issues: ["SOC 2 Type I vs Type II distinction incorrect", "Color scheme doesn't match brand guide", "Font is not Inter"], details: "Factual error in compliance flow. Visual brand violations." },
-    { name: "Email Sequence — Nurture Week 2", type: "content", score: "Ready to Publish", issues: [] as string[], details: "CAN-SPAM compliant. Unsubscribe link present. No AI-sounding phrases. Strong CTA." },
-    { name: "Facebook Ad — Lead Gen V2", type: "image", score: "Needs Minor Edits", issues: ["Text exceeds 20% of image area (Facebook will limit reach)"], details: "Design strong. Copy compelling. Just needs text area reduction." },
-  ]);
+  const [reviewItems, setReviewItems] = useState<{name:string;type:string;score:string;issues:string[];details:string}[]>([]);
 
   const handleApprove = (name: string) => {
     setReviewItems(prev => prev.map(item =>

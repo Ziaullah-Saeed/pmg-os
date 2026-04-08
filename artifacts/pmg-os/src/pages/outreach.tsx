@@ -477,24 +477,16 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
   const [replyDraft, setReplyDraft] = useState("");
 
   const channels = [
-    { name: "LinkedIn", icon: <Linkedin className="h-4 w-4" />, unread: 3, color: "text-blue-400", connected: true },
-    { name: "Email", icon: <Mail className="h-4 w-4" />, unread: 7, color: "text-crimson", connected: true },
-    { name: "Facebook", icon: <Facebook className="h-4 w-4" />, unread: 1, color: "text-blue-500", connected: true },
+    { name: "LinkedIn", icon: <Linkedin className="h-4 w-4" />, unread: 0, color: "text-blue-400", connected: true },
+    { name: "Email", icon: <Mail className="h-4 w-4" />, unread: 0, color: "text-crimson", connected: true },
+    { name: "Facebook", icon: <Facebook className="h-4 w-4" />, unread: 0, color: "text-blue-500", connected: true },
     { name: "X (Twitter)", icon: <Twitter className="h-4 w-4" />, unread: 0, color: "text-foreground", connected: true },
-    { name: "Instagram", icon: <Instagram className="h-4 w-4" />, unread: 2, color: "text-pink-400", connected: false },
+    { name: "Instagram", icon: <Instagram className="h-4 w-4" />, unread: 0, color: "text-pink-400", connected: false },
     { name: "Slack", icon: <Slack className="h-4 w-4" />, unread: 0, color: "text-purple-400", connected: false },
-    { name: "Website Forms", icon: <FileText className="h-4 w-4" />, unread: 1, color: "text-green-400", connected: true },
+    { name: "Website Forms", icon: <FileText className="h-4 w-4" />, unread: 0, color: "text-green-400", connected: true },
   ];
 
-  const messages = [
-    { id: 1, channel: "LinkedIn", from: "Sarah Chen, CISO", company: "CyberShield Corp", subject: "Re: Marketing partnership for SOC 2 services", time: "2h ago", type: "reply", priority: "high", classification: "Hot Lead", body: "Hi, I'd like to learn more about your marketing services. We need help promoting our SOC 2 compliance solutions. Can we schedule a call this week?" },
-    { id: 2, channel: "Email", from: "Mike Johnson, VP Marketing", company: "SecureNet Solutions", subject: "Interested in cybersecurity marketing services", time: "3h ago", type: "inbound", priority: "high", classification: "Hot Lead", body: "We saw your case study about EDR vendor marketing. Our company provides MDR services and we're struggling to generate qualified leads. What packages do you offer?" },
-    { id: 3, channel: "LinkedIn", from: "David Lee, CTO", company: "ThreatBlock Inc", subject: "Connection request accepted — open to chat", time: "5h ago", type: "notification", priority: "medium", classification: "Warm", body: "Thanks for connecting! I saw your post about SIEM marketing strategies. Interesting approach." },
-    { id: 4, channel: "Email", from: "Lisa Wang, Director", company: "DataGuard Pro", subject: "Follow up on our call last week", time: "1d ago", type: "follow-up", priority: "medium", classification: "Warm", body: "Hi, just following up on our conversation. We're still evaluating marketing partners. Can you send over the Growth package details?" },
-    { id: 5, channel: "Website Forms", from: "Alex Rivera", company: "CyberVault Solutions", subject: "Contact form: Need marketing help", time: "1d ago", type: "inbound", priority: "medium", classification: "Warm", body: "Looking for a marketing agency that understands cybersecurity. We offer XDR solutions." },
-    { id: 6, channel: "Facebook", from: "Tom Roberts", company: "NetDefense Corp", subject: "Comment on your EDR marketing post", time: "2d ago", type: "engagement", priority: "low", classification: "Cold", body: "Great insights on EDR marketing. Do you work with smaller cybersecurity startups?" },
-    { id: 7, channel: "Email", from: "newsletter@techconf.com", company: "", subject: "Upcoming Cybersecurity Conference", time: "2d ago", type: "inbound", priority: "low", classification: "Spam", body: "Register now for the 2026 cybersecurity conference..." },
-  ];
+  const messages: {id:number;channel:string;from:string;company:string;subject:string;time:string;type:string;priority:string;classification:string;body:string}[] = [];
 
   const getClassBadge = (cls: string) => {
     if (cls === "Hot Lead") return "bg-crimson/20 text-crimson border-crimson/30";
