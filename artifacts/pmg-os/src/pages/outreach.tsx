@@ -434,9 +434,15 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                 <Button variant="outline" className="text-sm flex-1" onClick={() => { setSelectedLead(null); onTabChange("strategy"); }}>
                   <Target className="h-4 w-4 mr-2" />Plan Approach
                 </Button>
-                <Button variant="outline" className="text-sm" onClick={() => handleMoveToCrm(selectedLead.id)}>
-                  <ArrowRight className="h-4 w-4 mr-2" />Move to CRM
-                </Button>
+                {["qualified","routing","routed","active","closed_won","closed_lost"].includes(selectedLead.status) ? (
+                  <Button variant="outline" className="text-sm opacity-60" disabled>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />In CRM
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="text-sm" onClick={() => handleMoveToCrm(selectedLead.id)}>
+                    <ArrowRight className="h-4 w-4 mr-2" />Move to CRM
+                  </Button>
+                )}
               </div>
             </DialogContent>
           </Dialog>

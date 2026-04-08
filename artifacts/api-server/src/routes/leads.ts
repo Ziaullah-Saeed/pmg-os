@@ -293,7 +293,12 @@ router.patch("/leads/:id", async (req, res): Promise<void> => {
           routing: "routed",
           routed: "active",
         };
-        if (targetStatus === "qualified" && (currentStatus === "new" || currentStatus === "enriched" || currentStatus === "scored")) {
+        const alreadyPastQualified = ["qualified", "routing", "routed", "active", "closed_won", "closed_lost"].includes(currentStatus);
+        if (targetStatus === "qualified" && alreadyPastQualified) {
+          const [existingLead] = await db.select().from(leadsTable).where(eq(leadsTable.id, params.data.id));
+          res.json(existingLead);
+          return;
+        } else if (targetStatus === "qualified" && (currentStatus === "new" || currentStatus === "enriched" || currentStatus === "scored")) {
           let stepStatus = currentStatus;
           while (stepStatus !== "qualified" && progressionPath[stepStatus]) {
             const nextStep = progressionPath[stepStatus];
