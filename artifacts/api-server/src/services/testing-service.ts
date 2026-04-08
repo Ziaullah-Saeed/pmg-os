@@ -5,7 +5,6 @@ import { logAudit } from "./audit-service";
 
 let dummyModeEnabled = process.env.NODE_ENV !== "production";
 const dummyResponses = new Map<string, (input: Record<string, any>) => Record<string, any>>();
-const rotationCounters = new Map<string, number>();
 const testResults: TestRunResult[] = [];
 const MAX_HISTORY = 500;
 
@@ -32,97 +31,35 @@ export type TestSuiteResult = {
   timestamp: Date;
 };
 
-const DUMMY_AI_RESPONSES: Record<string, string[]> = {
-  "ai-enrich-lead": [
-    JSON.stringify({
-      companySize: "120 employees",
-      industry: "Cybersecurity — Managed Detection & Response",
-      technologies: ["CrowdStrike Falcon", "Splunk SIEM", "Azure Sentinel", "Palo Alto Networks"],
-      revenue: "$15M-$25M ARR",
-      founded: "2018",
-      headquarters: "Austin, TX",
-      certifications: ["SOC 2 Type II", "ISO 27001", "FedRAMP Moderate"],
-      recentNews: "Closed $18M Series B in Q3. Expanding into federal vertical.",
-      techStack: { website: "WordPress + HubSpot", ads: "Google Ads (limited)", social: "LinkedIn only" },
-      marketingMaturity: "Early stage — no dedicated content team, relying on referrals and one SDR",
-      growthPotential: "High — strong product but under-investing in demand gen. Perfect fit for PMG full-stack marketing.",
-    }),
-    JSON.stringify({
-      companySize: "280 employees",
-      industry: "Cybersecurity — Cloud Security / CASB",
-      technologies: ["Zscaler", "Okta", "AWS Security Hub", "Datadog SIEM"],
-      revenue: "$35M-$50M ARR",
-      founded: "2016",
-      headquarters: "Denver, CO",
-      certifications: ["SOC 2 Type II", "ISO 27001", "HIPAA Compliant"],
-      recentNews: "Launched FedRAMP authorization process. Hired new CRO from Palo Alto Networks.",
-      techStack: { website: "Next.js + Marketo", ads: "LinkedIn Ads + Google Ads", social: "LinkedIn + Twitter" },
-      marketingMaturity: "Mid-stage — has in-house designer but no content strategy. Running ads without landing page optimization.",
-      growthPotential: "Very high — rapid headcount growth signals expansion intent. Content gap is massive relative to competitors.",
-    }),
-    JSON.stringify({
-      companySize: "55 employees",
-      industry: "Cybersecurity — Vulnerability Management",
-      technologies: ["Tenable Nessus", "Qualys", "ServiceNow ITSM", "Elastic SIEM"],
-      revenue: "$5M-$8M ARR",
-      founded: "2020",
-      headquarters: "Raleigh, NC",
-      certifications: ["SOC 2 Type I (in progress)", "NIST 800-53 aligned"],
-      recentNews: "Won CISA contract for vulnerability disclosure platform. Seed+ round closing.",
-      techStack: { website: "Static HTML site — no CMS", ads: "None", social: "Minimal LinkedIn" },
-      marketingMaturity: "Very early — founder-led sales only. No marketing hire yet. Website hasn't been updated in 8 months.",
-      growthPotential: "Excellent — government contract validates product. Desperately needs marketing infrastructure. Starter tier perfect fit.",
-    }),
-  ],
-  "ai-score-lead": [
-    JSON.stringify({
-      fitScore: 82,
-      confidenceScore: 88,
-      reasoning: "Strong ICP alignment: mid-market MDR provider, SOC 2 certified, recently funded, and actively hiring sales reps — indicating growth intent. Marketing maturity is low (WordPress + basic Google Ads), which means high ROI potential from our services. Decision-maker is VP Marketing, accessible via LinkedIn.",
-      recommendation: "Priority prospect. Route to outreach queue with a case-study-led approach. Reference their recent Series B and how PMG helped similar MDR companies generate 20+ qualified leads per month.",
-      riskFactors: ["May have vendor lock-in with HubSpot agency", "Budget cycle resets in Q1"],
-    }),
-    JSON.stringify({
-      fitScore: 91,
-      confidenceScore: 94,
-      reasoning: "Exceptional ICP fit: cloud security company in hyper-growth phase (280 employees, Series C). Marketing team exists but has no cybersecurity-specific content strategy. Currently spending $8K/mo on Google Ads with 1.8% conversion — PMG can dramatically improve ROI. CRO is a known champion for agency partnerships.",
-      recommendation: "Fast-track to proposal. This is a Growth-to-Enterprise tier prospect ($5K-$10K/mo). Lead with competitor content gap analysis showing how their competitors outrank them on 40+ keywords.",
-      riskFactors: ["May already be evaluating another specialized agency", "Internal marketing team might resist external help"],
-    }),
-    JSON.stringify({
-      fitScore: 68,
-      confidenceScore: 75,
-      reasoning: "Moderate ICP fit: early-stage vulnerability management company with government contract validation. Very small team (55 employees) limits budget but government contract signals credibility and growth intent. No marketing infrastructure at all — everything needs to be built from scratch.",
-      recommendation: "Starter tier candidate ($2,500/mo). Position PMG as the marketing team they haven't hired yet. Emphasize the 90-day pilot and the fact that we can build their entire funnel while they focus on product.",
-      riskFactors: ["Very limited budget — may push back on even Starter pricing", "Founder may want to control messaging tightly", "Long government sales cycles may limit short-term results"],
-    }),
-  ],
-  "ai-score-company": [
-    JSON.stringify({
-      fitScore: 85,
-      industryMatch: "Cybersecurity — Direct ICP match",
-      sizeMatch: "Mid-market (120 employees) — sweet spot for PMG services",
-      marketingGap: "No inbound engine, weak SEO, no thought leadership content",
-      competitorPresence: "Currently working with a freelance designer only",
-      recommendation: "High-priority target. Their growth trajectory and marketing gaps make them an ideal PMG client at the Growth tier ($5,000/mo).",
-    }),
-    JSON.stringify({
-      fitScore: 92,
-      industryMatch: "Cybersecurity — Cloud Security — Direct ICP match",
-      sizeMatch: "Upper mid-market (280 employees) — Enterprise tier candidate",
-      marketingGap: "Has marketing team but no cybersecurity content expertise. Running generic B2B playbook.",
-      competitorPresence: "Working with generalist agency — unhappy with lead quality",
-      recommendation: "Top-priority target. Dissatisfaction with current agency creates immediate opening. Enterprise tier ($10,000/mo) justified by company size and pipeline goals.",
-    }),
-    JSON.stringify({
-      fitScore: 71,
-      industryMatch: "Cybersecurity — Vulnerability Management — Direct ICP match",
-      sizeMatch: "Small (55 employees) — Starter tier fit",
-      marketingGap: "No marketing function at all. Static website, no social, no ads, no content.",
-      competitorPresence: "No current agency — entirely founder-led sales",
-      recommendation: "Good fit for Starter tier ($2,500/mo). They need everything, which means high dependency but also high impact. Government contract is a strong proof point for case studies.",
-    }),
-  ],
+const DUMMY_AI_RESPONSES: Record<string, string> = {
+  "ai-enrich-lead": JSON.stringify({
+    companySize: "120 employees",
+    industry: "Cybersecurity — Managed Detection & Response",
+    technologies: ["CrowdStrike Falcon", "Splunk SIEM", "Azure Sentinel", "Palo Alto Networks"],
+    revenue: "$15M-$25M ARR",
+    founded: "2018",
+    headquarters: "Austin, TX",
+    certifications: ["SOC 2 Type II", "ISO 27001", "FedRAMP Moderate"],
+    recentNews: "Closed $18M Series B in Q3. Expanding into federal vertical.",
+    techStack: { website: "WordPress + HubSpot", ads: "Google Ads (limited)", social: "LinkedIn only" },
+    marketingMaturity: "Early stage — no dedicated content team, relying on referrals and one SDR",
+    growthPotential: "High — strong product but under-investing in demand gen. Perfect fit for PMG full-stack marketing.",
+  }),
+  "ai-score-lead": JSON.stringify({
+    fitScore: 82,
+    confidenceScore: 88,
+    reasoning: "Strong ICP alignment: mid-market MDR provider, SOC 2 certified, recently funded, and actively hiring sales reps — indicating growth intent. Marketing maturity is low (WordPress + basic Google Ads), which means high ROI potential from our services. Decision-maker is VP Marketing, accessible via LinkedIn.",
+    recommendation: "Priority prospect. Route to outreach queue with a case-study-led approach. Reference their recent Series B and how PMG helped similar MDR companies generate 20+ qualified leads per month.",
+    riskFactors: ["May have vendor lock-in with HubSpot agency", "Budget cycle resets in Q1"],
+  }),
+  "ai-score-company": JSON.stringify({
+    fitScore: 85,
+    industryMatch: "Cybersecurity — Direct ICP match",
+    sizeMatch: "Mid-market (120 employees) — sweet spot for PMG services",
+    marketingGap: "No inbound engine, weak SEO, no thought leadership content",
+    competitorPresence: "Currently working with a freelance designer only",
+    recommendation: "High-priority target. Their growth trajectory and marketing gaps make them an ideal PMG client at the Growth tier ($5,000/mo).",
+  }),
   "ai-generate-report": "## Monthly Performance Report\n\n### Executive Summary\nThis month showed strong pipeline momentum with 18 qualified leads delivered against the 20-lead target. Three proposals are in negotiation stage totaling $187,500 in potential ARR.\n\n### Key Metrics\n- **Leads Delivered:** 18 of 20 target (90%)\n- **Pipeline Value:** $312,000 across 7 active opportunities\n- **Conversion Rate:** 28% from MQL to SQL\n- **Avg Deal Size:** $44,571\n- **Content Published:** 6 blog posts, 2 whitepapers, 14 LinkedIn posts\n- **Ad Spend:** $3,200 → $48,000 pipeline (15x ROI)\n\n### Channel Breakdown\n| Channel | Leads | Cost/Lead | Quality Score |\n|---------|-------|-----------|---------------|\n| LinkedIn Outreach | 8 | $0 (organic) | 87 |\n| Google Ads | 5 | $640 | 72 |\n| Content/SEO | 3 | $0 (owned) | 91 |\n| Referral | 2 | $0 | 95 |\n\n### Recommendations\n1. Double down on LinkedIn thought leadership — highest quality leads at zero cost\n2. Add SIEM/XDR-specific landing pages to capture long-tail search traffic\n3. Launch a \"CISO Roundtable\" webinar series to accelerate mid-funnel deals\n4. Consider retargeting ads for prospects who downloaded the MDR whitepaper",
   "ai-review-contract": JSON.stringify({
     riskScore: 38,
