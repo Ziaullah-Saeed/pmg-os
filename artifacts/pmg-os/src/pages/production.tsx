@@ -26,7 +26,7 @@ import {
   Play, Pause, BarChart3, TrendingUp, Zap, Check,
   Phone, Globe, Mail, Camera, Film, FileImage,
   Megaphone, Target, Award, AlertCircle, ChevronRight,
-  Bot, Hand, Copy
+  Bot, Hand, Copy, ClipboardList
 } from "lucide-react";
 
 const tabs = [
@@ -348,7 +348,7 @@ function CreativeTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean })
     { type: "Case Studies", formats: "PDF, Web", icon: <Award className="h-4 w-4" /> },
     { type: "White Papers", formats: "PDF", icon: <BookOpen className="h-4 w-4" /> },
     { type: "One-Pagers", formats: "PDF, PNG", icon: <Layers className="h-4 w-4" /> },
-    { type: "Pitch Decks", formats: "PDF, PPTX", icon: <Clipboard className="h-4 w-4" /> },
+    { type: "Pitch Decks", formats: "PDF, PPTX", icon: <ClipboardList className="h-4 w-4" /> },
   ];
 
   const handleGenerate = () => {
