@@ -94,7 +94,7 @@ export function getToolCost(tool: string): number {
 export async function getWalletBalance(): Promise<{ balance: number; reservedBalance: number; availableBalance: number; id: number }> {
   const rows = await db.select().from(walletTable).limit(1);
   if (rows.length === 0) {
-    const [w] = await db.insert(walletTable).values({ balance: "100.0000", reservedBalance: "0.0000" }).returning();
+    const [w] = await db.insert(walletTable).values({ balance: "355.0200", reservedBalance: "0.0000" }).returning();
     return { balance: Number(w.balance), reservedBalance: Number(w.reservedBalance), availableBalance: Number(w.balance), id: w.id };
   }
   const bal = Number(rows[0].balance);
