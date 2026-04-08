@@ -23,9 +23,17 @@ import {
   VolumeX,
   Maximize2,
   Minimize2,
+  Bot,
+  Eye,
+  Hand,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  Info,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,84 +42,90 @@ import { AiModeToggle } from "@/components/ai-mode-toggle";
 import { WalletDisplay } from "@/components/wallet-display";
 import { GlobalSearch } from "@/components/global-search";
 import { useAuth } from "@/hooks/use-auth";
+import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { ModeIndicatorBanner } from "@/components/mode-aware-wrapper";
 
 interface GuideStep {
   heading: string;
   description: string;
   mockup: { type: "kanban" | "table" | "cards" | "form" | "chart" | "checklist" | "inbox" | "dashboard"; items: string[] };
+  modeTips?: {
+    ai_auto: string;
+    hybrid: string;
+    human: string;
+  };
 }
 
 const guideContent: Record<string, { title: string; steps: GuideStep[] }> = {
   "/outreach": {
     title: "Outreach Guide",
     steps: [
-      { heading: "Find Prospects", description: "Use the Prospect Finder tab to search for cybersecurity companies. AI scores each prospect on fit and accessibility.", mockup: { type: "table", items: ["CyberShield Corp — Score: 92", "SecureNet Solutions — Score: 87", "DefendX Technologies — Score: 84", "CyberVault Inc — Score: 78"] } },
-      { heading: "Social Command Center", description: "Monitor all connected channels (LinkedIn, Email, Facebook) from a unified inbox. Messages are auto-classified by intent.", mockup: { type: "inbox", items: ["LinkedIn: New connection request from CISO", "Email: Re: Cybersecurity marketing proposal", "Facebook: Comment on your SOC 2 post", "LinkedIn: Message from VP of Sales"] } },
-      { heading: "Plan Approach", description: "AI creates a multi-channel strategy for each prospect — which channel to use first, what sequence to follow.", mockup: { type: "checklist", items: ["Day 1: LinkedIn connection request", "Day 3: Follow-up with value post", "Day 7: Email with case study", "Day 14: Direct message pitch"] } },
-      { heading: "Compose Messages", description: "AI drafts personalized messages referencing the prospect's specific business details. Every message sounds human.", mockup: { type: "form", items: ["To: john@cybershield.com", "Subject: Your SIEM marketing gaps", "Body: Hi John, I noticed CyberShield...", "[AI Draft] [Edit] [Send]"] } },
-      { heading: "Follow-ups", description: "Track all outreach attempts. AI schedules follow-ups and escalates across channels when one goes cold.", mockup: { type: "table", items: ["CyberShield — Attempt 3 — Email — Pending", "SecureNet — Attempt 1 — LinkedIn — Replied", "DefendX — Attempt 2 — Email — No Reply", "CyberVault — Attempt 1 — LinkedIn — Sent"] } },
-      { heading: "Review Analytics", description: "See reply rates, open rates, and conversions per channel. Get data-driven recommendations to improve.", mockup: { type: "chart", items: ["LinkedIn: 34% reply rate", "Email: 22% open rate", "Facebook: 12% engagement", "Overall: 8 meetings booked"] } },
+      { heading: "Find Prospects", description: "Use the Prospect Finder tab to search for cybersecurity companies. AI scores each prospect on fit and accessibility.", mockup: { type: "table", items: ["CyberShield Corp — Score: 92", "SecureNet Solutions — Score: 87", "DefendX Technologies — Score: 84", "CyberVault Inc — Score: 78"] }, modeTips: { ai_auto: "AI automatically finds and ranks prospects. Click 'Find Prospects' and results appear instantly.", hybrid: "AI prepares prospect lists for your review. You approve before any outreach begins.", human: "Use 'Create Lead' to enter prospects manually. AI prospecting is disabled in this mode." } },
+      { heading: "Social Command Center", description: "Monitor all connected channels (LinkedIn, Email, Facebook) from a unified inbox. Messages are auto-classified by intent.", mockup: { type: "inbox", items: ["LinkedIn: New connection request from CISO", "Email: Re: Cybersecurity marketing proposal", "Facebook: Comment on your SOC 2 post", "LinkedIn: Message from VP of Sales"] }, modeTips: { ai_auto: "AI auto-classifies messages (Hot/Warm/Cold/Spam) and drafts responses. You review before sending.", hybrid: "AI classifies and drafts, but flags uncertain items for your review.", human: "Messages are shown without AI classification. You manually triage and respond." } },
+      { heading: "Plan Approach", description: "AI creates a multi-channel strategy for each prospect — which channel to use first, what sequence to follow.", mockup: { type: "checklist", items: ["Day 1: LinkedIn connection request", "Day 3: Follow-up with value post", "Day 7: Email with case study", "Day 14: Direct message pitch"] }, modeTips: { ai_auto: "AI generates complete approach strategies automatically per prospect.", hybrid: "AI drafts strategy plans that you can modify before execution.", human: "Strategy planning is manual. Use this tab as a reference for best practices." } },
+      { heading: "Compose Messages", description: "AI drafts personalized messages referencing the prospect's specific business details. Every message sounds human.", mockup: { type: "form", items: ["To: john@cybershield.com", "Subject: Your SIEM marketing gaps", "Body: Hi John, I noticed CyberShield...", "[AI Draft] [Edit] [Send]"] }, modeTips: { ai_auto: "AI writes fully personalized messages per channel. You review and click Send.", hybrid: "AI provides drafts with confidence scores. High-confidence drafts are ready; low-confidence need editing.", human: "Compose all messages yourself. Template suggestions are available as starting points." } },
+      { heading: "Follow-ups", description: "Track all outreach attempts. AI schedules follow-ups and escalates across channels when one goes cold.", mockup: { type: "table", items: ["CyberShield — Attempt 3 — Email — Pending", "SecureNet — Attempt 1 — LinkedIn — Replied", "DefendX — Attempt 2 — Email — No Reply", "CyberVault — Attempt 1 — LinkedIn — Sent"] }, modeTips: { ai_auto: "AI automatically schedules follow-ups and escalates (LinkedIn → Email → Phone).", hybrid: "AI suggests follow-up timing and channel. You confirm before it sends.", human: "Manually track and schedule your follow-ups. Reminders are time-based only." } },
+      { heading: "Review Analytics", description: "See reply rates, open rates, and conversions per channel. Get data-driven recommendations to improve.", mockup: { type: "chart", items: ["LinkedIn: 34% reply rate", "Email: 22% open rate", "Facebook: 12% engagement", "Overall: 8 meetings booked"] }, modeTips: { ai_auto: "AI applies optimization recommendations automatically based on performance data.", hybrid: "AI recommends changes. Click 'Apply' to accept or modify the recommendation.", human: "View raw analytics data. All strategy changes require your manual action." } },
     ],
   },
   "/crm": {
     title: "CRM Guide",
     steps: [
-      { heading: "Pipeline View", description: "See all deals in a Kanban board across stages: New Lead, Meeting Set, Discovery, Proposal, Negotiation, Won/Lost.", mockup: { type: "kanban", items: ["New Lead (4)", "Meeting Set (2)", "Discovery (3)", "Proposal (1)", "Won (2)"] } },
-      { heading: "Lead Scoring", description: "Every lead is scored on 5 dimensions: Company Fit, Marketing Need, Budget, Timing, and Authority. Only 80+ leads are Hot.", mockup: { type: "cards", items: ["Company Fit: 95/100", "Marketing Need: 88/100", "Budget: 72/100", "Timing: 90/100", "Authority: 85/100"] } },
-      { heading: "Call Intelligence", description: "Before calls: get briefings and coaching cards. After calls: upload transcripts for AI analysis and follow-up drafts.", mockup: { type: "cards", items: ["Pre-Call Briefing ready", "3 Objection responses loaded", "Competitor battle card: CrowdStrike", "Post-call: Upload transcript"] } },
-      { heading: "Proposals", description: "Generate customized proposals with pricing tiers, timelines, and case studies. Track: Sent, Viewed, Accepted.", mockup: { type: "table", items: ["Starter $2,500/mo — Sent", "Growth $5,000/mo — Viewed", "Enterprise $10,000/mo — Draft", "Custom Bundle — Accepted"] } },
-      { heading: "CRM Sync", description: "Connect to GoHighLevel (main + sub-accounts) and HubSpot for bidirectional sync of leads and deals.", mockup: { type: "cards", items: ["GoHighLevel Main: Connected", "GHL Sub-Account: 3 synced", "HubSpot: 12 leads synced", "Last sync: 2 min ago"] } },
+      { heading: "Pipeline View", description: "See all deals in a Kanban board across stages: New Lead, Meeting Set, Discovery, Proposal, Negotiation, Won/Lost.", mockup: { type: "kanban", items: ["New Lead (4)", "Meeting Set (2)", "Discovery (3)", "Proposal (1)", "Won (2)"] }, modeTips: { ai_auto: "AI auto-advances deals between stages based on activity signals and engagement.", hybrid: "AI suggests stage changes with 'Auto-Advanced' or 'Review Required' badges.", human: "Move deals manually between stages. Health indicators still show." } },
+      { heading: "Lead Scoring", description: "Every lead is scored on 5 dimensions: Company Fit, Marketing Need, Budget, Timing, and Authority. Only 80+ leads are Hot.", mockup: { type: "cards", items: ["Company Fit: 95/100", "Marketing Need: 88/100", "Budget: 72/100", "Timing: 90/100", "Authority: 85/100"] }, modeTips: { ai_auto: "AI scores all leads automatically and routes Hot leads directly to pipeline.", hybrid: "AI scores leads but waits for your confirmation before routing.", human: "Lead scores are shown from initial data. No AI re-scoring in this mode." } },
+      { heading: "Call Intelligence", description: "Before calls: get briefings and coaching cards. After calls: upload transcripts for AI analysis and follow-up drafts.", mockup: { type: "cards", items: ["Pre-Call Briefing ready", "3 Objection responses loaded", "Competitor battle card: CrowdStrike", "Post-call: Upload transcript"] }, modeTips: { ai_auto: "AI generates full briefings and post-call analysis with auto-drafted follow-ups.", hybrid: "AI prepares briefings and analysis. Follow-up drafts need your review.", human: "Upload transcripts for reference. Briefings and coaching cards are not auto-generated." } },
+      { heading: "Proposals", description: "Generate customized proposals with pricing tiers, timelines, and case studies. Track: Sent, Viewed, Accepted.", mockup: { type: "table", items: ["Starter $2,500/mo — Sent", "Growth $5,000/mo — Viewed", "Enterprise $10,000/mo — Draft", "Custom Bundle — Accepted"] }, modeTips: { ai_auto: "AI generates full proposals customized to the prospect. You review before sending.", hybrid: "AI drafts proposals with suggested pricing. You customize and approve.", human: "Build proposals manually using the pricing tiers as a guide." } },
+      { heading: "CRM Sync", description: "Connect to GoHighLevel (main + sub-accounts) and HubSpot for bidirectional sync of leads and deals.", mockup: { type: "cards", items: ["GoHighLevel Main: Connected", "GHL Sub-Account: 3 synced", "HubSpot: 12 leads synced", "Last sync: 2 min ago"] }, modeTips: { ai_auto: "Sync runs continuously. All deal updates push to GHL/HubSpot in real-time.", hybrid: "Sync runs on schedule. Errors are flagged for your review.", human: "Manual sync only. Click 'Sync Now' to push updates to external CRMs." } },
     ],
   },
   "/marketing": {
     title: "Marketing Guide",
     steps: [
-      { heading: "Content Strategy", description: "Plan content across all channels: LinkedIn (3/week), Blog (2/month), Social (5/week), YouTube, Email newsletter.", mockup: { type: "cards", items: ["LinkedIn: 3 posts/week", "Blog: 2 articles/month", "Social: 5 posts/week", "YouTube: 2 videos/month"] } },
-      { heading: "Campaigns", description: "Create ad campaigns for Facebook, LinkedIn, Google. AI prepares everything — you review and launch manually.", mockup: { type: "table", items: ["SOC 2 Awareness — Facebook — Active", "SIEM Solutions — LinkedIn — Draft", "MDR Services — Google — Paused", "EDR Buyers — LinkedIn — Active"] } },
-      { heading: "SEO & Growth", description: "Keyword research, website audit, ranking tracking. Focus on cybersecurity marketing niche keywords.", mockup: { type: "chart", items: ["cybersecurity marketing: #3", "SIEM vendor marketing: #7", "SOC 2 compliance ads: #12", "Domain Authority: 42"] } },
-      { heading: "Campaign Orchestrator", description: "Coordinate multi-channel campaigns. Track full journey from impression to closed client.", mockup: { type: "checklist", items: ["Ad Impression → Click", "Landing Page → Form Fill", "Email Nurture → 3 touches", "Sales Call → Close"] } },
-      { heading: "Competitor Intel", description: "Monitor competitor agencies. Get battle cards for sales calls. Identify gaps PMG can exploit.", mockup: { type: "cards", items: ["Competitor A: Weak in SIEM", "Competitor B: No SOC 2 focus", "Gap: Cybersec-only niche", "PMG Advantage: 20-lead promise"] } },
+      { heading: "Content Strategy", description: "Plan content across all channels: LinkedIn (3/week), Blog (2/month), Social (5/week), YouTube, Email newsletter.", mockup: { type: "cards", items: ["LinkedIn: 3 posts/week", "Blog: 2 articles/month", "Social: 5 posts/week", "YouTube: 2 videos/month"] }, modeTips: { ai_auto: "AI auto-generates a weekly content calendar and writes drafts for each slot.", hybrid: "AI suggests content topics and schedules. You approve and edit before publishing.", human: "Plan your content calendar manually. Use the channel breakdown as a guide." } },
+      { heading: "Campaigns", description: "Create ad campaigns for Facebook, LinkedIn, Google. AI prepares everything — you review and launch manually.", mockup: { type: "table", items: ["SOC 2 Awareness — Facebook — Active", "SIEM Solutions — LinkedIn — Draft", "MDR Services — Google — Paused", "EDR Buyers — LinkedIn — Active"] }, modeTips: { ai_auto: "AI builds complete campaign packages (copy, targeting, budget). You launch manually.", hybrid: "AI drafts campaigns. You review targeting and copy before launch.", human: "Build campaigns from scratch. Templates available for each platform." } },
+      { heading: "SEO & Growth", description: "Keyword research, website audit, ranking tracking. Focus on cybersecurity marketing niche keywords.", mockup: { type: "chart", items: ["cybersecurity marketing: #3", "SIEM vendor marketing: #7", "SOC 2 compliance ads: #12", "Domain Authority: 42"] }, modeTips: { ai_auto: "AI runs SEO audits automatically and generates fix plans with content suggestions.", hybrid: "AI runs audits on request. Fix plans require your approval before execution.", human: "View ranking data manually. SEO audit button is not available in this mode." } },
+      { heading: "Campaign Orchestrator", description: "Coordinate multi-channel campaigns. Track full journey from impression to closed client.", mockup: { type: "checklist", items: ["Ad Impression → Click", "Landing Page → Form Fill", "Email Nurture → 3 touches", "Sales Call → Close"] }, modeTips: { ai_auto: "AI coordinates all campaign channels and optimizes spend automatically.", hybrid: "AI suggests campaign plans. You confirm the timeline and budget allocation.", human: "Plan multi-channel campaigns manually. Journey tracking is view-only." } },
+      { heading: "Competitor Intel", description: "Monitor competitor agencies. Get battle cards for sales calls. Identify gaps PMG can exploit.", mockup: { type: "cards", items: ["Competitor A: Weak in SIEM", "Competitor B: No SOC 2 focus", "Gap: Cybersec-only niche", "PMG Advantage: 20-lead promise"] }, modeTips: { ai_auto: "AI scans competitors weekly and auto-updates battle cards.", hybrid: "AI runs scans on request. You review findings before sharing with sales.", human: "Competitor data is static. Click 'Refresh' is not available in this mode." } },
     ],
   },
   "/production": {
     title: "Production Guide",
     steps: [
-      { heading: "Client Onboarding", description: "Step-by-step checklist: collect brand assets, get access, define audience, set goals, choose CRM.", mockup: { type: "checklist", items: ["Collect brand assets", "Get website/analytics access", "Define target audience", "Set 90-day goals", "Choose CRM setup"] } },
-      { heading: "Marketing Audit", description: "Deep audit of client's website, social, ads, email, SEO. Identifies exactly why they're not getting clients.", mockup: { type: "cards", items: ["Website: 62/100", "Social Media: 45/100", "Paid Ads: 28/100", "Email: 55/100", "SEO: 38/100"] } },
-      { heading: "Creative Production", description: "Create images (DALL-E 3), videos (Runway ML), documents, and branding packages. Preview and download in any format.", mockup: { type: "cards", items: ["DALL-E 3: Generate Images", "Runway ML: Create Videos", "Document Builder: Reports", "Brand Kit: Logo + Colors"] } },
-      { heading: "Lead Generator", description: "Generate 20 ready-to-close leads per client per month. Each lead scored 80+ with verified contacts.", mockup: { type: "dashboard", items: ["20 leads/month target", "15 generated this month", "Avg score: 86/100", "3 ready to close"] } },
-      { heading: "Campaigns & Funnels", description: "Build client campaigns and conversion funnels: Ad, Landing Page, Form, Email Nurture, Sales Call.", mockup: { type: "checklist", items: ["Facebook Ad Campaign", "Landing Page Builder", "Lead Capture Form", "Email Nurture Sequence", "Sales Call Scheduler"] } },
-      { heading: "Reporting & CRM Sync", description: "Generate performance reports. Sync leads and deals to client's GHL or HubSpot.", mockup: { type: "chart", items: ["Monthly Report Generated", "12 leads synced to GHL", "3 deals in pipeline", "ROI: 340% this month"] } },
+      { heading: "Client Onboarding", description: "Step-by-step checklist: collect brand assets, get access, define audience, set goals, choose CRM.", mockup: { type: "checklist", items: ["Collect brand assets", "Get website/analytics access", "Define target audience", "Set 90-day goals", "Choose CRM setup"] }, modeTips: { ai_auto: "AI generates 90-day plans and marketing audit reports after onboarding completes.", hybrid: "Complete steps manually. AI generates plans for your review at the end.", human: "Complete all onboarding steps manually. AI-generated plans are disabled." } },
+      { heading: "Marketing Audit", description: "Deep audit of client's website, social, ads, email, SEO. Identifies exactly why they're not getting clients.", mockup: { type: "cards", items: ["Website: 62/100", "Social Media: 45/100", "Paid Ads: 28/100", "Email: 55/100", "SEO: 38/100"] }, modeTips: { ai_auto: "AI runs full audits and generates fix-it plans with priority rankings.", hybrid: "AI runs audits on request. Fix plans need your approval before execution.", human: "Audit tab shows historical data only. Full audit requires AI mode." } },
+      { heading: "Creative Production", description: "Create images (DALL-E 3), videos (Runway ML), documents, and branding packages. Preview and download in any format.", mockup: { type: "cards", items: ["DALL-E 3: Generate Images", "Runway ML: Create Videos", "Document Builder: Reports", "Brand Kit: Logo + Colors"] }, modeTips: { ai_auto: "Select asset type, describe what you need, and AI generates it instantly.", hybrid: "AI generates drafts. You review, edit prompts, and approve final versions.", human: "AI generation is disabled. Upload your own creative assets to the library." } },
+      { heading: "Lead Generator", description: "Generate 20 ready-to-close leads per client per month. Each lead scored 80+ with verified contacts.", mockup: { type: "dashboard", items: ["20 leads/month target", "15 generated this month", "Avg score: 86/100", "3 ready to close"] }, modeTips: { ai_auto: "AI continuously finds and scores leads. Push to client CRM automatically.", hybrid: "AI generates lead lists for your review. You approve before pushing to CRM.", human: "Lead generation requires AI mode. View existing leads only." } },
+      { heading: "Campaigns & Funnels", description: "Build client campaigns and conversion funnels: Ad, Landing Page, Form, Email Nurture, Sales Call.", mockup: { type: "checklist", items: ["Facebook Ad Campaign", "Landing Page Builder", "Lead Capture Form", "Email Nurture Sequence", "Sales Call Scheduler"] }, modeTips: { ai_auto: "AI builds complete funnels from ad to close. You review the full funnel before launch.", hybrid: "AI drafts funnel steps. You customize each step before activating.", human: "Build funnels manually step by step. AI funnel builder is disabled." } },
+      { heading: "Reporting & CRM Sync", description: "Generate performance reports. Sync leads and deals to client's GHL or HubSpot.", mockup: { type: "chart", items: ["Monthly Report Generated", "12 leads synced to GHL", "3 deals in pipeline", "ROI: 340% this month"] }, modeTips: { ai_auto: "AI auto-generates monthly reports and syncs all data continuously.", hybrid: "AI generates reports on request. You review and send to clients.", human: "View raw data only. Report generation requires AI mode." } },
     ],
   },
   "/admin": {
     title: "Admin Guide",
     steps: [
-      { heading: "Operations", description: "Assign tasks based on skills and workload. Track completion. Get daily action plans per team member.", mockup: { type: "table", items: ["Sarah: 4 tasks — 75% done", "Mike: 3 tasks — 100% done", "Alex: 5 tasks — 60% done", "Today: 12 tasks total"] } },
-      { heading: "Knowledge Base", description: "SOPs, playbooks, templates, and training materials. Searchable — ask any question, get instant answers.", mockup: { type: "cards", items: ["SOPs: 24 documents", "Playbooks: 8 guides", "Templates: 15 files", "Ask AI: 'How to onboard?'"] } },
-      { heading: "Executive Briefing", description: "Morning briefing: overnight activity, urgent items, today's priorities. Weekly pipeline and revenue summary.", mockup: { type: "dashboard", items: ["3 urgent items", "5 new leads overnight", "$45K pipeline value", "2 proposals pending"] } },
-      { heading: "System Evolution", description: "Weekly scan of new AI tools, platforms, and trends. You decide: Approve, Explore Later, or Skip.", mockup: { type: "cards", items: ["New: GPT-4o upgrade", "New: Perplexity API", "Pending: Runway Gen-3", "[Approve] [Explore] [Skip]"] } },
+      { heading: "Operations", description: "Assign tasks based on skills and workload. Track completion. Get daily action plans per team member.", mockup: { type: "table", items: ["Sarah: 4 tasks — 75% done", "Mike: 3 tasks — 100% done", "Alex: 5 tasks — 60% done", "Today: 12 tasks total"] }, modeTips: { ai_auto: "AI auto-assigns tasks based on team capacity and priority. You monitor progress.", hybrid: "AI suggests task assignments. You approve or reassign before they go live.", human: "Assign all tasks manually. Auto-assign button is hidden in this mode." } },
+      { heading: "Knowledge Base", description: "SOPs, playbooks, templates, and training materials. Searchable — ask any question, get instant answers.", mockup: { type: "cards", items: ["SOPs: 24 documents", "Playbooks: 8 guides", "Templates: 15 files", "Ask AI: 'How to onboard?'"] }, modeTips: { ai_auto: "AI auto-updates knowledge base with new content from recent activities.", hybrid: "AI suggests updates. You review and approve before they are published.", human: "Browse and search documents manually. Auto-update is disabled." } },
+      { heading: "Executive Briefing", description: "Morning briefing: overnight activity, urgent items, today's priorities. Weekly pipeline and revenue summary.", mockup: { type: "dashboard", items: ["3 urgent items", "5 new leads overnight", "$45K pipeline value", "2 proposals pending"] }, modeTips: { ai_auto: "AI generates morning briefings daily with urgent items and action recommendations.", hybrid: "AI prepares briefings on request. You decide which items to act on.", human: "Briefing generation requires AI mode. View historical briefings only." } },
+      { heading: "System Evolution", description: "Weekly scan of new AI tools, platforms, and trends. You decide: Approve, Explore Later, or Skip.", mockup: { type: "cards", items: ["New: GPT-4o upgrade", "New: Perplexity API", "Pending: Runway Gen-3", "[Approve] [Explore] [Skip]"] }, modeTips: { ai_auto: "AI scans for updates weekly and presents recommendations with impact analysis.", hybrid: "AI scans on request. You review each recommendation and decide.", human: "Scanning for updates requires AI mode. View past recommendations only." } },
     ],
   },
   "/finance": {
     title: "Finance Guide",
     steps: [
-      { heading: "Billing & Revenue", description: "Create invoices (one-time, recurring). Track payments: Draft, Sent, Viewed, Paid, Overdue.", mockup: { type: "table", items: ["INV-001 CyberShield $5,000 — Paid", "INV-002 SecureNet $2,500 — Sent", "INV-003 DefendX $10,000 — Draft", "INV-004 CyberVault $5,000 — Overdue"] } },
-      { heading: "Revenue Dashboard", description: "See MRR, revenue per client, growth trends. Client profitability: revenue minus cost to serve.", mockup: { type: "dashboard", items: ["MRR: $22,500", "Growth: +18% MoM", "Top Client: $10K/mo", "Profit Margin: 72%"] } },
-      { heading: "Contracts", description: "Manage service agreements. Get renewal alerts 60 days before expiration. Track contract lifecycle.", mockup: { type: "table", items: ["CyberShield — Renewal: 45 days", "SecureNet — Active — 8 months", "DefendX — New — Pending sign", "CyberVault — Expires: 12 days"] } },
-      { heading: "Expenses & Forecasting", description: "Track all expenses: tools, ads, AI costs, subscriptions. Monthly P&L and revenue forecasting.", mockup: { type: "chart", items: ["AI Tools: $420/mo", "Ad Spend: $3,200/mo", "Subscriptions: $890/mo", "Net Profit: $18,990/mo"] } },
+      { heading: "Billing & Revenue", description: "Create invoices (one-time, recurring). Track payments: Draft, Sent, Viewed, Paid, Overdue.", mockup: { type: "table", items: ["INV-001 CyberShield $5,000 — Paid", "INV-002 SecureNet $2,500 — Sent", "INV-003 DefendX $10,000 — Draft", "INV-004 CyberVault $5,000 — Overdue"] }, modeTips: { ai_auto: "AI auto-generates monthly invoices for all active clients and sends reminders.", hybrid: "AI drafts invoices. You review amounts and send manually.", human: "Create and send invoices manually. Auto-generation is disabled." } },
+      { heading: "Revenue Dashboard", description: "See MRR, revenue per client, growth trends. Client profitability: revenue minus cost to serve.", mockup: { type: "dashboard", items: ["MRR: $22,500", "Growth: +18% MoM", "Top Client: $10K/mo", "Profit Margin: 72%"] }, modeTips: { ai_auto: "Revenue data updates in real-time. AI highlights trends and anomalies.", hybrid: "Dashboard data is live. AI provides insights when requested.", human: "View revenue data manually. All metrics are read-only." } },
+      { heading: "Contracts", description: "Manage service agreements. Get renewal alerts 60 days before expiration. Track contract lifecycle.", mockup: { type: "table", items: ["CyberShield — Renewal: 45 days", "SecureNet — Active — 8 months", "DefendX — New — Pending sign", "CyberVault — Expires: 12 days"] }, modeTips: { ai_auto: "AI drafts contracts and sends renewal proposals automatically before expiration.", hybrid: "AI drafts contracts for your review. Renewal alerts require your action.", human: "Manage contracts manually. AI contract drafting is disabled." } },
+      { heading: "Expenses & Forecasting", description: "Track all expenses: tools, ads, AI costs, subscriptions. Monthly P&L and revenue forecasting.", mockup: { type: "chart", items: ["AI Tools: $420/mo", "Ad Spend: $3,200/mo", "Subscriptions: $890/mo", "Net Profit: $18,990/mo"] }, modeTips: { ai_auto: "AI runs scenario analysis automatically and alerts you to budget overruns.", hybrid: "AI provides forecasting on request. You run scenario models manually.", human: "View expense data and P&L only. Scenario modeling requires AI mode." } },
     ],
   },
   "/settings": {
     title: "Settings Guide",
     steps: [
-      { heading: "General", description: "Set company name, logo, branding, timezone, and brand voice guidelines.", mockup: { type: "form", items: ["Company: PMG Group LLC", "Timezone: EST", "Brand Voice: Professional", "Logo: Uploaded"] } },
-      { heading: "AI Modes", description: "Choose between AI Autonomous, Hybrid, or Manual Control globally or per section.", mockup: { type: "cards", items: ["AI Autonomous: Full auto", "Hybrid: AI + Human review", "Human Control: Manual only", "Current: AI Autonomous"] } },
-      { heading: "Wallet & Keys", description: "Manage AI spending budget, set limits, and configure API keys for Claude, DALL-E, Runway, etc.", mockup: { type: "dashboard", items: ["Balance: $355.02", "Monthly Limit: $500", "API Keys: 4 configured", "Usage: 71% of budget"] } },
-      { heading: "Users & Channels", description: "Add team members with roles (Super Admin, Admin, Manager, Viewer). Connect social channels.", mockup: { type: "table", items: ["Shershah — Super Admin", "LinkedIn — Connected", "Email — Connected", "Facebook — Not Connected"] } },
-      { heading: "Legal & Compliance", description: "CAN-SPAM, GDPR, TCPA compliance. Anti-spam rules. Contract templates. Opt-out management.", mockup: { type: "checklist", items: ["CAN-SPAM: Compliant", "GDPR: Configured", "TCPA: Active", "Opt-out: Auto-managed"] } },
-      { heading: "System Health", description: "Monitor all 32 agents, API health, database stats. Run diagnostics when issues arise.", mockup: { type: "dashboard", items: ["32 Agents: All Online", "API Health: 99.9%", "DB: 2.3GB used", "Last Check: 2 min ago"] } },
+      { heading: "General", description: "Set company name, logo, branding, timezone, and brand voice guidelines.", mockup: { type: "form", items: ["Company: PMG Group LLC", "Timezone: EST", "Brand Voice: Professional", "Logo: Uploaded"] }, modeTips: { ai_auto: "General settings apply the same way regardless of AI mode.", hybrid: "General settings apply the same way regardless of AI mode.", human: "General settings apply the same way regardless of AI mode." } },
+      { heading: "AI Modes", description: "Choose between AI Autonomous, Hybrid, or Manual Control globally or per section.", mockup: { type: "cards", items: ["AI Autonomous: Full auto", "Hybrid: AI + Human review", "Human Control: Manual only", "Current: AI Autonomous"] }, modeTips: { ai_auto: "You are in AI Autonomous mode. AI handles all automation across every section.", hybrid: "You are in Hybrid mode. AI prepares and suggests, you review and approve.", human: "You are in Manual Control. AI features are disabled. You control everything." } },
+      { heading: "Wallet & Keys", description: "Manage AI spending budget, set limits, and configure API keys for Claude, DALL-E, Runway, etc.", mockup: { type: "dashboard", items: ["Balance: $355.02", "Monthly Limit: $500", "API Keys: 4 configured", "Usage: 71% of budget"] }, modeTips: { ai_auto: "Wallet depletes faster in AI Auto mode — all 32 agents run continuously.", hybrid: "Moderate wallet usage — agents run only when triggered by you.", human: "Minimal wallet usage — only manual API calls consume credits." } },
+      { heading: "Users & Channels", description: "Add team members with roles (Super Admin, Admin, Manager, Viewer). Connect social channels.", mockup: { type: "table", items: ["Shershah — Super Admin", "LinkedIn — Connected", "Email — Connected", "Facebook — Not Connected"] }, modeTips: { ai_auto: "Connected channels are monitored by AI in real-time for Social Command.", hybrid: "Channels are monitored on schedule. AI flags important messages for review.", human: "Channels show status only. No AI monitoring in manual mode." } },
+      { heading: "Legal & Compliance", description: "CAN-SPAM, GDPR, TCPA compliance. Anti-spam rules. Contract templates. Opt-out management.", mockup: { type: "checklist", items: ["CAN-SPAM: Compliant", "GDPR: Configured", "TCPA: Active", "Opt-out: Auto-managed"] }, modeTips: { ai_auto: "Compliance checks run on every AI-generated message before sending.", hybrid: "Compliance checks run, but you review flagged items manually.", human: "Compliance rules are shown for reference. Manual enforcement required." } },
+      { heading: "System Health", description: "Monitor all 32 agents, API health, database stats. Run diagnostics when issues arise.", mockup: { type: "dashboard", items: ["32 Agents: All Online", "API Health: 99.9%", "DB: 2.3GB used", "Last Check: 2 min ago"] }, modeTips: { ai_auto: "All 32 agents active and running. Health monitoring is continuous.", hybrid: "Agents activate on demand. Health checks run on schedule.", human: "Agents are on standby. Run health check manually when needed." } },
     ],
   },
 };
@@ -393,268 +407,164 @@ function VideoGuideOverlay({
   guide: { title: string; steps: GuideStep[] };
   onClose: () => void;
 }) {
-  const [elapsed, setElapsed] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const { currentMode } = useAiModeContext();
 
-  const stepDuration = 5;
-  const totalDuration = guide.steps.length * stepDuration;
-  const currentStep = Math.min(Math.floor(elapsed / stepDuration), guide.steps.length - 1);
+  const step = guide.steps[currentStep];
+  const StepIcon = stepIcons[step?.heading] || HelpCircle;
 
-  const clearTimers = useCallback(() => {
-    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-  }, []);
-
-  const stopPlaying = useCallback(() => {
-    clearTimers();
-    setIsPlaying(false);
-  }, [clearTimers]);
-
-  const startPlaying = useCallback(() => {
-    clearTimers();
-    setIsPlaying(true);
-    tickRef.current = setInterval(() => {
-      setElapsed(prev => {
-        const next = prev + 1;
-        if (next >= totalDuration) {
-          clearTimers();
-          setIsPlaying(false);
-          return totalDuration;
-        }
-        return next;
-      });
-    }, 1000);
-  }, [totalDuration, clearTimers]);
-
-  useEffect(() => {
-    return () => clearTimers();
-  }, [clearTimers]);
-
-  function formatTime(s: number) {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec.toString().padStart(2, "0")}`;
-  }
-
-  function handleSeek(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const newTime = Math.min(Math.floor(pct * totalDuration), totalDuration - 1);
-    stopPlaying();
-    setElapsed(newTime);
-  }
+  const modeLabel = currentMode === "ai_auto" ? "AI Autonomous" : currentMode === "hybrid" ? "Hybrid" : "Manual Control";
+  const ModeIcon = currentMode === "ai_auto" ? Bot : currentMode === "hybrid" ? Eye : Hand;
+  const modeBorderClass = currentMode === "ai_auto" ? "border-crimson/30" : currentMode === "hybrid" ? "border-blue-400/30" : "border-yellow-400/30";
+  const modeTextClass = currentMode === "ai_auto" ? "text-crimson" : currentMode === "hybrid" ? "text-blue-400" : "text-yellow-400";
+  const modeBgClass = currentMode === "ai_auto" ? "bg-crimson/5" : currentMode === "hybrid" ? "bg-blue-400/5" : "bg-yellow-400/5";
+  const modeTip = step?.modeTips?.[currentMode as keyof typeof step.modeTips] || "";
 
   function handlePrev() {
-    stopPlaying();
-    setElapsed(prev => Math.max(0, (Math.floor(prev / stepDuration) - 1) * stepDuration));
+    setCurrentStep(prev => Math.max(0, prev - 1));
   }
 
   function handleNext() {
-    stopPlaying();
-    setElapsed(prev => {
-      const nextStep = Math.floor(prev / stepDuration) + 1;
-      return Math.min(nextStep * stepDuration, (guide.steps.length - 1) * stepDuration);
-    });
+    setCurrentStep(prev => Math.min(guide.steps.length - 1, prev + 1));
   }
-
-  function togglePlay() {
-    if (isPlaying) {
-      stopPlaying();
-    } else {
-      if (elapsed >= totalDuration) {
-        setElapsed(0);
-      }
-      startPlaying();
-    }
-  }
-
-  const progressPct = Math.min((elapsed / totalDuration) * 100, 100);
-  const StepIcon = stepIcons[guide.steps[currentStep]?.heading] || HelpCircle;
 
   return (
     <motion.div
-      initial={{ y: isExpanded ? 0 : 200, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 200, opacity: 0 }}
-      transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      className={cn(
-        "fixed z-[100] left-0 right-0 bottom-0",
-        isExpanded ? "top-0" : ""
-      )}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
     >
-      {isExpanded && (
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsExpanded(false)} />
-      )}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-      <div className={cn(
-        "relative flex flex-col",
-        isExpanded ? "h-full" : ""
-      )}>
-        {isExpanded && (
-          <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="w-full max-w-3xl"
-            >
-              <div className="rounded-xl border border-white/10 bg-[hsl(222_47%_6%)] overflow-hidden shadow-2xl">
-                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/5 bg-white/[0.02]">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-500/60" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/60" />
-                  </div>
-                  <div className="flex-1 mx-4">
-                    <div className="bg-white/5 rounded-md px-3 py-1 text-[10px] text-muted-foreground text-center truncate">
-                      pmggroup-os.app/{guide.title.toLowerCase().replace(/ guide/i, "").replace(/\s/g, "-")}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="h-5 w-5 rounded bg-white/5 flex items-center justify-center">
-                      <Shield className="h-3 w-3 text-crimson/50" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-10 w-10 rounded-xl bg-crimson/10 border border-crimson/20 flex items-center justify-center">
-                      <StepIcon className="h-5 w-5 text-crimson" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold">{guide.steps[currentStep].heading}</h3>
-                      <p className="text-xs text-muted-foreground">Step {currentStep + 1} of {guide.steps.length}</p>
-                    </div>
-                  </div>
-
-                  <AnimatePresence mode="wait">
-                    <motion.div key={currentStep} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                      <div className="rounded-lg bg-black/30 border border-white/5 p-4 mb-4 min-h-[180px]">
-                        {guide.steps[currentStep].mockup && (
-                          <MockupPreview mockup={guide.steps[currentStep].mockup} stepIndex={currentStep} />
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{guide.steps[currentStep].description}</p>
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {!isExpanded && (
-          <div className="bg-[hsl(222_47%_8%)] border-t border-white/10">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-                className="px-4 py-3 flex items-center gap-3"
-              >
-                <div className="h-8 w-8 rounded-lg bg-crimson/10 border border-crimson/20 flex items-center justify-center shrink-0">
-                  <StepIcon className="h-4 w-4 text-crimson" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold truncate">{guide.steps[currentStep].heading}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{guide.steps[currentStep].description}</p>
-                </div>
-                <span className="text-[10px] text-muted-foreground shrink-0">Step {currentStep + 1}/{guide.steps.length}</span>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        )}
-
-        <div className="bg-[hsl(222_47%_5%)] border-t border-white/10">
-          <div
-            className="h-1 w-full bg-white/5 cursor-pointer group relative"
-            onClick={handleSeek}
-          >
-            <motion.div
-              className="h-full bg-crimson relative"
-              style={{ width: `${progressPct}%` }}
-              transition={{ duration: 0.1 }}
-            >
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-crimson opacity-0 group-hover:opacity-100 transition-opacity shadow-lg shadow-crimson/30" />
-            </motion.div>
-            <div className="absolute inset-0 flex">
-              {guide.steps.map((_, i) => (
-                <div key={i} className="flex-1 relative">
-                  {i > 0 && <div className="absolute left-0 top-0 bottom-0 w-px bg-white/10" />}
-                </div>
-              ))}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="relative w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl border border-white/10 bg-[hsl(222_47%_5%)] shadow-2xl flex flex-col"
+      >
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-white/[0.02]">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-crimson/10 border border-crimson/20 flex items-center justify-center">
+              <Shield className="h-4 w-4 text-crimson" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold">{guide.title}</h2>
+              <p className="text-[10px] text-muted-foreground">Step {currentStep + 1} of {guide.steps.length}</p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 px-3 py-2">
-            <div className="flex items-center gap-1">
-              <button
-                aria-label="Previous step"
-                onClick={handlePrev}
-                disabled={currentStep === 0}
-                className="p-1.5 rounded-full hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <SkipBack className="h-3.5 w-3.5 text-white" />
-              </button>
-
-              <button
-                aria-label={isPlaying ? "Pause" : "Play"}
-                onClick={togglePlay}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
-              >
-                {isPlaying ? <Pause className="h-4 w-4 text-white" /> : <Play className="h-4 w-4 text-white" />}
-              </button>
-
-              <button
-                aria-label="Next step"
-                onClick={handleNext}
-                disabled={currentStep >= guide.steps.length - 1}
-                className="p-1.5 rounded-full hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <SkipForward className="h-3.5 w-3.5 text-white" />
-              </button>
-            </div>
-
-            <span className="text-[11px] text-muted-foreground tabular-nums min-w-[70px]">
-              {formatTime(elapsed)} / {formatTime(totalDuration)}
-            </span>
-
-            <div className="flex-1 flex items-center justify-center">
-              <span className="text-[11px] font-medium text-white/70 truncate max-w-[300px]">{guide.title}</span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <button
-                aria-label={isMuted ? "Unmute" : "Mute"}
-                onClick={() => setIsMuted(!isMuted)}
-                className="p-1.5 rounded-full hover:bg-white/5 transition-colors"
-              >
-                {isMuted ? <VolumeX className="h-3.5 w-3.5 text-muted-foreground" /> : <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />}
-              </button>
-
-              <button
-                aria-label={isExpanded ? "Minimize" : "Fullscreen"}
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-1.5 rounded-full hover:bg-white/5 transition-colors"
-              >
-                {isExpanded ? <Minimize2 className="h-3.5 w-3.5 text-muted-foreground" /> : <Maximize2 className="h-3.5 w-3.5 text-muted-foreground" />}
-              </button>
-
-              <button
-                aria-label="Close guide"
-                onClick={() => { stopPlaying(); onClose(); }}
-                className="p-1.5 rounded-full hover:bg-white/5 transition-colors ml-1"
-              >
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 flex items-center gap-1", modeBorderClass, modeTextClass)}>
+              <ModeIcon className="h-2.5 w-2.5" />
+              {modeLabel}
+            </Badge>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
           </div>
         </div>
-      </div>
+
+        <div className="flex gap-1 px-5 pt-3">
+          {guide.steps.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentStep(i)}
+              className={cn(
+                "flex-1 h-1 rounded-full transition-all",
+                i === currentStep ? "bg-crimson" : i < currentStep ? "bg-crimson/40" : "bg-white/10"
+              )}
+            />
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.25 }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-xl bg-crimson/10 border border-crimson/20 flex items-center justify-center shrink-0">
+                  <StepIcon className="h-5 w-5 text-crimson" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold">{step.heading}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-black/30 border border-white/5 p-4 mb-4">
+                {step.mockup && <MockupPreview mockup={step.mockup} stepIndex={currentStep} />}
+              </div>
+
+              {modeTip && (
+                <div className={cn("rounded-xl border p-3.5 flex items-start gap-3", modeBorderClass, modeBgClass)}>
+                  <div className={cn("p-1.5 rounded-lg border shrink-0 mt-0.5", modeBorderClass)}>
+                    <ModeIcon className={cn("h-3.5 w-3.5", modeTextClass)} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className={cn("text-[10px] font-semibold uppercase tracking-wider", modeTextClass)}>
+                        {modeLabel} Mode
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{modeTip}</p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="flex items-center justify-between px-5 py-3 border-t border-white/10 bg-white/[0.02]">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrev}
+            disabled={currentStep === 0}
+            className="text-xs h-8 px-3 border-white/10 disabled:opacity-30"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+            Previous
+          </Button>
+
+          <div className="flex items-center gap-1.5">
+            {guide.steps.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentStep(i)}
+                className={cn(
+                  "h-2 rounded-full transition-all",
+                  i === currentStep ? "w-6 bg-crimson" : "w-2 bg-white/20 hover:bg-white/40"
+                )}
+              />
+            ))}
+          </div>
+
+          {currentStep < guide.steps.length - 1 ? (
+            <Button
+              size="sm"
+              onClick={handleNext}
+              className="text-xs h-8 px-3 btn-premium text-white"
+            >
+              Next
+              <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={onClose}
+              className="text-xs h-8 px-3 btn-premium text-white"
+            >
+              Done
+            </Button>
+          )}
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
