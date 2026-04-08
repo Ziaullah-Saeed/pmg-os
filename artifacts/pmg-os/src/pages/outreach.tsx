@@ -857,24 +857,44 @@ function ComposeTab() {
   const [sentMessages, setSentMessages] = useState<{ channel: string; to: string; time: string; status: string }[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
-  const templateContent: Record<string, { subject: string; body: string }> = {
-    "cold-ciso": {
-      subject: "Quick question about your {COMPANY} marketing",
-      body: "Hi {NAME},\n\nI noticed {COMPANY} recently achieved SOC 2 compliance — congratulations. That's a significant milestone that your prospects should know about.\n\nMost cybersecurity companies I work with struggle to turn compliance certifications into lead generation assets. We've helped similar SIEM and EDR vendors generate 20+ qualified leads per month by positioning their compliance as a competitive advantage.\n\nWould it make sense to have a quick 15-minute call to see if we could help {COMPANY} do the same?\n\nBest,\nShershah Nawabi\nPMG Group LLC"
-    },
-    "follow-no-reply": {
-      subject: "Re: {COMPANY} marketing opportunity",
-      body: "Hi {NAME},\n\nI wanted to circle back on my previous note. I know your inbox is full, so I'll keep this brief.\n\nWe just helped a SIEM vendor increase their qualified pipeline by 340% in 90 days. I put together a quick analysis of where {COMPANY} could see similar gains.\n\nWorth 10 minutes this week?\n\nBest,\nShershah"
-    },
-    "warm-event": {
-      subject: "Great meeting you at {EVENT}",
-      body: "Hi {NAME},\n\nIt was great connecting at the conference. Your points about MDR market positioning really resonated with what we see at PMG Group.\n\nAs promised, I've pulled together some data on how cybersecurity companies like {COMPANY} can improve their lead-to-close ratio through targeted content and multi-channel outreach.\n\nShall I send it over, or would you prefer to jump on a quick call?\n\nBest,\nShershah"
-    },
-    "referral": {
-      subject: "{REFERRER} suggested we connect",
-      body: "Hi {NAME},\n\n{REFERRER} mentioned you might be looking for marketing support for {COMPANY}'s cybersecurity solutions. We specialize exclusively in marketing for SIEM, EDR, MDR, and XDR vendors.\n\nOur clients typically see 20+ qualified leads within the first month. I'd love to share how we do it.\n\nAre you available for a brief call this week?\n\nBest,\nShershah Nawabi\nPMG Group LLC"
-    },
+  const channelTemplates: Record<string, { key: string; label: string; subject?: string; body: string }[]> = {
+    email: [
+      { key: "cold-ciso", label: "Cold Outreach — CISO Introduction", subject: "Quick question about {COMPANY}'s marketing", body: "Hi {NAME},\n\nI noticed {COMPANY} recently achieved SOC 2 compliance — congratulations. That's a milestone your prospects should know about.\n\nMost cybersecurity companies I work with struggle to turn compliance certifications into lead generation assets. We've helped similar SIEM and EDR vendors generate 20+ qualified leads per month by positioning their compliance as a competitive advantage.\n\nWould it make sense to have a quick 15-minute call to see if we could help {COMPANY} do the same?\n\nBest,\nShershah Nawabi\nPMG Group LLC\nshershah@pmggroup-llc.com" },
+      { key: "follow-no-reply", label: "Follow-up — No Reply", subject: "Re: {COMPANY} marketing opportunity", body: "Hi {NAME},\n\nI wanted to circle back on my previous note. I know your inbox is full, so I'll keep this brief.\n\nWe just helped a SIEM vendor increase their qualified pipeline by 340% in 90 days. I put together a quick analysis of where {COMPANY} could see similar gains.\n\nWorth 10 minutes this week?\n\nBest,\nShershah" },
+      { key: "warm-event", label: "Warm — Post Conference", subject: "Great meeting you at {EVENT}", body: "Hi {NAME},\n\nIt was great connecting at the conference. Your points about MDR market positioning really resonated with what we see at PMG Group.\n\nAs promised, I've pulled together some data on how cybersecurity companies like {COMPANY} can improve their lead-to-close ratio through targeted content and multi-channel outreach.\n\nShall I send it over, or would you prefer to jump on a quick call?\n\nBest,\nShershah" },
+      { key: "referral-email", label: "Referral — Mutual Connection", subject: "{REFERRER} suggested we connect", body: "Hi {NAME},\n\n{REFERRER} mentioned you might be looking for marketing support for {COMPANY}'s cybersecurity solutions. We specialize exclusively in marketing for SIEM, EDR, MDR, and XDR vendors.\n\nOur clients typically see 20+ qualified leads within the first month. I'd love to share how we do it.\n\nAre you available for a brief call this week?\n\nBest,\nShershah Nawabi\nPMG Group LLC" },
+    ],
+    linkedin: [
+      { key: "li-cold", label: "Cold Outreach — Value-First", body: "Hi {NAME}, I came across {COMPANY} and your work in the cybersecurity space is impressive.\n\nWe help SIEM, EDR, and MDR companies generate 20+ qualified leads monthly through targeted multi-channel outreach. Just wrapped a campaign for a similar vendor that delivered 340% pipeline growth in 90 days.\n\nWould love to share what's working. Open to a quick conversation?" },
+      { key: "li-engage", label: "Content Engagement Follow-up", body: "Hi {NAME}, I saw your recent post about {TOPIC} — great insights on the MDR market.\n\nAt PMG Group, we work exclusively with cybersecurity companies on demand generation. Your take on {TOPIC} aligns with what we're seeing drive results right now.\n\nWould it be helpful if I shared some data on what's converting for similar companies?" },
+      { key: "li-follow", label: "Follow-up — No Response", body: "Hi {NAME}, I reached out last week about how PMG Group helps cybersecurity companies like {COMPANY} with lead generation.\n\nI know you're busy, so here's the short version: we've consistently delivered 20+ qualified leads in the first month for SIEM and EDR vendors.\n\nWorth a 10-minute call to explore the fit?" },
+    ],
+    "linkedin-connection": [
+      { key: "li-conn-cold", label: "Connection Request — Cold", body: "Hi {NAME}, I work with cybersecurity companies on their marketing and lead generation. Would love to connect and share insights relevant to {COMPANY}." },
+      { key: "li-conn-event", label: "Connection Request — Post Event", body: "Hi {NAME}, great seeing the {COMPANY} team at the conference. Would love to stay connected and continue the conversation about cybersecurity marketing." },
+      { key: "li-conn-mutual", label: "Connection Request — Mutual Connection", body: "Hi {NAME}, I noticed we both know {REFERRER}. I specialize in marketing for cybersecurity companies and would love to connect." },
+    ],
+    twitter: [
+      { key: "tw-dm", label: "X / Twitter DM — Initial Reach", body: "Hey {NAME}, been following {COMPANY}'s work in the cybersecurity space. We help SIEM/EDR vendors generate qualified leads through targeted campaigns. Would love to share some insights that could be relevant. Open to a quick chat?" },
+      { key: "tw-engage", label: "X / Twitter — Post Engagement", body: "Hey {NAME}, your thread on {TOPIC} was spot on. We're seeing the same trend with our cybersecurity clients at PMG Group. Happy to share what's working for pipeline growth if useful." },
+    ],
+    facebook: [
+      { key: "fb-intro", label: "Facebook — Business Introduction", body: "Hi {NAME}, I run PMG Group — we specialize in marketing for cybersecurity and IT companies. I noticed {COMPANY} and think there's a strong fit for how we help vendors like yours generate qualified leads.\n\nWould you be open to a brief conversation?" },
+    ],
+    instagram: [
+      { key: "ig-dm", label: "Instagram DM — Casual Introduction", body: "Hey {NAME}! Love what {COMPANY} is doing in the cybersecurity space. We work exclusively with companies like yours on lead generation and brand building. Would be great to connect and share some ideas. Open to a quick chat?" },
+    ],
+    sms: [
+      { key: "sms-follow", label: "SMS — Meeting Follow-up", body: "Hi {NAME}, this is Shershah from PMG Group following up on our conversation about {COMPANY}'s marketing. I have some ideas for generating qualified leads in your space. Good time for a quick call this week?" },
+      { key: "sms-reminder", label: "SMS — Appointment Reminder", body: "Hi {NAME}, just a reminder about our call tomorrow at {TIME}. Looking forward to discussing how we can help {COMPANY} with lead generation. Talk soon — Shershah, PMG Group" },
+    ],
+    "phone-script": [
+      { key: "phone-cold", label: "Cold Call — CISO/CTO", body: "OPENING: Hi {NAME}, this is Shershah Nawabi from PMG Group. I'll be brief — I know you're busy.\n\nHOOK: We specialize exclusively in marketing for cybersecurity companies like {COMPANY}. We've been helping SIEM and EDR vendors generate 20+ qualified leads monthly.\n\nQUALIFY: Are you currently doing any active outbound marketing or is it mostly inbound right now?\n\n[IF YES]: Great. What's been working? Where do you feel the gaps are?\n[IF NO]: That's actually common in the space. Most companies rely on referrals and word of mouth, but there's a huge opportunity with the right approach.\n\nPITCH: We've helped companies similar to {COMPANY} increase their pipeline by 300%+ in 90 days. We do this through multi-channel outreach — LinkedIn, email, targeted content — all tailored to cybersecurity buyers.\n\nCLOSE: Would it make sense to schedule 15 minutes this week for me to walk you through how we'd approach it for {COMPANY}?\n\nOBJECTION — 'Send me info': Absolutely. I'll send over a quick case study. What email works best? And can we pencil in a 10-minute follow-up for Thursday or Friday?\n\nOBJECTION — 'Not interested': I understand. Quick question before I let you go — is it that you're happy with your current marketing, or more that the timing isn't right?" },
+      { key: "phone-warm", label: "Warm Call — Referral", body: "OPENING: Hi {NAME}, this is Shershah from PMG Group. {REFERRER} suggested I reach out — they mentioned {COMPANY} might benefit from what we do.\n\nCONTEXT: We work exclusively with cybersecurity companies on demand generation and lead pipeline. {REFERRER} has seen our results firsthand.\n\nASK: I'd love to spend 15 minutes walking you through our approach and see if there's a fit. Would later this week work?" },
+    ],
   };
+
+  const currentTemplates = channelTemplates[messageType] || channelTemplates.email;
 
   const handleAiDraft = async () => {
     setIsDrafting(true);
@@ -909,22 +929,48 @@ function ComposeTab() {
     }
   };
 
-  const handleTemplate = (key: string) => {
-    const tmpl = templateContent[key];
-    if (tmpl) {
-      setSubject(tmpl.subject);
-      setBody(tmpl.body);
-      toast({ title: "Template Loaded", description: "Edit the placeholders in {brackets} with real details" });
-    }
+  const handleTemplate = (tmpl: { subject?: string; body: string }) => {
+    setSubject(tmpl.subject || "");
+    setBody(tmpl.body);
+    toast({ title: "Template Loaded", description: "Edit the placeholders in {BRACKETS} with real details" });
   };
 
-  const handleSend = () => {
+  const channelLabels: Record<string, string> = {
+    email: "Email", linkedin: "LinkedIn", "linkedin-connection": "LinkedIn Connection",
+    facebook: "Facebook", instagram: "Instagram", twitter: "X / Twitter",
+    sms: "SMS", "phone-script": "Phone Call",
+  };
+
+  const handleSend = async () => {
     if (!body.trim()) {
       toast({ title: "Empty message", description: "Write or generate a message first", variant: "destructive" });
       return;
     }
-    setSentMessages(prev => [...prev, { channel: messageType, to: subject || "Prospect", time: "Just now", status: "Sent" }]);
-    toast({ title: "Message Queued", description: `${messageType} message queued for sending` });
+    try {
+      await fetch(`${API_BASE}/activities`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          action: "outreach_message_queued",
+          description: `${channelLabels[messageType] || messageType} message queued: ${subject || body.substring(0, 80)}...`,
+          entityType: "outreach",
+          entityId: 0,
+          performedBy: "user",
+          metadata: JSON.stringify({ channel: messageType, subject, body, tone, queuedAt: new Date().toISOString() }),
+        }),
+      });
+    } catch {}
+    setSentMessages(prev => [...prev, {
+      channel: channelLabels[messageType] || messageType,
+      to: subject || body.substring(0, 50) + "...",
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      status: "Queued",
+    }]);
+    toast({
+      title: "Message Queued",
+      description: `Queued via ${channelLabels[messageType] || messageType}. Messages are reviewed before delivery through the selected channel.`,
+    });
     setBody("");
     setSubject("");
   };
@@ -1026,20 +1072,21 @@ function ComposeTab() {
 
           {sentMessages.length > 0 && (
             <GlassCard>
-              <h3 className="text-sm font-semibold mb-3">Sent Messages</h3>
+              <h3 className="text-sm font-semibold mb-3">Queued Messages</h3>
               <div className="space-y-2">
                 {sentMessages.map((msg, i) => (
                   <div key={i} className="flex items-center justify-between p-2 rounded-lg glass-surface">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] capitalize">{msg.channel}</Badge>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Badge variant="outline" className="text-[10px] shrink-0">{msg.channel}</Badge>
                       <span className="text-xs truncate">{msg.to}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[10px] text-muted-foreground">{msg.time}</span>
-                      <Badge className="bg-success/20 text-success text-[9px] border-success/30">{msg.status}</Badge>
+                      <Badge className="bg-amber-500/20 text-amber-400 text-[9px] border-amber-500/30">{msg.status}</Badge>
                     </div>
                   </div>
                 ))}
+                <p className="text-[10px] text-muted-foreground mt-2">Queued messages are sent through their respective channel after review. Connect channel integrations in Settings for auto-delivery.</p>
               </div>
             </GlassCard>
           )}
@@ -1047,15 +1094,13 @@ function ComposeTab() {
 
         <div className="space-y-4">
           <GlassCard>
-            <h3 className="text-sm font-semibold mb-3">Templates</h3>
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              Templates
+              <Badge variant="outline" className="text-[9px] capitalize">{channelLabels[messageType] || messageType}</Badge>
+            </h3>
             <div className="space-y-2">
-              {[
-                { key: "cold-ciso", label: "Cold Outreach — CISO Introduction" },
-                { key: "follow-no-reply", label: "Follow-up — After No Reply" },
-                { key: "warm-event", label: "Warm Lead — Post-Event" },
-                { key: "referral", label: "Referral — Mutual Connection" },
-              ].map((t) => (
-                <Button key={t.key} variant="outline" className="w-full text-xs justify-start h-8" onClick={() => handleTemplate(t.key)}>
+              {currentTemplates.map((t) => (
+                <Button key={t.key} variant="outline" className="w-full text-xs justify-start h-8" onClick={() => handleTemplate(t)}>
                   <FileText className="h-3 w-3 mr-2 shrink-0" />{t.label}
                 </Button>
               ))}
