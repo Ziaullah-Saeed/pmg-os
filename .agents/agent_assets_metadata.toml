@@ -41,4 +41,22 @@ title = "PMG OS Testing & Verification Checklist v2 — 260+ Items"
 id = "XOpifSeqO4kNL6YALYgoQ"
 uri = "file://PMG-OS-Testing-Checklist.pdf"
 type = "pdf"
-title = "PMG OS Testing & Verification Checklist — Complete PDF"
+title = "PMG OS Detailed Checklist — PDF (75+ items, full mode descriptions)"
+
+[[outputs]]
+id = "_NrrLizTJgYnj5_pl_Lgm"
+uri = "file://PMG-OS-Checklist-V2.pdf"
+type = "pdf"
+title = "PMG OS Checklist V2 — PDF (250+ items, table format)"
+
+[[outputs]]
+id = "LAGYeHzgeupsHaWKFX5lr"
+uri = "file://PMG-OS-Checklist-V2.docx"
+type = "word_document"
+title = "PMG OS Checklist V2 — Word (editable, 250+ items)"
+
+[[outputs]]
+id = "1TTtlEvWjmmzpc5VsU3nd"
+uri = "file://PMG-OS-Checklist-Detailed.docx"
+type = "word_document"
+title = "PMG OS Detailed Checklist — Word (editable, full mode descriptions)"
