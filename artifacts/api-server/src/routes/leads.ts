@@ -121,6 +121,8 @@ router.post("/leads", async (req, res): Promise<void> => {
     ? (await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, parsed.data.companyId)))[0]?.name
     : undefined;
 
+  const alreadyQualified = ["qualified", "routing", "routed", "active", "closed_won", "closed_lost"].includes(lead.status ?? "");
+
   (async () => {
     try {
       const enrichResult = await enrichLead({
@@ -131,7 +133,7 @@ router.post("/leads", async (req, res): Promise<void> => {
       });
       await db.update(leadsTable).set({
         bestAngle: enrichResult.enrichment.slice(0, 500),
-        status: "enriched",
+        ...(alreadyQualified ? {} : { status: "enriched" }),
       }).where(eq(leadsTable.id, lead.id));
 
       await db.insert(activitiesTable).values({
@@ -154,7 +156,7 @@ router.post("/leads", async (req, res): Promise<void> => {
         fitScore: scoreResult.score,
         confidenceScore: scoreResult.confidence,
         priority: scoreResult.tier === "HOT" ? "urgent" : scoreResult.tier === "WARM" ? "high" : "medium",
-        status: "scored",
+        ...(alreadyQualified ? {} : { status: "scored" }),
         notes: scoreResult.reasoning,
       }).where(eq(leadsTable.id, lead.id));
 
