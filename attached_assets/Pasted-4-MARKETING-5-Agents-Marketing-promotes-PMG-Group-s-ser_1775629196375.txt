@@ -1,0 +1,320 @@
+4. MARKETING (5 Agents)
+Marketing promotes PMG Group's services and drives inbound leads. Five agents handle: content strategy and creation (Agent 12), paid advertising (Agent 13), SEO (Agent 14), multi-channel campaign coordination (Agent 15), and competitor monitoring (Agent 16).
+
+4.1 — Content calendar
+
+HOW IT WORKS:
+Shows planned content across all channels with dates: LinkedIn (3 posts/week), Facebook/Instagram (5 posts/week), Blog (2 articles/month), X (daily), YouTube (2 videos/month). Each slot shows: platform, content type, status (Draft/Scheduled/Published), and a preview snippet.
+
+IN AI AUTONOMOUS MODE:
+Calendar auto-populated by Agent 12 based on content strategy. Posts may auto-schedule.
+
+IN HYBRID MODE:
+AI suggests calendar. You approve, modify, or reject individual posts before scheduling.
+
+IN HUMAN CONTROLLED MODE:
+You build the calendar manually. AI helps write content for slots you assign.
+
+EXPECTED RESULT:
+PASS if calendar shows with channel breakdown and content slots. PARTIAL if calendar exists but mostly empty. FAIL if no calendar view.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+
+None of the above is working second it is not mode aware third all the cards buttons and everything is static so it fails so you have content strategy but it is not working completely ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+4.2 — "Create Content" full flow
+
+HOW IT WORKS:
+Click "Create Content" > choose type (blog post, LinkedIn post, social graphic, email, etc.) and channel > describe the topic > AI generates content in PMG brand voice (authoritative, data-driven, honest, using cybersecurity terminology naturally) > Preview appears > Review/Edit > Approve > Publish to channel. Status tracks: Draft > Review > Approved > Published.
+
+IN AI AUTONOMOUS MODE:
+Content auto-created from calendar schedule. Auto-publishes if approved.
+
+IN HYBRID MODE:
+AI drafts content. You review at each step. Must approve before publish.
+
+IN HUMAN CONTROLLED MODE:
+You write content. AI assists with editing, SEO optimization, or suggestions only.
+
+EXPECTED RESULT:
+PASS if full flow works: create > preview > approve > publish with status changes. PARTIAL if some steps work but chain breaks. FAIL if create button does nothing.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+It is fail, the create content is static and do nothing just gives this message it is now mode aware: status: success
+section: marketing
+agent: content-strategist
+type: blog_post
+content:
+# Why Your MDR Company's Website Isn't Generating Leads (And How to Fix It) Most Managed Detection & Response companies have the same problem: a website that talks about SOC analysts, SIEM integrations, and threat hunting — but doesn't speak to the person who actually signs the contract. Your CEO buyer doesn't care about your SIEM integrations. They care about: - Will this reduce our risk of a breach? - What's the cost of *not* having 24/7 monitoring? - Can we pass our next SOC 2 audit? ## The 3 Changes That Drive Leads ### 1. Lead with Business Risk, Not Technical Features Instead of: "Our XDR platform correlates alerts across endpoints, network, and cloud." Try: "Companies without 24/7 threat monitoring are 3.2x more likely to suffer a data breach costing $4.5M on average." ### 2. Add Proof Points on Every Page - Client logos (especially recognizable brands in their industry) - Specific metrics: "Reduced MTTR from 4 hours to 18 minutes" - Compliance badges: SOC 2, ISO 27001, FedRAMP ### 3. Create a Clear Conversion Path Don't just have a "Contact Us" form. Offer: - Free security posture assessment - ROI calculator - "Is Your Organization Ready for MDR?" self-assessment quiz *Want help implementing this? [CTA]*
+confidence: 85
+runId: 3954
+standard voice guideline is not active as well and it is not mode aware the ai content plan beside new content plan in all three modes are inactive and it is static ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+4.3 — "Create Campaign" (Advertising)
+
+HOW IT WORKS:
+Opens campaign builder. Choose platform (Facebook, LinkedIn, Google, YouTube). Set goal and budget. Agent 13 generates: ad copy with multiple A/B variations, targeting suggestions (cybersecurity executives, IT decision makers), budget allocation, and creative briefs. IMPORTANT: System never auto-publishes ads. Team always reviews and manually launches.
+
+IN AI AUTONOMOUS MODE:
+Campaign package auto-generated. Still requires manual launch (safety rule). Budget-aware: works within $600 total campaign budget.
+
+IN HYBRID MODE:
+You trigger creation. Review every element. Manual launch.
+
+IN HUMAN CONTROLLED MODE:
+You build campaign manually. AI provides suggestions for copy/targeting.
+
+EXPECTED RESULT:
+PASS if campaign builder opens with copy variations, targeting, and budget. FAIL if nothing generates.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+It is fail you have search whe you write name it is not showing or even it is not giving you direction to redirect then you have ad linkedin facebook, google, Instagram, email, youtube it is just text not selecable cncel is not working then you have campaign name you have awareness the list has only awareness but others are not listed, in channel it is only linkedin not other channesl, in budgen as well so create campaign is also not working.
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+4.4 — "Run SEO Audit" and keyword gaps
+
+HOW IT WORKS:
+Agent 14 analyzes your website: technical SEO issues (slow load, missing meta tags), on-page optimization (keyword density, header structure), content gaps (topics competitors rank for that you don't). Returns ranked fix-it list ordered by impact. Each gap has a "Create Content" button that triggers Agent 12 to write targeted content.
+
+IN AI AUTONOMOUS MODE:
+Audit auto-runs monthly. High-priority content auto-created.
+
+IN HYBRID MODE:
+You click to run. Review results. Click "Create Content" per gap.
+
+IN HUMAN CONTROLLED MODE:
+You run audit when needed. Implement fixes manually.
+
+EXPECTED RESULT:
+PASS if audit returns specific issues with priorities and "Create Content" buttons per gap. FAIL if nothing generates.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+It is failed first it is not mode aware and second when you click run seo audit so it gives this text status: success
+section: marketing
+agent: seo-growth
+url: client website
+audit:
+overallScore: 42
+domain: [client-domain].com
+organicTraffic: ~1,200 visits/month
+keywordRankings:
+keyword:
+managed detection and response
+position:
+34
+volume:
+2400
+difficulty:
+68
+keyword:
+MDR services
+position:
+28
+volume:
+1800
+difficulty:
+55
+keyword:
+SOC as a service
+position:
+42
+volume:
+1200
+difficulty:
+62
+keyword:
+cybersecurity managed services
+position:
+51
+volume:
+900
+difficulty:
+48
+keyword:
+endpoint detection and response
+position:
+Not ranking
+volume:
+3600
+difficulty:
+72
+issues:
+type:
+critical
+description:
+No blog or resource center — zero long-tail keyword capture
+type:
+critical
+description:
+Missing meta descriptions on 12 of 15 pages
+type:
+high
+description:
+Page speed: 4.2s on mobile (target: <2.5s)
+type:
+medium
+description:
+No schema markup for services or FAQ
+type:
+medium
+description:
+Only 23 referring domains — competitor average is 150+
+recommendations:
+Launch a blog with weekly posts targeting long-tail cybersecurity keywords, Create dedicated landing pages for each service (MDR, SOC, SIEM), Build backlink strategy through guest posts on CSO Online, Dark Reading, SC Media, Add FAQ schema to all service pages, Optimize Core Web Vitals — compress images, enable lazy loading
+competitorComparison:
+competitor:
+Arctic Wolf
+organicTraffic:
+~45K/mo
+keywords:
+2800
+backlinks:
+4200
+competitor:
+Expel
+organicTraffic:
+~28K/mo
+keywords:
+1900
+backlinks:
+2100
+confidence: 85
+runId: 3967
+ no further details and directions ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+4.5 — Competitor Analysis
+
+HOW IT WORKS:
+Agent 16 scans competitor agencies in the cybersecurity marketing space: their content, ads, pricing, positioning. Creates battle cards for sales calls with specific talking points against each competitor. Identifies gaps: "No competitor offers lead generation guarantees" — that's PMG's unique advantage.
+
+IN AI AUTONOMOUS MODE:
+Analysis auto-runs monthly. Battle cards auto-distributed to CRM.
+
+IN HYBRID MODE:
+You trigger analysis. Review battle cards before using.
+
+IN HUMAN CONTROLLED MODE:
+You request analysis when needed.
+
+EXPECTED RESULT:
+PASS if battle cards appear with competitor names and talking points. FAIL if nothing generates.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+It is fail no actions are mentioned it is not mode aware and when you hith the ai content plan so it is not working and when refresh analysis is hit it gives this message: 
+
+status: success
+section: marketing
+agent: seo-growth
+url: client website
+audit:
+overallScore: 42
+domain: [client-domain].com
+organicTraffic: ~1,200 visits/month
+keywordRankings:
+keyword:
+managed detection and response
+position:
+34
+volume:
+2400
+difficulty:
+68
+keyword:
+MDR services
+position:
+28
+volume:
+1800
+difficulty:
+55
+keyword:
+SOC as a service
+position:
+42
+volume:
+1200
+difficulty:
+62
+keyword:
+cybersecurity managed services
+position:
+51
+volume:
+900
+difficulty:
+48
+keyword:
+endpoint detection and response
+position:
+Not ranking
+volume:
+3600
+difficulty:
+72
+issues:
+type:
+critical
+description:
+No blog or resource center — zero long-tail keyword capture
+type:
+critical
+description:
+Missing meta descriptions on 12 of 15 pages
+type:
+high
+description:
+Page speed: 4.2s on mobile (target: <2.5s)
+type:
+medium
+description:
+No schema markup for services or FAQ
+type:
+medium
+description:
+Only 23 referring domains — competitor average is 150+
+recommendations:
+Launch a blog with weekly posts targeting long-tail cybersecurity keywords, Create dedicated landing pages for each service (MDR, SOC, SIEM), Build backlink strategy through guest posts on CSO Online, Dark Reading, SC Media, Add FAQ schema to all service pages, Optimize Core Web Vitals — compress images, enable lazy loading
+competitorComparison:
+competitor:
+Arctic Wolf
+organicTraffic:
+~45K/mo
+keywords:
+2800
+backlinks:
+4200
+competitor:
+Expel
+organicTraffic:
+~28K/mo
+keywords:
+1900
+backlinks:
+2100
+confidence: 85
+runId: 3967
+also in the marketing you have forgot the orchestrator it has just AI plan sprint so nothing is working only in ai mode when it is hit it gives this meesage :
+
+status: success
+section: marketing
+agent: campaign-orchestrator
+campaignName: Sprint Campaign
+campaign:
+## Campaign Orchestration Plan **Campaign:** "Stop Chasing Leads" — Q2 Demand Gen **Duration:** 90 days **Budget:** $4,500/mo ($1,500 ads + $3,000 content/management) ### Phase 1: Awareness (Days 1-30) - Publish 4 SEO blog posts targeting MDR/SIEM keywords - Launch LinkedIn thought leadership series (3x/week posts) - Create downloadable "CISO's Guide to Vendor Evaluation" - Start Google Ads for "MDR services" and "SOC as a service" ### Phase 2: Engagement (Days 31-60) - Host CISO Roundtable webinar (target: 50 registrants) - Launch email nurture sequence for content downloaders - Begin LinkedIn connection campaign (100 prospects/week) - Publish 2 client case studies ### Phase 3: Conversion (Days 61-90) - Direct outreach to engaged prospects (opened 3+ emails) - Retargeting ads for website visitors and webinar attendees - Schedule discovery calls with qualified leads - Launch referral program for existing clients ### Expected Outcomes - 45-60 MQLs generated - 15-20 qualified meetings booked - $150,000-$250,000 pipeline created - 3-5 proposals sent
+confidence: 85
+runId: 3978
+ ___________________________________________________________________________

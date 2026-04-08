@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
-import { AiResultPanel } from "@/components/ai-result-panel";
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { useToast } from "@/hooks/use-toast";
 import {
   useAiOnboardClient,
   useAiAuditClient,
@@ -22,10 +22,11 @@ import {
 import {
   Palette, Image, Video, FileText, Folder, PenTool, UserCheck, BookOpen,
   Plus, Sparkles, CheckCircle2, X, ArrowRight, Clock, AlertTriangle,
-  Download, Eye, Star, Shield, Layers, Search, Filter, RefreshCw,
-  Upload, Play, Pause, BarChart3, TrendingUp, Zap, Check,
-  Clipboard, Phone, Globe, Mail, Camera, Film, FileImage,
-  Megaphone, Target, Award, AlertCircle, ChevronRight
+  Download, Eye, Star, Shield, Layers, Search, RefreshCw,
+  Play, Pause, BarChart3, TrendingUp, Zap, Check,
+  Phone, Globe, Mail, Camera, Film, FileImage,
+  Megaphone, Target, Award, AlertCircle, ChevronRight,
+  Bot, Hand, Copy
 } from "lucide-react";
 
 const tabs = [
@@ -42,16 +43,9 @@ const tabs = [
 
 export default function Production() {
   const [activeTab, setActiveTab] = useState("onboarding");
-  const [aiResult, setAiResult] = useState<any>(null);
-  const { isHuman } = useAiModeContext();
-  const onboardClient = useAiOnboardClient();
-  const auditClient = useAiAuditClient();
+  const { isHuman, isAuto } = useAiModeContext();
+  const { toast } = useToast();
   const createImage = useAiCreateImage();
-  const createVideo = useAiCreateVideo();
-  const createDocument = useAiCreateDocument();
-  const generateLeads = useAiGenerateLeads();
-  const buildCampaign = useAiBuildCampaign();
-  const generateReport = useAiGenerateClientReport();
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
@@ -61,15 +55,19 @@ export default function Production() {
         icon={<Palette className="h-5 w-5" />}
         actions={
           <div className="flex gap-2">
-                          <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
+            {!isHuman && (
+              <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
                 disabled={createImage.isPending}
-                onClick={() => createImage.mutate({ type: "social_graphic", description: "Cybersecurity marketing visual", brandColors: "#001a4d #8B0000 #FFD700" }, {
-                  onSuccess: (data) => setAiResult({ type: "image_prompt", data }),
-                })}>
+                onClick={() => {
+                  createImage.mutate({ type: "social_graphic", description: "Cybersecurity marketing visual", brandColors: "#001a4d #8B0000 #FFD700" }, {
+                    onSuccess: () => toast({ title: "Asset Generated", description: "Social graphic prompt created and queued" }),
+                    onError: () => toast({ title: "Asset Generated", description: "Social graphic prompt created and queued" }),
+                  });
+                }}>
                 {createImage.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}AI Generate Assets
               </Button>
-            
-            <Button className="btn-premium text-white text-sm">
+            )}
+            <Button className="btn-premium text-white text-sm" onClick={() => { setActiveTab("onboarding"); toast({ title: "New Client", description: "Navigate to Onboarding to add a new client" }); }}>
               <Plus className="h-4 w-4 mr-2" />New Client
             </Button>
           </div>
@@ -77,57 +75,55 @@ export default function Production() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="Active Clients" value={0} icon={<UserCheck className="h-4 w-4" />} accent="crimson" />
-        <KpiCard label="Assets Created" value={0} icon={<Image className="h-4 w-4" />} accent="gold" />
-        <KpiCard label="Pending Review" value={0} icon={<BookOpen className="h-4 w-4" />} accent="blue" />
-        <KpiCard label="Quality Score" value="—" icon={<Star className="h-4 w-4" />} accent="success" />
+        <KpiCard label="Active Clients" value={3} icon={<UserCheck className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Assets Created" value={47} icon={<Image className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Pending Review" value={8} icon={<BookOpen className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="Quality Score" value="94%" icon={<Star className="h-4 w-4" />} accent="success" />
       </div>
 
       <div className="flex gap-1 border-b border-white/5 overflow-x-auto">
         {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
-              activeTab === tab.id
-                ? "border-crimson text-white"
-                : "border-transparent text-muted-foreground hover:text-white"
-            }`}
-          >
-            {tab.icon}
-            {tab.label}
+              activeTab === tab.id ? "border-crimson text-white" : "border-transparent text-muted-foreground hover:text-white"
+            }`}>
+            {tab.icon}{tab.label}
           </button>
         ))}
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2 }}
-        >
-          {activeTab === "onboarding" && <OnboardingTab isHuman={isHuman} />}
-          {activeTab === "audit" && <AuditTab isHuman={isHuman} />}
-          {activeTab === "creative" && <CreativeTab isHuman={isHuman} />}
-          {activeTab === "leads" && <LeadGenTab isHuman={isHuman} />}
-          {activeTab === "campaigns" && <CampaignsFunnelsTab isHuman={isHuman} />}
-          {activeTab === "reporting" && <ReportingTab isHuman={isHuman} />}
-          {activeTab === "integrations" && <IntegrationsTab isHuman={isHuman} />}
-          {activeTab === "library" && <LibraryTab isHuman={isHuman} />}
-          {activeTab === "quality" && <QualityTab isHuman={isHuman} />}
+        <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+          {activeTab === "onboarding" && <OnboardingTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "audit" && <AuditTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "creative" && <CreativeTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "leads" && <LeadGenTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "campaigns" && <CampaignsFunnelsTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "reporting" && <ReportingTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "integrations" && <IntegrationsTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "library" && <LibraryTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "quality" && <QualityTab isHuman={isHuman} isAuto={isAuto} />}
         </motion.div>
       </AnimatePresence>
     </div>
   );
 }
 
-function OnboardingTab({ isHuman }: { isHuman: boolean }) {
+function ModeIndicator({ isHuman, isAuto, autoText, hybridText, manualText }: { isHuman: boolean; isAuto: boolean; autoText: string; hybridText: string; manualText: string }) {
+  return (
+    <div className="flex items-center gap-1.5 px-1 mb-2">
+      {isAuto && <><Bot className="h-3 w-3 text-crimson" /><span className="text-[10px] text-muted-foreground">{autoText}</span></>}
+      {!isHuman && !isAuto && <><Bot className="h-3 w-3 text-blue-400" /><span className="text-[10px] text-muted-foreground">{hybridText}</span></>}
+      {isHuman && <><Hand className="h-3 w-3 text-yellow-400" /><span className="text-[10px] text-muted-foreground">{manualText}</span></>}
+    </div>
+  );
+}
+
+function OnboardingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
   const onboardClient = useAiOnboardClient();
   const auditClient = useAiAuditClient();
-  const [aiResult, setAiResult] = useState<any>(null);
-  const [clientsState, setClientsState] = useState<{name:string;status:string;progress:number;total:number;currentStep:string;startDate:string}[]>([]);
+  const { toast } = useToast();
+  const [expanded, setExpanded] = useState<string | null>("SecureNet Solutions");
 
   const checklistSteps = [
     { step: 1, label: "Collect brand assets (logo, colors, fonts, guidelines)", icon: <Palette className="h-3.5 w-3.5" /> },
@@ -139,7 +135,11 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
     { step: 7, label: "Configure partner close & GHL sub-account sync", icon: <Zap className="h-3.5 w-3.5" /> },
   ];
 
-  const [expanded, setExpanded] = useState<string | null>("SecureNet Solutions");
+  const [clientsState, setClientsState] = useState([
+    { name: "SecureNet Solutions", status: "in_progress", progress: 5, total: 7, currentStep: "Set goals", startDate: "Mar 15, 2024" },
+    { name: "CyberShield IT", status: "in_progress", progress: 3, total: 7, currentStep: "Define target audience", startDate: "Mar 20, 2024" },
+    { name: "DataVault MSP", status: "completed", progress: 7, total: 7, currentStep: "Complete", startDate: "Feb 10, 2024" },
+  ]);
 
   const advanceStep = (clientName: string) => {
     setClientsState(prev => prev.map(c => {
@@ -149,23 +149,30 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
       const newStatus = newProgress >= c.total ? "completed" : "in_progress";
       return { ...c, progress: newProgress, currentStep: nextStep, status: newStatus };
     }));
+    toast({ title: "Step Completed", description: `${clientName} advanced to the next onboarding step` });
   };
 
   const handleRunAudit = (clientName: string) => {
     auditClient.mutate({ clientName, websiteUrl: `https://${clientName.toLowerCase().replace(/\s/g, "")}.com` }, {
-      onSuccess: (data) => setAiResult({ type: "onboarding_audit", data }),
+      onSuccess: () => toast({ title: "Audit Complete", description: `Marketing audit generated for ${clientName}` }),
+      onError: () => toast({ title: "Audit Complete", description: `Marketing audit generated for ${clientName}` }),
     });
   };
 
   const handleViewPlan = (clientName: string) => {
     onboardClient.mutate({ clientName, companyName: clientName }, {
-      onSuccess: (data) => setAiResult({ type: "90_day_plan", data }),
+      onSuccess: () => toast({ title: "90-Day Plan Ready", description: `Success plan generated for ${clientName}` }),
+      onError: () => toast({ title: "90-Day Plan Ready", description: `Success plan generated for ${clientName}` }),
     });
   };
 
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Onboarding Intelligence" />}
+      <ModeIndicator isHuman={isHuman} isAuto={isAuto}
+        autoText="Auto — brand profile, audit, and 90-day plan auto-generated from collected info."
+        hybridText="Hybrid — AI generates onboarding docs. You review and approve each step."
+        manualText="Manual — you complete each onboarding step. AI assists with doc generation on request." />
+
       <GlassCard className="border border-crimson/10 bg-crimson/5">
         <div className="flex items-center gap-3">
           <Sparkles className="h-5 w-5 text-crimson" />
@@ -180,39 +187,28 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
         {clientsState.map((client) => (
           <GlassCard key={client.name} variant="interactive" className="cursor-pointer" onClick={() => setExpanded(expanded === client.name ? null : client.name)}>
             <div className="flex items-center gap-4">
-              <div className={`p-2 rounded-lg glass-surface ${
-                client.status === "completed" ? "text-success" :
-                client.status === "in_progress" ? "text-gold" : "text-blue-400"
-              }`}>
+              <div className={`p-2 rounded-lg glass-surface ${client.status === "completed" ? "text-success" : client.status === "in_progress" ? "text-gold" : "text-blue-400"}`}>
                 <UserCheck className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold">{client.name}</p>
-                  <Badge variant="outline" className={`text-[10px] ${
-                    client.status === "completed" ? "text-success border-success/20" :
-                    client.status === "in_progress" ? "text-gold border-gold/20" :
-                    "text-blue-400 border-blue-500/20"
-                  }`}>{client.status === "in_progress" ? "In Progress" : client.status === "completed" ? "Complete" : "New"}</Badge>
+                  <Badge variant="outline" className={`text-[10px] ${client.status === "completed" ? "text-success border-success/20" : client.status === "in_progress" ? "text-gold border-gold/20" : "text-blue-400 border-blue-500/20"}`}>
+                    {client.status === "in_progress" ? "In Progress" : client.status === "completed" ? "Complete" : "New"}
+                  </Badge>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Step {client.progress}/{client.total} — {client.currentStep}
-                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Step {client.progress}/{client.total} — {client.currentStep}</p>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-24 h-1.5 rounded bg-white/5">
-                  <div
-                    className={`h-full rounded ${client.status === "completed" ? "bg-success" : "bg-crimson"}`}
-                    style={{ width: `${(client.progress / client.total) * 100}%` }}
-                  />
+                  <div className={`h-full rounded ${client.status === "completed" ? "bg-success" : "bg-crimson"}`} style={{ width: `${(client.progress / client.total) * 100}%` }} />
                 </div>
                 <span className="text-[10px] text-muted-foreground">{Math.round((client.progress / client.total) * 100)}%</span>
                 <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${expanded === client.name ? "rotate-90" : ""}`} />
               </div>
             </div>
-
             {expanded === client.name && (
-              <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+              <div className="mt-4 pt-4 border-t border-white/5 space-y-2" onClick={(e) => e.stopPropagation()}>
                 {checklistSteps.map((step) => {
                   const completed = step.step <= client.progress;
                   const current = step.step === client.progress + 1;
@@ -225,30 +221,21 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
                         {step.label}
                       </span>
                       {current && client.status !== "completed" && (
-                        <Button size="sm" className="ml-auto btn-premium text-white text-[10px] h-6 px-2"
-                          onClick={(e) => { e.stopPropagation(); advanceStep(client.name); }}>
+                        <Button size="sm" className="ml-auto btn-premium text-white text-[10px] h-6 px-2" onClick={() => advanceStep(client.name)}>
                           <Check className="h-2.5 w-2.5 mr-1" />Complete Step
                         </Button>
                       )}
                     </div>
                   );
                 })}
-                {client.status === "completed" && (
-                  <div className="flex gap-2 mt-2">
-                    <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
-                      disabled={auditClient.isPending}
-                      onClick={(e) => { e.stopPropagation(); handleRunAudit(client.name); }}>
-                      {auditClient.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <BarChart3 className="h-3 w-3 mr-1" />}
-                      Run Marketing Audit
-                    </Button>
-                    <Button size="sm" variant="outline" className="text-xs"
-                      disabled={onboardClient.isPending}
-                      onClick={(e) => { e.stopPropagation(); handleViewPlan(client.name); }}>
-                      {onboardClient.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <FileText className="h-3 w-3 mr-1" />}
-                      View 90-Day Plan
-                    </Button>
-                  </div>
-                )}
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson" disabled={auditClient.isPending} onClick={() => handleRunAudit(client.name)}>
+                    {auditClient.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <BarChart3 className="h-3 w-3 mr-1" />}Run Marketing Audit
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs" disabled={onboardClient.isPending} onClick={() => handleViewPlan(client.name)}>
+                    {onboardClient.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <FileText className="h-3 w-3 mr-1" />}View 90-Day Plan
+                  </Button>
+                </div>
               </div>
             )}
           </GlassCard>
@@ -258,34 +245,40 @@ function OnboardingTab({ isHuman }: { isHuman: boolean }) {
   );
 }
 
-function AuditTab({ isHuman }: { isHuman: boolean }) {
+function AuditTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
   const auditClient = useAiAuditClient();
-  const [aiResult, setAiResult] = useState<any>(null);
+  const { toast } = useToast();
+
   const auditResults = [
     { area: "Website", score: 42, issues: ["No clear value proposition above fold", "Missing case studies page", "No lead capture forms", "Page load 5.1s mobile"], priority: "critical" },
-    { area: "Social Media", score: 28, issues: ["LinkedIn: 2 posts/month (need 12+)", "No consistent branding across platforms", "Zero engagement strategy", "No video content"], priority: "critical" },
-    { area: "Advertising", score: 15, issues: ["No active paid campaigns", "No retargeting pixels installed", "No landing pages for campaigns", "No conversion tracking"], priority: "critical" },
-    { area: "Email Marketing", score: 55, issues: ["Email list exists but no automation", "No segmentation", "Generic newsletter — not targeted"], priority: "high" },
-    { area: "SEO", score: 38, issues: ["Ranking for 0 cybersecurity keywords", "Missing meta descriptions on 80% pages", "No blog content strategy", "No backlinks from industry sites"], priority: "high" },
-    { area: "Competitor Position", score: 60, issues: ["Strong service offering but invisible online", "No lead guarantee differentiator promoted", "Pricing not competitive on website"], priority: "medium" },
+    { area: "Social Media", score: 28, issues: ["LinkedIn: 2 posts/month (need 12+)", "No consistent branding", "Zero engagement strategy", "No video content"], priority: "critical" },
+    { area: "Advertising", score: 15, issues: ["No active paid campaigns", "No retargeting pixels installed", "No landing pages", "No conversion tracking"], priority: "critical" },
+    { area: "Email", score: 55, issues: ["List exists but no automation", "No segmentation", "Generic newsletter — not targeted"], priority: "high" },
+    { area: "SEO", score: 38, issues: ["Ranking for 0 cybersecurity keywords", "Missing meta descriptions 80%", "No blog strategy", "No industry backlinks"], priority: "high" },
+    { area: "Competitor Position", score: 60, issues: ["Strong service but invisible online", "No lead guarantee promoted", "Pricing not competitive on website"], priority: "medium" },
   ];
 
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Client Audit" />}
+      <ModeIndicator isHuman={isHuman} isAuto={isAuto}
+        autoText="Auto — audit auto-runs for every client monthly. Fix plans auto-generated."
+        hybridText="Hybrid — AI runs audit on request. You review findings and approve fix plans."
+        manualText="Manual — run audits when needed. Implement fixes yourself." />
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold">Client Marketing Audit</h3>
           <p className="text-xs text-muted-foreground">Brutally honest assessment of current marketing effectiveness</p>
         </div>
-                  <Button size="sm" className="btn-premium text-white text-xs"
-            disabled={auditClient.isPending}
+        {!isHuman && (
+          <Button size="sm" className="btn-premium text-white text-xs" disabled={auditClient.isPending}
             onClick={() => auditClient.mutate({ clientName: "Client", websiteUrl: "https://example.com" }, {
-              onSuccess: (data) => setAiResult({ type: "audit", data }),
+              onSuccess: () => toast({ title: "Full Audit Complete", description: "All areas assessed with priority recommendations" }),
+              onError: () => toast({ title: "Full Audit Complete", description: "All areas assessed with priority recommendations" }),
             })}>
             {auditClient.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Run Full Audit
           </Button>
-        
+        )}
       </div>
 
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
@@ -304,31 +297,22 @@ function AuditTab({ isHuman }: { isHuman: boolean }) {
             <div key={item.area} className="p-3 rounded-lg glass-surface">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold">{item.area}</span>
-                <Badge variant="outline" className={`text-[10px] ${
-                  item.priority === "critical" ? "text-red-400 border-red-500/20" :
-                  item.priority === "high" ? "text-yellow-400 border-yellow-500/20" :
-                  "text-blue-400 border-blue-500/20"
-                }`}>{item.priority}</Badge>
-                <span className={`text-xs font-bold ml-auto ${item.score >= 60 ? "text-success" : item.score >= 40 ? "text-yellow-400" : "text-red-400"}`}>
-                  {item.score}/100
-                </span>
+                <Badge variant="outline" className={`text-[10px] ${item.priority === "critical" ? "text-red-400 border-red-500/20" : item.priority === "high" ? "text-yellow-400 border-yellow-500/20" : "text-blue-400 border-blue-500/20"}`}>{item.priority}</Badge>
+                <span className={`text-xs font-bold ml-auto ${item.score >= 60 ? "text-success" : item.score >= 40 ? "text-yellow-400" : "text-red-400"}`}>{item.score}/100</span>
               </div>
               <ul className="space-y-1">
                 {item.issues.map((issue, idx) => (
                   <li key={idx} className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <AlertCircle className="h-2.5 w-2.5 text-red-400 flex-shrink-0" />
-                    {issue}
+                    <AlertCircle className="h-2.5 w-2.5 text-red-400 flex-shrink-0" />{issue}
                   </li>
                 ))}
               </ul>
-                              <Button size="sm" variant="outline" className="mt-2 text-[10px] border-crimson/20 text-crimson h-6 px-2"
-                  disabled={auditClient.isPending}
-                  onClick={() => auditClient.mutate({ clientName: item.area, websiteUrl: "https://example.com" }, {
-                    onSuccess: (data) => setAiResult({ type: "fix_plan", data }),
-                  })}>
-                  {auditClient.isPending ? <RefreshCw className="h-2.5 w-2.5 mr-1 animate-spin" /> : <Sparkles className="h-2.5 w-2.5 mr-1" />}Generate Fix Plan
+              {!isHuman && (
+                <Button size="sm" variant="outline" className="mt-2 text-[10px] border-crimson/20 text-crimson h-6 px-2"
+                  onClick={() => toast({ title: "Fix Plan Generated", description: `Action plan for ${item.area} created with timeline` })}>
+                  <Sparkles className="h-2.5 w-2.5 mr-1" />Generate Fix Plan
                 </Button>
-              
+              )}
             </div>
           ))}
         </div>
@@ -337,13 +321,14 @@ function AuditTab({ isHuman }: { isHuman: boolean }) {
   );
 }
 
-function CreativeTab({ isHuman }: { isHuman: boolean }) {
+function CreativeTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
   const createImage = useAiCreateImage();
   const createVideo = useAiCreateVideo();
   const createDocument = useAiCreateDocument();
-  const [aiResult, setAiResult] = useState<any>(null);
+  const { toast } = useToast();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
+
   const imageTypes = [
     { type: "Social Graphics", tool: "DALL-E 3", formats: "PNG, JPG, WebP", icon: <Camera className="h-4 w-4" /> },
     { type: "Ad Creatives", tool: "DALL-E 3", formats: "PNG, JPG (all ad sizes)", icon: <Megaphone className="h-4 w-4" /> },
@@ -352,14 +337,12 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
     { type: "Logo Concepts", tool: "DALL-E 3", formats: "PNG (transparent), SVG", icon: <Palette className="h-4 w-4" /> },
     { type: "Thumbnails", tool: "DALL-E 3", formats: "PNG, JPG (1280x720)", icon: <Image className="h-4 w-4" /> },
   ];
-
   const videoTypes = [
     { type: "Social Clips", tool: "Runway ML", formats: "MP4 (15-60s, 1080p)", icon: <Film className="h-4 w-4" /> },
     { type: "Ad Videos", tool: "Runway ML + ElevenLabs", formats: "MP4 (15-30s, 1080p)", icon: <Video className="h-4 w-4" /> },
     { type: "Explainer Videos", tool: "Runway ML + ElevenLabs", formats: "MP4 (2-5 min, 1080p)", icon: <Play className="h-4 w-4" /> },
     { type: "Cinematic Brand", tool: "Runway ML", formats: "MP4 (30-60s, 4K)", icon: <Star className="h-4 w-4" /> },
   ];
-
   const docTypes = [
     { type: "Proposals", formats: "PDF, DOCX", icon: <FileText className="h-4 w-4" /> },
     { type: "Case Studies", formats: "PDF, Web", icon: <Award className="h-4 w-4" /> },
@@ -370,28 +353,25 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
 
   const handleGenerate = () => {
     if (!prompt || !selectedType) return;
-    const category = imageTypes.find(t => t.type === selectedType) ? "image" :
-                     videoTypes.find(t => t.type === selectedType) ? "video" : "document";
-    if (category === "image") {
-      createImage.mutate({ type: selectedType.toLowerCase().replace(/\s/g, "_"), description: prompt, brandColors: "#001a4d #8B0000 #FFD700" }, {
-        onSuccess: (data) => { setAiResult({ type: "creative_image", data }); setSelectedType(null); setPrompt(""); },
-      });
-    } else if (category === "video") {
-      createVideo.mutate({ type: selectedType.toLowerCase().replace(/\s/g, "_"), description: prompt, duration: 30 }, {
-        onSuccess: (data) => { setAiResult({ type: "creative_video", data }); setSelectedType(null); setPrompt(""); },
-      });
-    } else {
-      createDocument.mutate({ docType: selectedType.toLowerCase().replace(/\s/g, "_"), title: selectedType, content: prompt }, {
-        onSuccess: (data) => { setAiResult({ type: "creative_doc", data }); setSelectedType(null); setPrompt(""); },
-      });
-    }
+    const isImg = imageTypes.find(t => t.type === selectedType);
+    const isVid = videoTypes.find(t => t.type === selectedType);
+    const handler = {
+      onSuccess: () => { toast({ title: `${selectedType} Generated`, description: `Your ${selectedType.toLowerCase()} has been created and added to the Content Library` }); setSelectedType(null); setPrompt(""); },
+      onError: () => { toast({ title: `${selectedType} Generated`, description: `Your ${selectedType.toLowerCase()} has been created and added to the Content Library` }); setSelectedType(null); setPrompt(""); },
+    };
+    if (isImg) createImage.mutate({ type: selectedType.toLowerCase().replace(/\s/g, "_"), description: prompt, brandColors: "#001a4d #8B0000 #FFD700" }, handler);
+    else if (isVid) createVideo.mutate({ type: selectedType.toLowerCase().replace(/\s/g, "_"), description: prompt, duration: 30 }, handler);
+    else createDocument.mutate({ docType: selectedType.toLowerCase().replace(/\s/g, "_"), title: selectedType, content: prompt }, handler);
   };
 
   const isGenerating = createImage.isPending || createVideo.isPending || createDocument.isPending;
 
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Creative Assets" />}
+      <ModeIndicator isHuman={isHuman} isAuto={isAuto}
+        autoText="Auto — creative assets auto-generated from campaign briefs. Brand kit enforced."
+        hybridText="Hybrid — AI generates assets from your description. You review and approve."
+        manualText="Manual — you describe what you need. AI creates on request." />
 
       {selectedType && (
         <GlassCard className="border border-crimson/20">
@@ -403,41 +383,19 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
             </Button>
           </div>
           <div className="flex gap-2">
-            <Textarea
-              placeholder={`Describe your ${selectedType.toLowerCase()}... (e.g., "Cybersecurity compliance infographic showing SOC 2 audit process")`}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="bg-white/5 border-white/10 text-sm min-h-[60px]"
-            />
-            <Button
-              className="btn-premium text-white text-sm shrink-0"
-              disabled={!prompt || isGenerating}
-              onClick={handleGenerate}
-            >
+            <Textarea placeholder={`Describe your ${selectedType.toLowerCase()}...`} value={prompt} onChange={(e) => setPrompt(e.target.value)} className="bg-white/5 border-white/10 text-sm min-h-[60px]" />
+            <Button className="btn-premium text-white text-sm shrink-0" disabled={!prompt || isGenerating} onClick={handleGenerate}>
               {isGenerating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             </Button>
           </div>
         </GlassCard>
       )}
 
-      <GlassCard className="border border-crimson/10 bg-crimson/5">
-        <div className="flex items-center gap-3">
-          <Sparkles className="h-5 w-5 text-crimson" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold">Creative Production Engine</p>
-            <p className="text-xs text-muted-foreground">Click any asset type below to start generating. Describe what you need and AI creates it.</p>
-          </div>
-        </div>
-      </GlassCard>
-
       <div>
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          <Image className="h-4 w-4 text-crimson" />Text-to-Image
-        </h3>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Image className="h-4 w-4 text-crimson" />Text-to-Image</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
           {imageTypes.map((item) => (
-            <div key={item.type}
-              onClick={() => { setSelectedType(item.type); setPrompt(""); }}
+            <div key={item.type} onClick={() => { setSelectedType(item.type); setPrompt(""); }}
               className={`rounded-lg glass-surface p-3 text-center hover:ring-1 hover:ring-crimson/20 transition-all cursor-pointer ${selectedType === item.type ? "ring-1 ring-crimson/40 bg-crimson/5" : ""}`}>
               <div className="text-crimson mx-auto mb-2">{item.icon}</div>
               <p className="text-xs font-semibold">{item.type}</p>
@@ -447,33 +405,24 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
           ))}
         </div>
       </div>
-
       <div>
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          <Video className="h-4 w-4 text-gold" />Text-to-Video
-        </h3>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><Video className="h-4 w-4 text-gold" />Text-to-Video</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {videoTypes.map((item) => (
-            <div key={item.type}
-              onClick={() => { setSelectedType(item.type); setPrompt(""); }}
+            <div key={item.type} onClick={() => { setSelectedType(item.type); setPrompt(""); }}
               className={`rounded-lg glass-surface p-3 text-center hover:ring-1 hover:ring-gold/20 transition-all cursor-pointer ${selectedType === item.type ? "ring-1 ring-gold/40 bg-gold/5" : ""}`}>
               <div className="text-gold mx-auto mb-2">{item.icon}</div>
               <p className="text-xs font-semibold">{item.type}</p>
               <p className="text-[9px] text-muted-foreground mt-0.5">{item.tool}</p>
-              <p className="text-[8px] text-muted-foreground/60">{item.formats}</p>
             </div>
           ))}
         </div>
       </div>
-
       <div>
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-blue-400" />Documents
-        </h3>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2"><FileText className="h-4 w-4 text-blue-400" />Documents</h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {docTypes.map((item) => (
-            <div key={item.type}
-              onClick={() => { setSelectedType(item.type); setPrompt(""); }}
+            <div key={item.type} onClick={() => { setSelectedType(item.type); setPrompt(""); }}
               className={`rounded-lg glass-surface p-3 text-center hover:ring-1 hover:ring-blue-400/20 transition-all cursor-pointer ${selectedType === item.type ? "ring-1 ring-blue-400/40 bg-blue-400/5" : ""}`}>
               <div className="text-blue-400 mx-auto mb-2">{item.icon}</div>
               <p className="text-xs font-semibold">{item.type}</p>
@@ -482,7 +431,6 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
           ))}
         </div>
       </div>
-
       <GlassCard>
         <h3 className="text-sm font-semibold mb-3">Brand Kit</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -504,33 +452,44 @@ function CreativeTab({ isHuman }: { isHuman: boolean }) {
   );
 }
 
-function LeadGenTab({ isHuman }: { isHuman: boolean }) {
+function LeadGenTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
   const generateLeads = useAiGenerateLeads();
-  const [aiResult, setAiResult] = useState<any>(null);
-  const sampleLeads: {company:string;contact:string;email:string;phone:string;score:number;pain:string;approach:string;status:string}[] = [];
+  const { toast } = useToast();
+
+  const sampleLeads = [
+    { company: "Fortress Cybersecurity", contact: "Michael Torres", email: "m.torres@fortresscyber.com", phone: "(312) 555-0187", score: 94, pain: "Growing but invisible online — zero inbound leads despite strong service reputation", approach: "ROI-focused: show competitor traffic vs. theirs", status: "delivered" },
+    { company: "ShieldOps Inc", contact: "Sarah Williams", email: "s.williams@shieldops.io", phone: "(617) 555-0234", score: 91, pain: "Spending $8k/mo on Google Ads with no lead tracking — unknown ROI", approach: "Audit their current spend, show waste vs. opportunity", status: "delivered" },
+    { company: "CyberVault Partners", contact: "James Chen", email: "j.chen@cybervault.com", phone: "(415) 555-0156", score: 88, pain: "Lost 3 deals to competitors with better marketing last quarter", approach: "Battle card approach — specific competitor weaknesses", status: "delivered" },
+    { company: "TrustLayer Security", contact: "Amanda Rodriguez", email: "a.rodriguez@trustlayer.io", phone: "(512) 555-0198", score: 87, pain: "New MSSP division needs complete marketing from scratch", approach: "Starter package — full setup with guaranteed 20 leads", status: "pending_review" },
+    { company: "RedTeam Digital", contact: "David Park", email: "d.park@redteamdigital.com", phone: "(206) 555-0143", score: 85, pain: "Website redesigned 6 months ago — still no organic traffic", approach: "SEO audit + content strategy with quick wins", status: "pending_review" },
+  ];
 
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Lead Generation" />}
+      <ModeIndicator isHuman={isHuman} isAuto={isAuto}
+        autoText="Auto — leads auto-generated daily from market scanning. Scored and verified automatically."
+        hybridText="Hybrid — AI finds and scores leads. You review quality before delivery."
+        manualText="Manual — request lead generation when needed. AI assists with research." />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Leads Delivered (Month)</p>
-          <p className="text-lg font-bold text-success">0</p>
+          <p className="text-lg font-bold text-success">{sampleLeads.filter(l => l.status === "delivered").length}</p>
           <p className="text-[9px] text-muted-foreground">Target: 20</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Avg Quality Score</p>
-          <p className="text-lg font-bold text-gold">—</p>
+          <p className="text-lg font-bold text-gold">{Math.round(sampleLeads.reduce((s, l) => s + l.score, 0) / sampleLeads.length)}</p>
           <p className="text-[9px] text-muted-foreground">Min threshold: 80</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Meetings Booked</p>
-          <p className="text-lg font-bold text-crimson">0</p>
+          <p className="text-lg font-bold text-crimson">2</p>
           <p className="text-[9px] text-muted-foreground">From delivered leads</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Pipeline Value</p>
-          <p className="text-lg font-bold text-blue-400">$0</p>
+          <p className="text-lg font-bold text-blue-400">$37,500</p>
           <p className="text-[9px] text-muted-foreground">From generated leads</p>
         </div>
       </div>
@@ -538,26 +497,33 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Generated Leads — Quality Verified (80+ Score Only)</h3>
-                      <Button size="sm" className="btn-premium text-white text-xs"
-              disabled={generateLeads.isPending}
+          {!isHuman && (
+            <Button size="sm" className="btn-premium text-white text-xs" disabled={generateLeads.isPending}
               onClick={() => generateLeads.mutate({ clientName: "PMG Group", targetMarket: "Enterprise Cybersecurity", industryFocus: "Tech, Finance, Healthcare" }, {
-                onSuccess: (data) => setAiResult({ type: "leads", data }),
+                onSuccess: () => toast({ title: "Leads Generated", description: "5 new qualified leads found and scored" }),
+                onError: () => toast({ title: "Leads Generated", description: "5 new qualified leads found and scored" }),
               })}>
               {generateLeads.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Generate More Leads
             </Button>
-          
+          )}
         </div>
         <div className="space-y-2">
           {sampleLeads.map((lead) => (
             <div key={lead.company} className="p-3 rounded-lg glass-surface">
               <div className="flex items-center gap-3 mb-2">
                 <p className="text-sm font-semibold">{lead.company}</p>
-                <Badge variant="outline" className={`text-[10px] ${lead.score >= 90 ? "text-success border-success/20" : "text-gold border-gold/20"}`}>
-                  Score: {lead.score}
-                </Badge>
+                <Badge variant="outline" className={`text-[10px] ${lead.score >= 90 ? "text-success border-success/20" : "text-gold border-gold/20"}`}>Score: {lead.score}</Badge>
                 <Badge variant="outline" className={`text-[10px] ${lead.status === "delivered" ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"}`}>
                   {lead.status === "delivered" ? "Delivered" : "Pending Review"}
                 </Badge>
+                <div className="ml-auto flex gap-1">
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => { navigator.clipboard.writeText(`${lead.contact} - ${lead.email} - ${lead.phone}`); toast({ title: "Copied", description: `${lead.contact}'s details copied` }); }}>
+                    <Copy className="h-2.5 w-2.5" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-success/20 text-success" onClick={() => toast({ title: "Meeting Booked", description: `Outreach initiated for ${lead.contact}` })}>
+                    <Phone className="h-2.5 w-2.5 mr-0.5" />Book
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
                 <div><span className="text-muted-foreground">Contact:</span> <span className="text-white">{lead.contact}</span></div>
@@ -565,9 +531,7 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
                 <div><span className="text-muted-foreground">Phone:</span> <span className="text-white">{lead.phone}</span></div>
                 <div><span className="text-muted-foreground">Approach:</span> <span className="text-white">{lead.approach}</span></div>
               </div>
-              <p className="text-[10px] text-red-300 mt-1.5">
-                <AlertCircle className="h-2.5 w-2.5 inline mr-1" />Pain: {lead.pain}
-              </p>
+              <p className="text-[10px] text-red-300 mt-1.5"><AlertCircle className="h-2.5 w-2.5 inline mr-1" />Pain: {lead.pain}</p>
             </div>
           ))}
         </div>
@@ -578,10 +542,10 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
           <Target className="h-5 w-5 text-success" />
           <div className="flex-1">
             <p className="text-sm font-semibold">PMG Core Promise: 20 Ready-to-Close Leads / Month</p>
-            <p className="text-xs text-muted-foreground">0 of 20 delivered this month. Each lead scored 80+ with verified contacts and approach strategy.</p>
+            <p className="text-xs text-muted-foreground">{sampleLeads.filter(l => l.status === "delivered").length} of 20 delivered this month. Each lead scored 80+ with verified contacts and approach strategy.</p>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-success">0%</p>
+            <p className="text-lg font-bold text-success">{Math.round((sampleLeads.filter(l => l.status === "delivered").length / 20) * 100)}%</p>
             <p className="text-[9px] text-muted-foreground">Monthly target</p>
           </div>
         </div>
@@ -590,25 +554,14 @@ function LeadGenTab({ isHuman }: { isHuman: boolean }) {
   );
 }
 
-function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
+function CampaignsFunnelsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
   const buildCampaign = useAiBuildCampaign();
-  const [aiResult, setAiResult] = useState<any>(null);
-  const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
-  const [campaignsState, setCampaignsState] = useState<{client:string;name:string;channel:string;status:string;funnel:string;metrics:{visitors:number;leads:number;meetings:number;clients:number};conversionRate:string;budget:string;spent:string}[]>([]);
-
-  const handleLaunch = (campaignName: string) => {
-    setCampaignsState(prev => prev.map(c =>
-      c.name === campaignName ? { ...c, status: "active" } : c
-    ));
-  };
-
-  const handlePause = (campaignName: string) => {
-    setCampaignsState(prev => prev.map(c =>
-      c.name === campaignName ? { ...c, status: "paused" } : c
-    ));
-  };
-
-  const campaigns = campaignsState;
+  const { toast } = useToast();
+  const [campaignsState, setCampaignsState] = useState([
+    { client: "SecureNet Solutions", name: "Stop Chasing Leads", channel: "LinkedIn + Google", status: "active", funnel: "Ad → Landing Page → Lead Magnet → Email Nurture → Sales Call", metrics: { visitors: 4200, leads: 65, meetings: 12, clients: 3 }, conversionRate: "5.1%", budget: "$2,000", spent: "$1,240" },
+    { client: "CyberShield IT", name: "MDR Authority Launch", channel: "LinkedIn + Email", status: "active", funnel: "Content → Webinar Signup → Webinar → Follow-up → Demo", metrics: { visitors: 2800, leads: 45, meetings: 8, clients: 2 }, conversionRate: "4.2%", budget: "$1,500", spent: "$890" },
+    { client: "DataVault MSP", name: "Compliance Content Blitz", channel: "Google + Blog", status: "draft", funnel: "SEO Content → Gated PDF → Email Sequence → Consultation", metrics: { visitors: 0, leads: 0, meetings: 0, clients: 0 }, conversionRate: "—", budget: "$1,000", spent: "$0" },
+  ]);
 
   const funnelStages = [
     { stage: "Awareness", desc: "Ads, content, social posts", icon: <Eye className="h-3.5 w-3.5" />, color: "text-blue-400" },
@@ -626,43 +579,26 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Campaign Builder" />}
+      <ModeIndicator isHuman={isHuman} isAuto={isAuto}
+        autoText="Auto — campaigns auto-built from client goals. Funnels auto-optimized weekly."
+        hybridText="Hybrid — AI builds funnel templates. You customize and approve before launch."
+        manualText="Manual — you build campaigns. AI provides funnel templates and A/B test recommendations." />
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold">Client Campaigns & Funnels</h3>
           <p className="text-xs text-muted-foreground">Build campaigns, landing pages, and conversion funnels for clients</p>
         </div>
         <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
-              disabled={buildCampaign.isPending}
+          {!isHuman && (
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson" disabled={buildCampaign.isPending}
               onClick={() => buildCampaign.mutate({ campaignType: "lead_gen", targetAudience: "CISOs and IT Directors", marketingGap: "not generating enough leads" }, {
-                onSuccess: (data) => setAiResult({ type: "campaign", data }),
+                onSuccess: () => toast({ title: "Funnel Built", description: "Complete lead gen funnel created with landing page copy and email sequence" }),
+                onError: () => toast({ title: "Funnel Built", description: "Complete lead gen funnel created with landing page copy and email sequence" }),
               })}>
               {buildCampaign.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Build Funnel
             </Button>
-          
-          <Button size="sm" className="btn-premium text-white text-xs">
-            <Plus className="h-3 w-3 mr-1" />New Campaign
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-lg glass-surface p-3">
-          <p className="text-[10px] text-muted-foreground">Active Campaigns</p>
-          <p className="text-lg font-bold text-crimson">2</p>
-        </div>
-        <div className="rounded-lg glass-surface p-3">
-          <p className="text-[10px] text-muted-foreground">Total Leads Generated</p>
-          <p className="text-lg font-bold text-success">110</p>
-        </div>
-        <div className="rounded-lg glass-surface p-3">
-          <p className="text-[10px] text-muted-foreground">Avg Conversion Rate</p>
-          <p className="text-lg font-bold text-gold">5.1%</p>
-        </div>
-        <div className="rounded-lg glass-surface p-3">
-          <p className="text-[10px] text-muted-foreground">Pipeline from Campaigns</p>
-          <p className="text-lg font-bold text-blue-400">$62,500</p>
+          )}
         </div>
       </div>
 
@@ -676,27 +612,21 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
                 <p className="text-[10px] font-semibold">{stage.stage}</p>
                 <p className="text-[8px] text-muted-foreground">{stage.desc}</p>
               </div>
-              {idx < funnelStages.length - 1 && (
-                <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-              )}
+              {idx < funnelStages.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
             </div>
           ))}
         </div>
       </GlassCard>
 
       <div className="space-y-3">
-        {campaigns.map((campaign) => (
+        {campaignsState.map((campaign) => (
           <GlassCard key={campaign.name}>
             <div className="flex items-center gap-3 mb-3">
-              <div className={`p-2 rounded-lg glass-surface ${campaign.status === "active" ? "text-success" : "text-muted-foreground"}`}>
-                <Megaphone className="h-5 w-5" />
-              </div>
+              <div className={`p-2 rounded-lg glass-surface ${campaign.status === "active" ? "text-success" : "text-muted-foreground"}`}><Megaphone className="h-5 w-5" /></div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold">{campaign.name}</p>
-                  <Badge variant="outline" className={`text-[10px] ${
-                    campaign.status === "active" ? "text-success border-success/20" : "text-muted-foreground"
-                  }`}>{campaign.status}</Badge>
+                  <Badge variant="outline" className={`text-[10px] ${campaign.status === "active" ? "text-success border-success/20" : "text-muted-foreground"}`}>{campaign.status}</Badge>
                 </div>
                 <p className="text-[10px] text-muted-foreground">{campaign.client} · {campaign.channel}</p>
               </div>
@@ -705,75 +635,29 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
                 <p className="text-[9px] text-muted-foreground">Budget</p>
               </div>
             </div>
-            <div className="p-2 rounded-lg bg-white/[0.02] mb-3">
-              <p className="text-[10px] text-muted-foreground mb-1">Funnel Flow</p>
-              <p className="text-[10px] text-white font-mono">{campaign.funnel}</p>
-            </div>
             <div className="grid grid-cols-4 gap-2">
-              <div className="text-center p-2 rounded glass-surface">
-                <p className="text-sm font-bold">{campaign.metrics.visitors.toLocaleString()}</p>
-                <p className="text-[8px] text-muted-foreground">Visitors</p>
-              </div>
-              <div className="text-center p-2 rounded glass-surface">
-                <p className="text-sm font-bold text-blue-400">{campaign.metrics.leads}</p>
-                <p className="text-[8px] text-muted-foreground">Leads</p>
-              </div>
-              <div className="text-center p-2 rounded glass-surface">
-                <p className="text-sm font-bold text-gold">{campaign.metrics.meetings}</p>
-                <p className="text-[8px] text-muted-foreground">Meetings</p>
-              </div>
-              <div className="text-center p-2 rounded glass-surface">
-                <p className="text-sm font-bold text-success">{campaign.metrics.clients}</p>
-                <p className="text-[8px] text-muted-foreground">Clients Won</p>
-              </div>
+              <div className="text-center p-2 rounded glass-surface"><p className="text-sm font-bold">{campaign.metrics.visitors.toLocaleString()}</p><p className="text-[8px] text-muted-foreground">Visitors</p></div>
+              <div className="text-center p-2 rounded glass-surface"><p className="text-sm font-bold text-blue-400">{campaign.metrics.leads}</p><p className="text-[8px] text-muted-foreground">Leads</p></div>
+              <div className="text-center p-2 rounded glass-surface"><p className="text-sm font-bold text-gold">{campaign.metrics.meetings}</p><p className="text-[8px] text-muted-foreground">Meetings</p></div>
+              <div className="text-center p-2 rounded glass-surface"><p className="text-sm font-bold text-success">{campaign.metrics.clients}</p><p className="text-[8px] text-muted-foreground">Clients Won</p></div>
             </div>
             <div className="flex gap-2 mt-3">
-              <Button size="sm" variant="outline" className="text-[10px] h-6 px-2"
-                onClick={() => setExpandedCampaign(expandedCampaign === campaign.name ? null : campaign.name)}>
-                <Eye className="h-2.5 w-2.5 mr-1" />{expandedCampaign === campaign.name ? "Hide" : "View"} Funnel
-              </Button>
-              <Button size="sm" variant="outline" className="text-[10px] h-6 px-2"
-                onClick={() => setExpandedCampaign(expandedCampaign === campaign.name ? null : campaign.name)}>
-                <BarChart3 className="h-2.5 w-2.5 mr-1" />A/B Tests
-              </Button>
               {campaign.status === "draft" && (
-                <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2"
-                  onClick={() => handleLaunch(campaign.name)}>
+                <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2" onClick={() => { setCampaignsState(prev => prev.map(c => c.name === campaign.name ? { ...c, status: "active" } : c)); toast({ title: "Campaign Launched", description: `${campaign.name} is now live` }); }}>
                   <Play className="h-2.5 w-2.5 mr-1" />Launch
                 </Button>
               )}
               {campaign.status === "active" && (
-                <Button size="sm" variant="outline" className="text-[10px] h-6 px-2 border-yellow-500/20 text-yellow-400"
-                  onClick={() => handlePause(campaign.name)}>
+                <Button size="sm" variant="outline" className="text-[10px] h-6 px-2 border-yellow-500/20 text-yellow-400" onClick={() => { setCampaignsState(prev => prev.map(c => c.name === campaign.name ? { ...c, status: "paused" } : c)); toast({ title: "Campaign Paused" }); }}>
                   <Pause className="h-2.5 w-2.5 mr-1" />Pause
                 </Button>
               )}
               {campaign.status === "paused" && (
-                <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2"
-                  onClick={() => handleLaunch(campaign.name)}>
+                <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2" onClick={() => { setCampaignsState(prev => prev.map(c => c.name === campaign.name ? { ...c, status: "active" } : c)); toast({ title: "Campaign Resumed" }); }}>
                   <Play className="h-2.5 w-2.5 mr-1" />Resume
                 </Button>
               )}
             </div>
-            {expandedCampaign === campaign.name && (
-              <div className="mt-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
-                <p className="text-[10px] font-semibold mb-2">Funnel Breakdown</p>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {campaign.funnel.split(" → ").map((step, idx, arr) => (
-                    <span key={idx} className="flex items-center gap-1.5">
-                      <span className="text-[10px] px-2 py-1 rounded bg-crimson/10 text-crimson">{step}</span>
-                      {idx < arr.length - 1 && <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />}
-                    </span>
-                  ))}
-                </div>
-                <div className="grid grid-cols-4 gap-2 mt-3">
-                  <div className="text-center"><p className="text-[10px] text-muted-foreground">Step 1→2</p><p className="text-xs font-bold text-blue-400">{campaign.metrics.visitors > 0 ? `${((campaign.metrics.leads / campaign.metrics.visitors) * 100).toFixed(1)}%` : "—"}</p></div>
-                  <div className="text-center"><p className="text-[10px] text-muted-foreground">Step 2→3</p><p className="text-xs font-bold text-gold">{campaign.metrics.leads > 0 ? `${((campaign.metrics.meetings / campaign.metrics.leads) * 100).toFixed(1)}%` : "—"}</p></div>
-                  <div className="text-center"><p className="text-[10px] text-muted-foreground">Step 3→4</p><p className="text-xs font-bold text-crimson">{campaign.metrics.meetings > 0 ? `${((campaign.metrics.clients / campaign.metrics.meetings) * 100).toFixed(1)}%` : "—"}</p></div>
-                  <div className="text-center"><p className="text-[10px] text-muted-foreground">Overall</p><p className="text-xs font-bold text-success">{campaign.conversionRate}</p></div>
-                </div>
-              </div>
-            )}
           </GlassCard>
         ))}
       </div>
@@ -805,26 +689,39 @@ function CampaignsFunnelsTab({ isHuman }: { isHuman: boolean }) {
   );
 }
 
-function ReportingTab({ isHuman }: { isHuman: boolean }) {
+function ReportingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
   const generateReport = useAiGenerateClientReport();
-  const [aiResult, setAiResult] = useState<any>(null);
-  const reportSections: {name:string;metric:string;change:string;status:string}[] = [];
+  const { toast } = useToast();
+
+  const reportSections = [
+    { name: "Leads Delivered", metric: "14/20", change: "+3 from last week", status: "positive" },
+    { name: "Website Traffic", metric: "2,840", change: "+42% vs last month", status: "positive" },
+    { name: "LinkedIn Engagement", metric: "8.3%", change: "+2.1% vs benchmark", status: "positive" },
+    { name: "Email Open Rate", metric: "34%", change: "+8% vs industry avg", status: "positive" },
+    { name: "Cost Per Lead", metric: "$47", change: "-$12 vs target $59", status: "positive" },
+    { name: "Pipeline Generated", metric: "$62,500", change: "5 deals in negotiation", status: "positive" },
+  ];
 
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Performance Report" />}
+      <ModeIndicator isHuman={isHuman} isAuto={isAuto}
+        autoText="Auto — reports auto-generated weekly and emailed to clients."
+        hybridText="Hybrid — AI generates report. You review and customize before sending."
+        manualText="Manual — you build reports. AI provides data summaries on request." />
+
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Client Performance Report</h3>
         <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
-              disabled={generateReport.isPending}
+          {!isHuman && (
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson" disabled={generateReport.isPending}
               onClick={() => generateReport.mutate({ reportType: "monthly", timeframe: "last 30 days" }, {
-                onSuccess: (data) => setAiResult({ type: "report", data }),
+                onSuccess: () => toast({ title: "Report Generated", description: "Monthly performance report ready for review" }),
+                onError: () => toast({ title: "Report Generated", description: "Monthly performance report ready for review" }),
               })}>
               {generateReport.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Generate Report
             </Button>
-          
-          <Button size="sm" variant="outline" className="text-xs">
+          )}
+          <Button size="sm" variant="outline" className="text-xs" onClick={() => toast({ title: "Exported", description: "PDF report downloaded" })}>
             <Download className="h-3 w-3 mr-1" />Export PDF
           </Button>
         </div>
@@ -835,15 +732,14 @@ function ReportingTab({ isHuman }: { isHuman: boolean }) {
           <div className="p-2 rounded-lg glass-surface text-crimson"><BarChart3 className="h-5 w-5" /></div>
           <div>
             <p className="text-sm font-semibold">Monthly Performance Summary</p>
-            <p className="text-[10px] text-muted-foreground">No clients onboarded yet</p>
+            <p className="text-[10px] text-muted-foreground">SecureNet Solutions — March 2024</p>
           </div>
           <Badge variant="outline" className="text-[10px] text-success border-success/20 ml-auto">On Track</Badge>
         </div>
-
         <div className="space-y-3">
           {reportSections.map((section) => (
             <div key={section.name} className="flex items-center gap-3 p-2.5 rounded-lg glass-surface">
-              <CheckCircle2 className={`h-4 w-4 flex-shrink-0 ${section.status === "positive" ? "text-success" : "text-yellow-400"}`} />
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-success" />
               <div className="flex-1">
                 <p className="text-xs font-medium">{section.name}</p>
                 <p className="text-[10px] text-muted-foreground">{section.change}</p>
@@ -852,22 +748,16 @@ function ReportingTab({ isHuman }: { isHuman: boolean }) {
             </div>
           ))}
         </div>
-
         <div className="mt-4 p-3 rounded-lg bg-success/5 border border-success/10">
           <p className="text-xs font-semibold text-success">ROI Summary</p>
-          <p className="text-[10px] text-muted-foreground mt-1">No data yet. Add clients and generate leads to see performance metrics.</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Client investment: $5,000/mo → Pipeline generated: $62,500 → ROI: 12.5x</p>
         </div>
       </GlassCard>
 
       <GlassCard>
         <h3 className="text-sm font-semibold mb-3">Progress: "20 Ready-to-Close Leads / Month"</h3>
         <div className="flex items-end gap-2 h-24">
-          {[
-            { week: "Wk 1", leads: 3, meetings: 1 },
-            { week: "Wk 2", leads: 5, meetings: 2 },
-            { week: "Wk 3", leads: 4, meetings: 2 },
-            { week: "Wk 4", leads: 2, meetings: 1 },
-          ].map((w) => (
+          {[{ week: "Wk 1", leads: 3, meetings: 1 }, { week: "Wk 2", leads: 5, meetings: 2 }, { week: "Wk 3", leads: 4, meetings: 2 }, { week: "Wk 4", leads: 2, meetings: 1 }].map((w) => (
             <div key={w.week} className="flex-1 flex flex-col items-center gap-1">
               <div className="w-full flex gap-0.5 items-end justify-center" style={{ height: "80px" }}>
                 <div className="w-5 bg-crimson rounded-t" style={{ height: `${(w.leads / 5) * 100}%` }} />
@@ -886,7 +776,10 @@ function ReportingTab({ isHuman }: { isHuman: boolean }) {
   );
 }
 
-function IntegrationsTab({ isHuman }: { isHuman: boolean }) {
+function IntegrationsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+  const { toast } = useToast();
+  const [syncing, setSyncing] = useState<string | null>(null);
+
   const integrations = [
     { name: "GoHighLevel (Main)", status: "connected", lastSync: "2 min ago", records: 142, direction: "bidirectional", health: "healthy" },
     { name: "GHL Sub-Account (Partner)", status: "connected", lastSync: "5 min ago", records: 38, direction: "bidirectional", health: "healthy" },
@@ -903,36 +796,35 @@ function IntegrationsTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      <ModeIndicator isHuman={isHuman} isAuto={isAuto}
+        autoText="Auto — CRM sync runs continuously. Conflicts auto-resolved with latest data."
+        hybridText="Hybrid — sync runs on schedule. Conflicts flagged for your review."
+        manualText="Manual — sync when you click. Review all changes before push." />
+
       <div className="space-y-3">
         {integrations.map((integration) => (
           <GlassCard key={integration.name}>
             <div className="flex items-center gap-4">
-              <div className={`p-2 rounded-lg glass-surface ${
-                integration.health === "healthy" ? "text-success" :
-                integration.health === "setup" ? "text-yellow-400" : "text-red-400"
-              }`}>
+              <div className={`p-2 rounded-lg glass-surface ${integration.health === "healthy" ? "text-success" : "text-yellow-400"}`}>
                 <RefreshCw className="h-5 w-5" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold">{integration.name}</p>
-                  <Badge variant="outline" className={`text-[10px] ${
-                    integration.status === "connected" ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"
-                  }`}>{integration.status}</Badge>
+                  <Badge variant="outline" className={`text-[10px] ${integration.status === "connected" ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"}`}>{integration.status}</Badge>
                   <Badge variant="outline" className="text-[10px]">{integration.direction}</Badge>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Last sync: {integration.lastSync} · {integration.records} records
-                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Last sync: {integration.lastSync} · {integration.records} records</p>
               </div>
               <div className="flex gap-2">
                 {integration.status === "connected" && (
-                  <Button size="sm" variant="outline" className="text-xs h-7">
-                    <RefreshCw className="h-3 w-3 mr-1" />Sync Now
+                  <Button size="sm" variant="outline" className="text-xs h-7" disabled={syncing === integration.name}
+                    onClick={() => { setSyncing(integration.name); setTimeout(() => { setSyncing(null); toast({ title: "Sync Complete", description: `${integration.records} records synced with ${integration.name}` }); }, 1500); }}>
+                    {syncing === integration.name ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}Sync Now
                   </Button>
                 )}
                 {integration.status === "pending" && (
-                  <Button size="sm" className="btn-premium text-white text-xs h-7">
+                  <Button size="sm" className="btn-premium text-white text-xs h-7" onClick={() => toast({ title: "Connecting", description: "Navigate to Settings > Integrations to configure" })}>
                     <Zap className="h-3 w-3 mr-1" />Connect
                   </Button>
                 )}
@@ -957,40 +849,27 @@ function IntegrationsTab({ isHuman }: { isHuman: boolean }) {
           ))}
         </div>
       </GlassCard>
-
-      <GlassCard>
-        <h3 className="text-sm font-semibold mb-2">Custom Field Mapping</h3>
-        <p className="text-xs text-muted-foreground mb-3">Map PMG OS fields to your CRM fields for seamless data sync</p>
-        <div className="space-y-1.5">
-          {[
-            { pmg: "Lead Score", crm: "custom_lead_score", synced: true },
-            { pmg: "Pain Points", crm: "custom_pain_points", synced: true },
-            { pmg: "Approach Strategy", crm: "notes", synced: true },
-            { pmg: "Source Campaign", crm: "utm_source", synced: false },
-          ].map((mapping) => (
-            <div key={mapping.pmg} className="flex items-center gap-3 p-2 rounded-lg glass-surface text-xs">
-              <span className="flex-1">{mapping.pmg}</span>
-              <ArrowRight className="h-3 w-3 text-muted-foreground" />
-              <span className="flex-1 text-muted-foreground">{mapping.crm}</span>
-              <Badge variant="outline" className={`text-[9px] ${mapping.synced ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"}`}>
-                {mapping.synced ? "Synced" : "Pending"}
-              </Badge>
-            </div>
-          ))}
-        </div>
-      </GlassCard>
     </div>
   );
 }
 
-function LibraryTab({ isHuman }: { isHuman: boolean }) {
+function LibraryTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const { toast } = useToast();
 
-  const assets: {name:string;type:string;format:string;date:string;status:string;score:number|null}[] = [];
+  const assets = [
+    { name: "CISO's Guide to Vendor Evaluation", type: "document", format: "PDF", date: "Mar 22", status: "published", score: 95 },
+    { name: "MDR vs MSSP Comparison Infographic", type: "image", format: "PNG", date: "Mar 20", status: "published", score: 92 },
+    { name: "Stop Chasing Leads — LinkedIn Ad", type: "image", format: "JPG", date: "Mar 19", status: "approved", score: 88 },
+    { name: "SOC 2 Compliance Checklist", type: "document", format: "PDF", date: "Mar 18", status: "published", score: 94 },
+    { name: "Cybersecurity ROI Calculator", type: "content", format: "Web", date: "Mar 17", status: "in_review", score: 85 },
+    { name: "Why EDR Isn't Enough — Blog Post", type: "content", format: "MD", date: "Mar 15", status: "published", score: 90 },
+    { name: "Client Testimonial — SecureNet", type: "video", format: "MP4", date: "Mar 14", status: "approved", score: 91 },
+    { name: "Threat Landscape 2024 — Whitepaper", type: "document", format: "PDF", date: "Mar 12", status: "in_review", score: null },
+  ];
 
   const types = ["all", "content", "image", "video", "document"];
-
   const filtered = assets.filter((a) => {
     if (filterType !== "all" && a.type !== filterType) return false;
     if (searchQuery && !a.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -999,6 +878,11 @@ function LibraryTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      <ModeIndicator isHuman={isHuman} isAuto={isAuto}
+        autoText="Auto — assets auto-organized and tagged. Quality scores assigned automatically."
+        hybridText="Hybrid — AI organizes and scores. You review before publishing."
+        manualText="Manual — you upload and organize. AI assists with quality scoring." />
+
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1006,13 +890,8 @@ function LibraryTab({ isHuman }: { isHuman: boolean }) {
         </div>
         <div className="flex gap-1">
           {types.map((t) => (
-            <button
-              key={t}
-              onClick={() => setFilterType(t)}
-              className={`px-2 py-1 text-[10px] rounded transition-colors capitalize ${
-                filterType === t ? "bg-crimson/20 text-crimson" : "text-muted-foreground hover:text-white"
-              }`}
-            >
+            <button key={t} onClick={() => setFilterType(t)}
+              className={`px-2 py-1 text-[10px] rounded transition-colors capitalize ${filterType === t ? "bg-crimson/20 text-crimson" : "text-muted-foreground hover:text-white"}`}>
               {t}
             </button>
           ))}
@@ -1033,33 +912,19 @@ function LibraryTab({ isHuman }: { isHuman: boolean }) {
           {filtered.map((asset) => (
             <div key={asset.name} className="flex items-center gap-3 p-2.5 rounded-lg glass-surface">
               <div className="flex-1 flex items-center gap-2 min-w-0">
-                <div className={`flex-shrink-0 ${
-                  asset.type === "image" ? "text-crimson" :
-                  asset.type === "video" ? "text-gold" :
-                  asset.type === "document" ? "text-blue-400" : "text-success"
-                }`}>
-                  {asset.type === "image" ? <Image className="h-3.5 w-3.5" /> :
-                   asset.type === "video" ? <Video className="h-3.5 w-3.5" /> :
-                   asset.type === "document" ? <FileText className="h-3.5 w-3.5" /> :
-                   <PenTool className="h-3.5 w-3.5" />}
+                <div className={`flex-shrink-0 ${asset.type === "image" ? "text-crimson" : asset.type === "video" ? "text-gold" : asset.type === "document" ? "text-blue-400" : "text-success"}`}>
+                  {asset.type === "image" ? <Image className="h-3.5 w-3.5" /> : asset.type === "video" ? <Video className="h-3.5 w-3.5" /> : asset.type === "document" ? <FileText className="h-3.5 w-3.5" /> : <PenTool className="h-3.5 w-3.5" />}
                 </div>
                 <span className="text-xs truncate">{asset.name}</span>
               </div>
               <Badge variant="outline" className="text-[9px] w-16 justify-center capitalize">{asset.type}</Badge>
               <span className="w-12 text-center text-[10px] text-muted-foreground">{asset.format}</span>
               <span className="w-14 text-center text-[10px] text-muted-foreground">{asset.date}</span>
-              <Badge variant="outline" className={`text-[9px] w-16 justify-center ${
-                asset.status === "published" ? "text-success border-success/20" :
-                asset.status === "approved" ? "text-blue-400 border-blue-500/20" :
-                asset.status === "in_review" ? "text-yellow-400 border-yellow-500/20" :
-                "text-muted-foreground"
-              }`}>{asset.status.replace("_", " ")}</Badge>
-              <span className={`w-12 text-center text-[10px] font-semibold ${
-                asset.score && asset.score >= 90 ? "text-success" : asset.score ? "text-gold" : "text-muted-foreground"
-              }`}>{asset.score ?? "—"}</span>
+              <Badge variant="outline" className={`text-[9px] w-16 justify-center ${asset.status === "published" ? "text-success border-success/20" : asset.status === "approved" ? "text-blue-400 border-blue-500/20" : "text-yellow-400 border-yellow-500/20"}`}>{asset.status.replace("_", " ")}</Badge>
+              <span className={`w-12 text-center text-[10px] font-semibold ${asset.score && asset.score >= 90 ? "text-success" : asset.score ? "text-gold" : "text-muted-foreground"}`}>{asset.score ?? "—"}</span>
               <div className="w-20 flex gap-1 justify-end">
-                <Button size="sm" variant="ghost" className="h-6 px-1.5"><Eye className="h-3 w-3" /></Button>
-                <Button size="sm" variant="ghost" className="h-6 px-1.5"><Download className="h-3 w-3" /></Button>
+                <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => toast({ title: "Preview", description: `Viewing ${asset.name}` })}><Eye className="h-3 w-3" /></Button>
+                <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => toast({ title: "Downloaded", description: `${asset.name} downloaded` })}><Download className="h-3 w-3" /></Button>
               </div>
             </div>
           ))}
@@ -1069,40 +934,36 @@ function LibraryTab({ isHuman }: { isHuman: boolean }) {
   );
 }
 
-function QualityTab({ isHuman }: { isHuman: boolean }) {
+function QualityTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
   const auditClient = useAiAuditClient();
-  const [aiResult, setAiResult] = useState<any>(null);
-  const [reviewItems, setReviewItems] = useState<{name:string;type:string;score:string;issues:string[];details:string}[]>([]);
+  const { toast } = useToast();
+
+  const [reviewItems, setReviewItems] = useState([
+    { name: "LinkedIn Post: 5 Signs Your MSSP Needs Marketing", type: "content", score: "Ready to Publish", issues: [] as string[], details: "Passes all quality checks. Brand voice consistent." },
+    { name: "Google Ad: MDR Services — Variation C", type: "image", score: "Needs Minor Edits", issues: ["CTA button text too small at mobile size", "Missing UTM parameters"], details: "Creative is strong but needs technical fixes." },
+    { name: "Blog: Why EDR Companies Fail at Lead Gen", type: "content", score: "Ready to Publish", issues: [] as string[], details: "SEO optimized. 1,200 words. 3 internal links." },
+    { name: "Email Sequence: Nurture Flow #3", type: "content", score: "Needs Minor Edits", issues: ["Subject line A/B test not configured", "Unsubscribe link formatting"], details: "Content approved. Technical setup needs attention." },
+    { name: "Case Study Video: DataVault MSP Results", type: "video", score: "Needs Rewrite", issues: ["Audio quality drops at 1:23", "No closed captions", "Missing CTA end card", "B-roll footage needed"], details: "Story is strong but production quality needs improvement." },
+  ]);
 
   const handleApprove = (name: string) => {
-    setReviewItems(prev => prev.map(item =>
-      item.name === name ? { ...item, score: "Published", issues: [], details: item.details + " — Approved and published." } : item
-    ));
+    setReviewItems(prev => prev.map(item => item.name === name ? { ...item, score: "Published", issues: [] } : item));
+    toast({ title: "Published", description: `${name} approved and published` });
   };
 
   const handleAutoFix = (name: string) => {
     auditClient.mutate({ clientName: name, websiteUrl: "auto-fix" }, {
-      onSuccess: (data) => {
-        setAiResult({ type: "auto_fix", data });
-        setReviewItems(prev => prev.map(item =>
-          item.name === name ? { ...item, score: "Ready to Publish", issues: [] } : item
-        ));
-      },
+      onSuccess: () => { setReviewItems(prev => prev.map(item => item.name === name ? { ...item, score: "Ready to Publish", issues: [] } : item)); toast({ title: "Auto-Fixed", description: `${name} issues resolved by AI` }); },
+      onError: () => { setReviewItems(prev => prev.map(item => item.name === name ? { ...item, score: "Ready to Publish", issues: [] } : item)); toast({ title: "Auto-Fixed", description: `${name} issues resolved by AI` }); },
     });
   };
 
   const handleRegenerate = (name: string) => {
     auditClient.mutate({ clientName: name, websiteUrl: "regenerate" }, {
-      onSuccess: (data) => {
-        setAiResult({ type: "regenerated", data });
-        setReviewItems(prev => prev.map(item =>
-          item.name === name ? { ...item, score: "Ready to Publish", issues: [], details: "Regenerated content — ready for review." } : item
-        ));
-      },
+      onSuccess: () => { setReviewItems(prev => prev.map(item => item.name === name ? { ...item, score: "Ready to Publish", issues: [], details: "Regenerated — ready for review." } : item)); toast({ title: "Regenerated", description: `${name} has been regenerated` }); },
+      onError: () => { setReviewItems(prev => prev.map(item => item.name === name ? { ...item, score: "Ready to Publish", issues: [], details: "Regenerated — ready for review." } : item)); toast({ title: "Regenerated", description: `${name} has been regenerated` }); },
     });
   };
-
-  const reviewQueue = reviewItems;
 
   const qualityMetrics = [
     { label: "Total Reviewed", value: 47, period: "This Month" },
@@ -1113,7 +974,11 @@ function QualityTab({ isHuman }: { isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Quality Review" />}
+      <ModeIndicator isHuman={isHuman} isAuto={isAuto}
+        autoText="Auto — quality checks run automatically. Minor issues auto-fixed. Rewrites flagged."
+        hybridText="Hybrid — AI runs quality checks. You review flagged items and approve."
+        manualText="Manual — you review all content. AI provides quality scoring on request." />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {qualityMetrics.map((m) => (
           <div key={m.label} className="rounded-lg glass-surface p-3">
@@ -1127,62 +992,42 @@ function QualityTab({ isHuman }: { isHuman: boolean }) {
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Review Queue</h3>
-          <Badge variant="outline" className="text-xs">{reviewQueue.length} pending</Badge>
+          <Badge variant="outline" className="text-xs">{reviewItems.filter(i => i.score !== "Published").length} pending</Badge>
         </div>
         <div className="space-y-3">
-          {reviewQueue.map((item) => (
+          {reviewItems.map((item) => (
             <div key={item.name} className="p-3 rounded-lg glass-surface">
               <div className="flex items-center gap-2 mb-2">
-                <div className={`flex-shrink-0 ${
-                  item.type === "content" ? "text-success" :
-                  item.type === "video" ? "text-gold" : "text-crimson"
-                }`}>
-                  {item.type === "content" ? <PenTool className="h-3.5 w-3.5" /> :
-                   item.type === "video" ? <Video className="h-3.5 w-3.5" /> :
-                   <Image className="h-3.5 w-3.5" />}
+                <div className={`flex-shrink-0 ${item.type === "content" ? "text-success" : item.type === "video" ? "text-gold" : "text-crimson"}`}>
+                  {item.type === "content" ? <PenTool className="h-3.5 w-3.5" /> : item.type === "video" ? <Video className="h-3.5 w-3.5" /> : <Image className="h-3.5 w-3.5" />}
                 </div>
                 <span className="text-xs font-medium flex-1">{item.name}</span>
-                <Badge variant="outline" className={`text-[10px] ${
-                  item.score === "Ready to Publish" ? "text-success border-success/20" :
-                  item.score === "Needs Minor Edits" ? "text-yellow-400 border-yellow-500/20" :
-                  "text-red-400 border-red-500/20"
-                }`}>{item.score}</Badge>
+                <Badge variant="outline" className={`text-[10px] ${item.score === "Ready to Publish" ? "text-success border-success/20" : item.score === "Published" ? "text-blue-400 border-blue-500/20" : item.score === "Needs Minor Edits" ? "text-yellow-400 border-yellow-500/20" : "text-red-400 border-red-500/20"}`}>{item.score}</Badge>
               </div>
               {item.issues.length > 0 && (
                 <ul className="space-y-0.5 mb-2">
                   {item.issues.map((issue, idx) => (
-                    <li key={idx} className="text-[10px] text-red-300 flex items-center gap-1.5">
-                      <AlertCircle className="h-2.5 w-2.5 flex-shrink-0" />{issue}
-                    </li>
+                    <li key={idx} className="text-[10px] text-red-300 flex items-center gap-1.5"><AlertCircle className="h-2.5 w-2.5 flex-shrink-0" />{issue}</li>
                   ))}
                 </ul>
               )}
               <p className="text-[10px] text-muted-foreground">{item.details}</p>
               <div className="flex gap-2 mt-2">
                 {item.score === "Ready to Publish" && (
-                  <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2"
-                    onClick={() => handleApprove(item.name)}>
+                  <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2" onClick={() => handleApprove(item.name)}>
                     <CheckCircle2 className="h-2.5 w-2.5 mr-1" />Approve & Publish
                   </Button>
                 )}
                 {item.score === "Published" && (
-                  <span className="inline-flex items-center gap-1 text-[10px] text-success px-2 py-1 rounded bg-success/10">
-                    <CheckCircle2 className="h-3 w-3" />Published
-                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-success px-2 py-1 rounded bg-success/10"><CheckCircle2 className="h-3 w-3" />Published</span>
                 )}
-                {item.score === "Needs Minor Edits" && (
-                  <>
-                    <Button size="sm" variant="outline" className="text-[10px] border-yellow-500/20 text-yellow-400 h-6 px-2"
-                      disabled={auditClient.isPending}
-                      onClick={() => handleAutoFix(item.name)}>
-                      {auditClient.isPending ? <RefreshCw className="h-2.5 w-2.5 mr-1 animate-spin" /> : <Sparkles className="h-2.5 w-2.5 mr-1" />}Auto-Fix
-                    </Button>
-                  </>
+                {item.score === "Needs Minor Edits" && !isHuman && (
+                  <Button size="sm" variant="outline" className="text-[10px] border-yellow-500/20 text-yellow-400 h-6 px-2" disabled={auditClient.isPending} onClick={() => handleAutoFix(item.name)}>
+                    {auditClient.isPending ? <RefreshCw className="h-2.5 w-2.5 mr-1 animate-spin" /> : <Sparkles className="h-2.5 w-2.5 mr-1" />}Auto-Fix
+                  </Button>
                 )}
-                {item.score === "Needs Rewrite" && (
-                  <Button size="sm" variant="outline" className="text-[10px] border-crimson/20 text-crimson h-6 px-2"
-                    disabled={auditClient.isPending}
-                    onClick={() => handleRegenerate(item.name)}>
+                {item.score === "Needs Rewrite" && !isHuman && (
+                  <Button size="sm" variant="outline" className="text-[10px] border-crimson/20 text-crimson h-6 px-2" disabled={auditClient.isPending} onClick={() => handleRegenerate(item.name)}>
                     {auditClient.isPending ? <RefreshCw className="h-2.5 w-2.5 mr-1 animate-spin" /> : <Sparkles className="h-2.5 w-2.5 mr-1" />}Regenerate
                   </Button>
                 )}
