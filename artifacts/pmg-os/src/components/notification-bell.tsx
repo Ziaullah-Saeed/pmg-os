@@ -3,6 +3,30 @@ import { useNotifications, useUnreadCount, useMarkNotificationRead, useMarkAllRe
 import { Button } from "@/components/ui/button";
 import { Bell, Check, CheckCheck, X, Bot, AlertTriangle, Info, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
+
+const domainRoutes: Record<string, string> = {
+  outreach: "/outreach",
+  crm: "/crm",
+  marketing: "/marketing",
+  production: "/production",
+  admin: "/admin",
+  finance: "/finance",
+  settings: "/settings",
+  system: "/settings",
+  intelligence: "/outreach",
+  pipeline: "/crm",
+  communications: "/outreach",
+  execution: "/admin",
+  billing: "/finance",
+  command_center: "/",
+  library: "/admin",
+  compliance: "/admin",
+  finance_legal: "/finance",
+  integration: "/settings",
+  legal: "/admin",
+  reports: "/admin",
+};
 
 const severityConfig: Record<string, { icon: typeof Info; color: string }> = {
   info: { icon: Info, color: "text-blue-400" },
@@ -19,6 +43,7 @@ export function NotificationBell() {
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllRead();
   const dismiss = useDismissNotification();
+  const [, navigate] = useLocation();
 
   const count = unread?.count ?? 0;
   const items = notifications ?? [];
@@ -75,7 +100,14 @@ export function NotificationBell() {
                       "flex items-start gap-3 px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer",
                       !n.isRead && "bg-white/[0.02]"
                     )}
-                    onClick={() => !n.isRead && markRead.mutate(n.id)}
+                    onClick={() => {
+                      if (!n.isRead) markRead.mutate(n.id);
+                      const route = n.actionUrl || domainRoutes[n.domain] || null;
+                      if (route) {
+                        navigate(route);
+                        setOpen(false);
+                      }
+                    }}
                   >
                     <div className={cn("mt-0.5 flex-shrink-0", sev.color)}>
                       {n.actor === "ai_system" ? <Bot className="h-4 w-4" /> : <Icon className="h-4 w-4" />}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWalletBalance, useWalletTransactions, useFundWallet } from "@/hooks/use-api";
-import { Wallet, Plus, ArrowUpRight, ArrowDownRight, X, TrendingUp, Zap, CreditCard, Loader2, BarChart3 } from "lucide-react";
+import { Wallet, Plus, Minus, ArrowUpRight, ArrowDownRight, X, TrendingUp, Zap, CreditCard, Loader2, BarChart3, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -37,8 +37,10 @@ export function WalletDisplay({ collapsed }: { collapsed?: boolean }) {
   const fundWallet = useFundWallet();
   const [showPanel, setShowPanel] = useState(false);
   const [fundAmount, setFundAmount] = useState("");
-  const [showFund, setShowFund] = useState(false);
+  const [showFund, setShowFund] = useState<"add" | "decrease" | null>(null);
   const [activeTab, setActiveTab] = useState<"transactions" | "breakdown" | "costs">("transactions");
+  const [paymentMethod, setPaymentMethod] = useState("visa_4242");
+  const [showPaymentMethod, setShowPaymentMethod] = useState(false);
   const { toast } = useToast();
 
   const balance = wallet?.balance ?? 0;
@@ -65,14 +67,35 @@ export function WalletDisplay({ collapsed }: { collapsed?: boolean }) {
   const handleFund = () => {
     const amt = parseFloat(fundAmount);
     if (isNaN(amt) || amt <= 0) return;
-    fundWallet.mutate(amt, {
-      onSuccess: () => {
-        toast({ title: `$${amt.toFixed(2)} added to wallet` });
-        setFundAmount("");
-        setShowFund(false);
-      },
-    });
+    if (showFund === "decrease") {
+      if (amt > balance) {
+        toast({ title: "Cannot withdraw more than current balance", variant: "destructive" });
+        return;
+      }
+      fundWallet.mutate(-amt, {
+        onSuccess: () => {
+          toast({ title: `$${amt.toFixed(2)} withdrawn from wallet` });
+          setFundAmount("");
+          setShowFund(null);
+        },
+      });
+    } else {
+      fundWallet.mutate(amt, {
+        onSuccess: () => {
+          toast({ title: `$${amt.toFixed(2)} added to wallet` });
+          setFundAmount("");
+          setShowFund(null);
+        },
+      });
+    }
   };
+
+  const paymentMethods = [
+    { id: "visa_4242", label: "Visa ••4242", icon: "💳" },
+    { id: "mc_8888", label: "Mastercard ••8888", icon: "💳" },
+    { id: "amex_1234", label: "Amex ••1234", icon: "💳" },
+    { id: "bank_ach", label: "Bank ACH ••7890", icon: "🏦" },
+  ];
 
   if (collapsed) {
     return (
@@ -165,43 +188,101 @@ export function WalletDisplay({ collapsed }: { collapsed?: boolean }) {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="flex gap-1.5"
+                    className="space-y-1.5"
                   >
-                    <Input
-                      type="number"
-                      min="1"
-                      step="0.01"
-                      placeholder="Amount"
-                      value={fundAmount}
-                      onChange={e => setFundAmount(e.target.value)}
-                      className="h-7 text-xs bg-white/5 border-white/10 text-white flex-1"
-                      autoFocus
-                    />
-                    <Button
-                      size="sm"
-                      className="h-7 px-2 text-[10px] btn-premium text-white"
-                      onClick={handleFund}
-                      disabled={fundWallet.isPending}
-                    >
-                      {fundWallet.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-1.5 text-[10px]"
-                      onClick={() => setShowFund(false)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                    <p className="text-[9px] text-slate-500 uppercase tracking-wider font-semibold">
+                      {showFund === "add" ? "Add Funds" : "Withdraw Funds"}
+                    </p>
+                    <div className="flex gap-1.5">
+                      <Input
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        placeholder="Amount"
+                        value={fundAmount}
+                        onChange={e => setFundAmount(e.target.value)}
+                        className="h-7 text-xs bg-white/5 border-white/10 text-white flex-1"
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        className={cn("h-7 px-2 text-[10px] text-white", showFund === "add" ? "btn-premium" : "bg-red-500/20 border border-red-500/30 hover:bg-red-500/30")}
+                        onClick={handleFund}
+                        disabled={fundWallet.isPending}
+                      >
+                        {fundWallet.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : showFund === "add" ? "Add" : "Withdraw"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-1.5 text-[10px]"
+                        onClick={() => setShowFund(null)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </motion.div>
+                ) : showPaymentMethod ? (
+                  <motion.div
+                    key="payment"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-[9px] text-slate-500 uppercase tracking-wider font-semibold">Payment Method</p>
+                      <button onClick={() => setShowPaymentMethod(false)} className="text-slate-500 hover:text-white">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                    {paymentMethods.map(pm => (
+                      <button
+                        key={pm.id}
+                        onClick={() => {
+                          setPaymentMethod(pm.id);
+                          toast({ title: `Payment method changed to ${pm.label}` });
+                          setShowPaymentMethod(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-2 p-2 rounded-lg text-left transition-all text-[10px]",
+                          paymentMethod === pm.id
+                            ? "bg-crimson/10 border border-crimson/30 text-white"
+                            : "bg-white/[0.02] border border-white/5 text-slate-400 hover:bg-white/5"
+                        )}
+                      >
+                        <span>{pm.icon}</span>
+                        <span className="flex-1">{pm.label}</span>
+                        {paymentMethod === pm.id && <span className="text-[8px] text-crimson font-bold">ACTIVE</span>}
+                      </button>
+                    ))}
                   </motion.div>
                 ) : (
-                  <motion.div key="actions" className="flex gap-1.5">
+                  <motion.div key="actions" className="space-y-1.5">
+                    <div className="flex gap-1.5">
+                      <Button
+                        size="sm"
+                        className="h-7 flex-1 text-[10px] btn-premium text-white"
+                        onClick={() => setShowFund("add")}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />Add Funds
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 flex-1 text-[10px] border-red-500/20 text-red-400 hover:bg-red-500/10"
+                        onClick={() => setShowFund("decrease")}
+                      >
+                        <Minus className="h-3 w-3 mr-1" />Withdraw
+                      </Button>
+                    </div>
                     <Button
                       size="sm"
-                      className="h-7 flex-1 text-[10px] btn-premium text-white"
-                      onClick={() => setShowFund(true)}
+                      variant="outline"
+                      className="h-7 w-full text-[10px] border-white/10 text-slate-400 hover:text-white"
+                      onClick={() => setShowPaymentMethod(true)}
                     >
-                      <Plus className="h-3 w-3 mr-1" />Add Funds
+                      <CreditCard className="h-3 w-3 mr-1" />Change Payment Method
                     </Button>
                   </motion.div>
                 )}

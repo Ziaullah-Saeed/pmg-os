@@ -21,13 +21,14 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NotificationBell } from "@/components/notification-bell";
 import { AiModeToggle } from "@/components/ai-mode-toggle";
 import { WalletDisplay } from "@/components/wallet-display";
 import { GlobalSearch } from "@/components/global-search";
 import { useAuth } from "@/hooks/use-auth";
+import { ModeIndicatorBanner } from "@/components/mode-aware-wrapper";
 
 const guideContent: Record<string, { title: string; steps: { heading: string; description: string }[] }> = {
   "/outreach": {
@@ -165,6 +166,112 @@ function Logo({ collapsed }: { collapsed?: boolean }) {
   );
 }
 
+const stepIcons: Record<string, typeof Target> = {
+  "Find Prospects": Target,
+  "Social Command Center": Megaphone,
+  "Plan Approach": LayoutDashboard,
+  "Compose Messages": Megaphone,
+  "Follow-ups": Target,
+  "Review Analytics": LayoutDashboard,
+  "Pipeline View": Briefcase,
+  "Lead Scoring": Target,
+  "Call Intelligence": Shield,
+  "Proposals": Briefcase,
+  "CRM Sync": Settings,
+  "Content Strategy": Megaphone,
+  "Campaigns": Megaphone,
+  "SEO & Growth": Target,
+  "Campaign Orchestrator": LayoutDashboard,
+  "Competitor Intel": Shield,
+  "Client Onboarding": Palette,
+  "Marketing Audit": Shield,
+  "Creative Production": Palette,
+  "Lead Generator": Target,
+  "Campaigns & Funnels": Megaphone,
+  "Reporting & CRM Sync": LayoutDashboard,
+  "Operations": Shield,
+  "Knowledge Base": HelpCircle,
+  "Executive Briefing": LayoutDashboard,
+  "System Evolution": Settings,
+  "Billing & Revenue": Landmark,
+  "Revenue Dashboard": LayoutDashboard,
+  "Contracts": Briefcase,
+  "Expenses & Forecasting": Landmark,
+  "General": Settings,
+  "AI Modes": Settings,
+  "Wallet & Keys": Landmark,
+  "Users & Channels": Shield,
+  "Legal & Compliance": Shield,
+  "System Health": Settings,
+};
+
+function StepAnimation({ stepIndex, heading }: { stepIndex: number; heading: string }) {
+  const StepIcon = stepIcons[heading] || HelpCircle;
+  const colors = ["from-crimson/30 to-crimson/10", "from-blue-500/30 to-blue-500/10", "from-green-500/30 to-green-500/10", "from-purple-500/30 to-purple-500/10", "from-yellow-500/30 to-yellow-500/10", "from-cyan-500/30 to-cyan-500/10"];
+  const colorClass = colors[stepIndex % colors.length];
+
+  return (
+    <motion.div
+      key={stepIndex}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
+      className={cn("relative w-full h-32 rounded-xl bg-gradient-to-br overflow-hidden flex items-center justify-center", colorClass)}
+    >
+      <div className="absolute inset-0 opacity-20">
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute h-px bg-white/20"
+            style={{ top: `${15 + i * 18}%`, left: "10%", right: "10%" }}
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: [0, 0.5, 0] }}
+            transition={{ delay: 0.2 + i * 0.1, duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
+          />
+        ))}
+      </div>
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+        className="flex flex-col items-center gap-2 relative z-10"
+      >
+        <motion.div
+          animate={{ rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+          className="h-12 w-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-sm"
+        >
+          <StepIcon className="h-6 w-6 text-white" />
+        </motion.div>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-[10px] uppercase tracking-widest text-white/60 font-semibold"
+        >
+          Step {stepIndex + 1}
+        </motion.p>
+      </motion.div>
+      <motion.div
+        className="absolute bottom-2 right-2 flex gap-1"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
+        {[...Array(3)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="h-1.5 w-1.5 rounded-full bg-white/30"
+            animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.7, 0.3] }}
+            transition={{ delay: i * 0.2, duration: 1, repeat: Infinity }}
+          />
+        ))}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function VideoGuideOverlay({
   guide,
   onClose,
@@ -173,6 +280,22 @@ function VideoGuideOverlay({
   onClose: () => void;
 }) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopAutoPlay = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setAutoPlay(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   return (
     <motion.div
@@ -180,7 +303,7 @@ function VideoGuideOverlay({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) { stopAutoPlay(); onClose(); } }}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
@@ -190,14 +313,14 @@ function VideoGuideOverlay({
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-crimson/5">
           <div className="flex items-center gap-2">
-            <HelpCircle className="h-4 w-4 text-crimson" />
+            <Play className="h-4 w-4 text-crimson" />
             <span className="text-sm font-semibold">{guide.title}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-muted-foreground">
               Step {currentStep + 1} of {guide.steps.length}
             </span>
-            <button onClick={onClose} className="p-1 rounded hover:bg-white/5">
+            <button onClick={() => { stopAutoPlay(); onClose(); }} className="p-1 rounded hover:bg-white/5">
               <X className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
@@ -207,17 +330,28 @@ function VideoGuideOverlay({
           <div className="mb-4">
             <div className="flex gap-1 mb-4">
               {guide.steps.map((_, idx) => (
-                <div
+                <button
                   key={idx}
+                  onClick={() => setCurrentStep(idx)}
                   className={cn(
-                    "h-1 flex-1 rounded-full transition-colors",
-                    idx <= currentStep ? "bg-crimson" : "bg-white/10"
+                    "h-1.5 flex-1 rounded-full transition-all cursor-pointer hover:h-2",
+                    idx < currentStep ? "bg-crimson" : idx === currentStep ? "bg-crimson animate-pulse" : "bg-white/10"
                   )}
                 />
               ))}
             </div>
 
-            <div className="rounded-lg glass-surface p-4">
+            <AnimatePresence mode="wait">
+              <StepAnimation key={currentStep} stepIndex={currentStep} heading={guide.steps[currentStep].heading} />
+            </AnimatePresence>
+
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-lg glass-surface p-4 mt-3"
+            >
               <div className="flex items-center gap-3 mb-2">
                 <div className="h-8 w-8 rounded-lg bg-crimson/20 flex items-center justify-center text-crimson font-bold text-sm">
                   {currentStep + 1}
@@ -227,16 +361,42 @@ function VideoGuideOverlay({
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {guide.steps[currentStep].description}
               </p>
-            </div>
+            </motion.div>
           </div>
 
           <div className="flex items-center justify-between">
-            <button
-              onClick={() => setCurrentStep(0)}
-              className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-white transition-colors"
-            >
-              <RotateCcw className="h-3 w-3" />Replay
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentStep(0)}
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-white transition-colors"
+              >
+                <RotateCcw className="h-3 w-3" />Restart
+              </button>
+              <button
+                onClick={() => {
+                  if (autoPlay) {
+                    stopAutoPlay();
+                  } else {
+                    setAutoPlay(true);
+                    intervalRef.current = setInterval(() => {
+                      setCurrentStep(prev => {
+                        if (prev >= guide.steps.length - 1) {
+                          stopAutoPlay();
+                          return prev;
+                        }
+                        return prev + 1;
+                      });
+                    }, 3000);
+                  }
+                }}
+                className={cn(
+                  "flex items-center gap-1 text-[10px] transition-colors",
+                  autoPlay ? "text-crimson" : "text-muted-foreground hover:text-white"
+                )}
+              >
+                <Play className="h-3 w-3" />{autoPlay ? "Playing..." : "Auto-play"}
+              </button>
+            </div>
             <div className="flex gap-2">
               {currentStep > 0 && (
                 <Button
@@ -260,7 +420,7 @@ function VideoGuideOverlay({
                 <Button
                   size="sm"
                   className="btn-premium text-white text-xs h-7"
-                  onClick={onClose}
+                  onClick={() => { stopAutoPlay(); onClose(); }}
                 >
                   Done
                 </Button>
@@ -329,11 +489,12 @@ function NavLink({
 
 function UserProfile({ collapsed }: { collapsed?: boolean }) {
   const { user, logout } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const initials = user?.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "??";
   const roleName = user?.role?.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase()) || "User";
 
   return (
-    <div className={cn("p-3 border-t border-border/30", collapsed && "p-2")}>
+    <div className={cn("p-3 border-t border-border/30 relative", collapsed && "p-2")}>
       <div className={cn(
         "flex items-center gap-2 p-2 rounded-lg glass-surface",
         collapsed && "justify-center"
@@ -348,7 +509,7 @@ function UserProfile({ collapsed }: { collapsed?: boolean }) {
               <div className="text-[10px] text-muted-foreground truncate">{roleName}</div>
             </div>
             <button
-              onClick={() => logout()}
+              onClick={() => setShowLogoutConfirm(true)}
               className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
               title="Sign out"
             >
@@ -357,6 +518,41 @@ function UserProfile({ collapsed }: { collapsed?: boolean }) {
           </>
         )}
       </div>
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            className="absolute bottom-full left-2 right-2 mb-2 p-3 rounded-xl border border-red-500/20 bg-[hsl(222_47%_5%)] shadow-2xl z-50"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <LogOut className="h-4 w-4 text-red-400" />
+              <p className="text-xs font-semibold text-white">Sign Out?</p>
+            </div>
+            <p className="text-[10px] text-slate-400 mb-3">
+              You will be logged out of PMG OS. Any unsaved changes will be lost.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 flex-1 text-[10px] border-white/10"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="h-7 flex-1 text-[10px] bg-red-500/20 border border-red-500/30 hover:bg-red-500/30 text-red-400"
+                onClick={() => logout()}
+              >
+                <LogOut className="h-3 w-3 mr-1" />Sign Out
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -467,6 +663,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           <NotificationBell />
         </div>
         <div className="flex-1 p-4 md:p-6 lg:p-8">
+          <ModeIndicatorBanner />
           {children}
         </div>
       </main>

@@ -30,6 +30,13 @@ All agents use Claude as primary AI engine. Zero AI fluff, human tone only.
   - **Admin:** Operations (team workload, task board with source/priority/assignee), Knowledge Base (searchable docs, 4 categories, auto-learning from wins/losses), Executive Briefing (morning briefing with urgent/priorities/wins, weekly metrics), System Evolution (tech update scanner, approve/explore/skip workflow)
   - **Finance:** Billing & Revenue (invoice table with lifecycle, client profitability analysis), Contracts & Expenses (contract tracking with renewal alerts, expense breakdown by category, monthly P&L, revenue forecasting scenarios)
 - **Session 5 (COMPLETE):** Full AI Integration — 32 AI endpoints wired to gpt-4o-mini via Replit AI Integrations, 36 frontend hooks, all AI buttons visible in every mode (removed isHuman gates), AiResultPanel component renders AI responses inline with copy/collapse/close controls. Integration endpoints for LinkedIn, GHL, Google Ads, Stripe.
+- **Session 6 (IN PROGRESS):** Section 0 (Global Layout) bug fixes from user testing:
+  - Global Search: Fixed broken routes (`task`→`/admin`, `document`→`/admin` instead of non-existent `/execution`, `/reports`)
+  - Notifications: Click now navigates to relevant section (expanded domain→route map covers all backend domains)
+  - AI Mode Banner: `ModeIndicatorBanner` now renders globally in sidebar layout main content area (shows in Hybrid/Human modes on all pages)
+  - Wallet: Added "Withdraw" button (decrease balance) and "Change Payment Method" with 4 payment options; backend updated to handle negative amounts
+  - Logout: Added confirmation dialog ("Sign Out?" with Cancel/Sign Out buttons)
+  - Video Guide: Enhanced with animated step visuals, clickable progress bar, auto-play with proper interval cleanup
 - **Remaining:** Legal & Compliance agent, Video Guide system, final polish
 
 ## System Architecture

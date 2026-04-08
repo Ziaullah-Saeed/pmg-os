@@ -360,29 +360,35 @@ export async function chargeWallet(params: {
 export async function fundWallet(amount: number): Promise<{ balance: number }> {
   const wallet = await getWalletBalance();
   const newBalance = wallet.balance + amount;
+  if (newBalance < 0) throw new Error("Insufficient balance for withdrawal");
   await db.update(walletTable).set({ balance: newBalance.toFixed(4) }).where(eq(walletTable.id, wallet.id));
 
+  const isWithdrawal = amount < 0;
+  const absAmount = Math.abs(amount);
+
   await db.insert(walletTransactionsTable).values({
-    type: "fund",
+    type: isWithdrawal ? "debit" : "fund",
     amount: amount.toFixed(4),
     balanceAfter: newBalance.toFixed(4),
     domain: "system",
-    action: "fund_wallet",
-    description: `Wallet funded with $${amount.toFixed(2)}`,
+    action: isWithdrawal ? "withdraw_wallet" : "fund_wallet",
+    description: isWithdrawal ? `Wallet withdrawal of $${absAmount.toFixed(2)}` : `Wallet funded with $${absAmount.toFixed(2)}`,
   });
 
   await logAudit({
-    eventType: "wallet_funded",
+    eventType: isWithdrawal ? "wallet_withdrawal" : "wallet_funded",
     domain: "system",
-    action: "fund_wallet",
-    description: `Wallet funded with $${amount.toFixed(2)}. New balance: $${newBalance.toFixed(2)}`,
+    action: isWithdrawal ? "withdraw_wallet" : "fund_wallet",
+    description: isWithdrawal
+      ? `Wallet withdrawal of $${absAmount.toFixed(2)}. New balance: $${newBalance.toFixed(2)}`
+      : `Wallet funded with $${absAmount.toFixed(2)}. New balance: $${newBalance.toFixed(2)}`,
     actor: "admin",
     actorType: "human",
     severity: "info",
     metadata: { amount, newBalance },
   });
 
-  broadcast("wallet_update", { type: "fund", amount, balance: newBalance });
+  broadcast("wallet_update", { type: isWithdrawal ? "withdrawal" : "fund", amount, balance: newBalance });
   return { balance: newBalance };
 }
 

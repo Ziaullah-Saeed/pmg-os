@@ -32,8 +32,8 @@ router.get("/transactions", async (req, res) => {
 router.post("/fund", async (req, res) => {
   try {
     const { amount } = req.body;
-    if (!amount || typeof amount !== "number" || amount <= 0) {
-      res.status(400).json({ error: "Valid positive amount required" });
+    if (!amount || typeof amount !== "number" || amount === 0) {
+      res.status(400).json({ error: "Valid non-zero amount required" });
       return;
     }
     const result = await fundWallet(amount);

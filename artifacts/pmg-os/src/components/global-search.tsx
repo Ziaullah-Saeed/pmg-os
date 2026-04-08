@@ -18,8 +18,8 @@ const entityRoutes: Record<string, string> = {
   contact: "/crm",
   lead: "/crm",
   opportunity: "/crm",
-  task: "/execution",
-  document: "/reports",
+  task: "/admin",
+  document: "/admin",
   campaign: "/marketing",
 };
 
