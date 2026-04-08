@@ -36,3 +36,9 @@ id = "Xh-PBC2ixyHPOs7yQj6rw"
 uri = "file://attached_assets/PMG-OS-TESTING-CHECKLIST-V2.md"
 type = "text"
 title = "PMG OS Testing & Verification Checklist v2 — 260+ Items"
+
+[[outputs]]
+id = "XOpifSeqO4kNL6YALYgoQ"
+uri = "file://PMG-OS-Testing-Checklist.pdf"
+type = "pdf"
+title = "PMG OS Testing & Verification Checklist — Complete PDF"
