@@ -1,0 +1,70 @@
+1. DASHBOARD
+The Dashboard is your command center, the first page you see after login. It provides a high-level overview of your entire business: key metrics, quick actions, pipeline status, recent leads, and system health.
+
+1.1 — KPI cards display
+
+HOW IT WORKS:
+The main area shows metric cards: Active Leads (total count of current leads), Pipeline Value (total dollar value of deals in progress), Conversion Rate (percentage of leads that become clients), Revenue (MRR or total). These numbers pull from the actual database, so they reflect your real data.
+
+IN AI AUTONOMOUS MODE:
+All KPIs auto-update as AI agents score leads, advance deals, and process data. Numbers change in real-time.
+
+IN HYBRID MODE:
+KPIs update, but some items may be "pending your review" before counting toward metrics.
+
+IN HUMAN CONTROLLED MODE:
+KPIs only update when you manually process items. Numbers reflect your manual work only.
+
+EXPECTED RESULT:
+PASS if cards show with numbers (even if zero on a fresh system). PARTIAL if cards show but numbers seem wrong. FAIL if cards are missing or showing error messages.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+Pass in three modes
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+1.2 — Quick Action shortcuts
+
+HOW IT WORKS:
+Buttons that jump to common tasks: "Find Prospects" (goes to Outreach > Prospect Finder), "Create Content" (goes to Production > Creative), "View Pipeline" (goes to CRM > Pipeline). Each button should navigate to the correct page and tab.
+
+IN AI AUTONOMOUS MODE:
+All shortcuts visible and navigate correctly.
+
+IN HYBRID MODE:
+All shortcuts visible.
+
+IN HUMAN CONTROLLED MODE:
+Some AI-heavy shortcuts may be hidden or relabeled (e.g., "Enter Prospects Manually" instead of "Find Prospects").
+
+EXPECTED RESULT:
+PASS if all buttons navigate to correct destination. FAIL if buttons do nothing or go to wrong page.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+It pass in all three modes ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+1.3 — Pipeline Summary
+
+HOW IT WORKS:
+A visual pipeline showing deal stages with counts: how many deals are at New Lead, Meeting Set, Discovery, Proposal, Negotiation, Won. Could be a horizontal bar, kanban mini-view, or chart. Gives you at-a-glance pipeline health.
+
+IN AI AUTONOMOUS MODE:
+Shows all deals including those auto-advanced by AI.
+
+IN HYBRID MODE:
+Shows all deals with review badges on AI-processed ones.
+
+IN HUMAN CONTROLLED MODE:
+Shows only manually managed deals.
+
+EXPECTED RESULT:
+PASS if pipeline stages visible with deal counts. PARTIAL if visible but empty (acceptable on new system). FAIL if section missing entirely.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: partial because in all three modes it shows the same thing also you have add recent leads and system status so in the recent leads it shows some names of companies and also routed and new but in the three modes it is the same just text without doing any functionality. 
