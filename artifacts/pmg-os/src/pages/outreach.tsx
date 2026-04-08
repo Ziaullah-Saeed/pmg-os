@@ -67,11 +67,19 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
     return parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : name.slice(0, 2);
   };
 
+  const crmStatuses = ["qualified", "routing", "routed", "active", "closed_won", "closed_lost"];
+  const isInCrm = (status: string) => crmStatuses.includes(status);
+
   const filtered = leadList.filter((l: any) => {
     const matchesSearch = !searchQuery ||
       `${getLeadName(l)} ${getLeadCompany(l)}`.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || l.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    if (statusFilter === "all") {
+      return matchesSearch && !isInCrm(l.status);
+    }
+    if (statusFilter === "in_crm") {
+      return matchesSearch && isInCrm(l.status);
+    }
+    return matchesSearch && l.status === statusFilter;
   });
 
   const handleAddLead = useCallback(async () => {
@@ -91,7 +99,8 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
       toast({ title: "Lead added", description: `${newLead.firstName} ${newLead.lastName} added to pipeline` });
       setShowAddLead(false);
       setNewLead({ firstName: "", lastName: "", email: "", company: "", title: "", phone: "", source: "manual" });
-      queryClient.invalidateQueries({ queryKey: ["/leads"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/leads"] });
     } catch {
       toast({ title: "Error", description: "Failed to add lead", variant: "destructive" });
     }
@@ -115,7 +124,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
       }
       setAiResult(data);
       toast({ title: "AI Prospecting Complete", description: `Found prospects with ${data.confidence}% confidence` });
-      queryClient.invalidateQueries({ queryKey: ["/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to reach AI", variant: "destructive" });
     } finally {
@@ -149,7 +158,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
       });
       if (!res.ok) throw new Error("Failed to save");
       setSavedProspectIds(prev => new Set([...prev, index]));
-      queryClient.invalidateQueries({ queryKey: ["/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       toast({ title: "Lead Saved", description: `${companyName} added to your pipeline` });
     } catch {
       toast({ title: "Error", description: "Failed to save prospect", variant: "destructive" });
@@ -183,7 +192,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
         toast({ title: "Error", description: "Could not move lead to CRM", variant: "destructive" });
         return;
       }
-      queryClient.invalidateQueries({ queryKey: ["/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       toast({ title: "Moved to CRM", description: "Lead qualified and added to CRM pipeline" });
       setSelectedLead(null);
     } catch {
@@ -205,11 +214,11 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32 h-9"><Filter className="h-3.5 w-3.5 mr-1" /><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="all">Prospects</SelectItem>
               <SelectItem value="new">New</SelectItem>
-              <SelectItem value="contacted">Contacted</SelectItem>
-              <SelectItem value="qualified">Qualified</SelectItem>
-              <SelectItem value="unqualified">Unqualified</SelectItem>
+              <SelectItem value="enriched">Enriched</SelectItem>
+              <SelectItem value="scored">Scored</SelectItem>
+              <SelectItem value="in_crm">In CRM</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -338,13 +347,21 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 shrink-0">
+                <div className="flex items-center gap-3 shrink-0">
                   {(lead.confidenceScore ?? lead.fitScore) ? (
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">Score</p>
                       <p className="text-sm font-semibold text-crimson">{lead.confidenceScore ?? lead.fitScore}%</p>
                     </div>
                   ) : null}
+                  {isInCrm(lead.status) ? (
+                    <Badge className="bg-success/20 text-success text-[9px] border-success/30 shrink-0">In CRM</Badge>
+                  ) : (
+                    <Button size="sm" variant="outline" className="text-[10px] h-7 px-2 border-crimson/30 text-crimson shrink-0"
+                      onClick={(e) => { e.stopPropagation(); handleMoveToCrm(lead.id); }}>
+                      <ArrowRight className="h-3 w-3 mr-1" />CRM
+                    </Button>
+                  )}
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
@@ -517,7 +534,7 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
         toast({ title: "Error", description: err.message || "Could not create CRM lead", variant: "destructive" });
         return;
       }
-      queryClient.invalidateQueries({ queryKey: ["/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       toast({ title: "Moved to CRM", description: `${msg.from} from ${msg.company} added as qualified lead` });
       setSelectedMsg(null);
     } catch {

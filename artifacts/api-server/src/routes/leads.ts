@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, and } from "drizzle-orm";
+import { eq, ilike, and, sql } from "drizzle-orm";
 import { db, leadsTable, companiesTable, contactsTable, activitiesTable, aiRunsTable } from "@workspace/db";
 import { requireRole } from "../middleware/rbac";
 import {
@@ -45,7 +45,7 @@ router.get("/leads", async (req, res): Promise<void> => {
       companyId: leadsTable.companyId,
       companyName: companiesTable.name,
       contactId: leadsTable.contactId,
-      contactName: contactsTable.firstName,
+      contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
       source: leadsTable.source,
       status: leadsTable.status,
       priority: leadsTable.priority,
@@ -229,7 +229,7 @@ router.get("/leads/:id", async (req, res): Promise<void> => {
       companyId: leadsTable.companyId,
       companyName: companiesTable.name,
       contactId: leadsTable.contactId,
-      contactName: contactsTable.firstName,
+      contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
       source: leadsTable.source,
       status: leadsTable.status,
       priority: leadsTable.priority,

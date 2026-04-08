@@ -447,7 +447,7 @@ function QualificationTab({ leads, isHuman }: { leads: any[]; isHuman: boolean }
   }));
 
   const filtered = scoredLeads.filter((l: any) => {
-    if (search && !(l.companyName ?? "").toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !`${l.companyName ?? ""} ${l.contactName ?? ""}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterTier !== "all") {
       const t = getTier(l.score);
       if (t.label.toLowerCase() !== filterTier) return false;
@@ -567,7 +567,8 @@ function QualificationTab({ leads, isHuman }: { leads: any[]; isHuman: boolean }
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold truncate">{lead.companyName ?? `Lead #${lead.id}`}</p>
+                  <p className="text-sm font-semibold truncate">{lead.contactName || lead.companyName || `Lead #${lead.id}`}</p>
+                  {lead.companyName && lead.contactName && <span className="text-xs text-muted-foreground truncate">at {lead.companyName}</span>}
                   <Badge variant="outline" className="text-[10px]">{lead.source ?? "manual"}</Badge>
                   <Badge variant="outline" className={`text-[10px] ${lead.tier.color}`}>{lead.tier.label}</Badge>
                 </div>
