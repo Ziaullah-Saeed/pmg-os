@@ -47,16 +47,22 @@ title = "PMG OS Detailed Checklist — PDF (75+ items, full mode descriptions)"
 id = "_NrrLizTJgYnj5_pl_Lgm"
 uri = "file://PMG-OS-Checklist-V2.pdf"
 type = "pdf"
-title = "PMG OS Checklist V2 — PDF (250+ items, table format)"
+title = "V2 Checklist — PDF (260+ items, table format)"
 
 [[outputs]]
 id = "LAGYeHzgeupsHaWKFX5lr"
 uri = "file://PMG-OS-Checklist-V2.docx"
 type = "word_document"
-title = "PMG OS Checklist V2 — Word (editable, 250+ items)"
+title = "V2 Checklist — Word/Editable (260+ items, table format)"
 
 [[outputs]]
 id = "1TTtlEvWjmmzpc5VsU3nd"
 uri = "file://PMG-OS-Checklist-Detailed.docx"
 type = "word_document"
-title = "PMG OS Detailed Checklist — Word (editable, full mode descriptions)"
+title = "DETAILED Checklist — Word/Editable (260+ items, full HOW IT WORKS + 3 mode descriptions each)"
+
+[[outputs]]
+id = "kfzLy5hYfvou40GC80X6K"
+uri = "file://PMG-OS-Checklist-Detailed.pdf"
+type = "pdf"
+title = "DETAILED Checklist — PDF (260+ items, full HOW IT WORKS + 3 mode descriptions each)"
