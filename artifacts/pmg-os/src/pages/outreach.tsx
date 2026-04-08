@@ -55,9 +55,21 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
     firstName: "", lastName: "", email: "", company: "", title: "", phone: "", source: "manual"
   });
 
+  const getLeadName = (l: any) => {
+    if (l.contactName) return l.contactName;
+    if (l.firstName || l.first_name) return `${l.firstName ?? l.first_name ?? ""} ${l.lastName ?? l.last_name ?? ""}`.trim();
+    return `Lead #${l.id}`;
+  };
+  const getLeadCompany = (l: any) => l.companyName || l.company || "";
+  const getLeadInitials = (l: any) => {
+    const name = getLeadName(l);
+    const parts = name.split(" ");
+    return parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : name.slice(0, 2);
+  };
+
   const filtered = leadList.filter((l: any) => {
     const matchesSearch = !searchQuery ||
-      `${l.firstName ?? l.first_name ?? ""} ${l.lastName ?? l.last_name ?? ""} ${l.company ?? l.companyName ?? ""}`.toLowerCase().includes(searchQuery.toLowerCase());
+      `${getLeadName(l)} ${getLeadCompany(l)}`.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || l.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -312,26 +324,25 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-crimson/30 to-crimson/10 flex items-center justify-center text-crimson text-sm font-bold shrink-0">
-                    {(lead.firstName ?? lead.first_name ?? "?")[0]}{(lead.lastName ?? lead.last_name ?? "?")[0]}
+                    {getLeadInitials(lead)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium truncate">{lead.firstName ?? lead.first_name ?? ""} {lead.lastName ?? lead.last_name ?? ""}</p>
+                      <p className="text-sm font-medium truncate">{getLeadName(lead)}</p>
                       <Badge variant="outline" className="text-[10px] capitalize shrink-0">{(lead.status ?? "new").replace(/_/g, " ")}</Badge>
-                      {isAuto && <Badge variant="outline" className="text-[9px] border-crimson/30 text-crimson shrink-0">AI Scored</Badge>}
+                      {isAuto && lead.fitScore && <Badge variant="outline" className="text-[9px] border-crimson/30 text-crimson shrink-0">AI Scored</Badge>}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                      {(lead.company ?? lead.companyName) && <span className="flex items-center gap-1 truncate"><Building2 className="h-3 w-3" />{lead.company ?? lead.companyName}</span>}
-                      {lead.email && <span className="flex items-center gap-1 truncate"><Mail className="h-3 w-3" />{lead.email}</span>}
-                      {lead.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{lead.phone}</span>}
+                      {getLeadCompany(lead) && <span className="flex items-center gap-1 truncate"><Building2 className="h-3 w-3" />{getLeadCompany(lead)}</span>}
+                      {lead.source && <span className="flex items-center gap-1 truncate capitalize">{lead.source.replace(/_/g, " ")}</span>}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
-                  {(lead.confidenceScore ?? lead.confidence_score) ? (
+                  {(lead.confidenceScore ?? lead.fitScore) ? (
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">Score</p>
-                      <p className="text-sm font-semibold text-crimson">{lead.confidenceScore ?? lead.confidence_score}%</p>
+                      <p className="text-sm font-semibold text-crimson">{lead.confidenceScore ?? lead.fitScore}%</p>
                     </div>
                   ) : null}
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -383,27 +394,35 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-crimson/30 to-crimson/10 flex items-center justify-center text-crimson text-sm font-bold">
-                    {(selectedLead.firstName ?? selectedLead.first_name ?? "?")[0]}{(selectedLead.lastName ?? selectedLead.last_name ?? "?")[0]}
+                    {getLeadInitials(selectedLead)}
                   </div>
-                  {selectedLead.firstName ?? selectedLead.first_name} {selectedLead.lastName ?? selectedLead.last_name}
+                  {getLeadName(selectedLead)}
                 </DialogTitle>
-                <DialogDescription>{selectedLead.company ?? selectedLead.companyName} — {selectedLead.title ?? "No title"}</DialogDescription>
+                <DialogDescription>{getLeadCompany(selectedLead) || "No company"} — {selectedLead.title ?? selectedLead.bestAngle ?? "Prospect"}</DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm"><Mail className="h-4 w-4 text-muted-foreground" /><span>{selectedLead.email || "No email"}</span></div>
-                  <div className="flex items-center gap-2 text-sm"><Phone className="h-4 w-4 text-muted-foreground" /><span>{selectedLead.phone || "No phone"}</span></div>
-                  <div className="flex items-center gap-2 text-sm"><Globe className="h-4 w-4 text-muted-foreground" /><span>Source: {selectedLead.source ?? "Unknown"}</span></div>
+                  <div className="flex items-center gap-2 text-sm"><Building2 className="h-4 w-4 text-muted-foreground" /><span>{getLeadCompany(selectedLead) || "No company"}</span></div>
+                  <div className="flex items-center gap-2 text-sm"><Globe className="h-4 w-4 text-muted-foreground" /><span>Source: {(selectedLead.source ?? "Unknown").replace(/_/g, " ")}</span></div>
+                  {selectedLead.painPoints && (
+                    <div className="flex items-start gap-2 text-sm"><AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" /><span className="text-xs text-muted-foreground">{selectedLead.painPoints}</span></div>
+                  )}
+                  {selectedLead.nextAction && (
+                    <div className="flex items-center gap-2 text-sm"><ArrowRight className="h-4 w-4 text-muted-foreground" /><span className="text-xs">Next: {selectedLead.nextAction}</span></div>
+                  )}
                 </div>
                 <div className="space-y-3">
                   <div className="p-3 rounded-lg glass-surface">
                     <p className="text-xs text-muted-foreground">Status</p>
                     <Badge variant="outline" className="mt-1 capitalize">{(selectedLead.status ?? "new").replace(/_/g, " ")}</Badge>
                   </div>
-                  {(selectedLead.confidenceScore ?? selectedLead.confidence_score) && (
+                  {(selectedLead.confidenceScore || selectedLead.fitScore) && (
                     <div className="p-3 rounded-lg glass-surface">
-                      <p className="text-xs text-muted-foreground">Confidence Score</p>
-                      <p className="text-lg font-bold text-crimson">{selectedLead.confidenceScore ?? selectedLead.confidence_score}%</p>
+                      <p className="text-xs text-muted-foreground">Fit / Confidence</p>
+                      <div className="flex items-center gap-3">
+                        {selectedLead.fitScore && <p className="text-lg font-bold text-crimson">{selectedLead.fitScore}</p>}
+                        {selectedLead.confidenceScore && <p className="text-lg font-bold text-blue-400">{selectedLead.confidenceScore}%</p>}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -633,8 +652,8 @@ function StrategyTab({ onTabChange }: { onTabChange: (tab: string) => void }) {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          prospectName: `${selectedProspect.firstName || selectedProspect.first_name} ${selectedProspect.lastName || selectedProspect.last_name}`,
-          companyName: selectedProspect.company || selectedProspect.companyName,
+          prospectName: selectedProspect.contactName || `${selectedProspect.firstName || ""} ${selectedProspect.lastName || ""}`.trim() || `Lead #${selectedProspect.id}`,
+          companyName: selectedProspect.companyName || selectedProspect.company || "",
           industryContext: "Cybersecurity",
           painPoints: "Not enough qualified leads",
           channels: Object.entries(channelPriority).filter(([, v]) => v).map(([k]) => k),
@@ -643,8 +662,8 @@ function StrategyTab({ onTabChange }: { onTabChange: (tab: string) => void }) {
       const data = await res.json();
       const aiStrategy = data?.strategy || data?.result || {};
       setStrategy({
-        prospect: `${selectedProspect.firstName || selectedProspect.first_name} ${selectedProspect.lastName || selectedProspect.last_name}`,
-        company: selectedProspect.company || selectedProspect.companyName,
+        prospect: selectedProspect.contactName || `${selectedProspect.firstName || ""} ${selectedProspect.lastName || ""}`.trim() || `Lead #${selectedProspect.id}`,
+        company: selectedProspect.companyName || selectedProspect.company || "",
         decisionChain: (aiStrategy.decision_chain || aiStrategy.decisionChain) || [
           { role: "CTO / CISO", approach: "Technical credibility — reference NIST, SOC 2 compliance case studies" },
           { role: "VP Marketing", approach: "ROI focus — show lead generation results from similar cybersecurity clients" },
@@ -666,7 +685,7 @@ function StrategyTab({ onTabChange }: { onTabChange: (tab: string) => void }) {
         ],
         aiNotes: (typeof aiStrategy === "string" ? aiStrategy : aiStrategy.notes || aiStrategy.summary) || "Strategy generated based on prospect profile and industry analysis.",
       });
-      toast({ title: "Strategy Generated", description: `Outreach plan created for ${selectedProspect.firstName || selectedProspect.first_name}` });
+      toast({ title: "Strategy Generated", description: `Outreach plan created for ${selectedProspect.contactName || selectedProspect.firstName || `Lead #${selectedProspect.id}`}` });
     } catch {
       toast({ title: "Error", description: "Failed to generate strategy", variant: "destructive" });
     } finally {
@@ -688,15 +707,19 @@ function StrategyTab({ onTabChange }: { onTabChange: (tab: string) => void }) {
         <div className="mb-4">
           <Label className="text-xs mb-2 block">Select Prospect</Label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-[150px] overflow-y-auto">
-            {leadList.slice(0, 9).map((lead: any) => (
-              <div key={lead.id}
-                onClick={() => setSelectedProspect(lead)}
-                className={`p-2 rounded-lg cursor-pointer transition-all ${selectedProspect?.id === lead.id ? "glass-surface border border-crimson/30 ring-1 ring-crimson/20" : "glass-surface hover:bg-white/[0.03]"}`}
-              >
-                <p className="text-xs font-medium truncate">{lead.firstName ?? lead.first_name} {lead.lastName ?? lead.last_name}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{lead.company ?? lead.companyName}</p>
-              </div>
-            ))}
+            {leadList.slice(0, 12).map((lead: any) => {
+              const name = lead.contactName || `${lead.firstName ?? lead.first_name ?? ""} ${lead.lastName ?? lead.last_name ?? ""}`.trim() || `Lead #${lead.id}`;
+              const company = lead.companyName || lead.company || "";
+              return (
+                <div key={lead.id}
+                  onClick={() => setSelectedProspect(lead)}
+                  className={`p-2 rounded-lg cursor-pointer transition-all ${selectedProspect?.id === lead.id ? "glass-surface border border-crimson/30 ring-1 ring-crimson/20" : "glass-surface hover:bg-white/[0.03]"}`}
+                >
+                  <p className="text-xs font-medium truncate">{name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{company}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
 

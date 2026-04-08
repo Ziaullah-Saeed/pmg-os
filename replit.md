@@ -37,6 +37,13 @@ All agents use Claude as primary AI engine. Zero AI fluff, human tone only.
   - Wallet: Added "Withdraw" button (decrease balance) and "Change Payment Method" with 4 payment options; backend updated to handle negative amounts
   - Logout: Added confirmation dialog ("Sign Out?" with Cancel/Sign Out buttons)
   - Video Guide: Enhanced with animated step visuals, clickable progress bar, auto-play with proper interval cleanup
+- **Session 7 (COMPLETE):** Outreach section critical bug fixes:
+  - Backend POST /leads now accepts inline firstName/lastName/email/phone/company/title fields and auto-creates company + contact records (leads no longer have null companyName/contactName)
+  - Backend PATCH /leads/:id progressive state machine: "Move to CRM" (status=qualified) auto-advances through new→enriched→scored→qualified instead of 400 error
+  - Frontend field mapping fixed: uses contactName/companyName from API response (not firstName/lastName which don't exist in API)
+  - Helper functions getLeadName(), getLeadCompany(), getLeadInitials() for consistent lead display
+  - Strategy tab prospect selector uses correct field names
+  - Lead detail dialog shows fitScore, confidenceScore, painPoints, nextAction, bestAngle
 - **Remaining:** Legal & Compliance agent, Video Guide system, final polish
 
 ## System Architecture

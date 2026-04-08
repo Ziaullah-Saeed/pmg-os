@@ -74,7 +74,34 @@ router.get("/leads", async (req, res): Promise<void> => {
 });
 
 router.post("/leads", async (req, res): Promise<void> => {
-  const parsed = CreateLeadBody.safeParse(req.body);
+  const { firstName, lastName, email, phone, company, title, ...rest } = req.body;
+  let companyId = rest.companyId;
+  let contactId = rest.contactId;
+
+  if (!companyId && company) {
+    const existing = await db.select().from(companiesTable).where(eq(companiesTable.name, company)).limit(1);
+    if (existing.length) {
+      companyId = existing[0].id;
+    } else {
+      const [newCo] = await db.insert(companiesTable).values({ name: company, industry: "cybersecurity", status: "lead" }).returning();
+      companyId = newCo.id;
+    }
+  }
+
+  if (!contactId && (firstName || lastName)) {
+    const [newContact] = await db.insert(contactsTable).values({
+      firstName: firstName || "",
+      lastName: lastName || "",
+      email: email || null,
+      phone: phone || null,
+      title: title || null,
+      companyId: companyId || null,
+    }).returning();
+    contactId = newContact.id;
+  }
+
+  const bodyForValidation = { ...rest, companyId, contactId };
+  const parsed = CreateLeadBody.safeParse(bodyForValidation);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
@@ -248,16 +275,36 @@ router.patch("/leads/:id", async (req, res): Promise<void> => {
   if (parsed.data.status) {
     const [current] = await db.select({ status: leadsTable.status }).from(leadsTable).where(eq(leadsTable.id, params.data.id));
     if (current) {
+      const currentStatus = current.status ?? "new";
+      const targetStatus = parsed.data.status;
       const validation = await validateTransition({
         entityType: "lead",
         entityId: params.data.id,
-        currentState: current.status ?? "new",
-        targetState: parsed.data.status,
+        currentState: currentStatus,
+        targetState: targetStatus,
         actor: "user",
       });
       if (!validation.valid) {
-        res.status(400).json({ error: validation.error, validTransitions: getValidTransitions("lead", current.status ?? "new") });
-        return;
+        const progressionPath: Record<string, string> = {
+          new: "enriched",
+          enriched: "scored",
+          scored: "qualified",
+          qualified: "routing",
+          routing: "routed",
+          routed: "active",
+        };
+        if (targetStatus === "qualified" && (currentStatus === "new" || currentStatus === "enriched" || currentStatus === "scored")) {
+          let stepStatus = currentStatus;
+          while (stepStatus !== "qualified" && progressionPath[stepStatus]) {
+            const nextStep = progressionPath[stepStatus];
+            await db.update(leadsTable).set({ status: nextStep }).where(eq(leadsTable.id, params.data.id));
+            stepStatus = nextStep;
+          }
+          parsed.data.status = "qualified";
+        } else {
+          res.status(400).json({ error: validation.error, validTransitions: getValidTransitions("lead", currentStatus) });
+          return;
+        }
       }
     }
   }
