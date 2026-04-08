@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, and, sql } from "drizzle-orm";
-import { db, leadsTable, companiesTable, contactsTable, activitiesTable, aiRunsTable } from "@workspace/db";
+import { db, leadsTable, companiesTable, contactsTable, activitiesTable, aiRunsTable, opportunitiesTable } from "@workspace/db";
 import { requireRole } from "../middleware/rbac";
 import {
   ListLeadsQueryParams,
@@ -24,6 +24,26 @@ import { getSessionUser } from "../middleware/auth";
 import { opportunitiesTable } from "@workspace/db";
 
 const router: IRouter = Router();
+
+async function autoCreateDealForLead(leadId: number, companyName?: string | null, contactName?: string | null, score?: number | null) {
+  const existing = await db.select({ id: opportunitiesTable.id })
+    .from(opportunitiesTable)
+    .where(eq(opportunitiesTable.leadId, leadId));
+  if (existing.length > 0) return;
+
+  const title = companyName
+    ? `${companyName}${contactName ? ` — ${contactName}` : ""}`
+    : contactName ?? `Lead #${leadId}`;
+
+  await db.insert(opportunitiesTable).values({
+    title,
+    leadId,
+    stage: "new",
+    value: 0,
+    serviceType: "cybersecurity",
+    probability: score ? Math.min(score, 100) : 50,
+  });
+}
 
 router.get("/leads", async (req, res): Promise<void> => {
   const query = ListLeadsQueryParams.safeParse(req.query);
@@ -119,9 +139,14 @@ router.post("/leads", async (req, res): Promise<void> => {
 
   const companyName = parsed.data.companyId
     ? (await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, parsed.data.companyId)))[0]?.name
-    : undefined;
+    : company ?? undefined;
 
   const alreadyQualified = ["qualified", "routing", "routed", "active", "closed_won", "closed_lost"].includes(lead.status ?? "");
+
+  if (alreadyQualified) {
+    const fullName = `${firstName ?? ""} ${lastName ?? ""}`.trim() || null;
+    await autoCreateDealForLead(lead.id, companyName ?? null, fullName, lead.confidenceScore ?? lead.fitScore);
+  }
 
   (async () => {
     try {
@@ -329,6 +354,17 @@ router.patch("/leads/:id", async (req, res): Promise<void> => {
     entityId: lead.id,
     performedBy: "user",
   });
+
+  if (parsed.data.status === "qualified") {
+    const companyName = lead.companyId
+      ? (await db.select({ name: companiesTable.name }).from(companiesTable).where(eq(companiesTable.id, lead.companyId)))[0]?.name
+      : null;
+    const contactRow = lead.contactId
+      ? (await db.select({ firstName: contactsTable.firstName, lastName: contactsTable.lastName }).from(contactsTable).where(eq(contactsTable.id, lead.contactId)))[0]
+      : null;
+    const contactName = contactRow ? `${contactRow.firstName ?? ""} ${contactRow.lastName ?? ""}`.trim() : null;
+    await autoCreateDealForLead(lead.id, companyName, contactName, lead.fitScore ?? lead.confidenceScore);
+  }
 
   await logAudit({
     eventType: "entity_updated",
