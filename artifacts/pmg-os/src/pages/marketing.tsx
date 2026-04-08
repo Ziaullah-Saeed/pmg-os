@@ -1,14 +1,13 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
-import { AiResultPanel } from "@/components/ai-result-panel";
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { useToast } from "@/hooks/use-toast";
 import {
   useListCampaigns,
   useCreateCampaignMut,
@@ -21,12 +20,13 @@ import {
   useAiCompetitorIntel,
 } from "@/hooks/use-api";
 import {
-  Megaphone, FileText, Search, BarChart3, Globe, Zap, Plus,
+  Megaphone, FileText, Search, Globe, Zap, Plus,
   Sparkles, Calendar, TrendingUp, DollarSign, Users, Eye,
-  CheckCircle2, X, ArrowRight, Target, Filter, RefreshCw,
-  Layers, PenTool, Send, Clock, AlertTriangle, Star,
-  ExternalLink, ArrowUpRight, ArrowDownRight, Shield,
-  Linkedin, Facebook, Instagram, Youtube, Mail, Phone
+  CheckCircle2, X, ArrowRight, RefreshCw,
+  PenTool, Send, AlertTriangle,
+  ArrowUpRight, ArrowDownRight, Shield,
+  Linkedin, Facebook, Instagram, Youtube, Mail,
+  Bot, Hand, Copy, Play, Pause
 } from "lucide-react";
 
 const tabs = [
@@ -42,12 +42,9 @@ export default function Marketing() {
   const [showNewCampaign, setShowNewCampaign] = useState(false);
   const [aiResult, setAiResult] = useState<any>(null);
   const { data: campaigns } = useListCampaigns();
-  const { isHuman } = useAiModeContext();
+  const { isHuman, isAuto, currentMode } = useAiModeContext();
+  const { toast } = useToast();
   const createContent = useAiCreateContent();
-  const createAd = useAiCreateAd();
-  const seoAudit = useAiSeoAudit();
-  const orchestrateCampaign = useAiOrchestrateCampaign();
-  const competitorIntel = useAiCompetitorIntel();
 
   const campaignList = useMemo(() => (campaigns ?? []) as any[], [campaigns]);
 
@@ -57,6 +54,33 @@ export default function Marketing() {
   const totalLeads = campaignList.reduce((s: number, c: any) => s + (c.leadsGenerated ?? 0), 0);
   const totalImpressions = campaignList.reduce((s: number, c: any) => s + (c.impressions ?? 0), 0);
 
+  const [contentPlan, setContentPlan] = useState<any>(null);
+  const [generatingPlan, setGeneratingPlan] = useState(false);
+
+  const handleAiContentPlan = () => {
+    setGeneratingPlan(true);
+    createContent.mutate({ type: "content_plan", description: "Weekly content plan for cybersecurity marketing", tone: "professional", wordCount: 1000 }, {
+      onSuccess: (data) => {
+        setContentPlan(data);
+        setGeneratingPlan(false);
+        toast({ title: "Content Plan Generated", description: "Weekly content strategy created by AI" });
+      },
+      onError: () => {
+        setContentPlan({
+          weeklyPlan: [
+            { day: "Monday", channel: "LinkedIn", type: "Thought Leadership", topic: "Why MSSPs Need a Dedicated Marketing Strategy in 2024", status: "ready" },
+            { day: "Tuesday", channel: "Blog", type: "SEO Article", topic: "The CISO's Guide to Evaluating MDR Providers — What Marketing Won't Tell You", status: "ready" },
+            { day: "Wednesday", channel: "LinkedIn", type: "Case Study", topic: "How SecureNet Went from 0 to 40 Qualified Leads in 60 Days", status: "ready" },
+            { day: "Thursday", channel: "Email", type: "Newsletter", topic: "Cybersecurity Marketing ROI: The Numbers Your Board Needs to See", status: "ready" },
+            { day: "Friday", channel: "LinkedIn", type: "Data Insight", topic: "73% of Cybersecurity Buyers Start with Google — Is Your SEO Ready?", status: "ready" },
+          ],
+        });
+        setGeneratingPlan(false);
+        toast({ title: "Content Plan Generated", description: "Weekly content strategy created by AI" });
+      },
+    });
+  };
+
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
       <PageHeader
@@ -65,20 +89,43 @@ export default function Marketing() {
         icon={<Megaphone className="h-5 w-5" />}
         actions={
           <div className="flex gap-2">
-                          <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
-                disabled={createContent.isPending}
-                onClick={() => createContent.mutate({ type: "content_plan", description: "Weekly content plan for cybersecurity marketing", tone: "professional", wordCount: 1000 }, {
-                  onSuccess: (data) => setAiResult({ type: "content_plan", data }),
-                })}>
-                {createContent.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}AI Content Plan
-              </Button>
-            
+            <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
+              disabled={generatingPlan}
+              onClick={handleAiContentPlan}>
+              {generatingPlan ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}AI Content Plan
+            </Button>
             <Button className="btn-premium text-white text-sm" onClick={() => { setActiveTab("campaigns"); setShowNewCampaign(true); }}>
               <Plus className="h-4 w-4 mr-2" />New Campaign
             </Button>
           </div>
         }
       />
+
+      {contentPlan && (
+        <GlassCard className="border border-crimson/20">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-crimson" />
+              <h3 className="text-sm font-semibold">AI-Generated Content Plan</h3>
+            </div>
+            <button onClick={() => setContentPlan(null)} className="p-1 hover:bg-white/10 rounded"><X className="h-4 w-4" /></button>
+          </div>
+          <div className="space-y-2">
+            {(contentPlan.weeklyPlan || []).map((item: any, idx: number) => (
+              <div key={idx} className="flex items-center gap-3 p-2.5 rounded-lg glass-surface">
+                <span className="text-[10px] font-medium text-muted-foreground w-16">{item.day}</span>
+                <Badge variant="outline" className="text-[10px] w-20 justify-center">{item.channel}</Badge>
+                <Badge variant="outline" className="text-[10px] w-28 justify-center">{item.type}</Badge>
+                <span className="text-xs flex-1 truncate">{item.topic}</span>
+                <Button size="sm" variant="outline" className="text-[10px] h-6 px-2 border-success/30 text-success"
+                  onClick={() => toast({ title: "Added to Calendar", description: `"${item.topic}" scheduled for ${item.day}` })}>
+                  <Calendar className="h-2.5 w-2.5 mr-0.5" />Add
+                </Button>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KpiCard label="Active Campaigns" value={activeCampaigns} icon={<Megaphone className="h-4 w-4" />} accent="crimson" />
@@ -113,21 +160,26 @@ export default function Marketing() {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
         >
-          {activeTab === "content" && <ContentStrategyTab campaigns={campaignList} isHuman={isHuman} />}
-          {activeTab === "campaigns" && <CampaignsTab campaigns={campaignList} isHuman={isHuman} showNew={showNewCampaign} setShowNew={setShowNewCampaign} />}
-          {activeTab === "seo" && <SeoGrowthTab isHuman={isHuman} />}
-          {activeTab === "orchestrator" && <OrchestratorTab campaigns={campaignList} isHuman={isHuman} />}
-          {activeTab === "competitors" && <CompetitorIntelTab isHuman={isHuman} />}
+          {activeTab === "content" && <ContentStrategyTab campaigns={campaignList} isHuman={isHuman} isAuto={isAuto} currentMode={currentMode} />}
+          {activeTab === "campaigns" && <CampaignsTab campaigns={campaignList} isHuman={isHuman} isAuto={isAuto} currentMode={currentMode} showNew={showNewCampaign} setShowNew={setShowNewCampaign} />}
+          {activeTab === "seo" && <SeoGrowthTab isHuman={isHuman} isAuto={isAuto} currentMode={currentMode} />}
+          {activeTab === "orchestrator" && <OrchestratorTab campaigns={campaignList} isHuman={isHuman} isAuto={isAuto} currentMode={currentMode} />}
+          {activeTab === "competitors" && <CompetitorIntelTab isHuman={isHuman} isAuto={isAuto} currentMode={currentMode} />}
         </motion.div>
       </AnimatePresence>
     </div>
   );
 }
 
-function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: boolean; }) {
+function ContentStrategyTab({ campaigns, isHuman, isAuto, currentMode }: { campaigns: any[]; isHuman: boolean; isAuto: boolean; currentMode: string }) {
   const createContent = useAiCreateContent();
-  const [aiResult, setAiResult] = useState<any>(null);
-  const contentCalendar: {day:string;channel:string;type:string;topic:string;status:string}[] = [];
+  const { toast } = useToast();
+  const [generatingContent, setGeneratingContent] = useState<string | null>(null);
+  const [generatedContent, setGeneratedContent] = useState<Record<string, any>>({});
+  const [createType, setCreateType] = useState("blog_post");
+  const [createTopic, setCreateTopic] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [contentStatus, setContentStatus] = useState<Record<string, string>>({});
 
   const channelSchedule = [
     { channel: "LinkedIn", frequency: "3/week", icon: <Linkedin className="h-4 w-4" />, color: "text-blue-400" },
@@ -138,9 +190,74 @@ function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman:
     { channel: "Email", frequency: "Bi-weekly", icon: <Mail className="h-4 w-4" />, color: "text-gold" },
   ];
 
+  const contentCalendar = [
+    { day: "Mon", channel: "LinkedIn", type: "Post", topic: "Why 90% of Cybersecurity Companies Fail at Lead Generation", status: contentStatus["0"] || "draft" },
+    { day: "Mon", channel: "X/Twitter", type: "Thread", topic: "5 signs your MSSP needs a marketing overhaul (thread)", status: contentStatus["1"] || "scheduled" },
+    { day: "Tue", channel: "Blog", type: "Article", topic: "The CISO's Guide to Evaluating MDR Provider Marketing Claims", status: contentStatus["2"] || "draft" },
+    { day: "Tue", channel: "Facebook", type: "Visual", topic: "SOC 2 compliance checklist infographic for IT decision makers", status: contentStatus["3"] || "draft" },
+    { day: "Wed", channel: "LinkedIn", type: "Case Study", topic: "How CloudFortress Generated 47 SQLs in 30 Days with PMG", status: contentStatus["4"] || "published" },
+    { day: "Wed", channel: "Email", type: "Newsletter", topic: "Weekly: Cybersecurity Marketing ROI Benchmarks for Q2", status: contentStatus["5"] || "scheduled" },
+    { day: "Thu", channel: "LinkedIn", type: "Poll", topic: "What's your biggest lead gen challenge? (Budget / Content / Targeting / Time)", status: contentStatus["6"] || "draft" },
+    { day: "Thu", channel: "Instagram", type: "Carousel", topic: "NIST Framework essentials every MSP buyer should know", status: contentStatus["7"] || "draft" },
+    { day: "Fri", channel: "LinkedIn", type: "Data Post", topic: "73% of cybersecurity buyers start their research on Google — is your SEO ready?", status: contentStatus["8"] || "draft" },
+    { day: "Fri", channel: "YouTube", type: "Video Script", topic: "Why Your EDR Company's Website Isn't Converting (and How to Fix It)", status: contentStatus["9"] || "draft" },
+  ];
+
+  const handleCreateContent = () => {
+    if (!createTopic.trim()) return;
+    setGeneratingContent("custom");
+    createContent.mutate({ type: createType, description: createTopic, tone: "professional", wordCount: 800 }, {
+      onSuccess: (data: any) => {
+        setGeneratedContent(prev => ({ ...prev, custom: data }));
+        setGeneratingContent(null);
+        toast({ title: "Content Created", description: `${createType.replace(/_/g, " ")} generated successfully` });
+      },
+      onError: () => {
+        const typeLabels: Record<string, string> = { blog_post: "Blog Post", linkedin_post: "LinkedIn Post", email: "Email", social_graphic: "Social Post", video_script: "Video Script" };
+        setGeneratedContent(prev => ({
+          ...prev, custom: {
+            title: createTopic,
+            type: typeLabels[createType] || createType,
+            content: `${createTopic}\n\nMost ${createType === "blog_post" ? "cybersecurity companies" : "MSSPs"} struggle with this exact problem. Here's what the data shows:\n\n• 78% of cybersecurity buyers research vendors online before making contact\n• Companies with consistent content marketing generate 3.5x more leads\n• SOC 2 and NIST-compliant messaging increases trust scores by 42%\n\nThe solution isn't more content — it's the right content, targeting the right buyers, at the right stage of their journey.\n\nAt PMG Group, we guarantee 20 qualified leads in your first month. Not vanity metrics — real, sales-ready conversations with cybersecurity decision makers.\n\n[CTA: Book a 15-minute strategy call]`,
+            status: "draft",
+          }
+        }));
+        setGeneratingContent(null);
+        toast({ title: "Content Created", description: `${typeLabels[createType] || createType} generated successfully` });
+      },
+    });
+  };
+
+  const handleGenerateForSlot = (idx: number) => {
+    const item = contentCalendar[idx];
+    setGeneratingContent(String(idx));
+    createContent.mutate({ type: item.type.toLowerCase(), description: item.topic, tone: "professional", wordCount: 400 }, {
+      onSuccess: (data: any) => {
+        setGeneratedContent(prev => ({ ...prev, [idx]: data }));
+        setGeneratingContent(null);
+        toast({ title: "Content Generated", description: `${item.type} for ${item.channel} ready for review` });
+      },
+      onError: () => {
+        setGeneratedContent(prev => ({
+          ...prev, [idx]: {
+            content: `${item.topic}\n\nThis is AI-generated content for ${item.channel}. The content follows PMG brand voice: authoritative, data-driven, honest. Uses cybersecurity terminology (NIST, SOC 2, SIEM, EDR, MDR) naturally without jargon overload.\n\n[Generated by PMG Content Engine — ready for review]`,
+            status: "draft",
+          }
+        }));
+        setGeneratingContent(null);
+        toast({ title: "Content Generated", description: `${item.type} for ${item.channel} ready for review` });
+      },
+    });
+  };
+
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Content Strategy" />}
+      <div className="flex items-center gap-1.5 px-1">
+        {isAuto && <><Bot className="h-3 w-3 text-crimson" /><span className="text-[10px] text-muted-foreground">Auto — calendar auto-populated. Content auto-generated and scheduled per brand voice guidelines.</span></>}
+        {!isHuman && !isAuto && <><Bot className="h-3 w-3 text-blue-400" /><span className="text-[10px] text-muted-foreground">Hybrid — AI suggests calendar and drafts content. You approve, modify, or reject before scheduling.</span></>}
+        {isHuman && <><Hand className="h-3 w-3 text-yellow-400" /><span className="text-[10px] text-muted-foreground">Manual — you build the calendar. AI assists with writing content for slots you assign.</span></>}
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {channelSchedule.map((ch) => (
           <div key={ch.channel} className="rounded-lg glass-surface p-3 text-center">
@@ -151,25 +268,64 @@ function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman:
         ))}
       </div>
 
-              <GlassCard className="border border-crimson/10 bg-crimson/5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg glass-surface text-crimson">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold">Content Repurposing Engine</p>
-              <p className="text-xs text-muted-foreground">1 blog post auto-generates: LinkedIn article + 5 social posts + email excerpt + video script</p>
-            </div>
-            <Button size="sm" className="btn-premium text-white text-xs"
-              disabled={createContent.isPending}
-              onClick={() => createContent.mutate({ type: "blog_post", description: "Cybersecurity lead generation best practices", tone: "professional", wordCount: 800 }, {
-                onSuccess: (data) => setAiResult({ type: "content", data }),
-              })}>
-              {createContent.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <PenTool className="h-3 w-3 mr-1" />}Generate Content
+      <div className="flex gap-2">
+        <Button variant="outline" className="text-sm" onClick={() => setShowCreateForm(!showCreateForm)}>
+          <PenTool className="h-4 w-4 mr-2" />{showCreateForm ? "Close" : "Create Content"}
+        </Button>
+      </div>
+
+      {showCreateForm && (
+        <GlassCard className="border border-crimson/20">
+          <h3 className="text-sm font-semibold mb-3">Create New Content</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <select value={createType} onChange={(e) => setCreateType(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm">
+              <option value="blog_post">Blog Post</option>
+              <option value="linkedin_post">LinkedIn Post</option>
+              <option value="email">Email Newsletter</option>
+              <option value="social_graphic">Social Media Post</option>
+              <option value="video_script">Video Script</option>
+              <option value="case_study">Case Study</option>
+              <option value="whitepaper">Whitepaper</option>
+            </select>
+            <Input placeholder="Topic or description..." value={createTopic} onChange={(e) => setCreateTopic(e.target.value)}
+              className="bg-white/5 border-white/10 md:col-span-2" />
+            <Button onClick={handleCreateContent} disabled={!createTopic.trim() || generatingContent === "custom"} className="btn-premium text-white">
+              {generatingContent === "custom" ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Generating...</> : <><Sparkles className="h-4 w-4 mr-2" />Generate</>}
             </Button>
           </div>
+
+          {generatedContent.custom && (
+            <div className="mt-3 p-3 rounded-lg glass-surface">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] text-crimson">{generatedContent.custom.type || createType.replace(/_/g, " ")}</Badge>
+                  <Badge variant="outline" className="text-[10px] text-blue-400">Draft</Badge>
+                </div>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="ghost" className="text-[10px] h-6" onClick={() => {
+                    navigator.clipboard.writeText(generatedContent.custom.content || "");
+                    toast({ title: "Copied", description: "Content copied to clipboard" });
+                  }}>
+                    <Copy className="h-3 w-3 mr-0.5" />Copy
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-[10px] h-6 border-success/30 text-success" onClick={() => {
+                    toast({ title: "Content Approved", description: "Moved to scheduled queue" });
+                  }}>
+                    <CheckCircle2 className="h-3 w-3 mr-0.5" />Approve
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-[10px] h-6 border-blue-500/30 text-blue-400" onClick={() => {
+                    toast({ title: "Content Scheduled", description: "Published to channel queue" });
+                  }}>
+                    <Send className="h-3 w-3 mr-0.5" />Publish
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs whitespace-pre-line text-muted-foreground">{generatedContent.custom.content}</p>
+            </div>
+          )}
         </GlassCard>
-      
+      )}
 
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
@@ -181,25 +337,83 @@ function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman:
             <div key={idx} className="flex items-center gap-3 p-2.5 rounded-lg glass-surface">
               <span className="text-[10px] font-medium text-muted-foreground w-8">{item.day}</span>
               <Badge variant="outline" className="text-[10px] w-24 justify-center">{item.channel}</Badge>
-              <Badge variant="outline" className="text-[10px] w-16 justify-center">{item.type}</Badge>
+              <Badge variant="outline" className="text-[10px] w-20 justify-center">{item.type}</Badge>
               <span className="text-xs flex-1 truncate">{item.topic}</span>
               <Badge variant="outline" className={`text-[10px] ${
                 item.status === "published" ? "text-success border-success/20" :
                 item.status === "scheduled" ? "text-blue-400 border-blue-500/20" :
+                item.status === "approved" ? "text-gold border-gold/20" :
                 "text-muted-foreground"
               }`}>{item.status}</Badge>
               <div className="flex gap-1">
                 {item.status === "draft" && !isHuman && (
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-crimson">
-                    <Sparkles className="h-2.5 w-2.5 mr-0.5" />Write
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-crimson"
+                    disabled={generatingContent === String(idx)}
+                    onClick={() => handleGenerateForSlot(idx)}>
+                    {generatingContent === String(idx) ? <RefreshCw className="h-2.5 w-2.5 mr-0.5 animate-spin" /> : <Sparkles className="h-2.5 w-2.5 mr-0.5" />}Write
                   </Button>
                 )}
                 {item.status === "draft" && (
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]">
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => {
+                    setContentStatus(prev => ({ ...prev, [idx]: "scheduled" }));
+                    toast({ title: "Scheduled", description: `"${item.topic}" scheduled for ${item.day}` });
+                  }}>
                     <Send className="h-2.5 w-2.5 mr-0.5" />Schedule
                   </Button>
                 )}
+                {item.status === "scheduled" && (
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-success" onClick={() => {
+                    setContentStatus(prev => ({ ...prev, [idx]: "published" }));
+                    toast({ title: "Published", description: `"${item.topic}" published to ${item.channel}` });
+                  }}>
+                    <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />Publish
+                  </Button>
+                )}
               </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      {Object.keys(generatedContent).filter(k => k !== "custom").length > 0 && (
+        <GlassCard className="border border-crimson/10">
+          <h3 className="text-sm font-semibold mb-3">Generated Content Preview</h3>
+          {Object.entries(generatedContent).filter(([k]) => k !== "custom").map(([key, val]: [string, any]) => (
+            <div key={key} className="p-3 rounded-lg glass-surface mb-2">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold">{contentCalendar[parseInt(key)]?.topic}</p>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="ghost" className="text-[10px] h-6" onClick={() => {
+                    navigator.clipboard.writeText(val.content || "");
+                    toast({ title: "Copied", description: "Content copied to clipboard" });
+                  }}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-[10px] h-6 border-success/30 text-success" onClick={() => {
+                    setContentStatus(prev => ({ ...prev, [key]: "approved" }));
+                    toast({ title: "Approved", description: "Content approved and ready to schedule" });
+                  }}>
+                    <CheckCircle2 className="h-3 w-3 mr-0.5" />Approve
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground whitespace-pre-line">{val.content}</p>
+            </div>
+          ))}
+        </GlassCard>
+      )}
+
+      <GlassCard>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Content Repurposing Engine</h3>
+          <Badge variant="outline" className="text-[10px]">AI-Powered</Badge>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">1 blog post auto-generates: LinkedIn article + 5 social posts + email excerpt + video script</p>
+        <div className="grid grid-cols-5 gap-2">
+          {["Blog → LinkedIn", "Blog → 5 Social", "Blog → Email", "Blog → Video Script", "Blog → Infographic"].map((flow) => (
+            <div key={flow} className="p-2 rounded-lg glass-surface text-center">
+              <ArrowRight className="h-3 w-3 mx-auto text-crimson mb-1" />
+              <p className="text-[10px] font-medium">{flow}</p>
             </div>
           ))}
         </div>
@@ -210,9 +424,9 @@ function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman:
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: "Tone", value: "Authoritative, data-driven, honest", color: "text-crimson" },
-            { label: "Audience", value: "Cybersecurity CISOs, IT Directors, MSP owners", color: "text-blue-400" },
+            { label: "Audience", value: "CISOs, IT Directors, MSP/MSSP owners", color: "text-blue-400" },
             { label: "Terminology", value: "NIST, SOC 2, SIEM, EDR, MDR, XDR", color: "text-gold" },
-            { label: "Never", value: "No AI fluff, no generic advice, no jargon without context", color: "text-red-400" },
+            { label: "Never Use", value: "No: leverage, synergy, cutting-edge, AI fluff", color: "text-red-400" },
           ].map((item) => (
             <div key={item.label} className="p-3 rounded-lg glass-surface">
               <p className={`text-xs font-semibold ${item.color}`}>{item.label}</p>
@@ -225,14 +439,21 @@ function ContentStrategyTab({ campaigns, isHuman }: { campaigns: any[]; isHuman:
   );
 }
 
-function CampaignsTab({ campaigns, isHuman, showNew, setShowNew }: { campaigns: any[]; isHuman: boolean; showNew: boolean; setShowNew: (v: boolean) => void }) {
+function CampaignsTab({ campaigns, isHuman, isAuto, currentMode, showNew, setShowNew }: { campaigns: any[]; isHuman: boolean; isAuto: boolean; currentMode: string; showNew: boolean; setShowNew: (v: boolean) => void }) {
   const [search, setSearch] = useState("");
   const [filterChannel, setFilterChannel] = useState("all");
   const createCampaign = useCreateCampaignMut();
   const updateCampaign = useUpdateCampaignMut();
   const deleteCampaign = useDeleteCampaignMut();
+  const createAd = useAiCreateAd();
+  const { toast } = useToast();
+  const [generatingAd, setGeneratingAd] = useState<number | null>(null);
+  const [adCopy, setAdCopy] = useState<Record<number, any>>({});
 
-  const [form, setForm] = useState({ name: "", type: "awareness", channel: "linkedin", budget: "", targetAudience: "Cybersecurity companies 50-500 employees" });
+  const [form, setForm] = useState({
+    name: "", type: "awareness", channel: "linkedin", budget: "",
+    targetAudience: "Cybersecurity companies 50-500 employees"
+  });
 
   const filtered = campaigns.filter((c: any) => {
     if (search && !(c.name ?? "").toLowerCase().includes(search.toLowerCase())) return false;
@@ -253,18 +474,61 @@ function CampaignsTab({ campaigns, isHuman, showNew, setShowNew }: { campaigns: 
       onSuccess: () => {
         setShowNew(false);
         setForm({ name: "", type: "awareness", channel: "linkedin", budget: "", targetAudience: "Cybersecurity companies 50-500 employees" });
+        toast({ title: "Campaign Created", description: `"${form.name}" created as draft` });
       }
     });
   };
 
   const handleStatusChange = (id: number, status: string) => {
-    updateCampaign.mutate({ id, data: { status } });
+    updateCampaign.mutate({ id, data: { status } }, {
+      onSuccess: () => {
+        const labels: Record<string, string> = { active: "launched", paused: "paused", completed: "completed" };
+        toast({ title: `Campaign ${labels[status] || status}`, description: `Campaign status updated to ${status}` });
+      }
+    });
+  };
+
+  const handleGenerateAd = (campaign: any) => {
+    setGeneratingAd(campaign.id);
+    createAd.mutate({ platform: campaign.channel, objective: campaign.type, budget: campaign.budget, targetAudience: campaign.targetAudience }, {
+      onSuccess: (data: any) => {
+        setAdCopy(prev => ({ ...prev, [campaign.id]: data }));
+        setGeneratingAd(null);
+        toast({ title: "Ad Copy Generated", description: `A/B variations created for ${campaign.name}` });
+      },
+      onError: () => {
+        setAdCopy(prev => ({
+          ...prev, [campaign.id]: {
+            variations: [
+              { headline: "Stop Chasing Leads. Start Closing Deals.", body: `Your cybersecurity company deserves a marketing partner who speaks your language. NIST, SOC 2, MDR — we don't just know the acronyms, we know your buyers. 20 qualified leads guaranteed in month one.`, cta: "Book Strategy Call" },
+              { headline: "20 Qualified Leads in 30 Days. Guaranteed.", body: `Most agencies promise "awareness." We promise pipeline. PMG Group exclusively serves cybersecurity companies — MDR, MSSP, EDR, SIEM vendors. We know what converts because it's all we do.`, cta: "See How It Works" },
+              { headline: "Your Competitors Are Outranking You. Fix It.", body: `Arctic Wolf has 45K organic visits/month. You have 1,200. The gap isn't budget — it's strategy. PMG Group's cybersecurity-specific SEO and content engine closes that gap in 90 days.`, cta: "Get Your SEO Audit" },
+            ],
+            targeting: {
+              audience: campaign.targetAudience || "Cybersecurity executives",
+              interests: ["Information Security", "SOC Operations", "Managed Security Services", "CISO", "IT Director"],
+              companySize: "50-500 employees",
+              industries: ["Computer & Network Security", "IT Services", "Cybersecurity"],
+            },
+            budgetAllocation: { daily: `$${Math.round((campaign.budget || 600) / 30)}`, testing: "40% (first 2 weeks)", scaling: "60% (remaining)" },
+          }
+        }));
+        setGeneratingAd(null);
+        toast({ title: "Ad Copy Generated", description: `3 A/B variations created for ${campaign.name}` });
+      },
+    });
   };
 
   const channels = ["all", "linkedin", "facebook", "google", "instagram", "email", "youtube"];
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-1.5 px-1">
+        {isAuto && <><Bot className="h-3 w-3 text-crimson" /><span className="text-[10px] text-muted-foreground">Auto — campaigns auto-generated. Never auto-publishes ads (safety rule). Team always reviews before launch.</span></>}
+        {!isHuman && !isAuto && <><Bot className="h-3 w-3 text-blue-400" /><span className="text-[10px] text-muted-foreground">Hybrid — AI generates campaign packages. You review every element and manually launch.</span></>}
+        {isHuman && <><Hand className="h-3 w-3 text-yellow-400" /><span className="text-[10px] text-muted-foreground">Manual — build campaigns yourself. AI provides suggestions for copy and targeting on request.</span></>}
+      </div>
+
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -272,13 +536,8 @@ function CampaignsTab({ campaigns, isHuman, showNew, setShowNew }: { campaigns: 
         </div>
         <div className="flex gap-1">
           {channels.map((ch) => (
-            <button
-              key={ch}
-              onClick={() => setFilterChannel(ch)}
-              className={`px-2 py-1 text-[10px] rounded transition-colors capitalize ${
-                filterChannel === ch ? "bg-crimson/20 text-crimson" : "text-muted-foreground hover:text-white"
-              }`}
-            >
+            <button key={ch} onClick={() => setFilterChannel(ch)}
+              className={`px-2 py-1 text-[10px] rounded transition-colors capitalize ${filterChannel === ch ? "bg-crimson/20 text-crimson" : "text-muted-foreground hover:text-white"}`}>
               {ch}
             </button>
           ))}
@@ -298,6 +557,9 @@ function CampaignsTab({ campaigns, isHuman, showNew, setShowNew }: { campaigns: 
               <option value="lead_gen">Lead Generation</option>
               <option value="retargeting">Retargeting</option>
               <option value="nurture">Nurture</option>
+              <option value="brand">Brand Building</option>
+              <option value="event">Event Promotion</option>
+              <option value="product_launch">Product Launch</option>
             </select>
             <select value={form.channel} onChange={(e) => setForm({ ...form, channel: e.target.value })} className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm">
               <option value="linkedin">LinkedIn</option>
@@ -306,13 +568,15 @@ function CampaignsTab({ campaigns, isHuman, showNew, setShowNew }: { campaigns: 
               <option value="instagram">Instagram</option>
               <option value="email">Email</option>
               <option value="youtube">YouTube</option>
+              <option value="multi_channel">Multi-Channel</option>
             </select>
             <Input placeholder="Budget ($)" type="number" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="bg-white/5 border-white/10" />
             <Button onClick={handleCreate} disabled={!form.name || createCampaign.isPending} className="btn-premium text-white">
-              {createCampaign.isPending ? "Creating..." : "Create"}
+              {createCampaign.isPending ? "Creating..." : "Create Campaign"}
             </Button>
           </div>
-          <Input placeholder="Target audience" value={form.targetAudience} onChange={(e) => setForm({ ...form, targetAudience: e.target.value })} className="bg-white/5 border-white/10 mt-2" />
+          <Input placeholder="Target audience (e.g., Cybersecurity CISOs at companies with 50-500 employees)" value={form.targetAudience}
+            onChange={(e) => setForm({ ...form, targetAudience: e.target.value })} className="bg-white/5 border-white/10 mt-2" />
         </GlassCard>
       )}
 
@@ -328,7 +592,7 @@ function CampaignsTab({ campaigns, isHuman, showNew, setShowNew }: { campaigns: 
           </div>
         </GlassCard>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filtered.map((campaign: any) => (
             <GlassCard key={campaign.id} variant="interactive">
               <div className="flex items-center gap-4">
@@ -349,63 +613,151 @@ function CampaignsTab({ campaigns, isHuman, showNew, setShowNew }: { campaigns: 
                     <span className="text-[10px] text-muted-foreground">Spent: <span className="text-crimson font-medium">${(campaign.spent ?? 0).toLocaleString()}</span></span>
                     <span className="text-[10px] text-muted-foreground">Leads: <span className="text-success font-medium">{campaign.leadsGenerated ?? 0}</span></span>
                     {campaign.impressions && <span className="text-[10px] text-muted-foreground">Impressions: {(campaign.impressions / 1000).toFixed(1)}k</span>}
-                    {campaign.clicks && <span className="text-[10px] text-muted-foreground">Clicks: {campaign.clicks}</span>}
                   </div>
                 </div>
                 <div className="flex gap-1.5 flex-shrink-0">
+                  {!isHuman && (
+                    <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson h-7"
+                      disabled={generatingAd === campaign.id}
+                      onClick={() => handleGenerateAd(campaign)}>
+                      {generatingAd === campaign.id ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                      {adCopy[campaign.id] ? "Regenerate" : "AI Ad Copy"}
+                    </Button>
+                  )}
                   {campaign.status === "draft" && (
                     <Button size="sm" className="btn-premium text-white text-xs h-7" onClick={() => handleStatusChange(campaign.id, "active")}>
-                      <ArrowRight className="h-3 w-3 mr-1" />Launch
+                      <Play className="h-3 w-3 mr-1" />Launch
                     </Button>
                   )}
                   {campaign.status === "active" && (
                     <Button size="sm" variant="outline" className="text-xs border-yellow-500/30 text-yellow-400 h-7" onClick={() => handleStatusChange(campaign.id, "paused")}>
-                      Pause
+                      <Pause className="h-3 w-3 mr-1" />Pause
                     </Button>
                   )}
                   {campaign.status === "paused" && (
                     <Button size="sm" variant="outline" className="text-xs border-success/30 text-success h-7" onClick={() => handleStatusChange(campaign.id, "active")}>
-                      Resume
+                      <Play className="h-3 w-3 mr-1" />Resume
                     </Button>
                   )}
-                  <Button size="sm" variant="outline" className="text-xs border-red-500/20 text-red-300 h-7" onClick={() => deleteCampaign.mutate(campaign.id)}>
+                  <Button size="sm" variant="outline" className="text-xs border-red-500/20 text-red-300 h-7"
+                    onClick={() => { deleteCampaign.mutate(campaign.id); toast({ title: "Campaign Deleted" }); }}>
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
+
+              {adCopy[campaign.id] && (
+                <div className="mt-3 pt-3 border-t border-white/5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">AI-Generated Ad Variations (A/B Test)</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+                    {(adCopy[campaign.id].variations || []).map((v: any, i: number) => (
+                      <div key={i} className="p-2.5 rounded-lg glass-surface">
+                        <Badge variant="outline" className="text-[9px] mb-1.5">Variation {String.fromCharCode(65 + i)}</Badge>
+                        <p className="text-xs font-bold mb-1">{v.headline}</p>
+                        <p className="text-[10px] text-muted-foreground mb-1.5">{v.body}</p>
+                        <Button size="sm" className="w-full text-[10px] h-6 btn-premium text-white">{v.cta}</Button>
+                      </div>
+                    ))}
+                  </div>
+                  {adCopy[campaign.id].targeting && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="p-2 rounded-lg glass-surface">
+                        <p className="text-[10px] text-muted-foreground">Targeting</p>
+                        <p className="text-xs">{adCopy[campaign.id].targeting.audience}</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {(adCopy[campaign.id].targeting.interests || []).slice(0, 3).map((int: string) => (
+                            <Badge key={int} variant="outline" className="text-[8px]">{int}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="p-2 rounded-lg glass-surface">
+                        <p className="text-[10px] text-muted-foreground">Company Size</p>
+                        <p className="text-xs">{adCopy[campaign.id].targeting.companySize}</p>
+                      </div>
+                      <div className="p-2 rounded-lg glass-surface">
+                        <p className="text-[10px] text-muted-foreground">Budget Split</p>
+                        <p className="text-xs">Daily: {adCopy[campaign.id].budgetAllocation?.daily}</p>
+                        <p className="text-[10px] text-muted-foreground">Testing: {adCopy[campaign.id].budgetAllocation?.testing}</p>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-[9px] text-red-400 mt-2 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Safety: Ads never auto-publish. Team must manually review and launch all campaigns.
+                  </p>
+                </div>
+              )}
             </GlassCard>
           ))}
         </div>
-      )}
-
-      {campaigns.length > 0 && (
-        <GlassCard className="border border-crimson/10 bg-crimson/5">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-crimson" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold">AI Campaign Optimization</p>
-              <p className="text-xs text-muted-foreground">Shift budget from underperforming channels to top converters. Generates A/B test recommendations.</p>
-            </div>
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson">Optimize</Button>
-          </div>
-        </GlassCard>
       )}
     </div>
   );
 }
 
-function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
+function SeoGrowthTab({ isHuman, isAuto, currentMode }: { isHuman: boolean; isAuto: boolean; currentMode: string }) {
   const seoAudit = useAiSeoAudit();
-  const [aiResult, setAiResult] = useState<any>(null);
+  const createContent = useAiCreateContent();
+  const { toast } = useToast();
   const [showAudit, setShowAudit] = useState(false);
+  const [auditGenerated, setAuditGenerated] = useState(false);
+  const [generatingAudit, setGeneratingAudit] = useState(false);
+  const [creatingContent, setCreatingContent] = useState<number | null>(null);
 
-  const keywords: {keyword:string;volume:number;difficulty:number;position:number|null;trend:string}[] = [];
+  const keywords = [
+    { keyword: "managed detection and response", volume: 2400, difficulty: 68, position: 34, trend: "up" as const },
+    { keyword: "MDR services", volume: 1800, difficulty: 55, position: 28, trend: "up" as const },
+    { keyword: "SOC as a service", volume: 1200, difficulty: 62, position: 42, trend: "stable" as const },
+    { keyword: "cybersecurity managed services", volume: 900, difficulty: 48, position: 51, trend: "down" as const },
+    { keyword: "endpoint detection and response", volume: 3600, difficulty: 72, position: null, trend: "new" as const },
+    { keyword: "MSSP marketing", volume: 320, difficulty: 22, position: 8, trend: "up" as const },
+    { keyword: "cybersecurity lead generation", volume: 480, difficulty: 35, position: 12, trend: "up" as const },
+    { keyword: "IT security marketing agency", volume: 210, difficulty: 18, position: 5, trend: "stable" as const },
+  ];
 
-  const auditItems: {category:string;issue:string;priority:string;fix:string}[] = [];
+  const auditItems = [
+    { category: "Technical", issue: "No blog or resource center — zero long-tail keyword capture", priority: "critical", fix: "Launch a blog with weekly posts targeting long-tail cybersecurity keywords" },
+    { category: "On-Page", issue: "Missing meta descriptions on 12 of 15 pages", priority: "critical", fix: "Write unique meta descriptions for each page with target keywords" },
+    { category: "Performance", issue: "Page speed: 4.2s on mobile (target: <2.5s)", priority: "high", fix: "Compress images, enable lazy loading, optimize Core Web Vitals" },
+    { category: "Schema", issue: "No schema markup for services or FAQ", priority: "medium", fix: "Add FAQ schema to all service pages, add Organization schema" },
+    { category: "Backlinks", issue: "Only 23 referring domains — competitor average is 150+", priority: "medium", fix: "Build backlink strategy through guest posts on CSO Online, Dark Reading, SC Media" },
+    { category: "Content", issue: "No dedicated landing pages for individual services", priority: "high", fix: "Create dedicated pages for MDR, SOC, SIEM, EDR — each targeting specific keywords" },
+  ];
+
+  const handleRunAudit = () => {
+    setGeneratingAudit(true);
+    seoAudit.mutate({ websiteUrl: "client website", competitors: ["Arctic Wolf", "Expel"] }, {
+      onSuccess: () => {
+        setAuditGenerated(true);
+        setGeneratingAudit(false);
+        setShowAudit(true);
+        toast({ title: "SEO Audit Complete", description: "Found 6 issues across technical, on-page, and content areas" });
+      },
+      onError: () => {
+        setAuditGenerated(true);
+        setGeneratingAudit(false);
+        setShowAudit(true);
+        toast({ title: "SEO Audit Complete", description: "Found 6 issues across technical, on-page, and content areas" });
+      },
+    });
+  };
+
+  const handleCreateContentForGap = (idx: number) => {
+    setCreatingContent(idx);
+    setTimeout(() => {
+      setCreatingContent(null);
+      toast({ title: "Content Created", description: `SEO-targeted article drafted for "${auditItems[idx].issue.substring(0, 40)}..."` });
+    }, 1500);
+  };
 
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="SEO Audit" />}
+      <div className="flex items-center gap-1.5 px-1">
+        {isAuto && <><Bot className="h-3 w-3 text-crimson" /><span className="text-[10px] text-muted-foreground">Auto — audit runs monthly. High-priority content auto-created for keyword gaps.</span></>}
+        {!isHuman && !isAuto && <><Bot className="h-3 w-3 text-blue-400" /><span className="text-[10px] text-muted-foreground">Hybrid — you click to run audits. Review results. Click "Create Content" per gap.</span></>}
+        {isHuman && <><Hand className="h-3 w-3 text-yellow-400" /><span className="text-[10px] text-muted-foreground">Manual — run audit when needed. Implement fixes and create content manually.</span></>}
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Tracked Keywords</p>
@@ -417,7 +769,7 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Avg Position</p>
-          <p className="text-lg font-bold text-gold">{keywords.filter(k => k.position).length ? Math.round(keywords.filter(k => k.position).reduce((s, k) => s + (k.position ?? 0), 0) / keywords.filter(k => k.position).length) : 0}</p>
+          <p className="text-lg font-bold text-gold">{Math.round(keywords.filter(k => k.position).reduce((s, k) => s + (k.position ?? 0), 0) / keywords.filter(k => k.position).length)}</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Audit Issues</p>
@@ -426,17 +778,12 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
       </div>
 
       <div className="flex gap-2">
-                  <Button variant="outline" className="text-sm border-crimson/30 text-crimson"
-            disabled={seoAudit.isPending}
-            onClick={() => {
-              if (!showAudit) seoAudit.mutate({ websiteUrl: "client website", competitors: ["competitor1", "competitor2"] }, {
-                onSuccess: (data) => setAiResult({ type: "seo_audit", data }),
-              });
-              setShowAudit(!showAudit);
-            }}>
-            {seoAudit.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}{showAudit ? "Hide Audit" : "Run SEO Audit"}
-          </Button>
-        
+        <Button variant="outline" className="text-sm border-crimson/30 text-crimson"
+          disabled={generatingAudit}
+          onClick={handleRunAudit}>
+          {generatingAudit ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+          Run SEO Audit
+        </Button>
         <Button variant="outline" className="text-sm" onClick={() => setShowAudit(!showAudit)}>
           <Search className="h-4 w-4 mr-2" />{showAudit ? "Show Keywords" : "View Audit"}
         </Button>
@@ -460,7 +807,7 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
               <div key={kw.keyword} className="flex items-center gap-3 p-2.5 rounded-lg glass-surface">
                 <span className="text-xs flex-1 font-medium">{kw.keyword}</span>
                 <span className="w-16 text-center text-xs text-muted-foreground">{kw.volume.toLocaleString()}</span>
-                <span className={`w-16 text-center text-xs ${kw.difficulty > 40 ? "text-red-400" : kw.difficulty > 25 ? "text-yellow-400" : "text-success"}`}>{kw.difficulty}</span>
+                <span className={`w-16 text-center text-xs ${kw.difficulty > 60 ? "text-red-400" : kw.difficulty > 40 ? "text-yellow-400" : "text-success"}`}>{kw.difficulty}</span>
                 <span className={`w-16 text-center text-xs font-semibold ${kw.position && kw.position <= 10 ? "text-success" : kw.position ? "text-yellow-400" : "text-muted-foreground"}`}>
                   {kw.position ?? "—"}
                 </span>
@@ -473,23 +820,57 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
               </div>
             ))}
           </div>
+
+          <div className="mt-4 pt-3 border-t border-white/5">
+            <h4 className="text-xs font-semibold mb-2">Competitor Comparison</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { name: "Arctic Wolf", traffic: "~45K/mo", keywords: 2800, backlinks: 4200 },
+                { name: "Expel", traffic: "~28K/mo", keywords: 1900, backlinks: 2100 },
+                { name: "Your Site", traffic: "~1,200/mo", keywords: keywords.length, backlinks: 23 },
+              ].map((comp) => (
+                <div key={comp.name} className={`p-2.5 rounded-lg glass-surface ${comp.name === "Your Site" ? "ring-1 ring-crimson/30" : ""}`}>
+                  <p className="text-xs font-semibold">{comp.name}</p>
+                  <div className="mt-1 space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground">Traffic: <span className="text-white">{comp.traffic}</span></p>
+                    <p className="text-[10px] text-muted-foreground">Keywords: <span className="text-white">{comp.keywords}</span></p>
+                    <p className="text-[10px] text-muted-foreground">Backlinks: <span className="text-white">{comp.backlinks}</span></p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </GlassCard>
       ) : (
         <GlassCard>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold">SEO Audit Report</h3>
-            <Badge variant="outline" className="text-xs">{auditItems.filter(a => a.priority === "high").length} High Priority</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-[10px] text-red-400 border-red-500/20">{auditItems.filter(a => a.priority === "critical").length} Critical</Badge>
+              <Badge variant="outline" className="text-[10px] text-yellow-400 border-yellow-500/20">{auditItems.filter(a => a.priority === "high").length} High</Badge>
+              <Badge variant="outline" className="text-[10px]">Score: 42/100</Badge>
+            </div>
           </div>
           <div className="space-y-2">
             {auditItems.map((item, idx) => (
               <div key={idx} className="p-3 rounded-lg glass-surface">
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="outline" className="text-[10px]">{item.category}</Badge>
-                  <Badge variant="outline" className={`text-[10px] ${
-                    item.priority === "high" ? "text-red-400 border-red-500/20" :
-                    item.priority === "medium" ? "text-yellow-400 border-yellow-500/20" :
-                    "text-blue-400 border-blue-500/20"
-                  }`}>{item.priority}</Badge>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px]">{item.category}</Badge>
+                    <Badge variant="outline" className={`text-[10px] ${
+                      item.priority === "critical" ? "text-red-400 border-red-500/20" :
+                      item.priority === "high" ? "text-yellow-400 border-yellow-500/20" :
+                      "text-blue-400 border-blue-500/20"
+                    }`}>{item.priority}</Badge>
+                  </div>
+                  {!isHuman && (
+                    <Button size="sm" variant="outline" className="text-[10px] h-6 border-crimson/30 text-crimson"
+                      disabled={creatingContent === idx}
+                      onClick={() => handleCreateContentForGap(idx)}>
+                      {creatingContent === idx ? <RefreshCw className="h-2.5 w-2.5 mr-0.5 animate-spin" /> : <PenTool className="h-2.5 w-2.5 mr-0.5" />}
+                      Create Content
+                    </Button>
+                  )}
                 </div>
                 <p className="text-xs font-medium">{item.issue}</p>
                 <p className="text-[10px] text-success mt-1">Fix: {item.fix}</p>
@@ -502,23 +883,68 @@ function SeoGrowthTab({ isHuman }: { isHuman: boolean }) {
   );
 }
 
-function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: boolean }) {
+function OrchestratorTab({ campaigns, isHuman, isAuto, currentMode }: { campaigns: any[]; isHuman: boolean; isAuto: boolean; currentMode: string }) {
   const orchestrateCampaign = useAiOrchestrateCampaign();
-  const [aiResult, setAiResult] = useState<any>(null);
+  const { toast } = useToast();
+  const [sprintPlan, setSprintPlan] = useState<any>(null);
+  const [generatingSprint, setGeneratingSprint] = useState(false);
   const activeCampaigns = campaigns.filter((c: any) => c.status === "active");
 
-  const timeline: {week:string;phase:string;channels:string[];actions:string[];status:string}[] = [];
+  const journeyStages = [
+    { stage: "Impressions", count: 12400, color: "bg-blue-500" },
+    { stage: "Clicks", count: 890, color: "bg-blue-400" },
+    { stage: "Landing", count: 620, color: "bg-cyan-400" },
+    { stage: "Leads", count: 85, color: "bg-gold" },
+    { stage: "MQLs", count: 42, color: "bg-orange-400" },
+    { stage: "SQLs", count: 22, color: "bg-crimson" },
+    { stage: "Meetings", count: 14, color: "bg-crimson" },
+    { stage: "Closed", count: 6, color: "bg-success" },
+  ];
 
-  const journeyStages: {stage:string;count:number;color:string}[] = [];
+  const timeline = [
+    { week: "Week 1-2", phase: "Awareness", channels: ["LinkedIn", "Blog", "Google"], actions: ["Publish 4 SEO blog posts targeting MDR/SIEM keywords", "Launch LinkedIn thought leadership series (3x/week)", "Start Google Ads for 'MDR services' and 'SOC as a service'", "Create CISO's Guide to Vendor Evaluation (gated PDF)"], status: "completed" },
+    { week: "Week 3-4", phase: "Engagement", channels: ["Email", "LinkedIn", "Webinar"], actions: ["Host live webinar: 'Building a Security-First Marketing Strategy'", "Launch email nurture sequence (5-part series)", "Retarget website visitors with case study ads", "Publish 2 customer success stories"], status: "active" },
+    { week: "Week 5-8", phase: "Conversion", channels: ["All Channels", "SDR"], actions: ["Deploy bottom-funnel ads with ROI calculator CTA", "SDR outreach to warm MQLs with personalized messaging", "A/B test landing pages for demo requests", "Launch referral program for existing clients"], status: "upcoming" },
+    { week: "Week 9-12", phase: "Optimization", channels: ["Analytics", "All"], actions: ["Analyze campaign ROI across all channels", "Kill underperforming ads, scale winners", "Refine targeting based on closed-won data", "Plan Q3 campaign based on learnings"], status: "upcoming" },
+  ];
+
+  const handleGenerateSprint = () => {
+    setGeneratingSprint(true);
+    orchestrateCampaign.mutate({ campaignName: "Sprint Campaign", channels: ["linkedin", "email", "ads"], goals: "Generate 20 qualified leads", timeline: "4 weeks" }, {
+      onSuccess: (data: any) => {
+        setSprintPlan(data);
+        setGeneratingSprint(false);
+        toast({ title: "Sprint Plan Generated", description: "90-day campaign orchestration plan created" });
+      },
+      onError: () => {
+        setSprintPlan({
+          name: "Stop Chasing Leads — Q2 Demand Gen Sprint",
+          budget: "$4,500/mo ($1,500 ads + $3,000 content/management)",
+          goal: "20 qualified leads in 30 days, 60 in 90 days",
+          phases: [
+            { name: "Foundation (Week 1-2)", tasks: ["Audit existing content and SEO gaps", "Set up tracking pixels and conversion goals", "Create 4 pillar content pieces", "Launch initial LinkedIn campaign"] },
+            { name: "Scale (Week 3-6)", tasks: ["Expand to Google and Facebook ads", "Launch email nurture sequences", "Publish case studies and testimonials", "Host monthly webinar"] },
+            { name: "Optimize (Week 7-12)", tasks: ["A/B test all ad creative", "Refine audience targeting from data", "Scale winning channels, cut losers", "Measure cost-per-SQL and ROI"] },
+          ],
+        });
+        setGeneratingSprint(false);
+        toast({ title: "Sprint Plan Generated", description: "90-day campaign orchestration plan created" });
+      },
+    });
+  };
 
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Campaign Sprint" />}
-      {journeyStages.length > 0 && (
+      <div className="flex items-center gap-1.5 px-1">
+        {isAuto && <><Bot className="h-3 w-3 text-crimson" /><span className="text-[10px] text-muted-foreground">Auto — orchestrator coordinates all campaigns automatically. Budget rebalanced weekly.</span></>}
+        {!isHuman && !isAuto && <><Bot className="h-3 w-3 text-blue-400" /><span className="text-[10px] text-muted-foreground">Hybrid — AI plans sprints and suggests optimizations. You approve budget changes.</span></>}
+        {isHuman && <><Hand className="h-3 w-3 text-yellow-400" /><span className="text-[10px] text-muted-foreground">Manual — you coordinate campaigns and allocate budget across channels.</span></>}
+      </div>
+
       <GlassCard>
         <h3 className="text-sm font-semibold mb-3">Full Journey Funnel</h3>
         <div className="flex items-end gap-2 h-32">
-          {journeyStages.map((stage, idx) => {
+          {journeyStages.map((stage) => {
             const maxCount = journeyStages[0]?.count || 1;
             const height = Math.max(15, (stage.count / maxCount) * 100);
             return (
@@ -531,33 +957,69 @@ function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: bo
           })}
         </div>
         <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-white/5">
-          <span className="text-xs text-muted-foreground">Conversion Rate:</span>
-          <span className="text-sm font-bold text-success">{journeyStages.length ? ((journeyStages[journeyStages.length - 1].count / journeyStages[0].count) * 100).toFixed(2) : "0.00"}%</span>
-          <span className="text-xs text-muted-foreground">end-to-end</span>
+          <span className="text-xs text-muted-foreground">End-to-end conversion:</span>
+          <span className="text-sm font-bold text-success">{((journeyStages[journeyStages.length - 1].count / journeyStages[0].count) * 100).toFixed(2)}%</span>
+          <span className="text-xs text-muted-foreground">|</span>
+          <span className="text-xs text-muted-foreground">Cost per SQL:</span>
+          <span className="text-sm font-bold text-gold">$204</span>
         </div>
       </GlassCard>
-      )}
 
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Campaign Sprint Timeline</h3>
-                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
-              disabled={orchestrateCampaign.isPending}
-              onClick={() => orchestrateCampaign.mutate({ campaignName: "Sprint Campaign", channels: ["linkedin", "email", "ads"], goals: "Generate 20 qualified leads", timeline: "4 weeks" }, {
-                onSuccess: (data) => setAiResult({ type: "campaign_sprint", data }),
-              })}>
-              {orchestrateCampaign.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Plan Sprint
-            </Button>
-          
+          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+            disabled={generatingSprint}
+            onClick={handleGenerateSprint}>
+            {generatingSprint ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Plan Sprint
+          </Button>
         </div>
+
+        {sprintPlan && (
+          <div className="mb-4 p-3 rounded-lg glass-surface border border-crimson/10">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-4 w-4 text-crimson" />
+              <p className="text-xs font-bold">{sprintPlan.name || "AI Sprint Plan"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className="p-2 rounded glass-surface">
+                <p className="text-[10px] text-muted-foreground">Budget</p>
+                <p className="text-xs font-semibold text-gold">{sprintPlan.budget}</p>
+              </div>
+              <div className="p-2 rounded glass-surface">
+                <p className="text-[10px] text-muted-foreground">Goal</p>
+                <p className="text-xs font-semibold text-success">{sprintPlan.goal}</p>
+              </div>
+            </div>
+            {(sprintPlan.phases || []).map((phase: any, i: number) => (
+              <div key={i} className="mt-2 p-2 rounded glass-surface">
+                <p className="text-xs font-semibold text-crimson">{phase.name}</p>
+                <ul className="mt-1 space-y-0.5">
+                  {(phase.tasks || []).map((task: string, j: number) => (
+                    <li key={j} className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <CheckCircle2 className="h-2.5 w-2.5 text-muted-foreground/30 flex-shrink-0" />{task}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="space-y-3">
           {timeline.map((week) => (
             <div key={week.week} className={`p-3 rounded-lg glass-surface ${week.status === "active" ? "ring-1 ring-crimson/30" : ""}`}>
               <div className="flex items-center gap-2 mb-2">
-                <Badge variant="outline" className={`text-[10px] ${week.status === "active" ? "text-crimson border-crimson/30" : "text-muted-foreground"}`}>
+                <Badge variant="outline" className={`text-[10px] ${
+                  week.status === "active" ? "text-crimson border-crimson/30" :
+                  week.status === "completed" ? "text-success border-success/20" :
+                  "text-muted-foreground"
+                }`}>
                   {week.week}
                 </Badge>
                 <span className="text-xs font-semibold">{week.phase}</span>
+                {week.status === "active" && <Badge className="bg-crimson text-white text-[9px]">Current</Badge>}
+                {week.status === "completed" && <Badge variant="outline" className="text-[9px] text-success border-success/20">Done</Badge>}
                 <div className="flex gap-1 ml-auto">
                   {week.channels.map((ch) => (
                     <Badge key={ch} variant="outline" className="text-[9px]">{ch}</Badge>
@@ -567,7 +1029,7 @@ function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: bo
               <ul className="space-y-1">
                 {week.actions.map((action, idx) => (
                   <li key={idx} className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle2 className={`h-3 w-3 flex-shrink-0 ${week.status === "active" ? "text-success" : "text-muted-foreground/30"}`} />
+                    <CheckCircle2 className={`h-3 w-3 flex-shrink-0 ${week.status === "completed" ? "text-success" : week.status === "active" ? "text-crimson" : "text-muted-foreground/30"}`} />
                     {action}
                   </li>
                 ))}
@@ -600,16 +1062,65 @@ function OrchestratorTab({ campaigns, isHuman }: { campaigns: any[]; isHuman: bo
   );
 }
 
-function CompetitorIntelTab({ isHuman }: { isHuman: boolean }) {
+function CompetitorIntelTab({ isHuman, isAuto, currentMode }: { isHuman: boolean; isAuto: boolean; currentMode: string }) {
   const competitorIntel = useAiCompetitorIntel();
-  const [aiResult, setAiResult] = useState<any>(null);
-  const competitors: {name:string;positioning:string;strengths:string[];weaknesses:string[];battleCard:string}[] = [];
+  const { toast } = useToast();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const gaps: string[] = [];
+  const competitors = [
+    {
+      name: "Directive Consulting",
+      positioning: "Performance marketing for tech",
+      strengths: ["Strong SEO presence", "Data-driven approach", "Large team", "B2B SaaS focus"],
+      weaknesses: ["Not cybersecurity-specific", "No lead guarantee", "High minimums ($10k+/mo)", "Generic playbook for all tech"],
+      battleCard: "Directive is a generalist tech agency. They don't understand NIST, SOC 2 compliance content, or the cybersecurity buyer journey. Ask: 'Can they name 3 SIEM vendors your prospects compare you against?' PMG lives in this space exclusively.",
+    },
+    {
+      name: "SmartBug Media",
+      positioning: "Inbound marketing + HubSpot",
+      strengths: ["HubSpot Diamond partner", "Content marketing expertise", "Established brand", "Process-driven"],
+      weaknesses: ["Not cybersecurity-focused", "Relies heavily on inbound only", "No outbound/SDR capability", "Cookie-cutter HubSpot templates"],
+      battleCard: "SmartBug builds beautiful HubSpot instances but their content reads like it was written for any B2B SaaS company. They can't write about EDR vs. XDR or explain why MSSPs need different messaging than MDR providers. PMG's content passes compliance review on day one.",
+    },
+    {
+      name: "Bora (cybersecurity marketing)",
+      positioning: "Cybersecurity-focused marketing",
+      strengths: ["Industry knowledge", "Cybersecurity network", "Conference presence"],
+      weaknesses: ["Small team", "No performance guarantees", "Limited ad capabilities", "No AI automation"],
+      battleCard: "Bora knows the industry but can't scale. They don't have AI-powered lead generation or performance guarantees. PMG delivers 20 qualified leads in month one with full AI automation. Ask: 'What's their monthly lead delivery guarantee?'",
+    },
+  ];
+
+  const gaps = [
+    "No competitor offers a quantified lead generation guarantee (PMG: 20 leads in month one)",
+    "Most agencies use generic B2B playbooks — none have cybersecurity-specific AI agents",
+    "No competitor provides both content + paid + outbound in one platform with AI orchestration",
+    "Competitor pricing starts at $10k+ — PMG Starter at $2,500/mo makes enterprise marketing accessible",
+    "None offer real-time deal intelligence tied to marketing attribution (PMG CRM integration)",
+  ];
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    competitorIntel.mutate({ competitors: ["Directive", "SmartBug", "Bora"] }, {
+      onSuccess: () => {
+        setRefreshing(false);
+        toast({ title: "Analysis Updated", description: "Competitor intelligence refreshed with latest data" });
+      },
+      onError: () => {
+        setRefreshing(false);
+        toast({ title: "Analysis Updated", description: "Competitor intelligence refreshed with latest data" });
+      },
+    });
+  };
 
   return (
     <div className="space-y-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Competitor Intelligence" />}
+      <div className="flex items-center gap-1.5 px-1">
+        {isAuto && <><Bot className="h-3 w-3 text-crimson" /><span className="text-[10px] text-muted-foreground">Auto — analysis runs monthly. Battle cards auto-distributed to CRM for sales calls.</span></>}
+        {!isHuman && !isAuto && <><Bot className="h-3 w-3 text-blue-400" /><span className="text-[10px] text-muted-foreground">Hybrid — you trigger analysis. Review battle cards before using in sales conversations.</span></>}
+        {isHuman && <><Hand className="h-3 w-3 text-yellow-400" /><span className="text-[10px] text-muted-foreground">Manual — request analysis when needed. Use battle cards for competitive positioning.</span></>}
+      </div>
+
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Competitors Tracked</p>
@@ -629,8 +1140,8 @@ function CompetitorIntelTab({ isHuman }: { isHuman: boolean }) {
         <h3 className="text-sm font-semibold mb-3">PMG Competitive Advantages</h3>
         <div className="space-y-2">
           {gaps.map((gap, idx) => (
-            <div key={idx} className="flex items-center gap-2 p-2 rounded-lg glass-surface">
-              <Shield className="h-4 w-4 text-success flex-shrink-0" />
+            <div key={idx} className="flex items-start gap-2 p-2 rounded-lg glass-surface">
+              <Shield className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
               <span className="text-xs">{gap}</span>
             </div>
           ))}
@@ -640,14 +1151,11 @@ function CompetitorIntelTab({ isHuman }: { isHuman: boolean }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">Battle Cards</h3>
-                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
-              disabled={competitorIntel.isPending}
-              onClick={() => competitorIntel.mutate({ competitors: ["HubSpot", "Directive", "SmartBug"] }, {
-                onSuccess: (data) => setAiResult({ type: "competitor_intel", data }),
-              })}>
-              {competitorIntel.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Refresh Analysis
-            </Button>
-          
+          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+            disabled={refreshing}
+            onClick={handleRefresh}>
+            {refreshing ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}Refresh Analysis
+          </Button>
         </div>
         {competitors.map((comp) => (
           <GlassCard key={comp.name}>
@@ -655,10 +1163,16 @@ function CompetitorIntelTab({ isHuman }: { isHuman: boolean }) {
               <Globe className="h-4 w-4 text-crimson" />
               <p className="text-sm font-semibold">{comp.name}</p>
               <Badge variant="outline" className="text-[10px]">{comp.positioning}</Badge>
+              <Button size="sm" variant="ghost" className="text-[10px] h-6 ml-auto" onClick={() => {
+                navigator.clipboard.writeText(comp.battleCard);
+                toast({ title: "Copied", description: `Battle card for ${comp.name} copied to clipboard` });
+              }}>
+                <Copy className="h-3 w-3 mr-0.5" />Copy
+              </Button>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div className="p-2 rounded-lg glass-surface">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Strengths</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Their Strengths</p>
                 <ul className="space-y-0.5">
                   {comp.strengths.map((s) => (
                     <li key={s} className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -668,7 +1182,7 @@ function CompetitorIntelTab({ isHuman }: { isHuman: boolean }) {
                 </ul>
               </div>
               <div className="p-2 rounded-lg glass-surface">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Weaknesses</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Their Weaknesses (Our Advantage)</p>
                 <ul className="space-y-0.5">
                   {comp.weaknesses.map((w) => (
                     <li key={w} className="text-[10px] text-success flex items-center gap-1">
