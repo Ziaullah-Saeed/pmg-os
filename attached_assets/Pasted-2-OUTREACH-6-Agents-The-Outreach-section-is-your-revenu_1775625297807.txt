@@ -1,0 +1,260 @@
+2. OUTREACH (6 Agents)
+The Outreach section is your revenue engine starting point. It has 6 tabs, each powered by a dedicated AI agent. The flow goes: Find Prospects (Agent 1) > Plan Approach (Agent 3) > Draft Messages (Agent 4) > Send & Follow-up (Agent 5) > Analytics (Agent 6). The Social Command Center (Agent 2) monitors all incoming messages across channels.
+
+2.1 — Prospect Finder — "Find Prospects" button
+
+HOW IT WORKS:
+This is where it all starts. Click "Find Prospects" and optionally enter search criteria (industry focus, location, company size). Agent 1 (Prospect Intelligence) researches cybersecurity and IT companies, analyzes their marketing weaknesses (bad website, no social presence, weak SEO), verifies contact info (email, LinkedIn), and scores each prospect on Fit (0-100, how well they match your ideal client) and Accessibility (0-100, how easy to reach decision makers). Returns a ranked list of prospect cards.
+
+IN AI AUTONOMOUS MODE:
+Button visible and prominent. AI runs immediately. Results appear within seconds. No approval needed. Each prospect card auto-shows action buttons.
+
+IN HYBRID MODE:
+Button visible. AI runs when you click. Results appear with "AI Generated" badge in corner. You review the list before taking action on any prospect.
+
+IN HUMAN CONTROLLED MODE:
+Button may be hidden or relabeled to "Research Company" (manual). You enter company details yourself. AI may assist with scoring only if you request it.
+
+EXPECTED RESULT:
+PASS if clicking returns a list of prospect cards with company names, scores (Fit + Accessibility), and contact info. PARTIAL if results appear but missing scores or contacts. FAIL if button does nothing, shows endless spinner, or returns an error.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+Partial in all three modes it is one page which has search leads, filter, add lead, Ai prospect and in all three modes when you click ai prospect so it give a list with scoring details, and also a message of AI prospecting complete found prospects with 95% confidence under the new list that is appeared after clicking AI prospect there are some names and tags such as new and an arrow when you click on the arrow a new page popups with no email, no phone source repreral and three buttons draft message plan approach move to crm so when you click draft message nothing happen when you click plan approach nothing happen, when click move to crm this message popups: error could not move lead to CRM the lead may need to be scored first and when the lead has a tag of scored with 95 percent confidence and you click the arrow so the same page popup the buttons of draft message is not working, plan approach is just design but when click to move to crm it goes give the same meesage message as I have given you above also when you click AI prospect a list pops up with AI prospects found prospect intelligence 95 % confidence sall all 10 to CRM and thre icons and it shows some names and details and when you hit save all 10 to crm it goes to crm but it is not showing in crm so by clicking save all to crm it give message lead saved shieldfy network add to your pipeline and beside the AI prospect button we have add lead button in all three modes when you click it it would give you a new popup page with specification fo add new leadl manually add a prospect to your pipeline first name, last name email company title, phone, manual entry. So in all three modes it is the same so in the hybrid at least the fields should be added by the ai and just it should be added by human, and in the human mode it should be manual al in the source you have manual entry, linkedin, website, referral, and event if you remember we have a lot of social and inbound outbound systems so it should be added.
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+2.2 — Prospect Finder — "Save as Lead" per prospect
+
+HOW IT WORKS:
+Each prospect card has a "Save as Lead" button. Clicking saves that prospect into the database as a real lead: their name, company, email, scores, and all discovered data get written to the leads table. After saving, the button changes to "Saved" (grayed out, disabled) so you cannot save the same prospect twice. The lead then appears in the CRM section.
+
+IN AI AUTONOMOUS MODE:
+Button works. After saving, lead may auto-flow to CRM and auto-score via Agent 7.
+
+IN HYBRID MODE:
+Button works. Lead saved. Appears in CRM with "New — Needs Review" status.
+
+IN HUMAN CONTROLLED MODE:
+Button works identically. Saving is always a manual action regardless of mode.
+
+EXPECTED RESULT:
+PASS if clicking saves the prospect (button changes to "Saved") AND the lead appears in CRM. PARTIAL if saves but button does not change state, or lead doesn't show in CRM. FAIL if clicking does nothing or shows error.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+There is no save but it has save all option in all three modes ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+2.3 — Prospect Finder — "Save All to CRM" bulk action
+
+HOW IT WORKS:
+A single button (usually at the top of the results list) that saves ALL displayed prospects as leads at once. After clicking: every individual "Save as Lead" button on every card flips to "Saved" state, a success toast appears confirming how many were saved, and all leads appear in CRM.
+
+IN AI AUTONOMOUS MODE:
+Bulk save works. All leads auto-flow to pipeline.
+
+IN HYBRID MODE:
+Bulk save works. All leads appear as "Pending Review" in CRM.
+
+IN HUMAN CONTROLLED MODE:
+Bulk save works the same way.
+
+EXPECTED RESULT:
+PASS if all prospects save, all buttons update to "Saved", and toast confirms. PARTIAL if some save but buttons don't sync. FAIL if nothing happens or errors.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+2.4 — Strategy — "Plan Approach" button
+
+HOW IT WORKS:
+On each prospect card, "Plan Approach" triggers Agent 3 (Outreach Strategist). It analyzes the prospect deeply: maps the decision-making chain (who to contact first: CEO, CTO, or Marketing Director), identifies specific pain points from public data, and creates a multi-step outreach sequence with precise timing: Day 1 LinkedIn connect with personalized note > Day 3 follow-up message > Day 7 email with case study > Day 14 phone call. A strategy card appears showing all of this.
+
+IN AI AUTONOMOUS MODE:
+Strategy auto-generates immediately. May auto-trigger message drafting next.
+
+IN HYBRID MODE:
+Strategy generates. You review the plan before proceeding. A "Draft Messages" button appears on the strategy card for next step.
+
+IN HUMAN CONTROLLED MODE:
+You plan the approach manually. AI may provide analysis to inform your strategy.
+
+EXPECTED RESULT:
+PASS if strategy card appears with channel sequence, timing plan, decision chain, and pain points. PARTIAL if card appears but vague/generic. FAIL if nothing appears or errors.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+the things that are added it is not working in AI mode when you generate AI generate strategy so it is not clickable just text and design and in outreach builder strategy builder  so the steps are not working also in the channel priority I have asked you to add all options that should be selected in AI it is automatically selected as we have connected our channels and tools in hybrid it also you should manage but in human everything is manual. 
+So nothing is working
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+2.5 — Compose — personalized messages
+
+HOW IT WORKS:
+After planning an approach, "Draft Messages" triggers Agent 4 (Message Composer). It writes personalized messages for each channel in the strategy: LinkedIn connection note (short, conversational, mentions specific detail about their company), Email (compelling subject line + body referencing their marketing gaps), Call script (with objection handling). Messages must NOT contain forbidden words: "leverage", "synergy", "cutting-edge", "game-changing". Must use cybersecurity terms naturally: NIST, SOC 2, SIEM, EDR where relevant.
+
+IN AI AUTONOMOUS MODE:
+Messages auto-drafted for all channels. May auto-queue for sending.
+
+IN HYBRID MODE:
+Messages drafted. You review and edit each before clicking Send.
+
+IN HUMAN CONTROLLED MODE:
+You write messages yourself. AI may provide a draft you can modify.
+
+EXPECTED RESULT:
+PASS if messages appear per channel, reference specific prospect details, and sound human (no AI buzzwords). PARTIAL if messages exist but generic. FAIL if no messages generated.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+It has only the channel which is selectable and only two channels are mentioned also we have called for several other channels as well that should be added, in all three modes the ai draft preview and que to send it not working also in the tone can you add more tones as well. So in all modes it is showing one thing and one page. Also the templates are not active it is unclickable text cold outreach cisco introductions follow up after no reply
+ ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+2.6 — Compose — "Review & Send" buttons
+
+HOW IT WORKS:
+Each drafted message has two buttons: "Review" (opens the message for editing — you can change wording before sending) and "Send" (marks the message as sent, begins tracking opens/clicks, and triggers Agent 5 to auto-schedule follow-up). After sending, the message status changes to "Sent" with timestamp.
+
+IN AI AUTONOMOUS MODE:
+Messages may auto-send if confidence is very high (95%+). Otherwise, you click Send.
+
+IN HYBRID MODE:
+You must review each message and click Send manually.
+
+IN HUMAN CONTROLLED MODE:
+You write and send everything manually.
+
+EXPECTED RESULT:
+PASS if both Review and Send buttons work, status changes to "Sent". FAIL if buttons do nothing.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+It is fail because ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+2.7 — Follow-ups — scheduled reminders
+
+HOW IT WORKS:
+The Follow-ups tab shows all upcoming follow-up tasks with: prospect name, channel, scheduled date/time, what was previously sent, and follow-up draft. Agent 5 (Follow-up Engine) auto-schedules these after every sent message. It knows optimal timing for cybersecurity executives (e.g., Tuesday 10am is better than Friday 5pm).
+
+IN AI AUTONOMOUS MODE:
+Follow-ups auto-scheduled AND may auto-send when the time comes.
+
+IN HYBRID MODE:
+Follow-ups auto-scheduled. You get reminded and must click "Send Follow-up" manually.
+
+IN HUMAN CONTROLLED MODE:
+You schedule follow-ups manually. The tab shows your planned follow-ups.
+
+EXPECTED RESULT:
+PASS if follow-up list shows with prospect details and timing. PARTIAL if list shows but no timing. FAIL if tab is empty/broken.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+If fails, we have only the page but the buttons are not working in all three modes
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+2.8 — Follow-ups — channel escalation
+
+HOW IT WORKS:
+After 3 attempts on one channel with no response, the system suggests escalation: LinkedIn (3 tries, no response) > switch to Email > if still no response > try Phone. Visual indicator shows which channels have been tried and what comes next.
+
+IN AI AUTONOMOUS MODE:
+Auto-escalates: switches to next channel automatically.
+
+IN HYBRID MODE:
+Suggests escalation. You approve the channel switch.
+
+IN HUMAN CONTROLLED MODE:
+You decide when to switch channels. System shows attempt history.
+
+EXPECTED RESULT:
+PASS if escalation suggestion appears with channel history. PARTIAL if logic works but no visual. FAIL if no escalation awareness.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+There is nothing in the name of channel escalation just we have draft and snooze button but it is static the buttons are not working and nothing is happening so the name, company channel date and time is showing and under that it is an arrow with next it is also static but it is not working when clicked instead of redirecting to relevant page it only select the text. ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+2.9 — Social Command Center — unified inbox
+
+HOW IT WORKS:
+All messages from all connected platforms (LinkedIn, Facebook, Instagram, X, Email, Slack, website forms) in one view. Each message shows: platform icon, sender, preview, timestamp, and classification label (Hot Lead, Warm, Cold, Spam). Response drafts auto-prepared.
+
+IN AI AUTONOMOUS MODE:
+Messages auto-classified. Responses auto-drafted. Hot leads may auto-move to CRM.
+
+IN HYBRID MODE:
+Messages classified. Drafts prepared. You review before sending or moving to CRM.
+
+IN HUMAN CONTROLLED MODE:
+Messages shown but not auto-classified. You read and categorize manually.
+
+EXPECTED RESULT:
+PASS if inbox shows messages with platform icons and classification labels. PARTIAL if messages show but no classification. FAIL if inbox empty or broken.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+It is fail, Shows just some channels such as linkedin, email, facebook, x twitter it is not active just in all three modes it is the same without any kind of redirecting or performing any action.
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+2.10 — Social Command Center — "Move to CRM"
+
+HOW IT WORKS:
+When a prospect responds positively (shows interest, asks questions, mentions budget/timeline), a "Move to CRM" button appears on that conversation. Clicking creates a new lead in the CRM pipeline with all conversation context attached. Triggers Agent 7 for automatic scoring.
+
+IN AI AUTONOMOUS MODE:
+Hot leads may auto-move to CRM without your click.
+
+IN HYBRID MODE:
+"Move to CRM" button appears. You click to confirm. Lead appears in CRM for scoring.
+
+IN HUMAN CONTROLLED MODE:
+You decide which responses warrant CRM entry. Button appears but you must click.
+
+EXPECTED RESULT:
+PASS if button appears on positive responses and creates a CRM lead with context. FAIL if button missing or lead not created.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+
+It is fail, it is not showing even so in all three modes it is the same.___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+2.11 — Analytics — outreach metrics
+
+HOW IT WORKS:
+Dashboard showing: reply rates per channel (LinkedIn vs email vs phone), open rates for emails, LinkedIn acceptance rates, total outreach volume, conversion rates (outreach > lead > meeting). Identifies winners: "Case study email has 34% reply rate vs 8% for intro emails." Recommendations with "Apply" buttons.
+
+IN AI AUTONOMOUS MODE:
+Analytics auto-update. Recommendations may auto-apply.
+
+IN HYBRID MODE:
+Analytics visible. You click "Apply Recommendation" to make changes.
+
+IN HUMAN CONTROLLED MODE:
+Analytics based on your manual tracking. Recommendations shown as suggestions.
+
+EXPECTED RESULT:
+PASS if charts/numbers display with meaningful data. PARTIAL if analytics exist but limited. FAIL if tab blank.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+It is partial just numbers show but nothing else.

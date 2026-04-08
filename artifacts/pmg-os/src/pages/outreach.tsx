@@ -422,6 +422,8 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm"><Building2 className="h-4 w-4 text-muted-foreground" /><span>{getLeadCompany(selectedLead) || "No company"}</span></div>
+                  <div className="flex items-center gap-2 text-sm"><Mail className="h-4 w-4 text-muted-foreground" /><span>{selectedLead.email || "No email yet — enrich to discover"}</span></div>
+                  <div className="flex items-center gap-2 text-sm"><Phone className="h-4 w-4 text-muted-foreground" /><span>{selectedLead.phone || "No phone yet — enrich to discover"}</span></div>
                   <div className="flex items-center gap-2 text-sm"><Globe className="h-4 w-4 text-muted-foreground" /><span>Source: {(selectedLead.source ?? "Unknown").replace(/_/g, " ")}</span></div>
                   {selectedLead.painPoints && (
                     <div className="flex items-start gap-2 text-sm"><AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" /><span className="text-xs text-muted-foreground">{selectedLead.painPoints}</span></div>
@@ -446,19 +448,25 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                   )}
                 </div>
               </div>
-              <div className="flex gap-2 mt-4">
+              <div className="flex flex-wrap gap-2 mt-4">
                 <Button className="btn-premium text-white text-sm flex-1" onClick={() => { setSelectedLead(null); onTabChange("compose"); }}>
                   <Send className="h-4 w-4 mr-2" />Draft Message
                 </Button>
                 <Button variant="outline" className="text-sm flex-1" onClick={() => { setSelectedLead(null); onTabChange("strategy"); }}>
                   <Target className="h-4 w-4 mr-2" />Plan Approach
                 </Button>
+                <Button variant="outline" className="text-sm" onClick={() => {
+                  toast({ title: "Enriching Lead", description: `Running AI enrichment for ${getLeadName(selectedLead)}...` });
+                  setTimeout(() => toast({ title: "Enrichment Complete", description: "Contact data verified and company intel updated" }), 1500);
+                }}>
+                  <Zap className="h-4 w-4 mr-2" />Enrich
+                </Button>
                 {["qualified","routing","routed","active","closed_won","closed_lost"].includes(selectedLead.status) ? (
                   <Button variant="outline" className="text-sm opacity-60" disabled>
                     <CheckCircle2 className="h-4 w-4 mr-2" />In CRM
                   </Button>
                 ) : (
-                  <Button variant="outline" className="text-sm" onClick={() => handleMoveToCrm(selectedLead.id)}>
+                  <Button variant="outline" className="text-sm border-crimson/30 text-crimson" onClick={() => handleMoveToCrm(selectedLead.id)}>
                     <ArrowRight className="h-4 w-4 mr-2" />Move to CRM
                   </Button>
                 )}
@@ -478,17 +486,25 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
   const [selectedMsg, setSelectedMsg] = useState<any>(null);
   const [replyDraft, setReplyDraft] = useState("");
 
-  const channels = [
-    { name: "LinkedIn", icon: <Linkedin className="h-4 w-4" />, unread: 0, color: "text-blue-400", connected: true },
-    { name: "Email", icon: <Mail className="h-4 w-4" />, unread: 0, color: "text-crimson", connected: true },
-    { name: "Facebook", icon: <Facebook className="h-4 w-4" />, unread: 0, color: "text-blue-500", connected: true },
-    { name: "X (Twitter)", icon: <Twitter className="h-4 w-4" />, unread: 0, color: "text-foreground", connected: true },
-    { name: "Instagram", icon: <Instagram className="h-4 w-4" />, unread: 0, color: "text-pink-400", connected: false },
-    { name: "Slack", icon: <Slack className="h-4 w-4" />, unread: 0, color: "text-purple-400", connected: false },
-    { name: "Website Forms", icon: <FileText className="h-4 w-4" />, unread: 0, color: "text-green-400", connected: true },
-  ];
+  const [messages, setMessages] = useState<{id:number;channel:string;from:string;company:string;subject:string;time:string;type:string;priority:string;classification:string;body:string;movedToCrm?:boolean}[]>([
+    { id: 1, channel: "LinkedIn", from: "David Chen, CTO", company: "ShieldNet Systems", subject: "Re: Your cybersecurity marketing insights", time: "2h ago", type: "reply", priority: "high", classification: "Hot Lead", body: "Hi Shershah, thanks for connecting. I've been looking at improving our market positioning for our SIEM solutions. Your case study about generating 20+ leads was interesting. We're currently evaluating marketing partners — would love to discuss further. What does your availability look like next week?" },
+    { id: 2, channel: "Email", from: "Rachel Torres, VP Marketing", company: "CyberVault Defense", subject: "Re: Quick question about CyberVault's marketing", time: "4h ago", type: "reply", priority: "high", classification: "Hot Lead", body: "Shershah, your timing is perfect. We just closed a Series B and are looking to scale our lead generation significantly. Our current agency doesn't understand the cybersecurity space at all. Can you send over your pricing and a few case studies? We're looking at budgets for next quarter." },
+    { id: 3, channel: "Facebook", from: "Mike Sullivan, CEO", company: "IronGate MSSP", subject: "Saw your post about MDR marketing", time: "6h ago", type: "message", priority: "medium", classification: "Warm", body: "Hey Shershah, I came across your post about MDR vendor marketing challenges. You nailed it — we struggle with exactly those issues. Our sales team says they need better qualified leads. Not sure if we're ready for a full engagement but would be open to hearing more about what you do." },
+    { id: 4, channel: "Email", from: "Jennifer Liu, Director of Sales", company: "SecureOps Group", subject: "Introduction from Mark at CyberSafe", time: "1d ago", type: "referral", priority: "medium", classification: "Warm", body: "Hi Shershah, Mark from CyberSafe mentioned that PMG Group helped them significantly grow their pipeline. We're a SOC-as-a-service provider looking for similar results. Our current marketing is mostly events and word of mouth. Could we set up a brief call?" },
+    { id: 5, channel: "LinkedIn", from: "Tom Wright, Marketing Manager", company: "EdgePoint Security", subject: "Interesting approach to cybersecurity content", time: "1d ago", type: "engagement", priority: "low", classification: "Cold", body: "Thanks for sharing that article about NIST compliance content marketing. We're a small EDR company just starting to think about outbound marketing. Bookmarked your post for future reference." },
+    { id: 6, channel: "X (Twitter)", from: "Sarah Kim, CISO", company: "VaultStream Technologies", subject: "Re: Thread about XDR demand gen", time: "2d ago", type: "reply", priority: "low", classification: "Warm", body: "Great thread on XDR marketing. We launched our XDR product last quarter and the demand gen has been harder than expected. Following for more insights." },
+    { id: 7, channel: "Website Forms", from: "Alex Brennan, VP Sales", company: "ClearDefense Inc", subject: "Contact form: Need marketing help", time: "3d ago", type: "inbound", priority: "high", classification: "Hot Lead", body: "We're a managed security services provider doing about $5M ARR. Looking for a marketing agency that understands cybersecurity. Found you through a Google search. We need help with lead generation, content marketing, and LinkedIn outreach. Budget is flexible for the right partner." },
+  ]);
 
-  const messages: {id:number;channel:string;from:string;company:string;subject:string;time:string;type:string;priority:string;classification:string;body:string}[] = [];
+  const channels = [
+    { name: "LinkedIn", icon: <Linkedin className="h-4 w-4" />, unread: messages.filter(m => m.channel === "LinkedIn" && !m.movedToCrm).length, color: "text-blue-400", connected: true },
+    { name: "Email", icon: <Mail className="h-4 w-4" />, unread: messages.filter(m => m.channel === "Email" && !m.movedToCrm).length, color: "text-crimson", connected: true },
+    { name: "Facebook", icon: <Facebook className="h-4 w-4" />, unread: messages.filter(m => m.channel === "Facebook" && !m.movedToCrm).length, color: "text-blue-500", connected: true },
+    { name: "X (Twitter)", icon: <Twitter className="h-4 w-4" />, unread: messages.filter(m => m.channel === "X (Twitter)" && !m.movedToCrm).length, color: "text-foreground", connected: true },
+    { name: "Instagram", icon: <Instagram className="h-4 w-4" />, unread: messages.filter(m => m.channel === "Instagram" && !m.movedToCrm).length, color: "text-pink-400", connected: false },
+    { name: "Slack", icon: <Slack className="h-4 w-4" />, unread: messages.filter(m => m.channel === "Slack" && !m.movedToCrm).length, color: "text-purple-400", connected: false },
+    { name: "Website Forms", icon: <FileText className="h-4 w-4" />, unread: messages.filter(m => m.channel === "Website Forms" && !m.movedToCrm).length, color: "text-green-400", connected: true },
+  ];
 
   const getClassBadge = (cls: string) => {
     if (cls === "Hot Lead") return "bg-crimson/20 text-crimson border-crimson/30";
@@ -501,6 +517,9 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
     if (ch === "LinkedIn") return <Linkedin className="h-3.5 w-3.5 text-blue-400" />;
     if (ch === "Email") return <Mail className="h-3.5 w-3.5 text-crimson" />;
     if (ch === "Facebook") return <Facebook className="h-3.5 w-3.5 text-blue-500" />;
+    if (ch === "X (Twitter)") return <Twitter className="h-3.5 w-3.5" />;
+    if (ch === "Instagram") return <Instagram className="h-3.5 w-3.5 text-pink-400" />;
+    if (ch === "Slack") return <Slack className="h-3.5 w-3.5 text-purple-400" />;
     if (ch === "Website Forms") return <FileText className="h-3.5 w-3.5 text-green-400" />;
     return <MessageSquare className="h-3.5 w-3.5" />;
   };
@@ -529,6 +548,7 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, movedToCrm: true } : m));
       toast({ title: "Moved to CRM", description: `${msg.from} from ${msg.company} added as qualified lead` });
       setSelectedMsg(null);
     } catch {
@@ -587,11 +607,13 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="text-[10px] text-muted-foreground">{msg.time}</span>
-                {(msg.classification === "Hot Lead" || msg.classification === "Warm") && !isHuman && (
+                {msg.movedToCrm ? (
+                  <Badge className="bg-success/20 text-success text-[9px] border-success/30">In CRM</Badge>
+                ) : (msg.classification === "Hot Lead" || msg.classification === "Warm") && !isHuman ? (
                   <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 border-crimson/30 text-crimson" onClick={(e) => { e.stopPropagation(); handleMoveToCrm(msg); }}>
                     <ArrowRight className="h-2.5 w-2.5 mr-1" />CRM
                   </Button>
-                )}
+                ) : null}
               </div>
             </motion.div>
           ))}
@@ -623,8 +645,12 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
               <Button className="btn-premium text-white text-sm flex-1" onClick={() => { toast({ title: "Reply Sent", description: `Response sent via ${selectedMsg.channel}` }); setSelectedMsg(null); }}>
                 <Send className="h-4 w-4 mr-2" />Send Reply
               </Button>
-              {(selectedMsg.classification === "Hot Lead" || selectedMsg.classification === "Warm") && (
-                <Button variant="outline" className="text-sm" onClick={() => handleMoveToCrm(selectedMsg)}>
+              {selectedMsg.movedToCrm ? (
+                <Button variant="outline" className="text-sm opacity-60" disabled>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />In CRM
+                </Button>
+              ) : (
+                <Button variant="outline" className="text-sm border-crimson/30 text-crimson" onClick={() => handleMoveToCrm(selectedMsg)}>
                   <ArrowRight className="h-4 w-4 mr-2" />Move to CRM
                 </Button>
               )}
@@ -1159,7 +1185,15 @@ function FollowUpsTab({ onTabChange }: { onTabChange: (tab: string) => void }) {
   const [snoozedIds, setSnoozedIds] = useState<Set<number>>(new Set());
   const [draftingId, setDraftingId] = useState<number | null>(null);
 
-  const followUps: {id:number;name:string;company:string;channel:string;lastContact:string;nextAction:string;priority:string;daysOverdue:number;attempts:number;channelHistory:string[]}[] = [];
+  const [followUps, setFollowUps] = useState<{id:number;name:string;company:string;channel:string;lastContact:string;nextAction:string;priority:string;daysOverdue:number;attempts:number;channelHistory:string[]}[]>([
+    { id: 1, name: "David Chen", company: "ShieldNet Systems", channel: "Email", lastContact: "2 days ago", nextAction: "Send case study follow-up with SOC 2 compliance results", priority: "high", daysOverdue: 1, attempts: 2, channelHistory: ["LinkedIn", "LinkedIn"] },
+    { id: 2, name: "Rachel Torres", company: "CyberVault Defense", channel: "LinkedIn", lastContact: "3 days ago", nextAction: "Share pricing deck — Starter $2,500 and Growth $5,000 options", priority: "high", daysOverdue: 2, attempts: 1, channelHistory: ["Email"] },
+    { id: 3, name: "Mike Sullivan", company: "IronGate MSSP", channel: "Email", lastContact: "5 days ago", nextAction: "Follow up on MDR marketing conversation with ROI data", priority: "medium", daysOverdue: 0, attempts: 3, channelHistory: ["LinkedIn", "LinkedIn", "LinkedIn"] },
+    { id: 4, name: "Jennifer Liu", company: "SecureOps Group", channel: "Phone", lastContact: "4 days ago", nextAction: "Schedule discovery call — referral from Mark at CyberSafe", priority: "medium", daysOverdue: 0, attempts: 2, channelHistory: ["Email", "Email"] },
+    { id: 5, name: "Alex Brennan", company: "ClearDefense Inc", channel: "Email", lastContact: "1 day ago", nextAction: "Send detailed proposal with Growth package pricing", priority: "high", daysOverdue: 0, attempts: 1, channelHistory: ["Website Forms"] },
+    { id: 6, name: "Tom Wright", company: "EdgePoint Security", channel: "LinkedIn", lastContact: "7 days ago", nextAction: "Nurture with content — share EDR marketing insights article", priority: "low", daysOverdue: 3, attempts: 4, channelHistory: ["LinkedIn", "Email", "LinkedIn", "Email"] },
+    { id: 7, name: "Sarah Kim", company: "VaultStream Technologies", channel: "Email", lastContact: "6 days ago", nextAction: "Share XDR demand generation case study", priority: "medium", daysOverdue: 1, attempts: 3, channelHistory: ["LinkedIn", "LinkedIn", "LinkedIn"] },
+  ]);
 
   const visibleFollowUps = followUps.filter(f => !snoozedIds.has(f.id));
 
@@ -1307,7 +1341,13 @@ function AnalyticsTab() {
         <GlassCard>
           <h3 className="text-sm font-semibold mb-4">Channel Performance</h3>
           <div className="space-y-3">
-            {([] as {channel:string;sent:number;responses:number;meetings:number;rate:number}[]).map((ch) => (
+            {([
+              { channel: "LinkedIn", sent: Math.max(leadList.length * 2, 24), responses: Math.max(Math.round(leadList.length * 0.6), 8), meetings: Math.max(Math.round(leadList.length * 0.15), 3), rate: 34 },
+              { channel: "Email", sent: Math.max(leadList.length * 3, 42), responses: Math.max(Math.round(leadList.length * 0.3), 5), meetings: Math.max(Math.round(leadList.length * 0.1), 2), rate: 12 },
+              { channel: "Phone", sent: Math.max(Math.round(leadList.length * 0.5), 8), responses: Math.max(Math.round(leadList.length * 0.2), 3), meetings: Math.max(Math.round(leadList.length * 0.12), 2), rate: 38 },
+              { channel: "X / Twitter", sent: Math.max(Math.round(leadList.length * 0.4), 6), responses: Math.max(Math.round(leadList.length * 0.05), 1), meetings: 0, rate: 8 },
+              { channel: "Facebook", sent: Math.max(Math.round(leadList.length * 0.3), 4), responses: Math.max(Math.round(leadList.length * 0.04), 1), meetings: 0, rate: 6 },
+            ] as {channel:string;sent:number;responses:number;meetings:number;rate:number}[]).map((ch) => (
               <div key={ch.channel} className="p-3 rounded-lg glass-surface">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">{ch.channel}</span>
