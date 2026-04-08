@@ -1157,13 +1157,7 @@ function FollowUpsTab({ onTabChange }: { onTabChange: (tab: string) => void }) {
   const [snoozedIds, setSnoozedIds] = useState<Set<number>>(new Set());
   const [draftingId, setDraftingId] = useState<number | null>(null);
 
-  const followUps = [
-    { id: 1, name: "Sarah Chen", company: "CyberShield Corp", channel: "LinkedIn", lastContact: "3 days ago", nextAction: "Send follow-up message", priority: "high", daysOverdue: 1, attempts: 3, channelHistory: ["LinkedIn", "LinkedIn", "LinkedIn"] },
-    { id: 2, name: "Mike Johnson", company: "SecureNet Solutions", channel: "Email", lastContact: "5 days ago", nextAction: "Schedule discovery call", priority: "high", daysOverdue: 2, attempts: 2, channelHistory: ["Email", "Email"] },
-    { id: 3, name: "David Lee", company: "ThreatBlock Inc", channel: "Email", lastContact: "1 week ago", nextAction: "Send case study", priority: "medium", daysOverdue: 0, attempts: 1, channelHistory: ["LinkedIn"] },
-    { id: 4, name: "Lisa Wang", company: "DataGuard Pro", channel: "LinkedIn", lastContact: "2 weeks ago", nextAction: "Re-engage with new content", priority: "low", daysOverdue: 0, attempts: 4, channelHistory: ["LinkedIn", "LinkedIn", "LinkedIn", "Email"] },
-    { id: 5, name: "Alex Rivera", company: "CyberVault Solutions", channel: "Phone", lastContact: "3 weeks ago", nextAction: "Final attempt — phone call", priority: "low", daysOverdue: 5, attempts: 5, channelHistory: ["LinkedIn", "LinkedIn", "Email", "Email", "LinkedIn"] },
-  ];
+  const followUps: {id:number;name:string;company:string;channel:string;lastContact:string;nextAction:string;priority:string;daysOverdue:number;attempts:number;channelHistory:string[]}[] = [];
 
   const visibleFollowUps = followUps.filter(f => !snoozedIds.has(f.id));
 
@@ -1284,7 +1278,7 @@ function AnalyticsTab() {
   const leadList = (leads ?? []) as any[];
   const { toast } = useToast();
 
-  const totalSent = 47 + leadList.length * 3;
+  const totalSent = leadList.length * 3;
   const responseRate = leadList.length > 0 ? Math.min(34, Math.round((leadList.filter((l: any) => l.status === "contacted" || l.status === "qualified").length / Math.max(leadList.length, 1)) * 100)) : 0;
   const meetingsBooked = Math.max(0, leadList.filter((l: any) => l.status === "qualified").length);
   const pipelineAdded = leadList.reduce((s: number, l: any) => s + (l.confidenceScore ?? l.confidence_score ?? 0) * 50, 0);
@@ -1311,12 +1305,7 @@ function AnalyticsTab() {
         <GlassCard>
           <h3 className="text-sm font-semibold mb-4">Channel Performance</h3>
           <div className="space-y-3">
-            {[
-              { channel: "LinkedIn", sent: 23, responses: 8, meetings: 3, rate: 34 },
-              { channel: "Email", sent: 18, responses: 4, meetings: 1, rate: 22 },
-              { channel: "Phone", sent: 6, responses: 2, meetings: 1, rate: 33 },
-              { channel: "Facebook", sent: 4, responses: 0, meetings: 0, rate: 0 },
-            ].map((ch) => (
+            {([] as {channel:string;sent:number;responses:number;meetings:number;rate:number}[]).map((ch) => (
               <div key={ch.channel} className="p-3 rounded-lg glass-surface">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">{ch.channel}</span>
@@ -1342,7 +1331,7 @@ function AnalyticsTab() {
               {[
                 { goal: "New prospects researched", current: Math.min(leadList.length, 50), target: 50 },
                 { goal: "Outreach messages sent", current: Math.min(totalSent, 100), target: 100 },
-                { goal: "Follow-ups completed", current: 12, target: 30 },
+                { goal: "Follow-ups completed", current: 0, target: 30 },
                 { goal: "Discovery calls booked", current: meetingsBooked, target: 5 },
               ].map((g) => (
                 <div key={g.goal}>
