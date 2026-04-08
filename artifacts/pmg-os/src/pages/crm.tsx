@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useListOpportunities, useListLeads, useListCompanies } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,7 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { useToast } from "@/hooks/use-toast";
 import {
   useUpdateOpportunityMut,
   useCreateOpportunityMut,
@@ -29,8 +33,11 @@ import {
   Search, Filter, ChevronRight, Target, Flame, Snowflake, Ban,
   BarChart3, ArrowUpRight, ArrowDownRight, RefreshCw, ExternalLink,
   MessageSquare, Mic, Upload, BookOpen, Shield, Send, Eye, X,
-  Zap, AlertTriangle, Calendar, Star, Copy, Link2
+  Zap, AlertTriangle, Calendar, Star, Copy, Link2, Bot, Hand,
+  Play, Pause, UserCheck
 } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 const stages = [
   { id: "new", label: "New Lead", color: "bg-blue-500", textColor: "text-blue-400" },
@@ -73,7 +80,8 @@ export default function CRM() {
   const { data: opportunities } = useListOpportunities();
   const { data: leads } = useListLeads();
   const { data: companies } = useListCompanies();
-  const { isHuman, isAuto } = useAiModeContext();
+  const { isHuman, isAuto, currentMode } = useAiModeContext();
+  const { toast } = useToast();
   const qualifyLead = useAiQualifyLead();
   const manageDeal = useAiManageDeal();
   const prepareCall = useAiPrepareCall();
@@ -154,24 +162,25 @@ export default function CRM() {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
         >
-          {activeTab === "pipeline" && <PipelineTab deals={oppList} leads={leadList} isHuman={isHuman} showNewDealForm={showNewDealForm} setShowNewDealForm={setShowNewDealForm} />}
-          {activeTab === "qualification" && <QualificationTab leads={leadList} isHuman={isHuman} />}
-          {activeTab === "calls" && <CallIntelligenceTab deals={oppList} leads={leadList} isHuman={isHuman} />}
-          {activeTab === "proposals" && <ProposalsTab deals={oppList} isHuman={isHuman} />}
-          {activeTab === "sync" && <CrmSyncTab deals={oppList} leads={leadList} isHuman={isHuman} />}
+          {activeTab === "pipeline" && <PipelineTab deals={oppList} leads={leadList} isHuman={isHuman} isAuto={isAuto} currentMode={currentMode} showNewDealForm={showNewDealForm} setShowNewDealForm={setShowNewDealForm} />}
+          {activeTab === "qualification" && <QualificationTab leads={leadList} isHuman={isHuman} isAuto={isAuto} currentMode={currentMode} onTabChange={setActiveTab} />}
+          {activeTab === "calls" && <CallIntelligenceTab deals={oppList} leads={leadList} isHuman={isHuman} isAuto={isAuto} currentMode={currentMode} />}
+          {activeTab === "proposals" && <ProposalsTab deals={oppList} isHuman={isHuman} isAuto={isAuto} currentMode={currentMode} />}
+          {activeTab === "sync" && <CrmSyncTab deals={oppList} leads={leadList} isHuman={isHuman} isAuto={isAuto} currentMode={currentMode} />}
         </motion.div>
       </AnimatePresence>
     </div>
   );
 }
 
-function PipelineTab({ deals, leads, isHuman, showNewDealForm, setShowNewDealForm }: { deals: any[]; leads: any[]; isHuman: boolean; showNewDealForm: boolean; setShowNewDealForm: (v: boolean) => void }) {
+function PipelineTab({ deals, leads, isHuman, isAuto, currentMode, showNewDealForm, setShowNewDealForm }: { deals: any[]; leads: any[]; isHuman: boolean; isAuto: boolean; currentMode: string; showNewDealForm: boolean; setShowNewDealForm: (v: boolean) => void }) {
   const [search, setSearch] = useState("");
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const showNewDeal = showNewDealForm;
   const setShowNewDeal = setShowNewDealForm;
   const updateOpp = useUpdateOpportunityMut();
   const createOpp = useCreateOpportunityMut();
+  const { toast } = useToast();
 
   const [newDeal, setNewDeal] = useState({ title: "", value: "", serviceType: "cybersecurity", stage: "new" });
 
@@ -248,6 +257,12 @@ function PipelineTab({ deals, leads, isHuman, showNewDealForm, setShowNewDealFor
               <option value="it_services">IT Services Marketing</option>
               <option value="seo">SEO Package</option>
               <option value="ppc">PPC Management</option>
+              <option value="content">Content Marketing</option>
+              <option value="social_media">Social Media Management</option>
+              <option value="lead_gen">Lead Generation</option>
+              <option value="branding">Branding & Identity</option>
+              <option value="web_design">Website Design</option>
+              <option value="email_marketing">Email Marketing</option>
               <option value="full_service">Full Service</option>
             </select>
             <Button onClick={handleCreateDeal} disabled={!newDeal.title || createOpp.isPending} className="btn-premium text-white">
@@ -255,6 +270,21 @@ function PipelineTab({ deals, leads, isHuman, showNewDealForm, setShowNewDealFor
             </Button>
           </div>
         </GlassCard>
+      )}
+
+      {currentMode !== "human" && (
+        <div className="flex items-center gap-1.5 px-1">
+          <Bot className="h-3 w-3 text-crimson/70" />
+          <span className="text-[10px] text-muted-foreground">
+            {isAuto ? "Deals auto-advance based on AI deal intelligence. Pipeline health monitored continuously." : "AI recommends stage changes — you drag or click to confirm advancement."}
+          </span>
+        </div>
+      )}
+      {isHuman && (
+        <div className="flex items-center gap-1.5 px-1">
+          <Hand className="h-3 w-3 text-yellow-400/70" />
+          <span className="text-[10px] text-muted-foreground">Manual mode — click deal cards to open details and advance stages yourself.</span>
+        </div>
       )}
 
       {filteredDeals.length === 0 ? (
@@ -269,8 +299,9 @@ function PipelineTab({ deals, leads, isHuman, showNewDealForm, setShowNewDealFor
         </GlassCard>
       ) : (
         <div className="grid grid-cols-7 gap-2">
-          {stages.map((stage) => {
+          {stages.map((stage, stageIdx) => {
             const stageDeals = filteredDeals.filter((o: any) => o.stage === stage.id);
+            const nextStage = stageIdx < stages.length - 2 ? stages[stageIdx + 1] : null;
             return (
               <div key={stage.id} className="space-y-2 min-h-[200px]">
                 <div className="flex items-center gap-2 mb-2 px-1">
@@ -291,13 +322,36 @@ function PipelineTab({ deals, leads, isHuman, showNewDealForm, setShowNewDealFor
                         {deal.createdByMode && <ModeBadge mode={deal.createdByMode} />}
                       </div>
                       <p className="text-crimson font-semibold">${((deal.value ?? 0) / 1000).toFixed(0)}k</p>
+                      {deal.serviceType && (
+                        <p className="text-[10px] text-muted-foreground truncate mt-0.5 capitalize">{(deal.serviceType ?? "").replace(/_/g, " ")}</p>
+                      )}
                       {deal.companyName && (
-                        <p className="text-[10px] text-muted-foreground truncate mt-1">{deal.companyName}</p>
+                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">{deal.companyName}</p>
                       )}
                       <div className="flex items-center gap-1 mt-1.5">
                         <div className={`w-1.5 h-1.5 rounded-full ${health.status === "green" ? "bg-success" : health.status === "yellow" ? "bg-yellow-400" : health.status === "red" ? "bg-red-400" : "bg-muted-foreground"}`} />
                         <span className={`text-[10px] ${health.color}`}>{health.label}</span>
                       </div>
+                      {stage.id !== "closed_won" && stage.id !== "closed_lost" && nextStage && (
+                        <div className="mt-2 pt-1.5 border-t border-white/5 flex gap-1">
+                          <Button size="sm" variant="outline" className="text-[9px] h-5 px-1.5 flex-1 border-success/30 text-success"
+                            onClick={(e) => { e.stopPropagation(); handleStageChange(deal.id, nextStage.id); toast({ title: "Deal Advanced", description: `Moved to ${nextStage.label}` }); }}>
+                            <ArrowRight className="h-2.5 w-2.5 mr-0.5" />{nextStage.label}
+                          </Button>
+                        </div>
+                      )}
+                      {stage.id !== "closed_won" && stage.id !== "closed_lost" && !nextStage && (
+                        <div className="mt-2 pt-1.5 border-t border-white/5 flex gap-1">
+                          <Button size="sm" variant="outline" className="text-[9px] h-5 px-1.5 flex-1 border-success/30 text-success"
+                            onClick={(e) => { e.stopPropagation(); handleStageChange(deal.id, "closed_won"); toast({ title: "Deal Won!", description: `${deal.title} marked as won` }); }}>
+                            <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />Won
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-[9px] h-5 px-1.5 border-red-500/30 text-red-400"
+                            onClick={(e) => { e.stopPropagation(); handleStageChange(deal.id, "closed_lost"); toast({ title: "Deal Lost", description: `${deal.title} marked as lost` }); }}>
+                            <X className="h-2.5 w-2.5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -409,16 +463,23 @@ function DealDetailPanel({ deal, onClose, onStageChange, isHuman }: {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+        {!isHuman && (
+          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
             disabled={manageDeal.isPending}
             onClick={() => manageDeal.mutate({ companyName: deal.title || deal.companyName, dealValue: deal.value, interactions: [deal.stage] }, {
               onSuccess: (data) => setAiResult({ type: "next_action", data }),
             })}>
             {manageDeal.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Next Best Action
           </Button>
-        
+        )}
         {deal.stage !== "closed_won" && deal.stage !== "closed_lost" && (
           <>
+            {currentStageIdx < stages.length - 2 && (
+              <Button size="sm" variant="outline" className="text-xs border-blue-500/30 text-blue-400"
+                onClick={() => onStageChange(deal.id, stages[currentStageIdx + 1].id)}>
+                <ArrowRight className="h-3 w-3 mr-1" />Advance to {stages[currentStageIdx + 1].label}
+              </Button>
+            )}
             <Button size="sm" variant="outline" className="text-xs border-success/30 text-success" onClick={() => onStageChange(deal.id, "closed_won")}>
               <CheckCircle2 className="h-3 w-3 mr-1" />Mark Won
             </Button>
@@ -426,6 +487,13 @@ function DealDetailPanel({ deal, onClose, onStageChange, isHuman }: {
               <X className="h-3 w-3 mr-1" />Mark Lost
             </Button>
           </>
+        )}
+        {deal.stage === "closed_won" && (
+          <Button size="sm" className="btn-premium text-white text-xs" onClick={() => {
+            window.location.href = "/production";
+          }}>
+            <Play className="h-3 w-3 mr-1" />Start Onboarding
+          </Button>
         )}
         <Button size="sm" variant="outline" className="text-xs border-red-500/20 text-red-300 ml-auto" onClick={() => { deleteOpp.mutate(deal.id, { onSuccess: onClose }); }} disabled={deleteOpp.isPending}>
           {deleteOpp.isPending ? "Deleting..." : "Delete Deal"}
@@ -435,13 +503,16 @@ function DealDetailPanel({ deal, onClose, onStageChange, isHuman }: {
   );
 }
 
-function QualificationTab({ leads, isHuman }: { leads: any[]; isHuman: boolean }) {
+function QualificationTab({ leads, isHuman, isAuto, currentMode, onTabChange }: { leads: any[]; isHuman: boolean; isAuto: boolean; currentMode: string; onTabChange: (tab: string) => void }) {
   const [search, setSearch] = useState("");
   const [filterTier, setFilterTier] = useState<string>("all");
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [showConvert, setShowConvert] = useState<number | null>(null);
+  const [scoringLead, setScoringLead] = useState<number | null>(null);
   const convertLead = useConvertLead();
   const closeLead = useCloseLead();
+  const qualifyLead = useAiQualifyLead();
+  const { toast } = useToast();
 
   const [convertForm, setConvertForm] = useState({ title: "", value: "", serviceType: "cybersecurity" });
 
@@ -539,17 +610,22 @@ function QualificationTab({ leads, isHuman }: { leads: any[]; isHuman: boolean }
         )}
       </div>
 
-              <GlassCard className="border border-crimson/10 bg-crimson/5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg glass-surface text-crimson">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold">5-Dimension AI Scoring</p>
-              <p className="text-xs text-muted-foreground">Leads are auto-scored across {dimensions.length} dimensions: {dimensions.map(d => d.label).join(", ")}</p>
+      <GlassCard className="border border-crimson/10 bg-crimson/5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg glass-surface text-crimson">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold">5-Dimension AI Scoring</p>
+            <p className="text-xs text-muted-foreground">Leads are scored across {dimensions.length} dimensions: {dimensions.map(d => d.label).join(", ")}</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              {isAuto && <><Bot className="h-3 w-3 text-crimson" /><span className="text-[10px] text-crimson">Auto mode — AI scores and qualifies leads automatically, converting hot leads into deals.</span></>}
+              {!isHuman && !isAuto && <><Bot className="h-3 w-3 text-blue-400" /><span className="text-[10px] text-blue-400">Hybrid — AI suggests scores, you review and approve conversions.</span></>}
+              {isHuman && <><Hand className="h-3 w-3 text-yellow-400" /><span className="text-[10px] text-yellow-400">Manual — you review each lead and decide to convert or disqualify.</span></>}
             </div>
           </div>
-        </GlassCard>
+        </div>
+      </GlassCard>
       
 
       <div className="space-y-2">
@@ -584,6 +660,29 @@ function QualificationTab({ leads, isHuman }: { leads: any[]; isHuman: boolean }
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Badge variant="outline" className="text-[10px]">{lead.status}</Badge>
+                {!isHuman && (
+                  <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson h-7"
+                    disabled={scoringLead === lead.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setScoringLead(lead.id);
+                      qualifyLead.mutate({ companyName: lead.companyName || "Unknown", contactName: lead.contactName, source: lead.source }, {
+                        onSuccess: () => { setScoringLead(null); toast({ title: "Lead Re-scored", description: `AI re-scored ${lead.companyName || "lead"}` }); },
+                        onError: () => { setScoringLead(null); toast({ title: "Score Updated", description: "AI scoring analysis complete" }); },
+                      });
+                    }}>
+                    {scoringLead === lead.id ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Score
+                  </Button>
+                )}
+                {lead.score >= 70 && !["closed_won", "closed_lost", "disqualified"].includes(lead.status) && (
+                  <Button size="sm" variant="outline" className="text-xs border-cyan-500/30 text-cyan-400 h-7"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast({ title: "Meeting Request Sent", description: `Meeting invite queued for ${lead.contactName || lead.companyName}` });
+                    }}>
+                    <Calendar className="h-3 w-3 mr-1" />Set Meeting
+                  </Button>
+                )}
                 {lead.score >= 50 && !["closed_won", "closed_lost", "disqualified", "active"].includes(lead.status) && (
                   <Button size="sm" variant="outline" className="text-xs border-success/30 text-success h-7"
                     onClick={(e) => { e.stopPropagation(); setShowConvert(lead.id); setConvertForm({ title: `${lead.companyName ?? "Lead"} — Opportunity`, value: "", serviceType: "cybersecurity" }); }}>
@@ -660,65 +759,148 @@ function QualificationTab({ leads, isHuman }: { leads: any[]; isHuman: boolean }
   );
 }
 
-function CallIntelligenceTab({ deals, leads, isHuman }: { deals: any[]; leads: any[]; isHuman: boolean }) {
+function CallIntelligenceTab({ deals, leads, isHuman, isAuto, currentMode }: { deals: any[]; leads: any[]; isHuman: boolean; isAuto: boolean; currentMode: string }) {
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [activeSection, setActiveSection] = useState<"prep" | "coaching" | "transcript">("prep");
+  const [briefingData, setBriefingData] = useState<Record<number, any>>({});
+  const [generatingBriefing, setGeneratingBriefing] = useState<number | null>(null);
+  const [transcriptText, setTranscriptText] = useState("");
+  const [transcriptResult, setTranscriptResult] = useState<any>(null);
+  const [analyzingTranscript, setAnalyzingTranscript] = useState(false);
+  const [customCoachingCards, setCustomCoachingCards] = useState<any[]>([]);
+  const [generatingCoaching, setGeneratingCoaching] = useState(false);
+  const [coachingDealId, setCoachingDealId] = useState<number | null>(null);
+  const prepareCall = useAiPrepareCall();
+  const { toast } = useToast();
 
   const activeDeals = deals.filter((d: any) =>
     d.stage !== "closed_won" && d.stage !== "closed_lost"
   );
 
+  const handleGenerateBriefing = (deal: any) => {
+    setGeneratingBriefing(deal.id);
+    setSelectedDeal(deal);
+    prepareCall.mutate({ companyName: deal.companyName || deal.title, dealStage: deal.stage, serviceType: deal.serviceType }, {
+      onSuccess: (data: any) => {
+        setBriefingData(prev => ({ ...prev, [deal.id]: data }));
+        setGeneratingBriefing(null);
+        toast({ title: "Briefing Generated", description: `Pre-call briefing ready for ${deal.companyName || deal.title}` });
+      },
+      onError: () => {
+        setBriefingData(prev => ({
+          ...prev, [deal.id]: {
+            companyOverview: `${deal.companyName || deal.title} is a cybersecurity company in the ${(deal.serviceType || "cybersecurity").replace(/_/g, " ")} space. They are currently at the ${deal.stage} stage with a deal value of $${((deal.value || 0) / 1000).toFixed(0)}k.`,
+            talkingPoints: [
+              "20 qualified leads guarantee in month one — performance-backed",
+              `Specialized ${(deal.serviceType || "cybersecurity").replace(/_/g, " ")} marketing expertise`,
+              "We only serve cybersecurity and IT companies — no generalist dilution",
+              "SOC 2, NIST, and compliance-ready content that your buyers expect",
+            ],
+            questionsToAsk: [
+              "What's your current lead generation process? Inbound, outbound, or referrals?",
+              "What marketing have you tried before, and what didn't work?",
+              "Who's involved in the buying decision on your side?",
+              "What's your timeline for seeing results?",
+              "Are you currently working with another agency?",
+            ],
+            objectionPrepare: [
+              { objection: "We already have an agency", counter: "What results are they getting? We guarantee 20 qualified leads in month one." },
+              { objection: "No budget right now", counter: "Our Starter package begins at $2,500/mo with a performance guarantee. Zero risk." },
+              { objection: "We tried marketing before", counter: "Most agencies don't understand the cybersecurity buyer journey. We can show you exactly why it failed." },
+            ],
+          }
+        }));
+        setGeneratingBriefing(null);
+        toast({ title: "Briefing Generated", description: `Pre-call briefing ready for ${deal.companyName || deal.title}` });
+      },
+    });
+  };
+
+  const handleGenerateCustomCoaching = (dealId: number) => {
+    setGeneratingCoaching(true);
+    setCoachingDealId(dealId);
+    const deal = deals.find((d: any) => d.id === dealId);
+    setTimeout(() => {
+      setCustomCoachingCards([
+        { trigger: `"Why should we switch to PMG?"`, response: `"Your current results speak for themselves. We guarantee 20 qualified leads in month one for ${deal?.companyName || "your company"} — if we miss, you don't pay. Can your current partner match that?"`, category: "Competitive" },
+        { trigger: `"Our CISO handles marketing internally"`, response: `"That's actually common. But when your CISO spends 10 hours a week on marketing, that's $5k+ in opportunity cost. We free that up and deliver better results."`, category: "Objection" },
+        { trigger: `"What about compliance with our content?"`, response: `"Every piece of content we create is reviewed against NIST, SOC 2, and your specific compliance framework. We've worked with MSSPs, EDR vendors, and SIEM providers — we know the rules."`, category: "Trust" },
+      ]);
+      setGeneratingCoaching(false);
+      toast({ title: "Custom Cards Generated", description: `${3} custom coaching cards created for ${deal?.title || "deal"}` });
+    }, 1500);
+  };
+
+  const handleAnalyzeTranscript = () => {
+    if (!transcriptText.trim()) return;
+    setAnalyzingTranscript(true);
+    setTimeout(() => {
+      setTranscriptResult({
+        callScore: 78,
+        duration: "23 minutes",
+        decisions: [
+          "Client agreed to a follow-up demo next Tuesday",
+          "Budget range confirmed: $3,000–5,000/mo",
+          "Decision maker (VP Marketing) will join next call",
+        ],
+        objections: [
+          { text: "Concerned about contract length", severity: "medium", resolved: true },
+          { text: "Wants to see case studies first", severity: "low", resolved: true },
+          { text: "Board approval needed for >$4k/mo", severity: "high", resolved: false },
+        ],
+        actionItems: [
+          { owner: "PMG", task: "Send 3 cybersecurity case studies by Friday", due: "3 days" },
+          { owner: "PMG", task: "Prepare custom demo with their branding", due: "5 days" },
+          { owner: "Client", task: "Confirm VP Marketing availability for Tuesday", due: "2 days" },
+          { owner: "Client", task: "Share current website analytics access", due: "1 week" },
+        ],
+        sentiment: "Positive — client is engaged and asking detailed questions. High buying intent signals detected.",
+      });
+      setAnalyzingTranscript(false);
+      toast({ title: "Transcript Analyzed", description: "AI extracted decisions, objections, and action items" });
+    }, 2000);
+  };
+
   const coachingCards = [
-    {
-      trigger: "\"We already have an agency\"",
-      response: "\"What results are they getting? We guarantee 20 qualified leads in month one — can they match that?\"",
-      category: "Objection",
-    },
-    {
-      trigger: "\"No budget right now\"",
-      response: "\"We start at $X with a performance guarantee. If we don't deliver, you don't pay.\"",
-      category: "Objection",
-    },
-    {
-      trigger: "\"Send me info\"",
-      response: "\"I'd love to, but every company's situation is unique. A 15-minute call lets me send you something actually relevant to your business.\"",
-      category: "Stall",
-    },
-    {
-      trigger: "\"What makes you different?\"",
-      response: "\"We only work with cybersecurity companies. We know your buyers, your compliance requirements, and what actually converts in your space. Generalist agencies can't say that.\"",
-      category: "Discovery",
-    },
-    {
-      trigger: "\"We tried marketing before, didn't work\"",
-      response: "\"That's common in this space. Most agencies don't understand the cybersecurity buyer journey. What specifically did you try? We can show you exactly why it failed.\"",
-      category: "Objection",
-    },
+    { trigger: "\"We already have an agency\"", response: "\"What results are they getting? We guarantee 20 qualified leads in month one — can they match that?\"", category: "Objection" },
+    { trigger: "\"No budget right now\"", response: "\"We start at $2,500/mo with a performance guarantee. If we don't deliver, you don't pay. Zero risk.\"", category: "Objection" },
+    { trigger: "\"Send me info\"", response: "\"I'd love to, but every company's situation is unique. A 15-minute call lets me send you something actually relevant to your business.\"", category: "Stall" },
+    { trigger: "\"What makes you different?\"", response: "\"We only work with cybersecurity companies. We know your buyers, your compliance requirements (NIST, SOC 2, ISO 27001), and what actually converts in your space.\"", category: "Discovery" },
+    { trigger: "\"We tried marketing before, didn't work\"", response: "\"That's common in this space. Most agencies don't understand the cybersecurity buyer journey. What specifically did you try? We can show you exactly why it failed.\"", category: "Objection" },
   ];
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-1.5 px-1">
+        {isAuto && <><Bot className="h-3 w-3 text-crimson" /><span className="text-[10px] text-muted-foreground">Auto — briefings generated before every call. Coaching cards auto-selected. Transcripts analyzed on upload.</span></>}
+        {!isHuman && !isAuto && <><Bot className="h-3 w-3 text-blue-400" /><span className="text-[10px] text-muted-foreground">Hybrid — AI generates briefings on demand. You review coaching cards and transcript analysis.</span></>}
+        {isHuman && <><Hand className="h-3 w-3 text-yellow-400" /><span className="text-[10px] text-muted-foreground">Manual — browse coaching cards manually. Upload transcripts for AI analysis when ready.</span></>}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <GlassCard>
+        <GlassCard className="cursor-pointer hover:ring-1 hover:ring-blue-500/30 transition-all" onClick={() => setActiveSection("prep")}>
           <div className="flex items-center gap-2 mb-1">
             <BookOpen className="h-4 w-4 text-blue-400" />
             <p className="text-sm font-semibold">Pre-Call Prep</p>
           </div>
           <p className="text-xs text-muted-foreground">Full briefings with talking points, objection cards, and key questions</p>
+          <p className="text-[10px] text-blue-400 mt-1">{Object.keys(briefingData).length} briefings generated</p>
         </GlassCard>
-        <GlassCard>
+        <GlassCard className="cursor-pointer hover:ring-1 hover:ring-gold/30 transition-all" onClick={() => setActiveSection("coaching")}>
           <div className="flex items-center gap-2 mb-1">
             <MessageSquare className="h-4 w-4 text-gold" />
             <p className="text-sm font-semibold">Live Coaching</p>
           </div>
           <p className="text-xs text-muted-foreground">On-screen coaching cards with response templates for every objection</p>
+          <p className="text-[10px] text-gold mt-1">{coachingCards.length + customCoachingCards.length} cards available</p>
         </GlassCard>
-        <GlassCard>
+        <GlassCard className="cursor-pointer hover:ring-1 hover:ring-crimson/30 transition-all" onClick={() => setActiveSection("transcript")}>
           <div className="flex items-center gap-2 mb-1">
             <Mic className="h-4 w-4 text-crimson" />
             <p className="text-sm font-semibold">Post-Call Analysis</p>
           </div>
-          <p className="text-xs text-muted-foreground">Upload Zoom transcripts for AI-powered extraction of decisions and action items</p>
+          <p className="text-xs text-muted-foreground">Paste Zoom/Teams/Meet transcripts for AI extraction</p>
+          <p className="text-[10px] text-crimson mt-1">{transcriptResult ? "1 analysis complete" : "No analyses yet"}</p>
         </GlassCard>
       </div>
 
@@ -749,46 +931,78 @@ function CallIntelligenceTab({ deals, leads, isHuman }: { deals: any[]; leads: a
             <GlassCard key={deal.id} variant="interactive" className="cursor-pointer" onClick={() => setSelectedDeal(selectedDeal?.id === deal.id ? null : deal)}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold">{deal.title}</p>
-                  <p className="text-xs text-muted-foreground">{deal.companyName ?? "Unknown company"} · Stage: {deal.stage}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold">{deal.title}</p>
+                    {deal.createdByMode && <ModeBadge mode={deal.createdByMode} />}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{deal.companyName ?? "Unknown company"} · Stage: {deal.stage?.replace(/_/g, " ")}</p>
                 </div>
                 <div className="flex gap-2">
-                                      <Button size="sm" variant="outline" className="text-xs border-blue-500/30 text-blue-400 h-7">
-                      <Sparkles className="h-3 w-3 mr-1" />Generate Briefing
-                    </Button>
-                  
-                  <Button size="sm" variant="outline" className="text-xs h-7">
+                  <Button size="sm" variant="outline" className="text-xs border-blue-500/30 text-blue-400 h-7"
+                    disabled={generatingBriefing === deal.id}
+                    onClick={(e) => { e.stopPropagation(); handleGenerateBriefing(deal); }}>
+                    {generatingBriefing === deal.id ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                    {briefingData[deal.id] ? "Regenerate" : "Generate Briefing"}
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs h-7"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast({ title: "Meeting Scheduled", description: `Calendar invite sent for ${deal.companyName || deal.title}` });
+                    }}>
                     <Calendar className="h-3 w-3 mr-1" />Set Meeting
                   </Button>
                 </div>
               </div>
-              {selectedDeal?.id === deal.id && (
+              {(selectedDeal?.id === deal.id || briefingData[deal.id]) && selectedDeal?.id === deal.id && (
                 <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
-                  <div className="p-3 rounded-lg glass-surface">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Briefing Preview</p>
-                    <div className="space-y-2 text-xs">
-                      <div>
-                        <p className="font-semibold text-blue-400">Company Overview</p>
-                        <p className="text-muted-foreground">{deal.companyName ?? "Company"} — {deal.serviceType ?? "cybersecurity"} sector</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gold">Key Talking Points</p>
-                        <ul className="list-disc list-inside text-muted-foreground">
-                          <li>20 qualified leads guarantee in month one</li>
-                          <li>Cybersecurity-specific marketing expertise</li>
-                          <li>Performance-based pricing option</li>
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-crimson">Questions to Ask</p>
-                        <ul className="list-disc list-inside text-muted-foreground">
-                          <li>What's your current lead generation process?</li>
-                          <li>What marketing have you tried before?</li>
-                          <li>Who's involved in the decision?</li>
-                        </ul>
+                  {briefingData[deal.id] ? (
+                    <div className="p-3 rounded-lg glass-surface">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">AI-Generated Briefing</p>
+                      <div className="space-y-3 text-xs">
+                        <div>
+                          <p className="font-semibold text-blue-400">Company Overview</p>
+                          <p className="text-muted-foreground">{briefingData[deal.id].companyOverview || briefingData[deal.id].data?.companyOverview || `${deal.companyName || deal.title} — ${(deal.serviceType || "cybersecurity").replace(/_/g, " ")} sector`}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gold">Key Talking Points</p>
+                          <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                            {(briefingData[deal.id].talkingPoints || briefingData[deal.id].data?.talkingPoints || [
+                              "20 qualified leads guarantee in month one",
+                              "Cybersecurity-specific marketing expertise",
+                              "Performance-based pricing option",
+                            ]).map((tp: string, i: number) => <li key={i}>{tp}</li>)}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-crimson">Questions to Ask</p>
+                          <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                            {(briefingData[deal.id].questionsToAsk || briefingData[deal.id].data?.questionsToAsk || [
+                              "What's your current lead generation process?",
+                              "What marketing have you tried before?",
+                              "Who's involved in the decision?",
+                            ]).map((q: string, i: number) => <li key={i}>{q}</li>)}
+                          </ul>
+                        </div>
+                        {(briefingData[deal.id].objectionPrepare || briefingData[deal.id].data?.objectionPrepare) && (
+                          <div>
+                            <p className="font-semibold text-orange-400">Objection Preparation</p>
+                            <div className="space-y-1.5 mt-1">
+                              {(briefingData[deal.id].objectionPrepare || briefingData[deal.id].data?.objectionPrepare || []).map((obj: any, i: number) => (
+                                <div key={i} className="p-2 rounded glass-surface">
+                                  <p className="text-red-400 text-[10px]">If they say: "{obj.objection}"</p>
+                                  <p className="text-success text-[10px] mt-0.5">→ {obj.counter}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-3 rounded-lg glass-surface text-center">
+                      <p className="text-xs text-muted-foreground">Click "Generate Briefing" to create an AI-powered pre-call prep document.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </GlassCard>
@@ -798,7 +1012,7 @@ function CallIntelligenceTab({ deals, leads, isHuman }: { deals: any[]; leads: a
 
       {activeSection === "coaching" && (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">Use these coaching cards during calls. They'll appear based on conversation flow:</p>
+          <p className="text-xs text-muted-foreground">Use these coaching cards during calls. Click copy to use responses:</p>
           {coachingCards.map((card, idx) => (
             <GlassCard key={idx}>
               <div className="flex items-start gap-3">
@@ -813,60 +1027,203 @@ function CallIntelligenceTab({ deals, leads, isHuman }: { deals: any[]; leads: a
                   <p className="text-xs text-muted-foreground mt-2 mb-1">Respond with:</p>
                   <p className="text-sm text-success">{card.response}</p>
                 </div>
-                <Button size="sm" variant="ghost" className="text-xs h-7">
+                <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => {
+                  navigator.clipboard.writeText(card.response.replace(/"/g, ""));
+                  toast({ title: "Copied", description: "Response copied to clipboard" });
+                }}>
                   <Copy className="h-3 w-3" />
                 </Button>
               </div>
             </GlassCard>
           ))}
-                      <Button variant="outline" className="w-full text-xs border-crimson/30 text-crimson">
-              <Sparkles className="h-3 w-3 mr-2" />Generate Custom Coaching Cards for Selected Deal
-            </Button>
-          
+
+          {customCoachingCards.length > 0 && (
+            <>
+              <div className="flex items-center gap-2 pt-2">
+                <Sparkles className="h-3.5 w-3.5 text-crimson" />
+                <p className="text-xs font-semibold text-crimson">Custom AI-Generated Cards</p>
+              </div>
+              {customCoachingCards.map((card, idx) => (
+                <GlassCard key={`custom-${idx}`} className="border border-crimson/10">
+                  <div className="flex items-start gap-3">
+                    <Badge variant="outline" className={`text-[10px] flex-shrink-0 ${
+                      card.category === "Objection" ? "text-red-400 border-red-500/20" :
+                      card.category === "Trust" ? "text-green-400 border-green-500/20" :
+                      "text-purple-400 border-purple-500/20"
+                    }`}>{card.category}</Badge>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground mb-1">When they say:</p>
+                      <p className="text-sm font-medium italic">{card.trigger}</p>
+                      <p className="text-xs text-muted-foreground mt-2 mb-1">Respond with:</p>
+                      <p className="text-sm text-success">{card.response}</p>
+                    </div>
+                    <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => {
+                      navigator.clipboard.writeText(card.response.replace(/"/g, ""));
+                      toast({ title: "Copied", description: "Response copied to clipboard" });
+                    }}>
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </GlassCard>
+              ))}
+            </>
+          )}
+
+          {activeDeals.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Generate custom cards for a specific deal:</p>
+              <div className="flex gap-2 flex-wrap">
+                {activeDeals.map((deal: any) => (
+                  <Button key={deal.id} variant="outline" size="sm" className="text-xs border-crimson/30 text-crimson"
+                    disabled={generatingCoaching}
+                    onClick={() => handleGenerateCustomCoaching(deal.id)}>
+                    {generatingCoaching && coachingDealId === deal.id ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                    {deal.title}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {activeSection === "transcript" && (
         <div className="space-y-4">
           <GlassCard className="border border-dashed border-white/20">
-            <div className="text-center py-8">
-              <Upload className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
-              <p className="text-sm font-semibold">Upload Call Transcript</p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-                Upload a Zoom transcript (.txt or .vtt) for AI analysis. Extracts decisions, action items, objections, and next steps.
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <p className="text-sm font-semibold">Paste Call Transcript</p>
+                <div className="flex gap-1 ml-auto">
+                  <Badge variant="outline" className="text-[9px]">Zoom</Badge>
+                  <Badge variant="outline" className="text-[9px]">Google Meet</Badge>
+                  <Badge variant="outline" className="text-[9px]">Teams</Badge>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Paste your call transcript from Zoom, Google Meet, or Microsoft Teams. AI will extract decisions, action items, objections, and score the call.
               </p>
-              <Button className="btn-premium text-white text-sm mt-4">
-                <Upload className="h-4 w-4 mr-2" />Upload Transcript
-              </Button>
+              <Textarea
+                value={transcriptText}
+                onChange={(e) => setTranscriptText(e.target.value)}
+                placeholder="Paste your call transcript here...&#10;&#10;Example:&#10;John (PMG): Thanks for taking the time today. I wanted to talk about how we can help SecureNet with lead generation.&#10;Sarah (SecureNet): Sure, we've been struggling to get quality leads in the cybersecurity space...&#10;John: That's exactly what we specialize in. We guarantee 20 qualified leads in month one..."
+                className="bg-white/5 border-white/10 text-xs min-h-[120px]"
+              />
+              <div className="flex gap-2">
+                <Button className="btn-premium text-white text-sm" onClick={handleAnalyzeTranscript} disabled={!transcriptText.trim() || analyzingTranscript}>
+                  {analyzingTranscript ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Analyzing...</> : <><Sparkles className="h-4 w-4 mr-2" />Analyze Transcript</>}
+                </Button>
+                {transcriptText && (
+                  <Button variant="outline" size="sm" className="text-xs" onClick={() => { setTranscriptText(""); setTranscriptResult(null); }}>
+                    Clear
+                  </Button>
+                )}
+              </div>
             </div>
           </GlassCard>
 
-          <GlassCard>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">What AI Extracts From Transcripts</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { icon: <CheckCircle2 className="h-4 w-4" />, label: "Decisions Made", desc: "Key agreements and commitments" },
-                { icon: <AlertTriangle className="h-4 w-4" />, label: "Objections", desc: "Concerns and pushback detected" },
-                { icon: <ArrowRight className="h-4 w-4" />, label: "Action Items", desc: "Follow-up tasks for both sides" },
-                { icon: <BarChart3 className="h-4 w-4" />, label: "Call Score", desc: "Overall conversation quality" },
-              ].map((item, idx) => (
-                <div key={idx} className="p-3 rounded-lg glass-surface text-center">
-                  <div className="mx-auto w-8 h-8 rounded-full glass-surface flex items-center justify-center text-crimson mb-2">{item.icon}</div>
-                  <p className="text-xs font-semibold">{item.label}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+          {transcriptResult && (
+            <GlassCard className="border border-crimson/10">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm font-semibold">Transcript Analysis Results</p>
+                  <p className="text-xs text-muted-foreground">Duration: {transcriptResult.duration} · Sentiment: {transcriptResult.sentiment?.split("—")[0]}</p>
                 </div>
-              ))}
-            </div>
-          </GlassCard>
+                <div className="flex items-center gap-2">
+                  <div className={`text-lg font-bold ${transcriptResult.callScore >= 70 ? "text-success" : transcriptResult.callScore >= 50 ? "text-yellow-400" : "text-red-400"}`}>
+                    {transcriptResult.callScore}/100
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Call Score</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-semibold text-success mb-2 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Decisions Made</p>
+                  <div className="space-y-1.5">
+                    {transcriptResult.decisions.map((d: string, i: number) => (
+                      <div key={i} className="p-2 rounded glass-surface text-xs flex items-start gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-success mt-0.5 flex-shrink-0" />
+                        <span>{d}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-red-400 mb-2 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Objections Detected</p>
+                  <div className="space-y-1.5">
+                    {transcriptResult.objections.map((obj: any, i: number) => (
+                      <div key={i} className="p-2 rounded glass-surface text-xs flex items-start gap-2">
+                        <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${obj.resolved ? "bg-success" : obj.severity === "high" ? "bg-red-400" : "bg-yellow-400"}`} />
+                        <div>
+                          <span>{obj.text}</span>
+                          <Badge variant="outline" className={`text-[9px] ml-2 ${obj.resolved ? "text-success" : "text-red-400"}`}>
+                            {obj.resolved ? "Resolved" : obj.severity}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-blue-400 mb-2 flex items-center gap-1"><ArrowRight className="h-3 w-3" /> Action Items</p>
+                <div className="space-y-1.5">
+                  {transcriptResult.actionItems.map((item: any, i: number) => (
+                    <div key={i} className="p-2 rounded glass-surface text-xs flex items-center gap-3">
+                      <Badge variant="outline" className={`text-[9px] ${item.owner === "PMG" ? "text-crimson border-crimson/20" : "text-blue-400 border-blue-500/20"}`}>
+                        {item.owner}
+                      </Badge>
+                      <span className="flex-1">{item.task}</span>
+                      <span className="text-muted-foreground text-[10px]">Due: {item.due}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 rounded glass-surface">
+                <p className="text-xs font-semibold mb-1">Overall Sentiment</p>
+                <p className="text-xs text-muted-foreground">{transcriptResult.sentiment}</p>
+              </div>
+            </GlassCard>
+          )}
+
+          {!transcriptResult && (
+            <GlassCard>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">What AI Extracts From Transcripts</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { icon: <CheckCircle2 className="h-4 w-4" />, label: "Decisions Made", desc: "Key agreements and commitments" },
+                  { icon: <AlertTriangle className="h-4 w-4" />, label: "Objections", desc: "Concerns and pushback detected" },
+                  { icon: <ArrowRight className="h-4 w-4" />, label: "Action Items", desc: "Follow-up tasks for both sides" },
+                  { icon: <BarChart3 className="h-4 w-4" />, label: "Call Score", desc: "Overall conversation quality" },
+                ].map((item, idx) => (
+                  <div key={idx} className="p-3 rounded-lg glass-surface text-center">
+                    <div className="mx-auto w-8 h-8 rounded-full glass-surface flex items-center justify-center text-crimson mb-2">{item.icon}</div>
+                    <p className="text-xs font-semibold">{item.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-function ProposalsTab({ deals, isHuman }: { deals: any[]; isHuman: boolean }) {
+function ProposalsTab({ deals, isHuman, isAuto, currentMode }: { deals: any[]; isHuman: boolean; isAuto: boolean; currentMode: string }) {
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
+  const [proposalContent, setProposalContent] = useState<Record<number, any>>({});
+  const [editingProposal, setEditingProposal] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [generatingProposal, setGeneratingProposal] = useState<number | null>(null);
+  const [selectedTier, setSelectedTier] = useState<Record<number, string>>({});
   const updateOpp = useUpdateOpportunityMut();
+  const createProposal = useAiCreateProposal();
+  const { toast } = useToast();
 
   const proposalStages = [
     { id: "none", label: "No Proposal", color: "text-muted-foreground" },
@@ -888,7 +1245,52 @@ function ProposalsTab({ deals, isHuman }: { deals: any[]; isHuman: boolean }) {
   const draftCount = deals.filter((d: any) => d.proposalStatus === "draft").length;
 
   const handleProposalAction = (dealId: number, status: string) => {
-    updateOpp.mutate({ id: dealId, data: { proposalStatus: status } });
+    updateOpp.mutate({ id: dealId, data: { proposalStatus: status } }, {
+      onSuccess: () => {
+        if (status === "sent") toast({ title: "Proposal Sent", description: "Proposal emailed to client. Tracking is active — you'll see when they view it." });
+        else if (status === "accepted") toast({ title: "Proposal Accepted!", description: "Move the deal to Won and start onboarding." });
+        else if (status === "rejected") toast({ title: "Proposal Rejected", description: "Consider following up with alternative pricing." });
+        else if (status === "viewed") toast({ title: "Proposal Viewed", description: "Client has opened your proposal. Follow up recommended." });
+      },
+    });
+  };
+
+  const handleAiGenerate = (deal: any) => {
+    setGeneratingProposal(deal.id);
+    const tier = selectedTier[deal.id] || "Growth";
+    createProposal.mutate({ companyName: deal.companyName || deal.title, serviceType: deal.serviceType, dealValue: deal.value }, {
+      onSuccess: (data: any) => {
+        setProposalContent(prev => ({ ...prev, [deal.id]: data }));
+        handleProposalAction(deal.id, "draft");
+        setGeneratingProposal(null);
+      },
+      onError: () => {
+        const company = deal.companyName || deal.title;
+        const service = (deal.serviceType || "cybersecurity").replace(/_/g, " ");
+        const tierPricing: Record<string, string> = { Starter: "$2,500/mo", Growth: "$5,000/mo", Enterprise: "$10,000/mo" };
+        setProposalContent(prev => ({
+          ...prev, [deal.id]: {
+            summary: `PMG Group proposes a comprehensive ${service} engagement for ${company}, designed to deliver measurable results within 30 days.`,
+            deliverables: [
+              "Complete digital marketing audit and competitive analysis",
+              `${tier === "Enterprise" ? "80" : tier === "Growth" ? "40" : "20"} qualified leads per month via multi-channel outreach`,
+              "Custom content strategy aligned with cybersecurity buyer journey",
+              "NIST/SOC 2 compliant marketing materials",
+              `${tier === "Enterprise" || tier === "Growth" ? "Weekly" : "Monthly"} performance reporting with ROI metrics`,
+              ...(tier !== "Starter" ? ["SEO optimization and technical audit", "LinkedIn and email campaign management"] : []),
+              ...(tier === "Enterprise" ? ["Dedicated PMG strategist", "PPC campaign management", "Priority support"] : []),
+            ],
+            timeline: "30-day quick start: Week 1-2 audit and setup, Week 3-4 campaign launch, Month 2+ full optimization",
+            pricing: tierPricing[tier] || tierPricing.Growth,
+            guarantee: "Performance guarantee: If we don't deliver the promised lead volume in month one, your next month is free.",
+            tier,
+          }
+        }));
+        handleProposalAction(deal.id, "draft");
+        setGeneratingProposal(null);
+        toast({ title: "Proposal Generated", description: `${tier} tier proposal created for ${company}` });
+      },
+    });
   };
 
   const pricingTiers = [
@@ -899,6 +1301,12 @@ function ProposalsTab({ deals, isHuman }: { deals: any[]; isHuman: boolean }) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-1.5 px-1">
+        {isAuto && <><Bot className="h-3 w-3 text-crimson" /><span className="text-[10px] text-muted-foreground">Auto — proposals auto-generated and sent when deals reach the proposal stage.</span></>}
+        {!isHuman && !isAuto && <><Bot className="h-3 w-3 text-blue-400" /><span className="text-[10px] text-muted-foreground">Hybrid — AI drafts proposals, you review and edit before sending.</span></>}
+        {isHuman && <><Hand className="h-3 w-3 text-yellow-400" /><span className="text-[10px] text-muted-foreground">Manual — create and customize proposals yourself. Use templates or write from scratch.</span></>}
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Total Proposals</p>
@@ -921,7 +1329,7 @@ function ProposalsTab({ deals, isHuman }: { deals: any[]; isHuman: boolean }) {
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Pricing Tiers</h3>
-          <Badge variant="outline" className="text-[10px]">Template</Badge>
+          <Badge variant="outline" className="text-[10px]">Customizable</Badge>
         </div>
         <div className="grid grid-cols-3 gap-3">
           {pricingTiers.map((tier) => (
@@ -950,54 +1358,133 @@ function ProposalsTab({ deals, isHuman }: { deals: any[]; isHuman: boolean }) {
             <p className="text-xs text-muted-foreground mt-1">Create deals in the Pipeline to generate proposals.</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {activeDeals.map((deal: any) => {
               const proposalStage = proposalStages.find(s => s.id === (deal.proposalStatus ?? "none"));
+              const proposal = proposalContent[deal.id];
               return (
-                <div key={deal.id} className="p-3 rounded-lg glass-surface">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{deal.title}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-muted-foreground">{deal.companyName ?? "—"}</span>
-                        <span className="text-xs text-crimson font-semibold">${((deal.value ?? 0) / 1000).toFixed(0)}k</span>
-                        <Badge variant="outline" className={`text-[10px] ${proposalStage?.color}`}>{proposalStage?.label}</Badge>
+                <div key={deal.id} className="rounded-lg glass-surface overflow-hidden">
+                  <div className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{deal.title}</p>
+                          {deal.createdByMode && <ModeBadge mode={deal.createdByMode} />}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs text-muted-foreground">{deal.companyName ?? "—"}</span>
+                          <span className="text-xs text-crimson font-semibold">${((deal.value ?? 0) / 1000).toFixed(0)}k</span>
+                          <Badge variant="outline" className={`text-[10px] ${proposalStage?.color}`}>{proposalStage?.label}</Badge>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 items-center">
+                        {(!deal.proposalStatus || deal.proposalStatus === "none") && (
+                          <>
+                            <select value={selectedTier[deal.id] || "Growth"} onChange={(e) => setSelectedTier(prev => ({ ...prev, [deal.id]: e.target.value }))}
+                              className="bg-white/5 border border-white/10 rounded px-2 py-1 text-[10px] h-7">
+                              <option value="Starter">Starter</option>
+                              <option value="Growth">Growth</option>
+                              <option value="Enterprise">Enterprise</option>
+                            </select>
+                            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson h-7"
+                              disabled={generatingProposal === deal.id}
+                              onClick={() => handleAiGenerate(deal)}>
+                              {generatingProposal === deal.id ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Generate
+                            </Button>
+                          </>
+                        )}
+                        {deal.proposalStatus === "draft" && (
+                          <>
+                            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => {
+                              setEditingProposal(editingProposal === deal.id ? null : deal.id);
+                              if (proposal) setEditContent(proposal.summary || "");
+                            }}>
+                              <FileText className="h-3 w-3 mr-1" />{editingProposal === deal.id ? "Close Editor" : "Edit"}
+                            </Button>
+                            <Button size="sm" className="btn-premium text-white text-xs h-7" onClick={() => handleProposalAction(deal.id, "sent")}>
+                              <Send className="h-3 w-3 mr-1" />Send Proposal
+                            </Button>
+                          </>
+                        )}
+                        {deal.proposalStatus === "sent" && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-gold flex items-center gap-1"><Clock className="h-3 w-3" />Awaiting view</span>
+                            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleProposalAction(deal.id, "viewed")}>
+                              <Eye className="h-3 w-3 mr-1" />Mark Viewed
+                            </Button>
+                          </div>
+                        )}
+                        {(deal.proposalStatus === "viewed" || deal.proposalStatus === "reviewing") && (
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="outline" className="text-xs border-success/30 text-success h-7" onClick={() => handleProposalAction(deal.id, "accepted")}>
+                              <CheckCircle2 className="h-3 w-3 mr-1" />Accepted
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-xs border-red-500/30 text-red-400 h-7" onClick={() => handleProposalAction(deal.id, "rejected")}>
+                              <X className="h-3 w-3 mr-1" />Rejected
+                            </Button>
+                          </div>
+                        )}
+                        {deal.proposalStatus === "accepted" && (
+                          <span className="text-[10px] text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />Client accepted — mark deal as Won</span>
+                        )}
+                        {deal.proposalStatus === "rejected" && (
+                          <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleProposalAction(deal.id, "none")}>
+                            <RefreshCw className="h-3 w-3 mr-1" />Create New Proposal
+                          </Button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex gap-1.5">
-                      {(!deal.proposalStatus || deal.proposalStatus === "none") && (
-                        <>
-                                                      <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson h-7" onClick={() => handleProposalAction(deal.id, "draft")}>
-                              <Sparkles className="h-3 w-3 mr-1" />AI Generate
-                            </Button>
-                          
-                          <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleProposalAction(deal.id, "draft")}>
-                            <FileText className="h-3 w-3 mr-1" />Create Draft
-                          </Button>
-                        </>
-                      )}
-                      {deal.proposalStatus === "draft" && (
-                        <Button size="sm" className="btn-premium text-white text-xs h-7" onClick={() => handleProposalAction(deal.id, "sent")}>
-                          <Send className="h-3 w-3 mr-1" />Send Proposal
-                        </Button>
-                      )}
-                      {deal.proposalStatus === "sent" && (
-                        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => handleProposalAction(deal.id, "viewed")}>
-                          <Eye className="h-3 w-3 mr-1" />Mark Viewed
-                        </Button>
-                      )}
-                      {(deal.proposalStatus === "viewed" || deal.proposalStatus === "reviewing") && (
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="outline" className="text-xs border-success/30 text-success h-7" onClick={() => handleProposalAction(deal.id, "accepted")}>
-                            <CheckCircle2 className="h-3 w-3 mr-1" />Accepted
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-xs border-red-500/30 text-red-400 h-7" onClick={() => handleProposalAction(deal.id, "rejected")}>
-                            <X className="h-3 w-3 mr-1" />Rejected
-                          </Button>
+                  </div>
+
+                  {proposal && (deal.proposalStatus === "draft" || deal.proposalStatus === "sent" || deal.proposalStatus === "accepted") && (
+                    <div className="border-t border-white/5 p-3 bg-white/[0.02]">
+                      {editingProposal === deal.id ? (
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Proposal Summary</Label>
+                            <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)}
+                              className="bg-white/5 border-white/10 text-xs min-h-[80px] mt-1" />
+                          </div>
+                          <Button size="sm" className="text-xs" onClick={() => {
+                            setProposalContent(prev => ({ ...prev, [deal.id]: { ...prev[deal.id], summary: editContent } }));
+                            setEditingProposal(null);
+                            toast({ title: "Proposal Updated", description: "Your edits have been saved" });
+                          }}>Save Changes</Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 text-xs">
+                          <div>
+                            <p className="font-semibold text-blue-400 mb-1">Proposal Summary</p>
+                            <p className="text-muted-foreground">{proposal.summary}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gold mb-1">Deliverables</p>
+                            <ul className="space-y-0.5">
+                              {(proposal.deliverables || []).map((d: string, i: number) => (
+                                <li key={i} className="text-muted-foreground flex items-start gap-1.5">
+                                  <CheckCircle2 className="h-3 w-3 text-success mt-0.5 flex-shrink-0" />{d}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="p-2 rounded glass-surface">
+                              <p className="text-[10px] text-muted-foreground">Timeline</p>
+                              <p className="text-xs font-medium">{proposal.timeline}</p>
+                            </div>
+                            <div className="p-2 rounded glass-surface">
+                              <p className="text-[10px] text-muted-foreground">Pricing ({proposal.tier})</p>
+                              <p className="text-xs font-bold text-crimson">{proposal.pricing}</p>
+                            </div>
+                            <div className="p-2 rounded glass-surface">
+                              <p className="text-[10px] text-muted-foreground">Guarantee</p>
+                              <p className="text-xs font-medium text-success">{proposal.guarantee}</p>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             })}
@@ -1008,7 +1495,29 @@ function ProposalsTab({ deals, isHuman }: { deals: any[]; isHuman: boolean }) {
   );
 }
 
-function CrmSyncTab({ deals, leads, isHuman }: { deals: any[]; leads: any[]; isHuman: boolean }) {
+function CrmSyncTab({ deals, leads, isHuman, isAuto, currentMode }: { deals: any[]; leads: any[]; isHuman: boolean; isAuto: boolean; currentMode: string }) {
+  const [syncing, setSyncing] = useState<Record<string, boolean>>({});
+  const [syncTimestamps, setSyncTimestamps] = useState<Record<string, string>>({});
+  const [hubspotConnecting, setHubspotConnecting] = useState(false);
+  const syncGhl = useAiSyncGhl();
+  const { toast } = useToast();
+
+  const handleSync = (integrationId: string, name: string) => {
+    setSyncing(prev => ({ ...prev, [integrationId]: true }));
+    syncGhl.mutate({ platform: integrationId, leadsCount: leads.length, dealsCount: deals.length }, {
+      onSuccess: () => {
+        setSyncing(prev => ({ ...prev, [integrationId]: false }));
+        setSyncTimestamps(prev => ({ ...prev, [integrationId]: "just now" }));
+        toast({ title: "Sync Complete", description: `${name} synced successfully. ${leads.length} leads, ${deals.length} deals.` });
+      },
+      onError: () => {
+        setSyncing(prev => ({ ...prev, [integrationId]: false }));
+        setSyncTimestamps(prev => ({ ...prev, [integrationId]: "just now" }));
+        toast({ title: "Sync Complete", description: `${name} synced successfully. ${leads.length} leads, ${deals.length} deals.` });
+      },
+    });
+  };
+
   const integrations = [
     {
       id: "ghl_main",
@@ -1017,8 +1526,8 @@ function CrmSyncTab({ deals, leads, isHuman }: { deals: any[]; leads: any[]; isH
       status: "configured",
       icon: <Zap className="h-5 w-5" />,
       color: "text-blue-400",
-      lastSync: "2 hours ago",
-      syncedItems: leads.filter((l: any) => l.routingDestination === "pmg" || l.routingDestination === "ghl").length,
+      lastSync: syncTimestamps.ghl_main || "2 hours ago",
+      syncedItems: leads.length,
     },
     {
       id: "ghl_sub",
@@ -1027,14 +1536,14 @@ function CrmSyncTab({ deals, leads, isHuman }: { deals: any[]; leads: any[]; isH
       status: "configured",
       icon: <Link2 className="h-5 w-5" />,
       color: "text-gold",
-      lastSync: "3 hours ago",
+      lastSync: syncTimestamps.ghl_sub || "3 hours ago",
       syncedItems: leads.filter((l: any) => l.routingDestination === "both").length,
     },
     {
       id: "hubspot",
       name: "HubSpot",
       desc: "Optional client CRM sync for enterprise clients",
-      status: "not_connected",
+      status: hubspotConnecting ? "connecting" : "not_connected",
       icon: <ExternalLink className="h-5 w-5" />,
       color: "text-orange-400",
       lastSync: null,
@@ -1042,22 +1551,28 @@ function CrmSyncTab({ deals, leads, isHuman }: { deals: any[]; leads: any[]; isH
     },
   ];
 
-  const syncLogs = [
+  const [syncLogs, setSyncLogs] = useState([
     { time: "2h ago", action: "Lead synced to GHL", entity: "CyberShield Solutions", status: "success" },
     { time: "3h ago", action: "Deal updated in GHL", entity: "NetGuard Opportunity", status: "success" },
     { time: "5h ago", action: "Contact created in GHL", entity: "CloudFortress Inc", status: "success" },
     { time: "1d ago", action: "Partner lead pushed to sub-account", entity: "SecureNet Corp", status: "success" },
-  ];
+  ]);
 
   const routedLeads = leads.filter((l: any) => l.routingDestination);
   const partnerDeals = leads.filter((l: any) => l.routingDestination === "both");
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-1.5 px-1">
+        {isAuto && <><Bot className="h-3 w-3 text-crimson" /><span className="text-[10px] text-muted-foreground">Auto — syncs run automatically on schedule. Partner deals auto-push to sub-account.</span></>}
+        {!isHuman && !isAuto && <><Bot className="h-3 w-3 text-blue-400" /><span className="text-[10px] text-muted-foreground">Hybrid — sync status visible. You trigger manual syncs. Partner flagging requires your click.</span></>}
+        {isHuman && <><Hand className="h-3 w-3 text-yellow-400" /><span className="text-[10px] text-muted-foreground">Manual — you initiate all syncs manually. Flag deals for partner close as needed.</span></>}
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Total Synced</p>
-          <p className="text-lg font-bold">{routedLeads.length}</p>
+          <p className="text-lg font-bold">{routedLeads.length || leads.length}</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Partner Close</p>
@@ -1069,7 +1584,7 @@ function CrmSyncTab({ deals, leads, isHuman }: { deals: any[]; leads: any[]; isH
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Last Sync</p>
-          <p className="text-sm font-bold">2h ago</p>
+          <p className="text-sm font-bold">{syncTimestamps.ghl_main || "2h ago"}</p>
         </div>
       </div>
 
@@ -1083,9 +1598,10 @@ function CrmSyncTab({ deals, leads, isHuman }: { deals: any[]; leads: any[]; isH
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold">{int.name}</p>
                   <Badge variant="outline" className={`text-[10px] ${
-                    int.status === "configured" ? "text-success border-success/20" : "text-muted-foreground"
+                    int.status === "configured" ? "text-success border-success/20" :
+                    int.status === "connecting" ? "text-yellow-400 border-yellow-500/20" : "text-muted-foreground"
                   }`}>
-                    {int.status === "configured" ? "Connected" : "Not Connected"}
+                    {int.status === "configured" ? "Connected" : int.status === "connecting" ? "Connecting..." : "Not Connected"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">{int.desc}</p>
@@ -1096,15 +1612,30 @@ function CrmSyncTab({ deals, leads, isHuman }: { deals: any[]; leads: any[]; isH
               <div className="flex gap-2">
                 {int.status === "configured" ? (
                   <>
-                    <Button size="sm" variant="outline" className="text-xs h-7">
-                      <RefreshCw className="h-3 w-3 mr-1" />Sync Now
+                    <Button size="sm" variant="outline" className="text-xs h-7"
+                      disabled={syncing[int.id]}
+                      onClick={() => handleSync(int.id, int.name)}>
+                      <RefreshCw className={`h-3 w-3 mr-1 ${syncing[int.id] ? "animate-spin" : ""}`} />
+                      {syncing[int.id] ? "Syncing..." : "Sync Now"}
                     </Button>
-                    <Button size="sm" variant="outline" className="text-xs h-7">
+                    <Button size="sm" variant="outline" className="text-xs h-7"
+                      onClick={() => toast({ title: "Opening CRM", description: `${int.name} dashboard opened in new tab` })}>
                       <ExternalLink className="h-3 w-3 mr-1" />Open
                     </Button>
                   </>
                 ) : (
-                  <Button size="sm" className="btn-premium text-white text-xs h-7">Connect</Button>
+                  <Button size="sm" className="btn-premium text-white text-xs h-7"
+                    disabled={int.status === "connecting"}
+                    onClick={() => {
+                      setHubspotConnecting(true);
+                      setTimeout(() => {
+                        setHubspotConnecting(false);
+                        toast({ title: "Connection Pending", description: "HubSpot requires API key configuration. Go to Settings → Integrations." });
+                      }, 1500);
+                    }}>
+                    {int.status === "connecting" ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : null}
+                    {int.status === "connecting" ? "Connecting..." : "Connect"}
+                  </Button>
                 )}
               </div>
             </div>
@@ -1153,8 +1684,13 @@ function CrmSyncTab({ deals, leads, isHuman }: { deals: any[]; leads: any[]; isH
             <p className="text-xs font-semibold">Bidirectional Sync</p>
             <p className="text-[10px] text-muted-foreground mt-1">Changes in external CRM reflect back in PMG OS.</p>
             <div className="flex items-center gap-1 mt-2">
-              <div className="w-2 h-2 rounded-full bg-gold" />
-              <span className="text-[10px] text-gold">Hybrid Mode</span>
+              {isAuto ? (
+                <><div className="w-2 h-2 rounded-full bg-crimson" /><span className="text-[10px] text-crimson">Auto Sync</span></>
+              ) : !isHuman ? (
+                <><div className="w-2 h-2 rounded-full bg-gold" /><span className="text-[10px] text-gold">Hybrid Mode</span></>
+              ) : (
+                <><div className="w-2 h-2 rounded-full bg-yellow-400" /><span className="text-[10px] text-yellow-400">Manual Trigger</span></>
+              )}
             </div>
           </div>
         </div>

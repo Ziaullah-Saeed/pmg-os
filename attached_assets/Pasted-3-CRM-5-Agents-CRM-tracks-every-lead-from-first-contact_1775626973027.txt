@@ -1,0 +1,214 @@
+3. CRM (5 Agents)
+CRM tracks every lead from first contact to closed deal. Pipeline stages: New Lead > Meeting Set > Discovery Call > Proposal Sent > Negotiation > Closed Won/Lost. Five agents manage: scoring (Agent 7), deal health (Agent 8), call coaching (Agent 9), proposals (Agent 10), and external CRM sync (Agent 11).
+
+3.1 — Pipeline view
+
+HOW IT WORKS:
+A visual pipeline (kanban board with columns, or horizontal stages) showing all deals. Each deal is a card with: company name, contact name, deal value, health indicator (green/yellow/red), and stage. You can drag cards between stages to advance or move deals. Clicking a card opens its detail view.
+
+IN AI AUTONOMOUS MODE:
+Deals may auto-advance based on Agent 8 analysis (e.g., meeting completed > auto-move to Discovery).
+
+IN HYBRID MODE:
+AI recommends stage changes. You drag to confirm. Yellow badge shows "AI recommends: move to Discovery."
+
+IN HUMAN CONTROLLED MODE:
+You manually drag deals between stages. No auto-advancement.
+
+EXPECTED RESULT:
+PASS if pipeline columns visible with deal cards that can be clicked/dragged. PARTIAL if visible but not interactive. FAIL if page blank.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+It fails, because the buttons are not working in all three modes it shows one similar page no change according to what you said in the section we have name, amount and also the type of bussniess in the type of bussniess we have just cybersecurity market and other sections are not added it is not performing anything.
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+3.2 — Lead scoring (Agent 7)
+
+HOW IT WORKS:
+Each lead gets a total score (0-100) from Agent 7, broken into 5 dimensions: Company Fit 30% (size, industry match), Marketing Need 25% (how badly they need help), Budget Likelihood 20% (can they afford PMG), Timing Urgency 15% (hiring, contract renewals), Authority Level 10% (is contact the decision maker). Score determines category: Hot 80+ (red fire icon), Warm 50-79 (yellow), Cold 20-49 (blue snowflake), Disqualified <20 (gray X). Reasoning is shown: "Scored 87: 500-employee cybersec firm, no marketing team, just raised $10M."
+
+IN AI AUTONOMOUS MODE:
+Leads auto-scored immediately when they enter CRM from any source.
+
+IN HYBRID MODE:
+AI scores leads. You can view breakdown and override scores if you disagree.
+
+IN HUMAN CONTROLLED MODE:
+You request scoring on individual leads or manually assign scores.
+
+EXPECTED RESULT:
+PASS if score breakdown with 5 dimensions and reasoning text visible. PARTIAL if total score shows but no breakdown. FAIL if no scoring visible.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+If you are speaking about the four cards that show Hot 80+ warm 50-79 cold 20-49 disqualified 20 so if this is what you mean it pass but if you mean the entire system then it is not active it is not mode aware it shows in all three modes the same. So it fails completely
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+3.3 — "Set Meeting" on hot leads
+
+HOW IT WORKS:
+Hot leads (80+ score) show a prominent "Set Meeting" button. Clicking opens a meeting scheduler and automatically triggers Agent 9 (Call Intelligence) to prepare a pre-call briefing: full research on the prospect, talking points, objection cards, and key questions to ask.
+
+IN AI AUTONOMOUS MODE:
+Meeting scheduling may auto-trigger. Briefing auto-generates.
+
+IN HYBRID MODE:
+You click "Set Meeting". Briefing generates for your review.
+
+IN HUMAN CONTROLLED MODE:
+You schedule meeting manually. Can request briefing from AI.
+
+EXPECTED RESULT:
+PASS if button opens scheduler AND briefing appears. PARTIAL if scheduler works but no briefing. FAIL if button missing or broken.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+After the 4 cards there are company names and also showing covert and also at the top it shows 5 dimension AI scoring, so it is not mode aware, when clicked on the lead it shows cards such as company fit marketing need budget likelihood timing urgency authorithy level but nothing is happening so also this part is not mode aware. So it is fail ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+3.4 — Call Intelligence — coaching cards
+
+HOW IT WORKS:
+Agent 9 provides coaching cards you reference during calls. Specific objection handling: "If they say 'we already have an agency' > respond: 'What results are they getting? We guarantee 20 qualified leads in month one.'" Also: "If they say 'no budget' > 'We start at $2,500 with a performance guarantee.'" And: "If they say 'send me info' > 'A 15-minute call lets me send something relevant to YOUR business.'"
+
+IN AI AUTONOMOUS MODE:
+Cards auto-displayed when call is active.
+
+IN HYBRID MODE:
+Cards available. You pull them up during the call.
+
+IN HUMAN CONTROLLED MODE:
+Cards available as reference. You decide when to use them.
+
+EXPECTED RESULT:
+PASS if coaching cards show with specific objection/response pairs. PARTIAL if generic tips without specific responses. FAIL if no coaching available.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+First it is not mode aware, second in all three modes we want a smart call to analyze zoom meeting phone calls and according to the negotiation the ai should provide the real ground details and according to that it should analyze also you have add pre call prep live coaching post call analysis it is just text not functioning also under these three cards there are three buttons pre call prep coaching cards transcript analysis so in pre call prep we have name of the compay and generate briefing set meeting so the generate briefing and set meeting is not working in coaching cards you have some of the issues but in the real world we do not know that what the prospect or lead or client would say so it should be managed that according to the questions it should be answered also in here you should add other things as well so by keeping the issue of live mode in mind that if there would be a discovery call or a closing which has 7 calls we this system should be able to do the task or it is negotiations so if someone is calling or attending zoom or google meet or team meetings the system should transcript that and give a live overview so for example I am not a good negotiator but when I am doing closing for the company without experience I should do the task. 
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+3.5 — "Upload Transcript" post-call
+
+HOW IT WORKS:
+After a call, upload the Zoom transcript (.txt or .vtt file). Agent 9 analyzes it and returns: key decisions and action items extracted, sentiment analysis (positive/neutral/concerned), call score (covered 7/10 key points; missed: pricing justification), recommended deal stage update, and auto-drafted follow-up email.
+
+IN AI AUTONOMOUS MODE:
+Transcript auto-analyzed. Stage auto-updated. Email auto-drafted and may auto-send.
+
+IN HYBRID MODE:
+You upload. Analysis appears. You approve stage change and review email before sending.
+
+IN HUMAN CONTROLLED MODE:
+You upload. Can request analysis or review transcript manually.
+
+EXPECTED RESULT:
+PASS if upload returns sentiment, score, action items, stage recommendation, and email draft. PARTIAL if some analysis missing. FAIL if upload does nothing.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+First it is not mode aware second it is not something that we are looking for so it should be something that should be controlled by the system and we are currently using the free versions of google meet, zoom and teams and later we would use the paid versions, also it should be able to integrate these tools automatically is it possible
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+3.6 — Proposal generation (Agent 10)
+
+HOW IT WORKS:
+Click "Create Proposal" on a deal. Agent 10 generates a customized proposal with: Scope tailored to this prospect's specific marketing gaps (discovered during calls), Timeline ("Month 1: Audit + 20 leads. Month 2: Full campaign launch"), Pricing tiers (Starter $2,500/mo, Growth $5,000/mo, Enterprise $10,000/mo), Relevant case studies. 
+
+IN AI AUTONOMOUS MODE:
+Proposal auto-generates when deal reaches Proposal stage.
+
+IN HYBRID MODE:
+You click to generate. Full preview for editing before sending.
+
+IN HUMAN CONTROLLED MODE:
+You create proposal manually. AI provides a draft template.
+
+EXPECTED RESULT:
+PASS if proposal has custom scope, timeline, pricing tiers, and preview. PARTIAL if proposal generated but template-like. FAIL if nothing generates.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+First it is not mode aware second the things you have mentioned it is not working it is just text not a click able one also the proposal should be editable because what is said in it it is completely opposes of what we are planning so we would make the pricing tiers together once the system is build then we would give the entire data and we would decide on that so it should be Full preview in the system before sending. And in all modes it shows two things ai generate create draft but it is not mentioned to which channel it is sent and after sending it says mark as viewed so the important thing is that the data which is created it is not shown and one big question is that after we pass the testing phase and dummy example fetching is the AI capable to create real data or not
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+3.7 — "Send Proposal" + tracking
+
+HOW IT WORKS:
+Click "Send Proposal" to deliver. The system tracks status changes: Sent > Viewed (prospect opened the document) > Under Review > Accepted or Rejected. If rejected, Agent 10 analyzes why and suggests a modified approach. If accepted, "Generate Contract" button appears.
+
+IN AI AUTONOMOUS MODE:
+May auto-send when ready. Tracking automatic.
+
+IN HYBRID MODE:
+You click Send. Tracking automatic. Rejection analysis for review.
+
+IN HUMAN CONTROLLED MODE:
+You send manually. Tracking updates as statuses change.
+
+EXPECTED RESULT:
+PASS if sending works and status tracks through stages. PARTIAL if sent but no tracking. FAIL if send button broken.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+Not mode aware when create draft is clicked so do not know what is created then the create draft changes to send proposal but it do not show where it has gone how it is working
+___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+3.8 — "Mark Won" > Start Onboarding
+
+HOW IT WORKS:
+Click "Mark Won" on a successfully closed deal. Revenue gets recorded in Finance section. Deal status permanently changes. A "Start Onboarding" button appears that links to the Production section's Client Onboarding tab (Agent 17). This is the handoff from sales to delivery.
+
+IN AI AUTONOMOUS MODE:
+After marking won, onboarding may auto-initiate in Production.
+
+IN HYBRID MODE:
+You mark won. Prompted to start onboarding. You click to confirm.
+
+IN HUMAN CONTROLLED MODE:
+You mark won and manually navigate to Production for onboarding.
+
+EXPECTED RESULT:
+PASS if status changes to Won AND "Start Onboarding" button appears/links to Production. FAIL if status doesn't change or no onboarding path.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+Fail we do not have something and in pipeline you have new lead meeting discovery proposal negotiation won lost but none of them are connected so at least it should have a button that it should change the status for example the prospect should be changed from new lead to meeting from metting to discovery and till end so no conection also there is no mode awareness in this part ___________________________________________________________________________
+
+────────────────────────────────────────────────────────────────────────────────
+3.9 — CRM Sync (Agent 11)
+
+HOW IT WORKS:
+Shows sync status with external CRMs: GoHighLevel (GHL) main account, GHL sub-accounts (for the partner company that helps close deals), and HubSpot. Each shows: Connected/Disconnected status, last sync time, records synced, and any errors. Deals can be flagged as "Partner Close" to auto-push to the partner's GHL sub-account.
+
+IN AI AUTONOMOUS MODE:
+Sync runs automatically on schedule. Partner deals auto-push.
+
+IN HYBRID MODE:
+Sync status visible. You can trigger manual syncs. Partner flagging requires your click.
+
+IN HUMAN CONTROLLED MODE:
+You initiate all syncs manually. Flag deals for partner as needed.
+
+EXPECTED RESULT:
+PASS if sync cards show with status indicators and partner flag option. PARTIAL if cards show but no real sync capability. FAIL if tab empty.
+
+YOUR STATUS (circle one):     PASS     /     PARTIAL     /     FAIL     /     N/A
+
+YOUR NOTES: 
+All buttons in all three modes are static it is not functioning second the go highlevel main account and partner sub account is connected but it is not real also it do not have a mode awareness ___________________________________________________________________________
