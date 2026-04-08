@@ -38,7 +38,7 @@ export async function callAI(params: {
   }
 
   const cacheCategory = categorizeAICall({ workflowKey: params.workflowKey, tool: params.tool, domain: params.domain, action: params.action });
-  if (cacheCategory) {
+  if (cacheCategory && !isDummyMode()) {
     const cached = await getCachedResult({
       category: cacheCategory,
       domain: params.domain,
