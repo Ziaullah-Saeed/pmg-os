@@ -30,3 +30,9 @@ id = "BVAfHx6UfbZglJOcxOy77"
 uri = "file://attached_assets/PMG-OS-Testing-Checklist.docx"
 type = "word_document"
 title = "PMG OS Complete Testing Checklist (Word Document)"
+
+[[outputs]]
+id = "Xh-PBC2ixyHPOs7yQj6rw"
+uri = "file://attached_assets/PMG-OS-TESTING-CHECKLIST-V2.md"
+type = "text"
+title = "PMG OS Testing & Verification Checklist v2 — 260+ Items"
