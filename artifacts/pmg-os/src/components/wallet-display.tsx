@@ -39,8 +39,13 @@ export function WalletDisplay({ collapsed }: { collapsed?: boolean }) {
   const [fundAmount, setFundAmount] = useState("");
   const [showFund, setShowFund] = useState<"add" | "decrease" | null>(null);
   const [activeTab, setActiveTab] = useState<"transactions" | "breakdown" | "costs">("transactions");
-  const [paymentMethod, setPaymentMethod] = useState("visa_4242");
+  const [savedMethods, setSavedMethods] = useState<{ id: string; label: string; type: string }[]>([]);
+  const [activeMethodId, setActiveMethodId] = useState<string | null>(null);
   const [showPaymentMethod, setShowPaymentMethod] = useState(false);
+  const [addingMethod, setAddingMethod] = useState(false);
+  const [newCardNumber, setNewCardNumber] = useState("");
+  const [newCardName, setNewCardName] = useState("");
+  const [newCardExpiry, setNewCardExpiry] = useState("");
   const { toast } = useToast();
 
   const balance = wallet?.balance ?? 0;
@@ -90,12 +95,26 @@ export function WalletDisplay({ collapsed }: { collapsed?: boolean }) {
     }
   };
 
-  const paymentMethods = [
-    { id: "visa_4242", label: "Visa ••4242", icon: "💳" },
-    { id: "mc_8888", label: "Mastercard ••8888", icon: "💳" },
-    { id: "amex_1234", label: "Amex ••1234", icon: "💳" },
-    { id: "bank_ach", label: "Bank ACH ••7890", icon: "🏦" },
-  ];
+  const handleAddPaymentMethod = () => {
+    if (!newCardNumber || !newCardName) {
+      toast({ title: "Please fill in card number and name", variant: "destructive" });
+      return;
+    }
+    const last4 = newCardNumber.replace(/\s/g, "").slice(-4);
+    const type = newCardNumber.startsWith("4") ? "Visa" : newCardNumber.startsWith("5") ? "Mastercard" : newCardNumber.startsWith("3") ? "Amex" : "Card";
+    const newMethod = {
+      id: `card_${Date.now()}`,
+      label: `${type} ••${last4}`,
+      type,
+    };
+    setSavedMethods(prev => [...prev, newMethod]);
+    if (!activeMethodId) setActiveMethodId(newMethod.id);
+    setNewCardNumber("");
+    setNewCardName("");
+    setNewCardExpiry("");
+    setAddingMethod(false);
+    toast({ title: `${newMethod.label} added successfully` });
+  };
 
   if (collapsed) {
     return (
@@ -231,31 +250,105 @@ export function WalletDisplay({ collapsed }: { collapsed?: boolean }) {
                     className="space-y-1.5"
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-[9px] text-slate-500 uppercase tracking-wider font-semibold">Payment Method</p>
-                      <button onClick={() => setShowPaymentMethod(false)} className="text-slate-500 hover:text-white">
+                      <p className="text-[9px] text-slate-500 uppercase tracking-wider font-semibold">Payment Methods</p>
+                      <button onClick={() => { setShowPaymentMethod(false); setAddingMethod(false); }} className="text-slate-500 hover:text-white">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
-                    {paymentMethods.map(pm => (
-                      <button
+
+                    {savedMethods.length > 0 && savedMethods.map(pm => (
+                      <div
                         key={pm.id}
-                        onClick={() => {
-                          setPaymentMethod(pm.id);
-                          toast({ title: `Payment method changed to ${pm.label}` });
-                          setShowPaymentMethod(false);
-                        }}
                         className={cn(
-                          "w-full flex items-center gap-2 p-2 rounded-lg text-left transition-all text-[10px]",
-                          paymentMethod === pm.id
+                          "w-full flex items-center gap-2 p-2 rounded-lg text-[10px] transition-all",
+                          activeMethodId === pm.id
                             ? "bg-crimson/10 border border-crimson/30 text-white"
-                            : "bg-white/[0.02] border border-white/5 text-slate-400 hover:bg-white/5"
+                            : "bg-white/[0.02] border border-white/5 text-slate-400"
                         )}
                       >
-                        <span>{pm.icon}</span>
+                        <CreditCard className="h-3 w-3" />
                         <span className="flex-1">{pm.label}</span>
-                        {paymentMethod === pm.id && <span className="text-[8px] text-crimson font-bold">ACTIVE</span>}
-                      </button>
+                        {activeMethodId === pm.id ? (
+                          <span className="text-[8px] text-crimson font-bold">ACTIVE</span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setActiveMethodId(pm.id);
+                              toast({ title: `Switched to ${pm.label}` });
+                            }}
+                            className="text-[8px] text-slate-500 hover:text-white"
+                          >
+                            Use
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setSavedMethods(prev => prev.filter(m => m.id !== pm.id));
+                            if (activeMethodId === pm.id) setActiveMethodId(savedMethods.find(m => m.id !== pm.id)?.id ?? null);
+                            toast({ title: `${pm.label} removed` });
+                          }}
+                          className="text-slate-600 hover:text-red-400"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
                     ))}
+
+                    {savedMethods.length === 0 && !addingMethod && (
+                      <div className="py-2 text-center text-[10px] text-slate-600">
+                        No payment methods added yet
+                      </div>
+                    )}
+
+                    {addingMethod ? (
+                      <div className="space-y-1.5 p-2 rounded-lg border border-white/10 bg-white/[0.02]">
+                        <Input
+                          placeholder="Card number"
+                          value={newCardNumber}
+                          onChange={e => setNewCardNumber(e.target.value)}
+                          className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                          autoFocus
+                        />
+                        <Input
+                          placeholder="Name on card"
+                          value={newCardName}
+                          onChange={e => setNewCardName(e.target.value)}
+                          className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                        />
+                        <div className="flex gap-1.5">
+                          <Input
+                            placeholder="MM/YY"
+                            value={newCardExpiry}
+                            onChange={e => setNewCardExpiry(e.target.value)}
+                            className="h-7 text-xs bg-white/5 border-white/10 text-white flex-1"
+                          />
+                          <Button
+                            size="sm"
+                            className="h-7 px-3 text-[10px] btn-premium text-white"
+                            onClick={handleAddPaymentMethod}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-1.5"
+                            onClick={() => { setAddingMethod(false); setNewCardNumber(""); setNewCardName(""); setNewCardExpiry(""); }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 w-full text-[10px] border-dashed border-white/20 text-slate-400 hover:text-white"
+                        onClick={() => setAddingMethod(true)}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />Add New Payment Method
+                      </Button>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div key="actions" className="space-y-1.5">

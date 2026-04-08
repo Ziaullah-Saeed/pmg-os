@@ -30,76 +30,82 @@ import { GlobalSearch } from "@/components/global-search";
 import { useAuth } from "@/hooks/use-auth";
 import { ModeIndicatorBanner } from "@/components/mode-aware-wrapper";
 
-const guideContent: Record<string, { title: string; steps: { heading: string; description: string }[] }> = {
+interface GuideStep {
+  heading: string;
+  description: string;
+  mockup: { type: "kanban" | "table" | "cards" | "form" | "chart" | "checklist" | "inbox" | "dashboard"; items: string[] };
+}
+
+const guideContent: Record<string, { title: string; steps: GuideStep[] }> = {
   "/outreach": {
     title: "Outreach Guide",
     steps: [
-      { heading: "Find Prospects", description: "Use the Prospect Finder tab to search for cybersecurity companies. AI scores each prospect on fit and accessibility." },
-      { heading: "Social Command Center", description: "Monitor all connected channels (LinkedIn, Email, Facebook) from a unified inbox. Messages are auto-classified by intent." },
-      { heading: "Plan Approach", description: "AI creates a multi-channel strategy for each prospect — which channel to use first, what sequence to follow." },
-      { heading: "Compose Messages", description: "AI drafts personalized messages referencing the prospect's specific business details. Every message sounds human." },
-      { heading: "Follow-ups", description: "Track all outreach attempts. AI schedules follow-ups and escalates across channels when one goes cold." },
-      { heading: "Review Analytics", description: "See reply rates, open rates, and conversions per channel. Get data-driven recommendations to improve." },
+      { heading: "Find Prospects", description: "Use the Prospect Finder tab to search for cybersecurity companies. AI scores each prospect on fit and accessibility.", mockup: { type: "table", items: ["CyberShield Corp — Score: 92", "SecureNet Solutions — Score: 87", "DefendX Technologies — Score: 84", "CyberVault Inc — Score: 78"] } },
+      { heading: "Social Command Center", description: "Monitor all connected channels (LinkedIn, Email, Facebook) from a unified inbox. Messages are auto-classified by intent.", mockup: { type: "inbox", items: ["LinkedIn: New connection request from CISO", "Email: Re: Cybersecurity marketing proposal", "Facebook: Comment on your SOC 2 post", "LinkedIn: Message from VP of Sales"] } },
+      { heading: "Plan Approach", description: "AI creates a multi-channel strategy for each prospect — which channel to use first, what sequence to follow.", mockup: { type: "checklist", items: ["Day 1: LinkedIn connection request", "Day 3: Follow-up with value post", "Day 7: Email with case study", "Day 14: Direct message pitch"] } },
+      { heading: "Compose Messages", description: "AI drafts personalized messages referencing the prospect's specific business details. Every message sounds human.", mockup: { type: "form", items: ["To: john@cybershield.com", "Subject: Your SIEM marketing gaps", "Body: Hi John, I noticed CyberShield...", "[AI Draft] [Edit] [Send]"] } },
+      { heading: "Follow-ups", description: "Track all outreach attempts. AI schedules follow-ups and escalates across channels when one goes cold.", mockup: { type: "table", items: ["CyberShield — Attempt 3 — Email — Pending", "SecureNet — Attempt 1 — LinkedIn — Replied", "DefendX — Attempt 2 — Email — No Reply", "CyberVault — Attempt 1 — LinkedIn — Sent"] } },
+      { heading: "Review Analytics", description: "See reply rates, open rates, and conversions per channel. Get data-driven recommendations to improve.", mockup: { type: "chart", items: ["LinkedIn: 34% reply rate", "Email: 22% open rate", "Facebook: 12% engagement", "Overall: 8 meetings booked"] } },
     ],
   },
   "/crm": {
     title: "CRM Guide",
     steps: [
-      { heading: "Pipeline View", description: "See all deals in a Kanban board across stages: New Lead → Meeting Set → Discovery → Proposal → Negotiation → Won/Lost." },
-      { heading: "Lead Scoring", description: "Every lead is scored on 5 dimensions: Company Fit, Marketing Need, Budget, Timing, and Authority. Only 80+ leads are Hot." },
-      { heading: "Call Intelligence", description: "Before calls: get briefings and coaching cards. After calls: upload transcripts for AI analysis and follow-up drafts." },
-      { heading: "Proposals", description: "Generate customized proposals with pricing tiers, timelines, and case studies. Track: Sent → Viewed → Accepted." },
-      { heading: "CRM Sync", description: "Connect to GoHighLevel (main + sub-accounts) and HubSpot for bidirectional sync of leads and deals." },
+      { heading: "Pipeline View", description: "See all deals in a Kanban board across stages: New Lead, Meeting Set, Discovery, Proposal, Negotiation, Won/Lost.", mockup: { type: "kanban", items: ["New Lead (4)", "Meeting Set (2)", "Discovery (3)", "Proposal (1)", "Won (2)"] } },
+      { heading: "Lead Scoring", description: "Every lead is scored on 5 dimensions: Company Fit, Marketing Need, Budget, Timing, and Authority. Only 80+ leads are Hot.", mockup: { type: "cards", items: ["Company Fit: 95/100", "Marketing Need: 88/100", "Budget: 72/100", "Timing: 90/100", "Authority: 85/100"] } },
+      { heading: "Call Intelligence", description: "Before calls: get briefings and coaching cards. After calls: upload transcripts for AI analysis and follow-up drafts.", mockup: { type: "cards", items: ["Pre-Call Briefing ready", "3 Objection responses loaded", "Competitor battle card: CrowdStrike", "Post-call: Upload transcript"] } },
+      { heading: "Proposals", description: "Generate customized proposals with pricing tiers, timelines, and case studies. Track: Sent, Viewed, Accepted.", mockup: { type: "table", items: ["Starter $2,500/mo — Sent", "Growth $5,000/mo — Viewed", "Enterprise $10,000/mo — Draft", "Custom Bundle — Accepted"] } },
+      { heading: "CRM Sync", description: "Connect to GoHighLevel (main + sub-accounts) and HubSpot for bidirectional sync of leads and deals.", mockup: { type: "cards", items: ["GoHighLevel Main: Connected", "GHL Sub-Account: 3 synced", "HubSpot: 12 leads synced", "Last sync: 2 min ago"] } },
     ],
   },
   "/marketing": {
     title: "Marketing Guide",
     steps: [
-      { heading: "Content Strategy", description: "Plan content across all channels: LinkedIn (3/week), Blog (2/month), Social (5/week), YouTube, Email newsletter." },
-      { heading: "Campaigns", description: "Create ad campaigns for Facebook, LinkedIn, Google. AI prepares everything — you review and launch manually." },
-      { heading: "SEO & Growth", description: "Keyword research, website audit, ranking tracking. Focus on cybersecurity marketing niche keywords." },
-      { heading: "Campaign Orchestrator", description: "Coordinate multi-channel campaigns. Track full journey from impression to closed client." },
-      { heading: "Competitor Intel", description: "Monitor competitor agencies. Get battle cards for sales calls. Identify gaps PMG can exploit." },
+      { heading: "Content Strategy", description: "Plan content across all channels: LinkedIn (3/week), Blog (2/month), Social (5/week), YouTube, Email newsletter.", mockup: { type: "cards", items: ["LinkedIn: 3 posts/week", "Blog: 2 articles/month", "Social: 5 posts/week", "YouTube: 2 videos/month"] } },
+      { heading: "Campaigns", description: "Create ad campaigns for Facebook, LinkedIn, Google. AI prepares everything — you review and launch manually.", mockup: { type: "table", items: ["SOC 2 Awareness — Facebook — Active", "SIEM Solutions — LinkedIn — Draft", "MDR Services — Google — Paused", "EDR Buyers — LinkedIn — Active"] } },
+      { heading: "SEO & Growth", description: "Keyword research, website audit, ranking tracking. Focus on cybersecurity marketing niche keywords.", mockup: { type: "chart", items: ["cybersecurity marketing: #3", "SIEM vendor marketing: #7", "SOC 2 compliance ads: #12", "Domain Authority: 42"] } },
+      { heading: "Campaign Orchestrator", description: "Coordinate multi-channel campaigns. Track full journey from impression to closed client.", mockup: { type: "checklist", items: ["Ad Impression → Click", "Landing Page → Form Fill", "Email Nurture → 3 touches", "Sales Call → Close"] } },
+      { heading: "Competitor Intel", description: "Monitor competitor agencies. Get battle cards for sales calls. Identify gaps PMG can exploit.", mockup: { type: "cards", items: ["Competitor A: Weak in SIEM", "Competitor B: No SOC 2 focus", "Gap: Cybersec-only niche", "PMG Advantage: 20-lead promise"] } },
     ],
   },
   "/production": {
     title: "Production Guide",
     steps: [
-      { heading: "Client Onboarding", description: "Step-by-step checklist: collect brand assets, get access, define audience, set goals, choose CRM." },
-      { heading: "Marketing Audit", description: "Deep audit of client's website, social, ads, email, SEO. Identifies exactly why they're not getting clients." },
-      { heading: "Creative Production", description: "Create images (DALL-E 3), videos (Runway ML), documents, and branding packages. Preview and download in any format." },
-      { heading: "Lead Generator", description: "Generate 20 ready-to-close leads per client per month. Each lead scored 80+ with verified contacts." },
-      { heading: "Campaigns & Funnels", description: "Build client campaigns and conversion funnels: Ad → Landing Page → Form → Email Nurture → Sales Call." },
-      { heading: "Reporting & CRM Sync", description: "Generate performance reports. Sync leads and deals to client's GHL or HubSpot." },
+      { heading: "Client Onboarding", description: "Step-by-step checklist: collect brand assets, get access, define audience, set goals, choose CRM.", mockup: { type: "checklist", items: ["Collect brand assets", "Get website/analytics access", "Define target audience", "Set 90-day goals", "Choose CRM setup"] } },
+      { heading: "Marketing Audit", description: "Deep audit of client's website, social, ads, email, SEO. Identifies exactly why they're not getting clients.", mockup: { type: "cards", items: ["Website: 62/100", "Social Media: 45/100", "Paid Ads: 28/100", "Email: 55/100", "SEO: 38/100"] } },
+      { heading: "Creative Production", description: "Create images (DALL-E 3), videos (Runway ML), documents, and branding packages. Preview and download in any format.", mockup: { type: "cards", items: ["DALL-E 3: Generate Images", "Runway ML: Create Videos", "Document Builder: Reports", "Brand Kit: Logo + Colors"] } },
+      { heading: "Lead Generator", description: "Generate 20 ready-to-close leads per client per month. Each lead scored 80+ with verified contacts.", mockup: { type: "dashboard", items: ["20 leads/month target", "15 generated this month", "Avg score: 86/100", "3 ready to close"] } },
+      { heading: "Campaigns & Funnels", description: "Build client campaigns and conversion funnels: Ad, Landing Page, Form, Email Nurture, Sales Call.", mockup: { type: "checklist", items: ["Facebook Ad Campaign", "Landing Page Builder", "Lead Capture Form", "Email Nurture Sequence", "Sales Call Scheduler"] } },
+      { heading: "Reporting & CRM Sync", description: "Generate performance reports. Sync leads and deals to client's GHL or HubSpot.", mockup: { type: "chart", items: ["Monthly Report Generated", "12 leads synced to GHL", "3 deals in pipeline", "ROI: 340% this month"] } },
     ],
   },
   "/admin": {
     title: "Admin Guide",
     steps: [
-      { heading: "Operations", description: "Assign tasks based on skills and workload. Track completion. Get daily action plans per team member." },
-      { heading: "Knowledge Base", description: "SOPs, playbooks, templates, and training materials. Searchable — ask any question, get instant answers." },
-      { heading: "Executive Briefing", description: "Morning briefing: overnight activity, urgent items, today's priorities. Weekly pipeline and revenue summary." },
-      { heading: "System Evolution", description: "Weekly scan of new AI tools, platforms, and trends. You decide: Approve, Explore Later, or Skip." },
+      { heading: "Operations", description: "Assign tasks based on skills and workload. Track completion. Get daily action plans per team member.", mockup: { type: "table", items: ["Sarah: 4 tasks — 75% done", "Mike: 3 tasks — 100% done", "Alex: 5 tasks — 60% done", "Today: 12 tasks total"] } },
+      { heading: "Knowledge Base", description: "SOPs, playbooks, templates, and training materials. Searchable — ask any question, get instant answers.", mockup: { type: "cards", items: ["SOPs: 24 documents", "Playbooks: 8 guides", "Templates: 15 files", "Ask AI: 'How to onboard?'"] } },
+      { heading: "Executive Briefing", description: "Morning briefing: overnight activity, urgent items, today's priorities. Weekly pipeline and revenue summary.", mockup: { type: "dashboard", items: ["3 urgent items", "5 new leads overnight", "$45K pipeline value", "2 proposals pending"] } },
+      { heading: "System Evolution", description: "Weekly scan of new AI tools, platforms, and trends. You decide: Approve, Explore Later, or Skip.", mockup: { type: "cards", items: ["New: GPT-4o upgrade", "New: Perplexity API", "Pending: Runway Gen-3", "[Approve] [Explore] [Skip]"] } },
     ],
   },
   "/finance": {
     title: "Finance Guide",
     steps: [
-      { heading: "Billing & Revenue", description: "Create invoices (one-time, recurring). Track payments: Draft → Sent → Viewed → Paid → Overdue." },
-      { heading: "Revenue Dashboard", description: "See MRR, revenue per client, growth trends. Client profitability: revenue minus cost to serve." },
-      { heading: "Contracts", description: "Manage service agreements. Get renewal alerts 60 days before expiration. Track contract lifecycle." },
-      { heading: "Expenses & Forecasting", description: "Track all expenses: tools, ads, AI costs, subscriptions. Monthly P&L and revenue forecasting." },
+      { heading: "Billing & Revenue", description: "Create invoices (one-time, recurring). Track payments: Draft, Sent, Viewed, Paid, Overdue.", mockup: { type: "table", items: ["INV-001 CyberShield $5,000 — Paid", "INV-002 SecureNet $2,500 — Sent", "INV-003 DefendX $10,000 — Draft", "INV-004 CyberVault $5,000 — Overdue"] } },
+      { heading: "Revenue Dashboard", description: "See MRR, revenue per client, growth trends. Client profitability: revenue minus cost to serve.", mockup: { type: "dashboard", items: ["MRR: $22,500", "Growth: +18% MoM", "Top Client: $10K/mo", "Profit Margin: 72%"] } },
+      { heading: "Contracts", description: "Manage service agreements. Get renewal alerts 60 days before expiration. Track contract lifecycle.", mockup: { type: "table", items: ["CyberShield — Renewal: 45 days", "SecureNet — Active — 8 months", "DefendX — New — Pending sign", "CyberVault — Expires: 12 days"] } },
+      { heading: "Expenses & Forecasting", description: "Track all expenses: tools, ads, AI costs, subscriptions. Monthly P&L and revenue forecasting.", mockup: { type: "chart", items: ["AI Tools: $420/mo", "Ad Spend: $3,200/mo", "Subscriptions: $890/mo", "Net Profit: $18,990/mo"] } },
     ],
   },
   "/settings": {
     title: "Settings Guide",
     steps: [
-      { heading: "General", description: "Set company name, logo, branding, timezone, and brand voice guidelines." },
-      { heading: "AI Modes", description: "Choose between AI Autonomous, Hybrid, or Manual Control globally or per section." },
-      { heading: "Wallet & Keys", description: "Manage AI spending budget, set limits, and configure API keys for Claude, DALL-E, Runway, etc." },
-      { heading: "Users & Channels", description: "Add team members with roles (Super Admin, Admin, Manager, Viewer). Connect social channels." },
-      { heading: "Legal & Compliance", description: "CAN-SPAM, GDPR, TCPA compliance. Anti-spam rules. Contract templates. Opt-out management." },
-      { heading: "System Health", description: "Monitor all 32 agents, API health, database stats. Run diagnostics when issues arise." },
+      { heading: "General", description: "Set company name, logo, branding, timezone, and brand voice guidelines.", mockup: { type: "form", items: ["Company: PMG Group LLC", "Timezone: EST", "Brand Voice: Professional", "Logo: Uploaded"] } },
+      { heading: "AI Modes", description: "Choose between AI Autonomous, Hybrid, or Manual Control globally or per section.", mockup: { type: "cards", items: ["AI Autonomous: Full auto", "Hybrid: AI + Human review", "Human Control: Manual only", "Current: AI Autonomous"] } },
+      { heading: "Wallet & Keys", description: "Manage AI spending budget, set limits, and configure API keys for Claude, DALL-E, Runway, etc.", mockup: { type: "dashboard", items: ["Balance: $355.02", "Monthly Limit: $500", "API Keys: 4 configured", "Usage: 71% of budget"] } },
+      { heading: "Users & Channels", description: "Add team members with roles (Super Admin, Admin, Manager, Viewer). Connect social channels.", mockup: { type: "table", items: ["Shershah — Super Admin", "LinkedIn — Connected", "Email — Connected", "Facebook — Not Connected"] } },
+      { heading: "Legal & Compliance", description: "CAN-SPAM, GDPR, TCPA compliance. Anti-spam rules. Contract templates. Opt-out management.", mockup: { type: "checklist", items: ["CAN-SPAM: Compliant", "GDPR: Configured", "TCPA: Active", "Opt-out: Auto-managed"] } },
+      { heading: "System Health", description: "Monitor all 32 agents, API health, database stats. Run diagnostics when issues arise.", mockup: { type: "dashboard", items: ["32 Agents: All Online", "API Health: 99.9%", "DB: 2.3GB used", "Last Check: 2 min ago"] } },
     ],
   },
 };
@@ -205,69 +211,171 @@ const stepIcons: Record<string, typeof Target> = {
   "System Health": Settings,
 };
 
-function StepAnimation({ stepIndex, heading }: { stepIndex: number; heading: string }) {
+function MockupPreview({ mockup, stepIndex }: { mockup: GuideStep["mockup"]; stepIndex: number }) {
+  const colors = ["border-crimson/30", "border-blue-500/30", "border-green-500/30", "border-purple-500/30", "border-yellow-500/30", "border-cyan-500/30"];
+  const accents = ["text-crimson", "text-blue-400", "text-green-400", "text-purple-400", "text-yellow-400", "text-cyan-400"];
+  const bgs = ["bg-crimson/10", "bg-blue-500/10", "bg-green-500/10", "bg-purple-500/10", "bg-yellow-500/10", "bg-cyan-500/10"];
+  const c = stepIndex % colors.length;
+
+  if (mockup.type === "kanban") {
+    return (
+      <div className="flex gap-1.5 overflow-hidden">
+        {mockup.items.map((item, i) => (
+          <motion.div key={i} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 * i }}
+            className={cn("flex-1 rounded-lg p-2 border bg-white/[0.03] min-w-0", colors[c])}
+          >
+            <div className={cn("text-[8px] font-bold truncate", accents[c])}>{item}</div>
+            <div className="mt-1.5 space-y-1">
+              {[...Array(Math.max(1, 3 - i))].map((_, j) => (
+                <div key={j} className="h-2 rounded bg-white/5" />
+              ))}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
+  if (mockup.type === "table") {
+    return (
+      <div className="space-y-1">
+        <div className="flex gap-2 px-2 py-1 text-[7px] text-slate-600 uppercase tracking-wider font-bold">
+          <span className="flex-1">Item</span><span>Status</span>
+        </div>
+        {mockup.items.map((item, i) => (
+          <motion.div key={i} initial={{ x: -15, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.12 * i }}
+            className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/5"
+          >
+            <div className={cn("h-1.5 w-1.5 rounded-full", bgs[c])} />
+            <span className="text-[9px] text-white/80 flex-1 truncate">{item}</span>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
+  if (mockup.type === "cards") {
+    return (
+      <div className="grid grid-cols-2 gap-1.5">
+        {mockup.items.map((item, i) => (
+          <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 * i }}
+            className={cn("rounded-lg p-2 border bg-white/[0.03]", colors[c])}
+          >
+            <div className="text-[9px] text-white/80">{item}</div>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
+  if (mockup.type === "chart") {
+    return (
+      <div className="space-y-1.5">
+        {mockup.items.map((item, i) => {
+          const pct = 30 + Math.random() * 60;
+          return (
+            <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 * i }}>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[9px] text-white/70">{item}</span>
+              </div>
+              <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ delay: 0.2 + 0.1 * i, duration: 0.8 }}
+                  className={cn("h-full rounded-full", bgs[c])} />
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (mockup.type === "checklist") {
+    return (
+      <div className="space-y-1">
+        {mockup.items.map((item, i) => (
+          <motion.div key={i} initial={{ x: -10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.15 * i }}
+            className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/[0.03]"
+          >
+            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ delay: 0.3 + 0.2 * i, duration: 0.3 }}
+              className={cn("h-3 w-3 rounded border flex items-center justify-center", colors[c])}
+            >
+              <div className={cn("h-1.5 w-1.5 rounded-sm", bgs[c])} />
+            </motion.div>
+            <span className="text-[9px] text-white/80">{item}</span>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
+  if (mockup.type === "inbox") {
+    return (
+      <div className="space-y-1">
+        {mockup.items.map((item, i) => (
+          <motion.div key={i} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.12 * i }}
+            className={cn("flex items-start gap-2 px-2 py-1.5 rounded-lg border bg-white/[0.03]", i === 0 ? colors[c] : "border-white/5")}
+          >
+            <div className={cn("h-2 w-2 rounded-full mt-1 shrink-0", i === 0 ? bgs[c] : "bg-white/10")} />
+            <span className={cn("text-[9px]", i === 0 ? "text-white font-medium" : "text-white/60")}>{item}</span>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
+  if (mockup.type === "form") {
+    return (
+      <div className="space-y-1.5">
+        {mockup.items.map((item, i) => (
+          <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 * i }}
+            className={cn("px-2 py-1.5 rounded-lg border text-[9px]", i === mockup.items.length - 1 ? `${bgs[c]} ${colors[c]} ${accents[c]} text-center font-bold` : "bg-white/[0.03] border-white/5 text-white/70")}
+          >
+            {item}
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      {mockup.items.map((item, i) => (
+        <motion.div key={i} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 * i }}
+          className={cn("rounded-lg p-2.5 border text-center", colors[c], bgs[c])}
+        >
+          <div className={cn("text-sm font-bold mb-0.5", accents[c])}>{item.split(":")[1]?.trim() || item.split(" ").pop()}</div>
+          <div className="text-[8px] text-white/50">{item.split(":")[0]}</div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+function StepAnimation({ stepIndex, heading, mockup }: { stepIndex: number; heading: string; mockup?: GuideStep["mockup"] }) {
   const StepIcon = stepIcons[heading] || HelpCircle;
-  const colors = ["from-crimson/30 to-crimson/10", "from-blue-500/30 to-blue-500/10", "from-green-500/30 to-green-500/10", "from-purple-500/30 to-purple-500/10", "from-yellow-500/30 to-yellow-500/10", "from-cyan-500/30 to-cyan-500/10"];
+  const colors = ["from-crimson/20 to-crimson/5", "from-blue-500/20 to-blue-500/5", "from-green-500/20 to-green-500/5", "from-purple-500/20 to-purple-500/5", "from-yellow-500/20 to-yellow-500/5", "from-cyan-500/20 to-cyan-500/5"];
   const colorClass = colors[stepIndex % colors.length];
 
   return (
     <motion.div
       key={stepIndex}
-      initial={{ opacity: 0, scale: 0.8 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
-      className={cn("relative w-full h-32 rounded-xl bg-gradient-to-br overflow-hidden flex items-center justify-center", colorClass)}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
+      className={cn("relative w-full rounded-xl bg-gradient-to-br overflow-hidden", colorClass)}
     >
-      <div className="absolute inset-0 opacity-20">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute h-px bg-white/20"
-            style={{ top: `${15 + i * 18}%`, left: "10%", right: "10%" }}
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={{ scaleX: 1, opacity: [0, 0.5, 0] }}
-            transition={{ delay: 0.2 + i * 0.1, duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
-          />
-        ))}
+      <div className="p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <StepIcon className="h-3.5 w-3.5 text-white/60" />
+          <span className="text-[9px] uppercase tracking-widest text-white/40 font-semibold">Live Preview</span>
+        </div>
+        {mockup && (
+          <div className="rounded-lg bg-[hsl(222_47%_4%)] border border-white/5 p-2.5 max-h-[160px] overflow-hidden">
+            <MockupPreview mockup={mockup} stepIndex={stepIndex} />
+          </div>
+        )}
       </div>
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-        className="flex flex-col items-center gap-2 relative z-10"
-      >
-        <motion.div
-          animate={{ rotate: [0, 5, -5, 0] }}
-          transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
-          className="h-12 w-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-sm"
-        >
-          <StepIcon className="h-6 w-6 text-white" />
-        </motion.div>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="text-[10px] uppercase tracking-widest text-white/60 font-semibold"
-        >
-          Step {stepIndex + 1}
-        </motion.p>
-      </motion.div>
-      <motion.div
-        className="absolute bottom-2 right-2 flex gap-1"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        {[...Array(3)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="h-1.5 w-1.5 rounded-full bg-white/30"
-            animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.7, 0.3] }}
-            transition={{ delay: i * 0.2, duration: 1, repeat: Infinity }}
-          />
-        ))}
-      </motion.div>
     </motion.div>
   );
 }
@@ -276,7 +384,7 @@ function VideoGuideOverlay({
   guide,
   onClose,
 }: {
-  guide: { title: string; steps: { heading: string; description: string }[] };
+  guide: { title: string; steps: GuideStep[] };
   onClose: () => void;
 }) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -342,7 +450,7 @@ function VideoGuideOverlay({
             </div>
 
             <AnimatePresence mode="wait">
-              <StepAnimation key={currentStep} stepIndex={currentStep} heading={guide.steps[currentStep].heading} />
+              <StepAnimation key={currentStep} stepIndex={currentStep} heading={guide.steps[currentStep].heading} mockup={guide.steps[currentStep].mockup} />
             </AnimatePresence>
 
             <motion.div
