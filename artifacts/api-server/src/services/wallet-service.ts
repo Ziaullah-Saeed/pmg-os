@@ -8,7 +8,7 @@ const LOW_BALANCE_THRESHOLD = 10;
 const CRITICAL_BALANCE_THRESHOLD = 2;
 const ANOMALY_MULTIPLIER = 5;
 
-let dummyMode = process.env.NODE_ENV !== "production";
+let dummyMode = true;
 
 const TOOL_COSTS: Record<string, number> = {
   "ai-enrich-lead": 0.05,
