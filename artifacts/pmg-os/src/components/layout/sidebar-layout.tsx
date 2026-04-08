@@ -15,8 +15,14 @@ import {
   HelpCircle,
   X,
   Play,
+  Pause,
   SkipForward,
+  SkipBack,
   RotateCcw,
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -387,156 +393,268 @@ function VideoGuideOverlay({
   guide: { title: string; steps: GuideStep[] };
   onClose: () => void;
 }) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [autoPlay, setAutoPlay] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const stopAutoPlay = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    setAutoPlay(false);
+  const stepDuration = 5;
+  const totalDuration = guide.steps.length * stepDuration;
+  const currentStep = Math.min(Math.floor(elapsed / stepDuration), guide.steps.length - 1);
+
+  const clearTimers = useCallback(() => {
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
   }, []);
+
+  const stopPlaying = useCallback(() => {
+    clearTimers();
+    setIsPlaying(false);
+  }, [clearTimers]);
+
+  const startPlaying = useCallback(() => {
+    clearTimers();
+    setIsPlaying(true);
+    tickRef.current = setInterval(() => {
+      setElapsed(prev => {
+        const next = prev + 1;
+        if (next >= totalDuration) {
+          clearTimers();
+          setIsPlaying(false);
+          return totalDuration;
+        }
+        return next;
+      });
+    }, 1000);
+  }, [totalDuration, clearTimers]);
 
   useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
+    return () => clearTimers();
+  }, [clearTimers]);
+
+  function formatTime(s: number) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  }
+
+  function handleSeek(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const newTime = Math.min(Math.floor(pct * totalDuration), totalDuration - 1);
+    stopPlaying();
+    setElapsed(newTime);
+  }
+
+  function handlePrev() {
+    stopPlaying();
+    setElapsed(prev => Math.max(0, (Math.floor(prev / stepDuration) - 1) * stepDuration));
+  }
+
+  function handleNext() {
+    stopPlaying();
+    setElapsed(prev => {
+      const nextStep = Math.floor(prev / stepDuration) + 1;
+      return Math.min(nextStep * stepDuration, (guide.steps.length - 1) * stepDuration);
+    });
+  }
+
+  function togglePlay() {
+    if (isPlaying) {
+      stopPlaying();
+    } else {
+      if (elapsed >= totalDuration) {
+        setElapsed(0);
+      }
+      startPlaying();
+    }
+  }
+
+  const progressPct = Math.min((elapsed / totalDuration) * 100, 100);
+  const StepIcon = stepIcons[guide.steps[currentStep]?.heading] || HelpCircle;
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) { stopAutoPlay(); onClose(); } }}
+      initial={{ y: isExpanded ? 0 : 200, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 200, opacity: 0 }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      className={cn(
+        "fixed z-[100] left-0 right-0 bottom-0",
+        isExpanded ? "top-0" : ""
+      )}
     >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="w-full max-w-lg mx-4 rounded-xl border border-white/10 bg-[hsl(222_47%_6%)] shadow-2xl overflow-hidden"
-      >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-crimson/5">
-          <div className="flex items-center gap-2">
-            <Play className="h-4 w-4 text-crimson" />
-            <span className="text-sm font-semibold">{guide.title}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground">
-              Step {currentStep + 1} of {guide.steps.length}
-            </span>
-            <button onClick={() => { stopAutoPlay(); onClose(); }} className="p-1 rounded hover:bg-white/5">
-              <X className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-        </div>
+      {isExpanded && (
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsExpanded(false)} />
+      )}
 
-        <div className="p-5">
-          <div className="mb-4">
-            <div className="flex gap-1 mb-4">
-              {guide.steps.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentStep(idx)}
-                  className={cn(
-                    "h-1.5 flex-1 rounded-full transition-all cursor-pointer hover:h-2",
-                    idx < currentStep ? "bg-crimson" : idx === currentStep ? "bg-crimson animate-pulse" : "bg-white/10"
-                  )}
-                />
-              ))}
-            </div>
-
-            <AnimatePresence mode="wait">
-              <StepAnimation key={currentStep} stepIndex={currentStep} heading={guide.steps[currentStep].heading} mockup={guide.steps[currentStep].mockup} />
-            </AnimatePresence>
-
+      <div className={cn(
+        "relative flex flex-col",
+        isExpanded ? "h-full" : ""
+      )}>
+        {isExpanded && (
+          <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
             <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="rounded-lg glass-surface p-4 mt-3"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-full max-w-3xl"
             >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-8 w-8 rounded-lg bg-crimson/20 flex items-center justify-center text-crimson font-bold text-sm">
-                  {currentStep + 1}
+              <div className="rounded-xl border border-white/10 bg-[hsl(222_47%_6%)] overflow-hidden shadow-2xl">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/5 bg-white/[0.02]">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500/60" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
+                    <div className="w-3 h-3 rounded-full bg-green-500/60" />
+                  </div>
+                  <div className="flex-1 mx-4">
+                    <div className="bg-white/5 rounded-md px-3 py-1 text-[10px] text-muted-foreground text-center truncate">
+                      pmggroup-os.app/{guide.title.toLowerCase().replace(/ guide/i, "").replace(/\s/g, "-")}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="h-5 w-5 rounded bg-white/5 flex items-center justify-center">
+                      <Shield className="h-3 w-3 text-crimson/50" />
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-sm font-semibold">{guide.steps[currentStep].heading}</h3>
+
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-10 w-10 rounded-xl bg-crimson/10 border border-crimson/20 flex items-center justify-center">
+                      <StepIcon className="h-5 w-5 text-crimson" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold">{guide.steps[currentStep].heading}</h3>
+                      <p className="text-xs text-muted-foreground">Step {currentStep + 1} of {guide.steps.length}</p>
+                    </div>
+                  </div>
+
+                  <AnimatePresence mode="wait">
+                    <motion.div key={currentStep} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                      <div className="rounded-lg bg-black/30 border border-white/5 p-4 mb-4 min-h-[180px]">
+                        {guide.steps[currentStep].mockup && (
+                          <MockupPreview mockup={guide.steps[currentStep].mockup} stepIndex={currentStep} />
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{guide.steps[currentStep].description}</p>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {guide.steps[currentStep].description}
-              </p>
             </motion.div>
           </div>
+        )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentStep(0)}
-                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-white transition-colors"
+        {!isExpanded && (
+          <div className="bg-[hsl(222_47%_8%)] border-t border-white/10">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="px-4 py-3 flex items-center gap-3"
               >
-                <RotateCcw className="h-3 w-3" />Restart
+                <div className="h-8 w-8 rounded-lg bg-crimson/10 border border-crimson/20 flex items-center justify-center shrink-0">
+                  <StepIcon className="h-4 w-4 text-crimson" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate">{guide.steps[currentStep].heading}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{guide.steps[currentStep].description}</p>
+                </div>
+                <span className="text-[10px] text-muted-foreground shrink-0">Step {currentStep + 1}/{guide.steps.length}</span>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
+
+        <div className="bg-[hsl(222_47%_5%)] border-t border-white/10">
+          <div
+            className="h-1 w-full bg-white/5 cursor-pointer group relative"
+            onClick={handleSeek}
+          >
+            <motion.div
+              className="h-full bg-crimson relative"
+              style={{ width: `${progressPct}%` }}
+              transition={{ duration: 0.1 }}
+            >
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-crimson opacity-0 group-hover:opacity-100 transition-opacity shadow-lg shadow-crimson/30" />
+            </motion.div>
+            <div className="absolute inset-0 flex">
+              {guide.steps.map((_, i) => (
+                <div key={i} className="flex-1 relative">
+                  {i > 0 && <div className="absolute left-0 top-0 bottom-0 w-px bg-white/10" />}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2">
+            <div className="flex items-center gap-1">
+              <button
+                aria-label="Previous step"
+                onClick={handlePrev}
+                disabled={currentStep === 0}
+                className="p-1.5 rounded-full hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <SkipBack className="h-3.5 w-3.5 text-white" />
               </button>
+
               <button
-                onClick={() => {
-                  if (autoPlay) {
-                    stopAutoPlay();
-                  } else {
-                    setAutoPlay(true);
-                    intervalRef.current = setInterval(() => {
-                      setCurrentStep(prev => {
-                        if (prev >= guide.steps.length - 1) {
-                          stopAutoPlay();
-                          return prev;
-                        }
-                        return prev + 1;
-                      });
-                    }, 3000);
-                  }
-                }}
-                className={cn(
-                  "flex items-center gap-1 text-[10px] transition-colors",
-                  autoPlay ? "text-crimson" : "text-muted-foreground hover:text-white"
-                )}
+                aria-label={isPlaying ? "Pause" : "Play"}
+                onClick={togglePlay}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
               >
-                <Play className="h-3 w-3" />{autoPlay ? "Playing..." : "Auto-play"}
+                {isPlaying ? <Pause className="h-4 w-4 text-white" /> : <Play className="h-4 w-4 text-white" />}
+              </button>
+
+              <button
+                aria-label="Next step"
+                onClick={handleNext}
+                disabled={currentStep >= guide.steps.length - 1}
+                className="p-1.5 rounded-full hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <SkipForward className="h-3.5 w-3.5 text-white" />
               </button>
             </div>
-            <div className="flex gap-2">
-              {currentStep > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs h-7"
-                  onClick={() => setCurrentStep(currentStep - 1)}
-                >
-                  Back
-                </Button>
-              )}
-              {currentStep < guide.steps.length - 1 ? (
-                <Button
-                  size="sm"
-                  className="btn-premium text-white text-xs h-7"
-                  onClick={() => setCurrentStep(currentStep + 1)}
-                >
-                  Next Step <SkipForward className="h-3 w-3 ml-1" />
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  className="btn-premium text-white text-xs h-7"
-                  onClick={() => { stopAutoPlay(); onClose(); }}
-                >
-                  Done
-                </Button>
-              )}
+
+            <span className="text-[11px] text-muted-foreground tabular-nums min-w-[70px]">
+              {formatTime(elapsed)} / {formatTime(totalDuration)}
+            </span>
+
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-[11px] font-medium text-white/70 truncate max-w-[300px]">{guide.title}</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                aria-label={isMuted ? "Unmute" : "Mute"}
+                onClick={() => setIsMuted(!isMuted)}
+                className="p-1.5 rounded-full hover:bg-white/5 transition-colors"
+              >
+                {isMuted ? <VolumeX className="h-3.5 w-3.5 text-muted-foreground" /> : <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />}
+              </button>
+
+              <button
+                aria-label={isExpanded ? "Minimize" : "Fullscreen"}
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-1.5 rounded-full hover:bg-white/5 transition-colors"
+              >
+                {isExpanded ? <Minimize2 className="h-3.5 w-3.5 text-muted-foreground" /> : <Maximize2 className="h-3.5 w-3.5 text-muted-foreground" />}
+              </button>
+
+              <button
+                aria-label="Close guide"
+                onClick={() => { stopPlaying(); onClose(); }}
+                className="p-1.5 rounded-full hover:bg-white/5 transition-colors ml-1"
+              >
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
