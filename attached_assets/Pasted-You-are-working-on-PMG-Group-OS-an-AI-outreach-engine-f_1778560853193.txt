@@ -1,0 +1,135 @@
+You are working on PMG Group OS, an AI outreach engine for cybersecurity MSPs. The codebase is a pnpm monorepo with a React 19 + Vite + TailwindCSS + shadcn/ui frontend (artifacts/pmg-os) and an Express 5 + Node.js backend (artifacts/api-server) using PostgreSQL + Drizzle ORM, currently running on port 8080 with routes under /api.
+
+A prior architect audit identified serious issues that you must fix as part of this work:
+1. dummyModeEnabled is hardcoded to true in artifacts/api-server/src/services/testing-service.ts (line 6), causing all AI calls to return canned text
+2. wallet-service.ts (line 11) has a duplicate dummyMode flag that bypasses real billing
+3. ai-service.ts (lines 82-85, 122-125) short-circuits to dummy responses
+4. Multiple pages (production.tsx, finance.tsx, admin.tsx, settings.tsx, marketing.tsx, dashboard.tsx) display hardcoded arrays as if they were live data
+5. Error handlers across 5 pages fire success toasts on API failures and insert fabricated fallback data
+6. Inert buttons across Settings, Finance, and Production that don't call real mutations
+7. Field name drift: marketing.tsx sends targetAudience but use-api.ts expects audience; dashboard.tsx reads firstName/lastName but backend returns contactName/companyName
+8. Two AI mode vocabularies that mismatch: ai_autonomous vs ai_auto in use-ai-mode-context.tsx
+
+Your task is to integrate the following production technologies into the system, replacing all fake data, dummy modes, and inert buttons with real working integrations. Treat this as a complete operational rebuild of the data layer, not a cosmetic patch.
+
+TECHNOLOGIES TO INTEGRATE:
+
+1. OpenRouter (https://openrouter.ai) as the unified AI gateway
+   - Replace the Replit AI Integrations proxy and all direct OpenAI/gpt-4o-mini calls
+   - Use the OpenAI SDK with base_url set to https://openrouter.ai/api/v1
+   - Environment variable: OPENROUTER_API_KEY
+   - Default model: anthropic/claude-sonnet-4 for high-quality tasks, openai/gpt-4o-mini for cheap tasks
+   - Wire this into ai-service.ts and remove all dummy mode short-circuits
+   - Make dummyMode opt-in via env variable DUMMY_MODE=true (default false), with a single source of truth, and surface a persistent "DEMO MODE" banner in the UI whenever it is on
+
+2. Clay (https://clay.com) as the lead data source
+   - Replace the AI-invented prospect logic in guide-endpoints.ts (lines 28-41, 354-369) and production lead generation
+   - Use the Clay HTTP API and Webhooks integration
+   - Environment variable: CLAY_API_KEY and CLAY_WEBHOOK_URL
+   - Build a real prospect ingestion flow: user clicks "Find Prospects" or "Generate Leads" → call Clay → return verified MSP contacts with real emails, phone numbers, company data, and decision-maker info
+   - Save returned leads to Postgres with proper schema (contactName, companyName, email, phone, role, painPoints, fitScore, source: 'clay')
+   - Stop fabricating fake emails like first@company.com in outreach.tsx line 143; if Clay returns no contact, save with contactStatus: 'missing_contact' and email: null
+
+3. Smartlead (https://smartlead.ai) for cold email sending and sequence automation
+   - Replace the no-op "Send" buttons in outreach (compose.tsx) and the fake CRM sync in production.tsx (lines 821-823)
+   - Use the Smartlead API to: create campaigns, add leads to sequences, send emails, track opens/replies/bounces
+   - Environment variable: SMARTLEAD_API_KEY
+   - Wire webhook endpoints to receive reply events and auto-classify responses (hot/warm/cold/spam) for the Social Command Center
+   - Replace the fake unified inbox in outreach Social Command tab with real Smartlead reply data
+
+4. Supabase (https://supabase.com) for authentication, database, file storage, real-time
+   - Migrate the current Postgres+Drizzle setup to Supabase Postgres (keep Drizzle as the ORM, just change the connection string)
+   - Replace the current login system with Supabase Auth using email/password
+   - Environment variables: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+   - Use Supabase Storage for: company logo uploads (Settings > General), generated content assets, contract PDFs, transcript files
+   - Use Supabase real-time subscriptions for the notification bell and system health dots in the dashboard
+   - Implement Row Level Security so users only see their own data
+
+5. Stripe (https://stripe.com) for billing, invoicing, subscriptions
+   - Replace the hardcoded invoice array in finance.tsx (lines 99-114) with real Stripe Invoice objects
+   - Wire the "Send Invoice", "Send Reminder", "Auto-Generate Monthly" buttons to real Stripe API calls
+   - Environment variables: STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET
+   - Replace the static MRR calculation with live data from Stripe subscriptions
+   - Replace hardcoded contracts in finance.tsx with Stripe subscriptions; wire renewal alerts to subscription expiry dates
+   - Implement Stripe webhooks to auto-update invoice status (sent → viewed → paid → overdue)
+
+6. Resend (https://resend.com) for transactional emails
+   - Wire all system emails: invoice sent notifications to clients, password reset, login confirmation, daily briefing digests
+   - Environment variable: RESEND_API_KEY
+   - This is separate from Smartlead — Smartlead handles outbound cold email to prospects, Resend handles internal system emails to users and clients
+
+7. Inngest (https://inngest.com) for background jobs
+   - Wrap all long-running tasks in Inngest functions: "Run Audit", "Generate Report", "Auto-Generate Monthly", "Scan for Updates", "Refresh Competitor Analysis", "Run Health Check", AI Pipeline Review, Marketing Audit, etc.
+   - Environment variables: INNGEST_EVENT_KEY, INNGEST_SIGNING_KEY
+   - Return job IDs immediately to the frontend, then push status updates via Supabase real-time when each job completes
+   - Replace the fake setTimeout patterns (e.g. production.tsx 821-823) with real Inngest jobs
+
+8. Cal.com (https://cal.com) for meeting scheduling
+   - Wire the "Set Meeting" button in CRM > Lead Qualification and the "Prep for Meeting" flow to create real Cal.com booking links
+   - Environment variable: CALCOM_API_KEY
+   - Store booked meetings in the deals table and surface them in Call Intelligence
+
+9. react-pdf for PDF generation
+   - Wire the "Download Invoice" button (finance.tsx 192-199), "Generate Contract" button (finance.tsx 324-329), "Export Report as PDF" in production reporting, and the proposal preview in CRM > Proposals
+   - Use Supabase Storage to persist generated PDFs
+
+10. Documenso (https://documenso.com) or DocuSign API for e-signature
+    - Wire the "Send for Signature" step in CRM > Proposals > Generate Contract flow
+    - Environment variable: DOCUMENSO_API_KEY
+    - Update contract status: sent → viewed → signed via webhook
+
+CRITICAL FIXES (do these in order before adding new features):
+
+P0:
+- Remove dummyModeEnabled = true hardcode in testing-service.ts. Replace with env-gated single source of truth in a new file artifacts/api-server/src/config/dummy-mode.ts that both testing-service and wallet-service import
+- Add a persistent UI banner component that shows "DEMO MODE — synthetic data" whenever dummy mode is on
+- Audit and fix all 5 pages (marketing.tsx, production.tsx, admin.tsx, finance.tsx, dashboard.tsx) so onError handlers do NOT fire success toasts and do NOT insert fabricated fallback data; surface real failures with red error toasts that say what failed
+- Stop fabricating email addresses in outreach.tsx line 143
+
+P1:
+- Replace all hardcoded sample arrays (production.tsx 459-465 499-500 544-546, finance.tsx 99-114 239-280, admin.tsx 115-134 337-365 470-479, settings.tsx 554-589 731-851) with real database queries via useQuery hooks
+- Fix the targetAudience/audience field name mismatch in marketing.tsx and use-api.ts
+- Fix the firstName/lastName vs contactName/companyName mismatch in dashboard.tsx
+- Fix the channel status check in settings.tsx 272-299
+- Wire all inert Settings buttons (Connect, Configure, Save, Add Key — settings.tsx 303-305 366-368 409-410 724-725) to real mutations
+- Unify the ai_autonomous vs ai_auto enum across use-ai-mode-context.tsx and all consumers
+
+P2:
+- Telemetry: replace the hardcoded "active/healthy" status badges in Settings > System Health with real data: ping each external API, count recent successful calls from Postgres logs, and surface real status
+
+ENVIRONMENT VARIABLES NEEDED:
+Add these to Replit Secrets — leave placeholder values where I have not yet provided real keys, and create a .env.example file documenting all of them:
+- OPENROUTER_API_KEY
+- CLAY_API_KEY
+- CLAY_WEBHOOK_URL
+- SMARTLEAD_API_KEY
+- SUPABASE_URL
+- SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+- STRIPE_SECRET_KEY
+- STRIPE_PUBLISHABLE_KEY
+- STRIPE_WEBHOOK_SECRET
+- RESEND_API_KEY
+- INNGEST_EVENT_KEY
+- INNGEST_SIGNING_KEY
+- CALCOM_API_KEY
+- DOCUMENSO_API_KEY
+- DUMMY_MODE (default: false)
+
+RULES OF EXECUTION:
+1. Do NOT generate fake API responses, hardcoded fallback arrays, or canned success toasts as part of any new integration. If an API key is missing, throw a clear error with the missing key name in the message; do not silently degrade to fake data.
+2. Every new API integration must include real error handling: catch the actual error, log it with the request payload, return the real error message to the frontend, and surface a red error toast that names the failure.
+3. Every external API call must be wrapped in retry-with-backoff logic (max 3 retries) and a 30-second timeout.
+4. Add an integration health endpoint at GET /api/system/health that actually pings each external service (OpenRouter, Clay, Smartlead, Supabase, Stripe, Resend, Inngest, Cal.com, Documenso) and returns real up/down status for each. Wire this to the Settings > System Health UI so the 32 agent status badges reflect reality, not literals.
+5. Add a real wallet billing path in wallet-service.ts: every OpenRouter call must deduct the actual token cost from the wallet via reserve → commit → charge, with rollback on failure. Remove the dummy mode bypass.
+6. After implementing, run the system end-to-end with a real test: trigger "Generate Leads" → verify Clay is called → verify real leads appear in Postgres → verify they render in the UI → verify clicking "Send" pushes them to Smartlead. Report which steps pass and which fail. Do NOT mark anything complete that has not been tested end-to-end.
+7. Update the testing checklist results (test items 0.1 through 14.22) with actual PASS/FAIL status based on real testing, not assumed status.
+8. Where a feature genuinely cannot be tested because I have not yet provided the API key, leave it marked as "BLOCKED — needs API key for [service]" rather than marking it complete.
+
+DELIVERABLES:
+1. All code changes committed
+2. A new file SETUP.md at the repo root documenting: every env variable needed, where to get each API key (with signup URLs), and the order to configure them
+3. A test report at TEST_RESULTS.md showing real PASS/FAIL for each of the 250+ checklist items, with a "BLOCKED" status for items I haven't enabled yet
+4. A migration notes file MIGRATION_NOTES.md listing every breaking change and any data that needs to be re-seeded
+
+Start with the P0 fixes (dummy mode rip-out and error handler audit), then OpenRouter integration, then Supabase migration. Stop and report back to me after each major step rather than doing all of this in one continuous run. I want to verify each phase works before moving to the next.
