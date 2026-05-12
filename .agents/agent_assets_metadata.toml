@@ -72,3 +72,9 @@ id = "Wpzswtm0UsGHvKzGKFx78"
 uri = "file://PMG-OS-Claude-Audit-Report.md"
 type = "text"
 title = "PMG OS Audit Report (for Claude)"
+
+[[outputs]]
+id = "gxv6yQq6qUKf_zCNb22yr"
+uri = "file://PMG-OS-SECTION-PROMPT-TEMPLATE.md"
+type = "text"
+title = "Master Section Prompt Template"
