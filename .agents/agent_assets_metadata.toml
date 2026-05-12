@@ -66,3 +66,9 @@ id = "kfzLy5hYfvou40GC80X6K"
 uri = "file://PMG-OS-Checklist-Detailed.pdf"
 type = "pdf"
 title = "DETAILED Checklist — PDF (260+ items, full HOW IT WORKS + 3 mode descriptions each)"
+
+[[outputs]]
+id = "Wpzswtm0UsGHvKzGKFx78"
+uri = "file://PMG-OS-Claude-Audit-Report.md"
+type = "text"
+title = "PMG OS Audit Report (for Claude)"
