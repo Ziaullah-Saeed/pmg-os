@@ -128,6 +128,51 @@ export function useDisconnectApollo() {
   });
 }
 
+// People search — free preview (no credits, no emails). Fixture vs live is
+// connection-gated server-side; `mode === "fixture"` means labeled sample data.
+export interface ApolloPerson {
+  apolloId: string | null;
+  firstName: string;
+  lastName: string;
+  title: string | null;
+  seniority: string | null;
+  organizationName: string | null;
+  organizationDomain: string | null;
+  industry: string | null;
+  estimatedNumEmployees: number | null;
+  location: string | null;
+  linkedinUrl: string | null;
+  hasEmail: false;
+}
+
+export interface ApolloSearchFilters {
+  titles?: string[];
+  seniorities?: string[];
+  organizationKeywords?: string[];
+  locations?: string[];
+  employeeRanges?: string[];
+  keywords?: string;
+  page?: number;
+  perPage?: number;
+}
+
+export interface ApolloSearchResult {
+  mode: "live" | "fixture";
+  people: ApolloPerson[];
+  pagination: { page: number; perPage: number; totalEntries: number; totalPages: number };
+  fixtureNotice: string | null;
+}
+
+export function useApolloSearch() {
+  return useMutation({
+    mutationFn: (filters: ApolloSearchFilters) =>
+      apiFetch<ApolloSearchResult>("/apollo/search", {
+        method: "POST",
+        body: JSON.stringify(filters),
+      }),
+  });
+}
+
 export function useWalletThresholds() {
   return useQuery({
     queryKey: ["wallet", "thresholds"],

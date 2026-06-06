@@ -15,6 +15,32 @@ import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { useToast } from "@/hooks/use-toast";
 import { AiResultPanel } from "@/components/ai-result-panel";
 import { ModeBadge } from "@/components/mode-badge";
+import { useApolloSearch, useApolloStatus, type ApolloPerson, type ApolloSearchResult } from "@/hooks/use-api";
+
+// Apollo seniority enum (UI labels). Sent verbatim to Apollo `person_seniorities`.
+const APOLLO_SENIORITIES = [
+  { value: "owner", label: "Owner" },
+  { value: "founder", label: "Founder" },
+  { value: "c_suite", label: "C-Suite" },
+  { value: "partner", label: "Partner" },
+  { value: "vp", label: "VP" },
+  { value: "head", label: "Head" },
+  { value: "director", label: "Director" },
+  { value: "manager", label: "Manager" },
+  { value: "senior", label: "Senior" },
+];
+
+// Apollo `organization_num_employees_ranges` buckets (value=lower,upper).
+const APOLLO_HEADCOUNT_RANGES = [
+  { value: "1,10", label: "1–10" },
+  { value: "11,50", label: "11–50" },
+  { value: "51,200", label: "51–200" },
+  { value: "201,500", label: "201–500" },
+  { value: "501,1000", label: "501–1K" },
+  { value: "1001,5000", label: "1K–5K" },
+  { value: "5001,10000", label: "5K–10K" },
+  { value: "10001,1000000", label: "10K+" },
+];
 import {
   Target, Users, CheckCircle2, Send, Sparkles, Plus, Search, Globe,
   Building2, Mail, Phone, Linkedin, ArrowRight, Clock, AlertCircle,
@@ -42,15 +68,26 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
   const { isHuman, isAuto, currentMode } = useAiModeContext();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [aiResult, setAiResult] = useState<any>(null);
   const leadList = (leads ?? []) as any[];
 
   const [showAddLead, setShowAddLead] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedLead, setSelectedLead] = useState<any>(null);
-  const [isProspecting, setIsProspecting] = useState(false);
-  const [savedProspectIds, setSavedProspectIds] = useState<Set<number>>(new Set());
+
+  // --- Apollo prospect search (manual filters → free preview, no credits, no emails) ---
+  const apolloSearch = useApolloSearch();
+  const { data: apolloStatus } = useApolloStatus();
+  const [showFinder, setShowFinder] = useState(false);
+  const [apolloResult, setApolloResult] = useState<ApolloSearchResult | null>(null);
+  const [filters, setFilters] = useState({
+    titles: "",
+    keywords: "",
+    organizationKeywords: "",
+    locations: "",
+    seniorities: [] as string[],
+    employeeRanges: [] as string[],
+  });
 
   const [newLead, setNewLead] = useState({
     firstName: "", lastName: "", email: "", company: "", title: "", phone: "", source: "manual"
@@ -107,79 +144,41 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
     }
   }, [newLead, toast, queryClient]);
 
-  const handleAiProspect = useCallback(async () => {
-    setIsProspecting(true);
-    setAiResult(null);
-    setSavedProspectIds(new Set());
-    try {
-      const res = await fetch(`${API_BASE}/outreach/find-prospects`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ industry: "cybersecurity", region: "USA", companySize: "mid-market", marketingGaps: "not enough qualified leads" }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast({ title: "AI Error", description: data.error || "Request failed", variant: "destructive" });
-        return;
-      }
-      setAiResult(data);
-      toast({ title: "AI Prospecting Complete", description: `Found prospects with ${data.confidence}% confidence` });
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to reach AI", variant: "destructive" });
-    } finally {
-      setIsProspecting(false);
-    }
-  }, [toast, queryClient]);
+  const toggleFilter = useCallback((key: "seniorities" | "employeeRanges", value: string) => {
+    setFilters((f) => ({
+      ...f,
+      [key]: f[key].includes(value) ? f[key].filter((v) => v !== value) : [...f[key], value],
+    }));
+  }, []);
 
-  const handleSaveProspect = useCallback(async (prospect: Record<string, any>, index: number) => {
-    const companyName = prospect.company_name || prospect.companyName || prospect.company || prospect.name || "";
-    const contact = prospect.decision_maker || prospect.contact || prospect.contactName || "";
-    const parts = contact.split(",");
-    const nameParts = (parts[0] || "").trim().split(" ");
-    const firstName = nameParts[0] || companyName.split(" ")[0] || "Contact";
-    const lastName = nameParts.slice(1).join(" ") || "";
-    const email = prospect.email || `${firstName.toLowerCase()}@${companyName.toLowerCase().replace(/\s/g, "")}.com`;
-    const phone = prospect.phone || "";
-    const score = prospect.fit_score || prospect.fitScore || prospect.score || prospect.estimated_fit || 0;
+  const splitCsv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
-    try {
-      const res = await fetch(`${API_BASE}/leads`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          firstName, lastName, email, phone,
-          company: companyName,
-          title: (parts[1] || "").trim() || prospect.industry || "Decision Maker",
-          source: "ai_prospecting", status: "new",
-          confidenceScore: typeof score === "number" ? score : parseInt(score) || 75,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to save");
-      setSavedProspectIds(prev => new Set([...prev, index]));
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      toast({ title: "Lead Saved", description: `${companyName} added to your pipeline` });
-    } catch {
-      toast({ title: "Error", description: "Failed to save prospect", variant: "destructive" });
-    }
-  }, [toast, queryClient]);
-
-  const handleSaveAll = useCallback(async () => {
-    if (!aiResult?.result) return;
-    const items = Array.isArray(aiResult.result) ? aiResult.result : aiResult.result.prospects || aiResult.result.companies || [];
-    let saved = 0;
-    for (let i = 0; i < items.length; i++) {
-      if (!savedProspectIds.has(i)) {
-        try {
-          await handleSaveProspect(items[i], i);
-          saved++;
-        } catch {}
-      }
-    }
-    toast({ title: "Bulk Save Complete", description: `${saved} prospects saved to CRM pipeline` });
-  }, [aiResult, savedProspectIds, handleSaveProspect, toast]);
+  const runApolloSearch = useCallback((page = 1) => {
+    apolloSearch.mutate(
+      {
+        titles: splitCsv(filters.titles),
+        organizationKeywords: splitCsv(filters.organizationKeywords),
+        locations: splitCsv(filters.locations),
+        seniorities: filters.seniorities,
+        employeeRanges: filters.employeeRanges,
+        keywords: filters.keywords.trim() || undefined,
+        page,
+        perPage: 25,
+      },
+      {
+        onSuccess: (data) => {
+          setApolloResult(data);
+          if (data.people.length === 0) {
+            toast({ title: "No prospects found", description: "Try broadening your filters." });
+          }
+        },
+        // Surface the real failure — never toast success on error (anti-pattern guard).
+        onError: (err: any) => {
+          toast({ title: "Apollo search failed", description: err?.message || "Request failed", variant: "destructive" });
+        },
+      },
+    );
+  }, [filters, apolloSearch, toast]);
 
   const handleMoveToCrm = useCallback(async (leadId: number) => {
     try {
@@ -201,8 +200,8 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
     }
   }, [toast, queryClient]);
 
-  const rawResult = aiResult?.data || aiResult?.result;
-  const aiProspects = rawResult ? (Array.isArray(rawResult) ? rawResult : rawResult.prospects || rawResult.companies || []) : [];
+  const apolloPeople = apolloResult?.people ?? [];
+  const isFixture = apolloResult?.mode === "fixture" || apolloStatus?.mode === "fixture";
 
   return (
     <div className="space-y-6">
@@ -227,101 +226,181 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
           <Button className="btn-premium text-white text-sm" onClick={() => setShowAddLead(true)}>
             <Plus className="h-4 w-4 mr-2" />{isHuman ? "Enter Prospect" : "Add Lead"}
           </Button>
-          {!isHuman && (
-            <Button className="btn-glass text-foreground text-sm" onClick={handleAiProspect} disabled={isProspecting}>
-              {isProspecting ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-              {isAuto ? "AI Prospect" : "Find with AI"}
-            </Button>
-          )}
-          {isHuman && (
-            <Button variant="outline" className="text-sm" onClick={() => setShowAddLead(true)}>
-              <Search className="h-4 w-4 mr-2" />Research Company
-            </Button>
-          )}
+          <Button className="btn-glass text-foreground text-sm" onClick={() => setShowFinder((s) => !s)}>
+            <Search className="h-4 w-4 mr-2" />Find Prospects
+            {isFixture && <Badge variant="outline" className="ml-2 text-[9px] border-gold/40 text-gold">Sample</Badge>}
+          </Button>
         </div>
       </div>
 
-      {currentMode !== "human" && (
-        <div className="flex items-center gap-1.5 px-1">
-          <Bot className="h-3 w-3 text-crimson/70" />
-          <span className="text-[10px] text-muted-foreground">
-            {isAuto ? "AI auto-discovers and scores prospects — results save directly to pipeline" : "AI finds prospects — you review and approve before saving"}
-          </span>
-        </div>
-      )}
+      <div className="flex items-center gap-1.5 px-1">
+        <Globe className="h-3 w-3 text-crimson/70" />
+        <span className="text-[10px] text-muted-foreground">
+          {apolloStatus?.mode === "live"
+            ? "Apollo connected — searches pull live prospect data (free; emails revealed only on import)."
+            : "Apollo not connected — Prospect Finder returns labeled sample data. Add your key in Settings → API Keys to go live."}
+        </span>
+      </div>
 
-      {aiProspects.length > 0 && (
+      {showFinder && (
         <GlassCard>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-gold" />
-              <h3 className="text-sm font-semibold">AI-Discovered Prospects</h3>
-              <Badge variant="outline" className="text-[10px]">{aiProspects.length} found</Badge>
+              <Search className="h-4 w-4 text-crimson" />
+              <h3 className="text-sm font-semibold">Find Prospects (Apollo)</h3>
+              {isFixture && <Badge variant="outline" className="text-[9px] border-gold/40 text-gold">Sample mode</Badge>}
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" className="btn-premium text-white text-xs h-7" onClick={handleSaveAll}>
-                <Bookmark className="h-3 w-3 mr-1" />Save All to CRM
-              </Button>
-              <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setAiResult(null)}>
-                <X className="h-3 w-3" />
-              </Button>
+            <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setShowFinder(false)}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs">Job Titles</Label>
+              <Input value={filters.titles} onChange={(e) => setFilters({ ...filters, titles: e.target.value })} placeholder="VP Marketing, CMO, Demand Gen" className="mt-1" />
+              <p className="text-[9px] text-muted-foreground mt-0.5">Comma-separated. Matches Apollo person titles.</p>
+            </div>
+            <div>
+              <Label className="text-xs">Industry / Keyword Tags</Label>
+              <Input value={filters.organizationKeywords} onChange={(e) => setFilters({ ...filters, organizationKeywords: e.target.value })} placeholder="cybersecurity, MSSP, EDR" className="mt-1" />
+              <p className="text-[9px] text-muted-foreground mt-0.5">Comma-separated organization keywords.</p>
+            </div>
+            <div>
+              <Label className="text-xs">Locations</Label>
+              <Input value={filters.locations} onChange={(e) => setFilters({ ...filters, locations: e.target.value })} placeholder="United States, California" className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">Free-text Keyword</Label>
+              <Input value={filters.keywords} onChange={(e) => setFilters({ ...filters, keywords: e.target.value })} placeholder="threat intelligence" className="mt-1" />
             </div>
           </div>
-          <div className="space-y-2">
-            {aiProspects.map((p: any, i: number) => {
-              const name = p.company_name || p.companyName || p.company || p.name || "Unknown";
-              const score = p.fit_score || p.fitScore || p.score || p.estimated_fit || "--";
-              const access = p.accessibility_score || p.accessibilityScore || p.accessibility || "--";
-              const contact = p.decision_maker || p.contact || p.contactName || "Contact TBD";
-              const isSaved = savedProspectIds.has(i);
-              return (
-                <div key={i} className="p-3 rounded-lg glass-surface flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-crimson/10 border border-crimson/20 flex items-center justify-center text-crimson text-sm font-bold shrink-0">
-                    {name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{contact}</p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <div className="text-center">
-                      <p className="text-xs font-bold text-crimson">{score}</p>
-                      <p className="text-[8px] text-muted-foreground">Fit</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs font-bold text-blue-400">{access}</p>
-                      <p className="text-[8px] text-muted-foreground">Access</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      disabled={isSaved}
-                      className={isSaved ? "text-xs h-7 bg-muted text-muted-foreground" : "btn-premium text-white text-xs h-7"}
-                      onClick={() => handleSaveProspect(p, i)}
-                    >
-                      {isSaved ? (
-                        <><CheckCircle2 className="h-3 w-3 mr-1" />Saved</>
-                      ) : (
-                        <><Bookmark className="h-3 w-3 mr-1" />Save as Lead</>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
+
+          <div className="mt-4">
+            <Label className="text-xs">Seniority</Label>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {APOLLO_SENIORITIES.map((s) => {
+                const on = filters.seniorities.includes(s.value);
+                return (
+                  <button key={s.value} type="button" onClick={() => toggleFilter("seniorities", s.value)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] border transition-colors ${on ? "bg-crimson/20 border-crimson/40 text-crimson" : "border-border/50 text-muted-foreground hover:border-crimson/30"}`}>
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <Label className="text-xs">Company Headcount</Label>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {APOLLO_HEADCOUNT_RANGES.map((r) => {
+                const on = filters.employeeRanges.includes(r.value);
+                return (
+                  <button key={r.value} type="button" onClick={() => toggleFilter("employeeRanges", r.value)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] border transition-colors ${on ? "bg-crimson/20 border-crimson/40 text-crimson" : "border-border/50 text-muted-foreground hover:border-crimson/30"}`}>
+                    {r.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="ghost" className="text-xs"
+              onClick={() => setFilters({ titles: "", keywords: "", organizationKeywords: "", locations: "", seniorities: [], employeeRanges: [] })}>
+              Reset
+            </Button>
+            <Button className="btn-premium text-white text-sm" onClick={() => runApolloSearch(1)} disabled={apolloSearch.isPending}>
+              {apolloSearch.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+              Search Prospects
+            </Button>
           </div>
         </GlassCard>
       )}
 
-      {aiResult && aiProspects.length === 0 && rawResult && (
-        <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="AI Prospects Found" onSaveProspect={(p: any) => handleSaveProspect(p, 0)} />
+      {apolloResult && (
+        <GlassCard>
+          {isFixture && apolloResult.fixtureNotice && (
+            <div className="flex items-start gap-2 mb-4 p-2.5 rounded-lg bg-gold/10 border border-gold/30">
+              <AlertCircle className="h-4 w-4 text-gold shrink-0 mt-0.5" />
+              <p className="text-[11px] text-gold/90">{apolloResult.fixtureNotice}</p>
+            </div>
+          )}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-crimson" />
+              <h3 className="text-sm font-semibold">{isFixture ? "Sample Prospects" : "Apollo Results"}</h3>
+              <Badge variant="outline" className="text-[10px]">{apolloResult.pagination.totalEntries.toLocaleString()} matches</Badge>
+            </div>
+            <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setApolloResult(null)}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+
+          {apolloPeople.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">No prospects matched these filters. Broaden your criteria.</p>
+          ) : (
+            <div className="space-y-2">
+              {apolloPeople.map((p: ApolloPerson, i: number) => {
+                const fullName = `${p.firstName} ${p.lastName}`.trim() || "Unknown";
+                const initials = `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}` || "?";
+                return (
+                  <div key={p.apolloId ?? i} className="p-3 rounded-lg glass-surface flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-crimson/10 border border-crimson/20 flex items-center justify-center text-crimson text-sm font-bold shrink-0">
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium truncate">{fullName}</p>
+                        {p.linkedinUrl && (
+                          <a href={p.linkedinUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground hover:text-blue-400 shrink-0">
+                            <Linkedin className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {p.title ?? "—"}{p.organizationName ? ` · ${p.organizationName}` : ""}
+                      </p>
+                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
+                        {p.industry && <span className="flex items-center gap-1 truncate"><Building2 className="h-3 w-3" />{p.industry}</span>}
+                        {p.estimatedNumEmployees != null && <span className="flex items-center gap-1"><Users className="h-3 w-3" />{p.estimatedNumEmployees.toLocaleString()}</span>}
+                        {p.location && <span className="flex items-center gap-1 truncate"><Globe className="h-3 w-3" />{p.location}</span>}
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      <Badge variant="outline" className="text-[9px] text-muted-foreground border-border/50">
+                        <Mail className="h-2.5 w-2.5 mr-1" />Email on import
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {apolloResult.pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-[10px] text-muted-foreground">Page {apolloResult.pagination.page} of {apolloResult.pagination.totalPages}</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="text-xs h-7" disabled={apolloResult.pagination.page <= 1 || apolloSearch.isPending} onClick={() => runApolloSearch(apolloResult.pagination.page - 1)}>Prev</Button>
+                <Button size="sm" variant="outline" className="text-xs h-7" disabled={apolloResult.pagination.page >= apolloResult.pagination.totalPages || apolloSearch.isPending} onClick={() => runApolloSearch(apolloResult.pagination.page + 1)}>Next</Button>
+              </div>
+            </div>
+          )}
+
+          <p className="text-[10px] text-muted-foreground mt-3 flex items-center gap-1">
+            <AlertCircle className="h-3 w-3 shrink-0" />
+            Search is free and never reveals emails. One-click import &amp; enrichment (which spends Apollo credits) arrives next.
+          </p>
+        </GlassCard>
       )}
 
-      {filtered.length === 0 && aiProspects.length === 0 ? (
+      {filtered.length === 0 ? (
         <GlassCard className="text-center py-12">
           <Target className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
           <h3 className="text-sm font-semibold mb-2">No Prospects Yet</h3>
           <p className="text-xs text-muted-foreground mb-4 max-w-md mx-auto">
-            Start building your pipeline. {isHuman ? "Enter prospects manually." : "Add leads manually or let AI find cybersecurity companies."}
+            Start building your pipeline. Add leads manually, or use <span className="text-foreground">Find Prospects</span> to search cybersecurity companies via Apollo.
           </p>
         </GlassCard>
       ) : (
