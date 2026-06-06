@@ -51,6 +51,7 @@ import channelHealthRouter from "./channel-health";
 import jobQueueRouter from "./job-queue";
 import channelsRouter from "./channels";
 import guideEndpointsRouter from "./guide-endpoints";
+import apolloRouter from "./apollo";
 import { processInboundWebhook } from "../services/integration-hub-service";
 
 const router: IRouter = Router();
@@ -137,6 +138,7 @@ router.use("/sequence-enrollments", sequenceEnrollmentsRouter);
 router.use(pendingActionsRouter);
 router.use(brandKitsRouter);
 router.use(integrationHubRouter);
+router.use(apolloRouter);
 router.use(reportingKnowledgeRouter);
 router.use(testingRouter);
 router.use(channelHealthRouter);

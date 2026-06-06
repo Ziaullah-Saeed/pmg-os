@@ -68,6 +68,66 @@ export function useWalletLedger(params?: { limit?: number; domain?: string; tool
   });
 }
 
+// --- Apollo (lead-generation data layer) ---
+export interface ApolloStatus {
+  provider: string;
+  mode: "live" | "fixture";
+  connected: boolean;
+  integrationId: number | null;
+  lastVerifiedAt: string | null;
+  lastStatus: string | null;
+  lastError: string | null;
+  fixtureNotice: string | null;
+}
+
+export interface ApolloTestResult {
+  mode: "live" | "fixture";
+  connected: boolean;
+  healthy?: boolean;
+  isLoggedIn?: boolean;
+  message: string;
+  code?: string;
+}
+
+export function useApolloStatus() {
+  return useQuery({
+    queryKey: ["apollo", "status"],
+    queryFn: () => apiFetch<ApolloStatus>("/apollo/status"),
+  });
+}
+
+export function useTestApollo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<ApolloTestResult>("/apollo/test", { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["apollo"] }),
+  });
+}
+
+export function useConnectApollo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (apiKey: string) =>
+      apiFetch<{ success: boolean; integrationId?: number }>("/integration-hub/connect-api-key", {
+        method: "POST",
+        body: JSON.stringify({ provider: "apollo", apiKey }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["apollo"] }),
+  });
+}
+
+export function useDisconnectApollo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<{ success: boolean }>("/integration-hub/disconnect", {
+        method: "POST",
+        body: JSON.stringify({ provider: "apollo" }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["apollo"] }),
+  });
+}
+
 export function useWalletThresholds() {
   return useQuery({
     queryKey: ["wallet", "thresholds"],

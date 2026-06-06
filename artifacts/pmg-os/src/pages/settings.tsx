@@ -17,6 +17,8 @@ import {
   Building2, Bell, Activity, FileText, Lock, Scale, Eye,
   AlertTriangle, Database, Cpu, Server, Clock, Palette
 } from "lucide-react";
+import { useApolloStatus, useTestApollo, useConnectApollo, useDisconnectApollo } from "@/hooks/use-api";
+import { useToast } from "@/hooks/use-toast";
 
 const tabs = [
   { id: "general", label: "General", icon: <Building2 className="h-3.5 w-3.5" /> },
@@ -374,6 +376,123 @@ function IntegrationsTab() {
   );
 }
 
+function ApolloConnectionCard() {
+  const { toast } = useToast();
+  const { data: status, isLoading } = useApolloStatus();
+  const connectApollo = useConnectApollo();
+  const testApollo = useTestApollo();
+  const disconnectApollo = useDisconnectApollo();
+  const [apiKey, setApiKey] = useState("");
+
+  const connected = status?.connected ?? false;
+  const busy = connectApollo.isPending || testApollo.isPending || disconnectApollo.isPending;
+
+  const runTest = async () => {
+    try {
+      const result = await testApollo.mutateAsync();
+      if (result.connected) {
+        toast({ title: "Apollo connected", description: result.message });
+      } else {
+        toast({ title: "Apollo not verified", description: result.message, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Apollo test failed", description: err.message ?? "Unknown error", variant: "destructive" });
+    }
+  };
+
+  const handleConnect = async () => {
+    if (!apiKey.trim()) return;
+    try {
+      await connectApollo.mutateAsync(apiKey.trim());
+      setApiKey("");
+      await runTest();
+    } catch (err: any) {
+      toast({ title: "Could not save Apollo key", description: err.message ?? "Unknown error", variant: "destructive" });
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnectApollo.mutateAsync();
+      toast({ title: "Apollo disconnected", description: "Prospect Finder is back on sample data." });
+    } catch (err: any) {
+      toast({ title: "Disconnect failed", description: err.message ?? "Unknown error", variant: "destructive" });
+    }
+  };
+
+  return (
+    <GlassCard>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-crimson/80 to-crimson/40 flex items-center justify-center text-white shrink-0">
+            <Database className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium">Apollo.io</p>
+              {connected ? (
+                <Badge variant="outline" className="text-[10px] border-success/40 text-success">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />Connected
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-[10px] border-gold/40 text-gold">
+                  <AlertTriangle className="h-3 w-3 mr-1" />Sample data
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Lead-generation data layer — prospect search &amp; email/phone enrichment.
+            </p>
+          </div>
+        </div>
+        {connected && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="text-xs" onClick={runTest} disabled={busy}>
+              {testApollo.isPending ? "Testing…" : "Test Connection"}
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs text-crimson border-crimson/30" onClick={handleDisconnect} disabled={busy}>
+              Disconnect
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {!isLoading && !connected && (
+        <div className="mt-4 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            {status?.fixtureNotice ?? "Apollo is not connected — Prospect Finder shows labeled sample data. Add your master API key to go live."}
+          </p>
+          <div className="flex items-center gap-2">
+            <Input
+              type="password"
+              autoComplete="off"
+              placeholder="Apollo master API key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="bg-white/5 border-white/10 text-sm"
+            />
+            <Button size="sm" className="text-xs shrink-0" onClick={handleConnect} disabled={busy || !apiKey.trim()}>
+              <Key className="h-3 w-3 mr-1" />{connectApollo.isPending ? "Saving…" : "Connect"}
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Create a master key in Apollo → Settings → API Keys. Search is free; only enrichment/reveal consumes credits.
+          </p>
+        </div>
+      )}
+
+      {connected && (
+        <div className="mt-3 text-xs text-muted-foreground space-y-1">
+          {status?.lastVerifiedAt && (
+            <p>Last verified: {new Date(status.lastVerifiedAt).toLocaleString()}{status.lastStatus ? ` · ${status.lastStatus}` : ""}</p>
+          )}
+          {status?.lastError && <p className="text-crimson">Last error: {status.lastError}</p>}
+        </div>
+      )}
+    </GlassCard>
+  );
+}
+
 function ApiKeysTab() {
   const keys = [
     { service: "Claude (Anthropic)", status: "required", purpose: "Primary AI — all text generation, analysis, recommendations", cost: "~$50/mo" },
@@ -389,6 +508,13 @@ function ApiKeysTab() {
       <div>
         <h3 className="text-sm font-semibold mb-1">API Key Management</h3>
         <p className="text-xs text-muted-foreground mb-4">All keys are encrypted and stored securely. Monthly costs are estimates based on typical usage.</p>
+      </div>
+
+      <ApolloConnectionCard />
+
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-2 mb-1">Planned keys</h4>
+        <p className="text-[10px] text-muted-foreground mb-3">Reference list — not yet wired to live connections.</p>
       </div>
       <div className="space-y-3">
         {keys.map((k) => (
