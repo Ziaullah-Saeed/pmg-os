@@ -78,6 +78,9 @@ export interface ApolloStatus {
   lastStatus: string | null;
   lastError: string | null;
   fixtureNotice: string | null;
+  creditsThisMonth: number;
+  monthlyCap: number;
+  creditsRemaining: number;
 }
 
 export interface ApolloTestResult {
@@ -216,7 +219,10 @@ export function useApolloEnrich() {
         method: "POST",
         body: JSON.stringify({ contactIds }),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/leads"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/leads"] });
+      qc.invalidateQueries({ queryKey: ["apollo"] }); // refresh credit-usage counter
+    },
   });
 }
 
@@ -1929,15 +1935,6 @@ export function useUserAuditLog(filters?: { userId?: number; limit?: number }) {
 
 export function useRoleDefaults(role: string) {
   return useQuery({ queryKey: ["role-defaults", role], queryFn: () => apiFetch<any>(`/users/role-defaults/${role}`) });
-}
-
-export function useAiFindProspects() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { industry?: string; region?: string; companySize?: string; marketingGaps?: string }) =>
-      apiFetch<any>("/outreach/find-prospects", { method: "POST", body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
-  });
 }
 
 export function useAiMonitorChannels() {

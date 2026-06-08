@@ -533,6 +533,16 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
               : "Search is free. Import creates leads (no email); Reveal email enriches via Apollo and spends ~1 credit per contact."}
           </p>
 
+          {apolloStatus?.mode === "live" && (
+            <p className="text-[10px] mt-1.5 flex items-center gap-1">
+              <Zap className="h-3 w-3 shrink-0 text-gold" />
+              <span className={apolloStatus.creditsRemaining <= 0 ? "text-crimson" : "text-muted-foreground"}>
+                Apollo credits this month: {apolloStatus.creditsThisMonth.toLocaleString()} / {apolloStatus.monthlyCap.toLocaleString()} ({apolloStatus.creditsRemaining.toLocaleString()} left)
+                {apolloStatus.creditsRemaining <= 0 ? " — cap reached, enrichment paused until next month" : ""}
+              </span>
+            </p>
+          )}
+
           {importedCount > 0 && (
             <div className="mt-3 flex flex-col gap-2 rounded-lg border border-crimson/15 bg-crimson/5 p-2.5 sm:flex-row sm:items-center">
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -780,7 +790,7 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
         body: JSON.stringify({
           firstName: nameParts[0] || "Contact",
           lastName: nameParts.slice(1).join(" ") || "",
-          email: msg.channel === "Email" ? `${nameParts[0]?.toLowerCase()}@${msg.company?.toLowerCase().replace(/\s/g, "")}.com` : "",
+          email: msg.email || "",
           company: msg.company,
           title: (msg.from || "").split(",")[1]?.trim() || "",
           source: msg.channel.toLowerCase(),

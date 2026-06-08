@@ -4,6 +4,8 @@ import {
   apolloRequest,
   getApolloApiKey,
   getApolloMode,
+  assertCreditBudget,
+  recordCreditSpend,
   APOLLO_ENDPOINTS,
   type ApolloMode,
   type NormalizedPerson,
@@ -257,6 +259,9 @@ export async function enrichContacts(contactIds: number[]): Promise<ApolloEnrich
     return { mode: "fixture", enriched, creditsSpent: 0 };
   }
 
+  // Soft monthly cap — blocks once this month's spend has hit the cap.
+  await assertCreditBudget();
+
   // Live: Apollo bulk_match, ≤10 per call, reveal personal emails (~1 credit each).
   let creditsSpent = 0;
   for (const group of chunk(rows, 10)) {
@@ -284,6 +289,8 @@ export async function enrichContacts(contactIds: number[]): Promise<ApolloEnrich
       enriched.push({ contactId: group[i].id, email, contactStatus });
     }
   }
+
+  if (creditsSpent > 0) await recordCreditSpend(creditsSpent, "enrich", { contacts: rows.length });
 
   return { mode: "live", enriched, creditsSpent };
 }

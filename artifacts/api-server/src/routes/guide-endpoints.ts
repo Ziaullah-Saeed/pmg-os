@@ -15,31 +15,20 @@ function handleErr(err: any, res: any): void {
 async function logActivity(type: string, actor: string, target: string, details: any) {
   try {
     await db.insert(activitiesTable).values({
-      type: "ai_action",
       action: type,
+      description: `${actor} → ${target}`,
       entityType: target,
       entityId: 0,
-      userId: 0,
-      details: JSON.stringify({ actor, target, ...details }),
+      performedBy: actor,
+      metadata: JSON.stringify({ actor, target, ...details }),
     });
   } catch {}
 }
 
-router.post("/outreach/find-prospects", async (req, res) => {
-  try {
-    const { industry, region, companySize, marketingGaps } = req.body;
-    const { result, confidence, runId } = await callAI({
-      systemPrompt: `You are a B2B prospect intelligence AI for PMG Group LLC, a digital marketing agency serving exclusively cybersecurity/IT companies. Find companies that need marketing help. Return a JSON array of prospects with: company_name, industry, estimated_size, decision_maker, pain_points, fit_score (0-100). Focus on companies struggling with lead generation.`,
-      userPrompt: `Find cybersecurity/IT companies matching: Industry: ${industry || "cybersecurity"}, Region: ${region || "USA"}, Size: ${companySize || "mid-market"}, Marketing gaps: ${marketingGaps || "not enough leads"}. Return 10-15 qualified prospects as JSON.`,
-      workflowKey: "outreach_prospecting",
-      tool: "ai-find-prospects",
-      domain: "outreach",
-      action: "find_prospects",
-    });
-    await logActivity("prospect_search", "system", "outreach", { industry, count: 10 });
-    res.json({ status: "success", section: "outreach", agent: "prospect-intelligence", data: result, confidence, runId });
-  } catch (err: any) { handleErr(err, res); }
-});
+// NOTE: `POST /outreach/find-prospects` (LLM "prospecting") was removed in the
+// Apollo migration — real lead-gen is `POST /apollo/search` + `/apollo/import`.
+// Presenting LLM-invented companies as prospects was the hallucinated-integration
+// anti-pattern this integration exists to kill.
 
 router.post("/outreach/monitor-channels", async (req, res) => {
   try {

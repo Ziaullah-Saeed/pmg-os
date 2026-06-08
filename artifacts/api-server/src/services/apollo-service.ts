@@ -1,5 +1,5 @@
-import { db, integrationsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, integrationsTable, syncLogsTable } from "@workspace/db";
+import { eq, and, gte, sql } from "drizzle-orm";
 
 /**
  * Apollo.io data-layer client (lead generation: search + enrichment).
@@ -178,6 +178,83 @@ export async function apolloRequest<T>(params: {
 }
 
 // ---------------------------------------------------------------------------
+// Credit-usage governance (soft monthly cap; durable in sync_logs)
+// ---------------------------------------------------------------------------
+
+/** Soft monthly Apollo credit cap. Env-overridable. Once month-to-date enrich
+ *  spend hits this, live enrichment is blocked until next month (search stays
+ *  free). Default 2,500 ≈ Apollo Basic's monthly allotment. */
+export const APOLLO_MONTHLY_CREDIT_CAP = (() => {
+  const n = Number(process.env.APOLLO_MONTHLY_CREDIT_CAP);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 2500;
+})();
+
+const CREDIT_LOG_ENTITY = "apollo_credits";
+
+function monthStart(d = new Date()): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+export interface ApolloCreditUsage {
+  used: number;
+  cap: number;
+  remaining: number;
+  monthKey: string;
+}
+
+/** Month-to-date credit spend, summed from sync_logs (survives restarts). */
+export async function getMonthlyCreditUsage(): Promise<ApolloCreditUsage> {
+  const start = monthStart();
+  const [row] = await db
+    .select({ used: sql<number>`COALESCE(SUM((${syncLogsTable.payload} ->> 'creditsSpent')::int), 0)` })
+    .from(syncLogsTable)
+    .where(
+      and(
+        eq(syncLogsTable.integrationId, APOLLO_PROVIDER),
+        eq(syncLogsTable.entityType, CREDIT_LOG_ENTITY),
+        gte(syncLogsTable.createdAt, start),
+      ),
+    );
+  const used = Number(row?.used ?? 0);
+  const cap = APOLLO_MONTHLY_CREDIT_CAP;
+  return {
+    used,
+    cap,
+    remaining: Math.max(0, cap - used),
+    monthKey: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}`,
+  };
+}
+
+/** Record credit spend to sync_logs (queryable audit trail). No-op for 0. */
+export async function recordCreditSpend(
+  creditsSpent: number,
+  action: string,
+  detail?: Record<string, unknown>,
+): Promise<void> {
+  if (!Number.isFinite(creditsSpent) || creditsSpent <= 0) return;
+  await db.insert(syncLogsTable).values({
+    integrationId: APOLLO_PROVIDER,
+    direction: "outbound",
+    entityType: CREDIT_LOG_ENTITY,
+    status: "completed",
+    payload: { creditsSpent, action, ...(detail ?? {}) },
+  });
+}
+
+/** Soft-cap guard — throws ApolloError(402) when this month's spend has already
+ *  reached the cap. Lets an in-flight batch finish, blocks the next attempt. */
+export async function assertCreditBudget(): Promise<void> {
+  const usage = await getMonthlyCreditUsage();
+  if (usage.used >= usage.cap) {
+    throw new ApolloError(
+      `Apollo monthly credit cap reached (${usage.used}/${usage.cap} this month). Raise APOLLO_MONTHLY_CREDIT_CAP or wait until next month.`,
+      402,
+      "monthly_cap",
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Status + connection test
 // ---------------------------------------------------------------------------
 
@@ -190,12 +267,16 @@ export interface ApolloStatus {
   lastStatus: string | null;
   lastError: string | null;
   fixtureNotice: string | null;
+  creditsThisMonth: number;
+  monthlyCap: number;
+  creditsRemaining: number;
 }
 
 /** Lightweight status — DB only, no external Apollo call. */
 export async function getApolloStatus(): Promise<ApolloStatus> {
   const row = await getApolloIntegration();
   const mode = await getApolloMode();
+  const usage = await getMonthlyCreditUsage();
   return {
     provider: APOLLO_PROVIDER,
     mode,
@@ -208,6 +289,9 @@ export async function getApolloStatus(): Promise<ApolloStatus> {
       mode === "fixture"
         ? "Apollo is not connected — Prospect Finder shows labeled sample data. Connect your API key to pull real prospects."
         : null,
+    creditsThisMonth: usage.used,
+    monthlyCap: usage.cap,
+    creditsRemaining: usage.remaining,
   };
 }
 
