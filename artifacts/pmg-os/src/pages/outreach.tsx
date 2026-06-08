@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useListLeads, useListCompanies } from "@workspace/api-client-react";
+import { useListLeads, useListCompanies, useListOutreachSequences } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -15,7 +15,7 @@ import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { useToast } from "@/hooks/use-toast";
 import { AiResultPanel } from "@/components/ai-result-panel";
 import { ModeBadge } from "@/components/mode-badge";
-import { useApolloSearch, useApolloStatus, type ApolloPerson, type ApolloSearchResult } from "@/hooks/use-api";
+import { useApolloSearch, useApolloStatus, useApolloImport, useApolloEnrich, useApolloEnroll, type ApolloPerson, type ApolloSearchResult } from "@/hooks/use-api";
 
 // Apollo seniority enum (UI labels). Sent verbatim to Apollo `person_seniorities`.
 const APOLLO_SENIORITIES = [
@@ -77,9 +77,18 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
 
   // --- Apollo prospect search (manual filters → free preview, no credits, no emails) ---
   const apolloSearch = useApolloSearch();
+  const apolloImport = useApolloImport();
+  const apolloEnrich = useApolloEnrich();
+  const apolloEnroll = useApolloEnroll();
   const { data: apolloStatus } = useApolloStatus();
+  const { data: sequences } = useListOutreachSequences({ status: "active" });
+  const activeSequences = (sequences ?? []) as any[];
   const [showFinder, setShowFinder] = useState(false);
   const [apolloResult, setApolloResult] = useState<ApolloSearchResult | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedSequenceId, setSelectedSequenceId] = useState("");
+  // apolloId → result of import (so rows can show imported / reveal-email / enroll state)
+  const [importedMap, setImportedMap] = useState<Record<string, { contactId: number; leadId: number; email: string | null; contactStatus: string }>>({});
   const [filters, setFilters] = useState({
     titles: "",
     keywords: "",
@@ -168,6 +177,8 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
       {
         onSuccess: (data) => {
           setApolloResult(data);
+          setSelectedIds(new Set());
+          setImportedMap({});
           if (data.people.length === 0) {
             toast({ title: "No prospects found", description: "Try broadening your filters." });
           }
@@ -179,6 +190,78 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
       },
     );
   }, [filters, apolloSearch, toast]);
+
+  const toggleSelect = useCallback((apolloId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(apolloId)) next.delete(apolloId);
+      else next.add(apolloId);
+      return next;
+    });
+  }, []);
+
+  const handleImportSelected = useCallback(() => {
+    const people = (apolloResult?.people ?? []).filter(
+      (p) => p.apolloId && selectedIds.has(p.apolloId) && !importedMap[p.apolloId],
+    );
+    if (people.length === 0) return;
+    apolloImport.mutate(people, {
+      onSuccess: (data) => {
+        setImportedMap((prev) => {
+          const next = { ...prev };
+          for (const row of data.imported) {
+            if (row.apolloId) next[row.apolloId] = { contactId: row.contactId, leadId: row.leadId, email: row.email, contactStatus: row.contactStatus };
+          }
+          return next;
+        });
+        setSelectedIds(new Set());
+        const skipped = data.skipped.length ? `, ${data.skipped.length} skipped` : "";
+        toast({ title: "Imported to pipeline", description: `${data.imported.length} lead${data.imported.length === 1 ? "" : "s"} created${skipped}.` });
+      },
+      onError: (err: any) => {
+        toast({ title: "Import failed", description: err?.message || "Request failed", variant: "destructive" });
+      },
+    });
+  }, [apolloResult, selectedIds, importedMap, apolloImport, toast]);
+
+  const handleRevealEmail = useCallback((apolloId: string, contactId: number) => {
+    apolloEnrich.mutate([contactId], {
+      onSuccess: (data) => {
+        const row = data.enriched.find((e) => e.contactId === contactId);
+        setImportedMap((prev) => ({
+          ...prev,
+          [apolloId]: { ...prev[apolloId], contactId, email: row?.email ?? null, contactStatus: row?.contactStatus ?? "missing_contact" },
+        }));
+        toast(
+          row?.email
+            ? { title: data.mode === "fixture" ? "Sample email filled" : "Email revealed", description: row.email }
+            : { title: "No email found", description: "Apollo could not reveal an email for this contact.", variant: "destructive" },
+        );
+      },
+      onError: (err: any) => {
+        toast({ title: "Enrich failed", description: err?.message || "Request failed", variant: "destructive" });
+      },
+    });
+  }, [apolloEnrich, toast]);
+
+  const handleEnroll = useCallback(() => {
+    const leadIds = Object.values(importedMap).filter((v) => v.email && v.leadId).map((v) => v.leadId);
+    const sequenceId = Number(selectedSequenceId);
+    if (leadIds.length === 0 || !Number.isFinite(sequenceId)) return;
+    apolloEnroll.mutate(
+      { leadIds, sequenceId },
+      {
+        onSuccess: (data) => {
+          const skipped = data.skipped.length ? `, ${data.skipped.length} skipped (no email / already enrolled)` : "";
+          toast({ title: "Enrolled in sequence", description: `${data.enrolled.length} lead${data.enrolled.length === 1 ? "" : "s"} enrolled${skipped}.` });
+        },
+        // Surface the real failure — never toast success on error (anti-pattern guard).
+        onError: (err: any) => {
+          toast({ title: "Enroll failed", description: err?.message || "Request failed", variant: "destructive" });
+        },
+      },
+    );
+  }, [importedMap, selectedSequenceId, apolloEnroll, toast]);
 
   const handleMoveToCrm = useCallback(async (leadId: number) => {
     try {
@@ -202,6 +285,11 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
 
   const apolloPeople = apolloResult?.people ?? [];
   const isFixture = apolloResult?.mode === "fixture" || apolloStatus?.mode === "fixture";
+  const selectableIds = apolloPeople.map((p) => p.apolloId).filter((id): id is string => !!id && !importedMap[id]);
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
+  const selectedCount = selectableIds.filter((id) => selectedIds.has(id)).length;
+  const importedCount = Object.keys(importedMap).length;
+  const enrollableCount = Object.values(importedMap).filter((v) => v.email && v.leadId).length;
 
   return (
     <div className="space-y-6">
@@ -326,56 +414,106 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
               <p className="text-[11px] text-gold/90">{apolloResult.fixtureNotice}</p>
             </div>
           )}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-crimson" />
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Users className="h-4 w-4 text-crimson shrink-0" />
               <h3 className="text-sm font-semibold">{isFixture ? "Sample Prospects" : "Apollo Results"}</h3>
               <Badge variant="outline" className="text-[10px]">{apolloResult.pagination.totalEntries.toLocaleString()} matches</Badge>
             </div>
-            <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setApolloResult(null)}>
-              <X className="h-3 w-3" />
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              {selectedCount > 0 && (
+                <Button size="sm" className="btn-premium text-white text-xs h-7" onClick={handleImportSelected} disabled={apolloImport.isPending}>
+                  {apolloImport.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Bookmark className="h-3 w-3 mr-1" />}
+                  Import {selectedCount}
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setApolloResult(null)}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
 
           {apolloPeople.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-6">No prospects matched these filters. Broaden your criteria.</p>
           ) : (
-            <div className="space-y-2">
-              {apolloPeople.map((p: ApolloPerson, i: number) => {
-                const fullName = `${p.firstName} ${p.lastName}`.trim() || "Unknown";
-                const initials = `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}` || "?";
-                return (
-                  <div key={p.apolloId ?? i} className="p-3 rounded-lg glass-surface flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-crimson/10 border border-crimson/20 flex items-center justify-center text-crimson text-sm font-bold shrink-0">
-                      {initials}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium truncate">{fullName}</p>
-                        {p.linkedinUrl && (
-                          <a href={p.linkedinUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground hover:text-blue-400 shrink-0">
-                            <Linkedin className="h-3 w-3" />
-                          </a>
+            <>
+              {selectableIds.length > 0 && (
+                <label className="flex items-center gap-2 mb-2 px-1 cursor-pointer w-fit">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 accent-crimson cursor-pointer"
+                    checked={allSelected}
+                    onChange={() => setSelectedIds((prev) => (selectableIds.every((id) => prev.has(id)) ? new Set() : new Set(selectableIds)))}
+                  />
+                  <span className="text-[10px] text-muted-foreground">Select all on this page</span>
+                </label>
+              )}
+              <div className="space-y-2">
+                {apolloPeople.map((p: ApolloPerson, i: number) => {
+                  const fullName = `${p.firstName} ${p.lastName}`.trim() || "Unknown";
+                  const initials = `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}` || "?";
+                  const imp = p.apolloId ? importedMap[p.apolloId] : undefined;
+                  const isSelected = p.apolloId ? selectedIds.has(p.apolloId) : false;
+                  return (
+                    <div key={p.apolloId ?? i} className="p-3 rounded-lg glass-surface flex items-center gap-3">
+                      {imp ? (
+                        <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                      ) : (
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-crimson cursor-pointer shrink-0"
+                          checked={isSelected}
+                          disabled={!p.apolloId}
+                          onChange={() => p.apolloId && toggleSelect(p.apolloId)}
+                        />
+                      )}
+                      <div className="h-10 w-10 rounded-lg bg-crimson/10 border border-crimson/20 flex items-center justify-center text-crimson text-sm font-bold shrink-0">
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{fullName}</p>
+                          {p.linkedinUrl && (
+                            <a href={p.linkedinUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground hover:text-blue-400 shrink-0">
+                              <Linkedin className="h-3 w-3" />
+                            </a>
+                          )}
+                          {imp && <Badge className="bg-success/20 text-success text-[9px] border-success/30 shrink-0">Imported</Badge>}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {p.title ?? "—"}{p.organizationName ? ` · ${p.organizationName}` : ""}
+                        </p>
+                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
+                          {p.industry && <span className="flex items-center gap-1 truncate"><Building2 className="h-3 w-3" />{p.industry}</span>}
+                          {p.estimatedNumEmployees != null && <span className="flex items-center gap-1"><Users className="h-3 w-3" />{p.estimatedNumEmployees.toLocaleString()}</span>}
+                          {p.location && <span className="flex items-center gap-1 truncate"><Globe className="h-3 w-3" />{p.location}</span>}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        {imp ? (
+                          imp.email ? (
+                            <div className="flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
+                              <Mail className="h-2.5 w-2.5 shrink-0" />
+                              <span className="truncate max-w-[160px]">{imp.email}</span>
+                            </div>
+                          ) : (
+                            <Button size="sm" variant="outline" className="text-[10px] h-7" disabled={apolloEnrich.isPending}
+                              onClick={() => p.apolloId && handleRevealEmail(p.apolloId, imp.contactId)}>
+                              {apolloEnrich.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Mail className="h-3 w-3 mr-1" />}
+                              Reveal email
+                            </Button>
+                          )
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] text-muted-foreground border-border/50">
+                            <Mail className="h-2.5 w-2.5 mr-1" />Email on import
+                          </Badge>
                         )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {p.title ?? "—"}{p.organizationName ? ` · ${p.organizationName}` : ""}
-                      </p>
-                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
-                        {p.industry && <span className="flex items-center gap-1 truncate"><Building2 className="h-3 w-3" />{p.industry}</span>}
-                        {p.estimatedNumEmployees != null && <span className="flex items-center gap-1"><Users className="h-3 w-3" />{p.estimatedNumEmployees.toLocaleString()}</span>}
-                        {p.location && <span className="flex items-center gap-1 truncate"><Globe className="h-3 w-3" />{p.location}</span>}
-                      </div>
                     </div>
-                    <div className="shrink-0">
-                      <Badge variant="outline" className="text-[9px] text-muted-foreground border-border/50">
-                        <Mail className="h-2.5 w-2.5 mr-1" />Email on import
-                      </Badge>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {apolloResult.pagination.totalPages > 1 && (
@@ -390,8 +528,37 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
 
           <p className="text-[10px] text-muted-foreground mt-3 flex items-center gap-1">
             <AlertCircle className="h-3 w-3 shrink-0" />
-            Search is free and never reveals emails. One-click import &amp; enrichment (which spends Apollo credits) arrives next.
+            {isFixture
+              ? "Sample mode — Import creates leads with labeled sample emails. Connect Apollo to import real prospects and reveal verified emails."
+              : "Search is free. Import creates leads (no email); Reveal email enriches via Apollo and spends ~1 credit per contact."}
           </p>
+
+          {importedCount > 0 && (
+            <div className="mt-3 flex flex-col gap-2 rounded-lg border border-crimson/15 bg-crimson/5 p-2.5 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Send className="h-3 w-3 text-crimson shrink-0" />
+                <span>Enroll imported leads into a sequence — {enrollableCount} of {importedCount} have an email{enrollableCount < importedCount ? " (Reveal email first for the rest)" : ""}.</span>
+              </div>
+              <div className="flex items-center gap-2 sm:ml-auto">
+                <Select value={selectedSequenceId} onValueChange={setSelectedSequenceId}>
+                  <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Choose sequence" /></SelectTrigger>
+                  <SelectContent>
+                    {activeSequences.length === 0 ? (
+                      <div className="px-2 py-1.5 text-[11px] text-muted-foreground">No active sequences</div>
+                    ) : activeSequences.map((s: any) => (
+                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" className="btn-premium text-white text-xs h-8"
+                  disabled={!selectedSequenceId || enrollableCount === 0 || apolloEnroll.isPending}
+                  onClick={handleEnroll}>
+                  {apolloEnroll.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                  Enroll {enrollableCount}
+                </Button>
+              </div>
+            </div>
+          )}
         </GlassCard>
       )}
 

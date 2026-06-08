@@ -16,6 +16,11 @@ export const contactsTable = pgTable("contacts", {
   authorityLevel: text("authority_level"),
   linkedinUrl: text("linkedin_url"),
   status: text("status").notNull().default("active"),
+  // Contact-data lifecycle, set by lead-gen import (Apollo). Nullable so contacts
+  // from other paths are not mislabeled. Values: "missing_contact" (imported,
+  // email not yet revealed), "enriched" (email revealed via Apollo), "sample"
+  // (fixture/sample data — never a verified live address).
+  contactStatus: text("contact_status"),
   notes: text("notes"),
   externalCrmId: text("external_crm_id"),
   lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),

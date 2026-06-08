@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { db, aiRunsTable, leadsTable, companiesTable } from "@workspace/db";
+import { db, aiRunsTable, leadsTable, companiesTable, contactsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { chargeWallet } from "./wallet-service";
 import { shouldAiAct } from "./ai-mode-service";
@@ -216,27 +216,38 @@ export async function runFullOutreachPipeline(params: {
   const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, params.leadId));
   if (!lead) throw new Error("Lead not found");
 
-  let companyName = lead.company;
+  // FK model: name/email live on the contact, company name on the company.
+  let companyName: string | null = null;
   if (lead.companyId) {
     const [company] = await db.select().from(companiesTable).where(eq(companiesTable.id, lead.companyId));
-    if (company) companyName = company.name;
+    companyName = company?.name ?? null;
   }
+  let contactName = "";
+  let contactEmail: string | null = null;
+  if (lead.contactId) {
+    const [contact] = await db.select().from(contactsTable).where(eq(contactsTable.id, lead.contactId));
+    if (contact) {
+      contactName = `${contact.firstName ?? ""} ${contact.lastName ?? ""}`.trim();
+      contactEmail = contact.email;
+    }
+  }
+  const leadName = contactName || companyName || `Lead #${lead.id}`;
 
   const researchResult = await researchProspect({
-    leadName: lead.name,
+    leadName,
     company: companyName ?? undefined,
-    email: lead.email ?? undefined,
+    email: contactEmail ?? undefined,
   });
 
   const personalizationResult = await personalizeOutreach({
-    leadName: lead.name,
+    leadName,
     company: companyName ?? undefined,
     channel: params.channel,
     research: researchResult.research,
   });
 
   const draftResult = await draftStructuredOutreach({
-    leadName: lead.name,
+    leadName,
     company: companyName ?? undefined,
     channel: params.channel,
     personalization: personalizationResult.personalization,
@@ -251,7 +262,7 @@ export async function runFullOutreachPipeline(params: {
   let variants: string[] | undefined;
   if (params.generateVariants) {
     const variantResult = await generateOutreachVariants({
-      leadName: lead.name,
+      leadName,
       company: companyName ?? undefined,
       channel: params.channel,
       baseDraft: draftResult.draft,

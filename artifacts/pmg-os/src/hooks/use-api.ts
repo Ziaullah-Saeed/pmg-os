@@ -173,6 +173,71 @@ export function useApolloSearch() {
   });
 }
 
+// Import selected prospects → company + contact + lead. Fixture writes labeled
+// sample emails; live leaves email null until enrich. No credits spent here.
+export interface ApolloImportResult {
+  mode: "live" | "fixture";
+  imported: Array<{
+    apolloId: string | null;
+    contactId: number;
+    leadId: number;
+    companyId: number;
+    email: string | null;
+    contactStatus: string;
+  }>;
+  skipped: Array<{ apolloId: string | null; reason: string }>;
+}
+
+export function useApolloImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (people: ApolloPerson[]) =>
+      apiFetch<ApolloImportResult>("/apollo/import", {
+        method: "POST",
+        body: JSON.stringify({ people }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/leads"] }),
+  });
+}
+
+// Reveal emails for imported contacts. Live = Apollo bulk_match (~1 credit each);
+// fixture = labeled sample emails.
+export interface ApolloEnrichResult {
+  mode: "live" | "fixture";
+  enriched: Array<{ contactId: number; email: string | null; contactStatus: string }>;
+  creditsSpent: number;
+}
+
+export function useApolloEnrich() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (contactIds: number[]) =>
+      apiFetch<ApolloEnrichResult>("/apollo/enrich", {
+        method: "POST",
+        body: JSON.stringify({ contactIds }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/leads"] }),
+  });
+}
+
+// Enroll imported leads into an outreach sequence (sends are tri-mode gated by
+// the sequence engine; leads without an email are skipped server-side).
+export interface ApolloEnrollResult {
+  sequenceId: number;
+  enrolled: Array<{ leadId: number; enrollmentId: number; email: string }>;
+  skipped: Array<{ leadId: number; reason: string }>;
+}
+
+export function useApolloEnroll() {
+  return useMutation({
+    mutationFn: (vars: { leadIds: number[]; sequenceId: number }) =>
+      apiFetch<ApolloEnrollResult>("/apollo/enroll", {
+        method: "POST",
+        body: JSON.stringify(vars),
+      }),
+  });
+}
+
 export function useWalletThresholds() {
   return useQuery({
     queryKey: ["wallet", "thresholds"],

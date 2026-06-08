@@ -13,15 +13,12 @@ import {
   UpdateLeadResponse,
   DeleteLeadParams,
 } from "@workspace/api-zod";
-import { enrichLead, scoreLead } from "../services/ai-service";
+import { enrichAndScoreLead } from "../services/lead-enrichment-service";
 import { validateTransition, getValidTransitions, getInitialState } from "../services/state-machine";
-import { createNotification } from "../services/notification-service";
-import { addKnowledgeEntry } from "../services/knowledge-service";
 import { routeLead } from "../services/ghl-service";
 import { logAudit } from "../services/audit-service";
 import { emit } from "../services/event-bus";
 import { getSessionUser } from "../middleware/auth";
-import { opportunitiesTable } from "@workspace/db";
 import { getGlobalMode } from "../services/ai-mode-service";
 
 const router: IRouter = Router();
@@ -156,77 +153,12 @@ router.post("/leads", async (req, res): Promise<void> => {
     await autoCreateDealForLead(lead.id, companyName ?? null, fullName, lead.confidenceScore ?? lead.fitScore);
   }
 
-  (async () => {
-    try {
-      const enrichResult = await enrichLead({
-        id: lead.id,
-        name: companyName ?? `Lead #${lead.id}`,
-        company: companyName,
-        source: lead.source,
-      });
-      await db.update(leadsTable).set({
-        bestAngle: enrichResult.enrichment.slice(0, 500),
-        ...(alreadyQualified ? {} : { status: "enriched" }),
-      }).where(eq(leadsTable.id, lead.id));
-
-      await db.insert(activitiesTable).values({
-        action: "ai_enrichment",
-        description: `AI Enrichment Complete — confidence: ${enrichResult.confidence}%`,
-        entityType: "lead",
-        entityId: lead.id,
-        performedBy: "ai_system",
-        metadata: JSON.stringify({ runId: enrichResult.runId, confidence: enrichResult.confidence }),
-      });
-
-      const scoreResult = await scoreLead({
-        id: lead.id,
-        name: companyName ?? `Lead #${lead.id}`,
-        company: companyName,
-        source: lead.source,
-        enrichmentData: enrichResult.enrichment,
-      });
-      await db.update(leadsTable).set({
-        fitScore: scoreResult.score,
-        confidenceScore: scoreResult.confidence,
-        priority: scoreResult.tier === "HOT" ? "urgent" : scoreResult.tier === "WARM" ? "high" : "medium",
-        ...(alreadyQualified ? {} : { status: "scored" }),
-        notes: scoreResult.reasoning,
-      }).where(eq(leadsTable.id, lead.id));
-
-      await db.insert(activitiesTable).values({
-        action: "ai_scoring",
-        description: `Lead Scored: ${scoreResult.score}/100 (${scoreResult.tier}) — ${scoreResult.reasoning}`,
-        entityType: "lead",
-        entityId: lead.id,
-        performedBy: "ai_system",
-        metadata: JSON.stringify({ runId: scoreResult.runId, score: scoreResult.score, tier: scoreResult.tier }),
-      });
-
-      await addKnowledgeEntry({
-        category: "lead_intelligence",
-        title: `Lead Intelligence: ${companyName ?? `Lead #${lead.id}`}`,
-        content: `Score: ${scoreResult.score}/100 (${scoreResult.tier})\n${enrichResult.enrichment}`,
-        source: "ai_enrichment",
-        sourceDomain: "crm",
-        sourceEntityType: "lead",
-        sourceEntityId: lead.id,
-        confidence: scoreResult.confidence,
-      });
-
-      await createNotification({
-        type: "lead_enriched",
-        severity: scoreResult.tier === "HOT" ? "warning" : "info",
-        title: `New ${scoreResult.tier} Lead: ${companyName ?? `Lead #${lead.id}`}`,
-        message: `Score: ${scoreResult.score}/100 — ${scoreResult.reasoning.slice(0, 150)}`,
-        domain: "crm",
-        entityType: "lead",
-        entityId: lead.id,
-        actor: "ai_system",
-      });
-    } catch (err: any) {
-      console.error("AI lead enrichment failed:", err.message);
-    }
-  })();
+  void enrichAndScoreLead(lead.id, {
+    name: companyName ?? `Lead #${lead.id}`,
+    company: companyName,
+    source: lead.source,
+    skipStatusUpdate: alreadyQualified,
+  });
 
   await logAudit({
     eventType: "entity_created",
@@ -407,7 +339,7 @@ router.patch("/leads/:id", async (req, res): Promise<void> => {
 });
 
 router.post("/leads/:id/route", requireRole("manager"), async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id));
   const { destination } = req.body;
   const validDests = ["internal", "pmg", "ghl", "both", "hold"];
   if (!validDests.includes(destination)) {
