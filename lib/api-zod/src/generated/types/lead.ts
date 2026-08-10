@@ -16,6 +16,10 @@ export interface Lead {
   contactId?: number | null;
   /** @nullable */
   contactName?: string | null;
+  /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
   source: string;
   status: string;
   priority: string;

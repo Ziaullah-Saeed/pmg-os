@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { useListLeads, useListCompanies, useListOutreachSequences } from "@workspace/api-client-react";
+import { useState, useCallback, type ReactNode } from "react";
+import { useListLeads, useListCompanies, useListOutreachSequences, useListCommunications, useListTasks, useCreateOutreachSequence, getListOutreachSequencesQueryKey } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -15,7 +15,7 @@ import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { useToast } from "@/hooks/use-toast";
 import { AiResultPanel } from "@/components/ai-result-panel";
 import { ModeBadge } from "@/components/mode-badge";
-import { useApolloSearch, useApolloStatus, useApolloImport, useApolloEnrich, useApolloEnroll, type ApolloPerson, type ApolloSearchResult } from "@/hooks/use-api";
+import { useApolloSearch, useApolloStatus, useApolloImport, useApolloEnrich, useApolloEnroll, useIntegrationStatus, type ApolloPerson, type ApolloSearchResult } from "@/hooks/use-api";
 
 // Apollo seniority enum (UI labels). Sent verbatim to Apollo `person_seniorities`.
 const APOLLO_SENIORITIES = [
@@ -47,7 +47,7 @@ import {
   MessageSquare, BarChart3, RefreshCw, Eye, Edit, Zap, Calendar,
   TrendingUp, Filter, ChevronRight, X, Bot, Hand, Shield,
   Facebook, Twitter, Instagram, Slack, FileText, ArrowUpRight,
-  ThumbsUp, ThumbsDown, Bookmark, ExternalLink, Copy, SkipForward
+  ThumbsUp, ThumbsDown, Bookmark, ExternalLink, Copy, SkipForward, Trash2, ListPlus
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
@@ -87,8 +87,16 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
   const [apolloResult, setApolloResult] = useState<ApolloSearchResult | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedSequenceId, setSelectedSequenceId] = useState("");
-  // apolloId → result of import (so rows can show imported / reveal-email / enroll state)
-  const [importedMap, setImportedMap] = useState<Record<string, { contactId: number; leadId: number; email: string | null; contactStatus: string }>>({});
+  // apolloId → result of import (so rows can show imported / reveal / enroll state)
+  const [importedMap, setImportedMap] = useState<Record<string, { contactId: number; leadId: number; email: string | null; phone: string | null; contactStatus: string }>>({});
+  // Opt-in: also capture a phone number when revealing (Apollo returns already-known
+  // numbers synchronously; freshly-revealed mobiles are webhook-only).
+  const [revealPhone, setRevealPhone] = useState(false);
+  // Track which single contact / batch is revealing so only the clicked row spins
+  // (apolloEnrich.isPending is shared across every row otherwise).
+  const [revealingId, setRevealingId] = useState<number | null>(null);
+  const [revealingAll, setRevealingAll] = useState(false);
+  const [enrichingLead, setEnrichingLead] = useState(false);
   const [filters, setFilters] = useState({
     titles: "",
     keywords: "",
@@ -101,6 +109,19 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
   const [newLead, setNewLead] = useState({
     firstName: "", lastName: "", email: "", company: "", title: "", phone: "", source: "manual"
   });
+
+  // --- Pipeline prospect delete (single + bulk, with confirmation) ---
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<number>>(new Set());
+  const [confirmDeleteIds, setConfirmDeleteIds] = useState<number[] | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // --- Create a new outreach sequence (so the enroll dropdown is never a dead end) ---
+  const createSequence = useCreateOutreachSequence();
+  const [showNewSequence, setShowNewSequence] = useState(false);
+  const [newSequence, setNewSequence] = useState({ name: "", channel: "email" });
+  const [sequenceSteps, setSequenceSteps] = useState<Array<{ subject: string; body: string; delayDays: number }>>([
+    { subject: "", body: "", delayDays: 0 },
+  ]);
 
   const getLeadName = (l: any) => {
     if (l.contactName) return l.contactName;
@@ -117,17 +138,38 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
   const crmStatuses = ["qualified", "routing", "routed", "active", "closed_won", "closed_lost"];
   const isInCrm = (status: string) => crmStatuses.includes(status);
 
+  // Prospect funnel filters keyed off real, reachable data — not the lead's
+  // transient `status`. A lead only passes through status "enriched" for a moment
+  // before the AI pipeline advances it to "scored", and Apollo's "Reveal email"
+  // updates the *contact* (contactEmail), never the lead status. So bucket by what
+  // the user can actually see: revealed email = enriched, fit score = scored.
+  const hasEmail = (l: any) => !!(l.contactEmail && String(l.contactEmail).trim());
+  const hasScore = (l: any) => l.fitScore != null || l.confidenceScore != null;
+  const matchesStatus = (l: any) => {
+    switch (statusFilter) {
+      case "all": return !isInCrm(l.status);
+      case "in_crm": return isInCrm(l.status);
+      case "enriched": return !isInCrm(l.status) && hasEmail(l);
+      case "scored": return !isInCrm(l.status) && hasScore(l);
+      case "new": return !isInCrm(l.status) && !hasEmail(l) && !hasScore(l);
+      default: return l.status === statusFilter;
+    }
+  };
   const filtered = leadList.filter((l: any) => {
     const matchesSearch = !searchQuery ||
       `${getLeadName(l)} ${getLeadCompany(l)}`.toLowerCase().includes(searchQuery.toLowerCase());
-    if (statusFilter === "all") {
-      return matchesSearch && !isInCrm(l.status);
-    }
-    if (statusFilter === "in_crm") {
-      return matchesSearch && isInCrm(l.status);
-    }
-    return matchesSearch && l.status === statusFilter;
+    return matchesSearch && matchesStatus(l);
   });
+
+  const filteredIds = filtered.map((l: any) => l.id as number);
+  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedLeadIds.has(id));
+  const toggleLeadSelect = useCallback((id: number) => {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
 
   const handleAddLead = useCallback(async () => {
     try {
@@ -210,7 +252,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
         setImportedMap((prev) => {
           const next = { ...prev };
           for (const row of data.imported) {
-            if (row.apolloId) next[row.apolloId] = { contactId: row.contactId, leadId: row.leadId, email: row.email, contactStatus: row.contactStatus };
+            if (row.apolloId) next[row.apolloId] = { contactId: row.contactId, leadId: row.leadId, email: row.email, phone: null, contactStatus: row.contactStatus };
           }
           return next;
         });
@@ -224,25 +266,70 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
     });
   }, [apolloResult, selectedIds, importedMap, apolloImport, toast]);
 
-  const handleRevealEmail = useCallback((apolloId: string, contactId: number) => {
-    apolloEnrich.mutate([contactId], {
+  const handleReveal = useCallback((apolloId: string, contactId: number) => {
+    setRevealingId(contactId);
+    apolloEnrich.mutate({ contactIds: [contactId], revealPhone }, {
+      onSettled: () => setRevealingId(null),
       onSuccess: (data) => {
         const row = data.enriched.find((e) => e.contactId === contactId);
         setImportedMap((prev) => ({
           ...prev,
-          [apolloId]: { ...prev[apolloId], contactId, email: row?.email ?? null, contactStatus: row?.contactStatus ?? "missing_contact" },
+          [apolloId]: { ...prev[apolloId], contactId, email: row?.email ?? null, phone: row?.phone ?? prev[apolloId]?.phone ?? null, contactStatus: row?.contactStatus ?? "missing_contact" },
         }));
         toast(
           row?.email
-            ? { title: data.mode === "fixture" ? "Sample email filled" : "Email revealed", description: row.email }
-            : { title: "No email found", description: "Apollo could not reveal an email for this contact.", variant: "destructive" },
+            ? { title: data.mode === "fixture" ? "Sample contact filled" : "Contact revealed", description: [row.email, row.phone].filter(Boolean).join(" · ") }
+            : {
+                title: "No email found",
+                description: revealPhone && row?.phone
+                  ? `Apollo returned a phone (${row.phone}) but no email for this contact.`
+                  : "Apollo could not reveal an email for this contact.",
+                variant: "destructive",
+              },
         );
+        if (data.phoneRevealAsync && data.phoneRevealsRequested > 0) {
+          toast({ title: "Mobile reveal requested", description: "Apollo verifies the number and delivers it to your webhook in a few minutes — refresh to see it land." });
+        }
       },
       onError: (err: any) => {
         toast({ title: "Enrich failed", description: err?.message || "Request failed", variant: "destructive" });
       },
     });
-  }, [apolloEnrich, toast]);
+  }, [apolloEnrich, revealPhone, toast]);
+
+  // Batch reveal every imported-but-unrevealed contact in one call, so a fully
+  // locked batch surfaces one honest "0 emails available" message.
+  const handleRevealAll = useCallback(() => {
+    const targets = Object.entries(importedMap).filter(([, v]) => !v.email);
+    const contactIds = targets.map(([, v]) => v.contactId);
+    if (contactIds.length === 0) return;
+    setRevealingAll(true);
+    apolloEnrich.mutate({ contactIds, revealPhone }, {
+      onSettled: () => setRevealingAll(false),
+      onSuccess: (data) => {
+        setImportedMap((prev) => {
+          const next = { ...prev };
+          for (const row of data.enriched) {
+            const key = Object.keys(next).find((k) => next[k].contactId === row.contactId);
+            if (key) next[key] = { ...next[key], email: row.email, phone: row.phone ?? next[key].phone ?? null, contactStatus: row.contactStatus };
+          }
+          return next;
+        });
+        const phones = data.phonesRevealed ? ` · ${data.phonesRevealed} phone${data.phonesRevealed === 1 ? "" : "s"}` : "";
+        toast(
+          data.emailsRevealed > 0
+            ? { title: data.mode === "fixture" ? "Sample contacts filled" : "Contacts revealed", description: `${data.emailsRevealed} email${data.emailsRevealed === 1 ? "" : "s"}${phones} of ${data.enriched.length}.` }
+            : { title: "No emails available", description: `Apollo could not reveal an email for any of these ${data.enriched.length} contact${data.enriched.length === 1 ? "" : "s"}.`, variant: "destructive" },
+        );
+        if (data.phoneRevealAsync && data.phoneRevealsRequested > 0) {
+          toast({ title: "Mobile reveal requested", description: `${data.phoneRevealsRequested} number${data.phoneRevealsRequested === 1 ? "" : "s"} arriving via webhook in a few minutes — refresh to see them.` });
+        }
+      },
+      onError: (err: any) => {
+        toast({ title: "Reveal failed", description: err?.message || "Request failed", variant: "destructive" });
+      },
+    });
+  }, [importedMap, revealPhone, apolloEnrich, toast]);
 
   const handleEnroll = useCallback(() => {
     const leadIds = Object.values(importedMap).filter((v) => v.email && v.leadId).map((v) => v.leadId);
@@ -262,6 +349,35 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
       },
     );
   }, [importedMap, selectedSequenceId, apolloEnroll, toast]);
+
+  // Real enrichment for a pipeline lead's linked contact (Apollo bulk_match).
+  // Replaces the old setTimeout fake-success. Updates the open dialog in place.
+  const handleEnrichLead = useCallback((lead: any) => {
+    if (!lead?.contactId) {
+      toast({ title: "No contact to enrich", description: "This lead has no linked contact record to enrich.", variant: "destructive" });
+      return;
+    }
+    setEnrichingLead(true);
+    apolloEnrich.mutate({ contactIds: [lead.contactId], revealPhone: true }, {
+      onSettled: () => setEnrichingLead(false),
+      onSuccess: (data) => {
+        const row = data.enriched.find((e) => e.contactId === lead.contactId);
+        setSelectedLead((prev: any) =>
+          prev && prev.id === lead.id
+            ? { ...prev, contactEmail: row?.email ?? prev.contactEmail, contactPhone: row?.phone ?? prev.contactPhone }
+            : prev,
+        );
+        toast(
+          row?.email
+            ? { title: data.mode === "fixture" ? "Sample contact filled" : "Contact enriched", description: [row.email, row.phone].filter(Boolean).join(" · ") }
+            : { title: "No contact found", description: "Apollo could not reveal a verified email for this lead.", variant: "destructive" },
+        );
+      },
+      onError: (err: any) => {
+        toast({ title: "Enrich failed", description: err?.message || "Request failed", variant: "destructive" });
+      },
+    });
+  }, [apolloEnrich, toast]);
 
   const handleMoveToCrm = useCallback(async (leadId: number) => {
     try {
@@ -283,6 +399,100 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
     }
   }, [toast, queryClient]);
 
+  // Delete one or more prospects. Opportunities keep a null leadId (FK is
+  // onDelete:set null) and enrollments have no FK, so the row deletes cleanly.
+  const handleDeleteLeads = useCallback(async (ids: number[]) => {
+    if (ids.length === 0) return;
+    setDeleting(true);
+    try {
+      const results = await Promise.allSettled(
+        ids.map((id) => fetch(`${API_BASE}/leads/${id}`, { method: "DELETE", credentials: "include" })),
+      );
+      const failed = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok)).length;
+      const ok = ids.length - failed;
+      await queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/leads"] });
+      setSelectedLeadIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+      setConfirmDeleteIds(null);
+      setSelectedLead(null);
+      if (failed > 0) {
+        toast({
+          title: ok > 0 ? "Partially deleted" : "Delete failed",
+          description: `${ok} deleted, ${failed} failed.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Prospect deleted", description: `${ok} prospect${ok === 1 ? "" : "s"} removed.` });
+      }
+    } catch (err: any) {
+      toast({ title: "Delete failed", description: err?.message || "Request failed", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  }, [queryClient, toast]);
+
+  const addSequenceStep = useCallback(() => {
+    setSequenceSteps((s) => [...s, { subject: "", body: "", delayDays: s.length === 0 ? 0 : 3 }]);
+  }, []);
+  const removeSequenceStep = useCallback((idx: number) => {
+    setSequenceSteps((s) => (s.length <= 1 ? s : s.filter((_, i) => i !== idx)));
+  }, []);
+  const updateSequenceStep = useCallback((idx: number, patch: Partial<{ subject: string; body: string; delayDays: number }>) => {
+    setSequenceSteps((s) => s.map((step, i) => (i === idx ? { ...step, ...patch } : step)));
+  }, []);
+
+  // Create an ACTIVE sequence with ≥1 step so it's immediately enrollable
+  // (enrollContact rejects draft sequences and sequences with no steps).
+  const handleCreateSequence = useCallback(() => {
+    const name = newSequence.name.trim();
+    if (!name) {
+      toast({ title: "Name required", description: "Give the sequence a name.", variant: "destructive" });
+      return;
+    }
+    const steps = sequenceSteps
+      .filter((s) => s.body.trim())
+      .map((s) => ({
+        type: newSequence.channel,
+        channel: newSequence.channel,
+        subject: s.subject.trim() || undefined,
+        body: s.body.trim(),
+        delayDays: Number.isFinite(s.delayDays) ? Math.max(0, Math.trunc(s.delayDays)) : 0,
+      }));
+    if (steps.length === 0) {
+      toast({ title: "Add a step", description: "A sequence needs at least one message with body text.", variant: "destructive" });
+      return;
+    }
+    createSequence.mutate(
+      {
+        data: {
+          name,
+          type: "outbound",
+          channel: newSequence.channel,
+          status: "active",
+          steps: steps as any,
+          safetyControls: { stopOnReply: true } as any,
+        },
+      },
+      {
+        onSuccess: (created: any) => {
+          queryClient.invalidateQueries({ queryKey: getListOutreachSequencesQueryKey() });
+          if (created?.id != null) setSelectedSequenceId(String(created.id));
+          setShowNewSequence(false);
+          setNewSequence({ name: "", channel: "email" });
+          setSequenceSteps([{ subject: "", body: "", delayDays: 0 }]);
+          toast({ title: "Sequence created", description: `"${name}" is active — select it and enroll leads.` });
+        },
+        onError: (err: any) => {
+          toast({ title: "Could not create sequence", description: err?.message || "Request failed", variant: "destructive" });
+        },
+      },
+    );
+  }, [newSequence, sequenceSteps, createSequence, queryClient, toast]);
+
   const apolloPeople = apolloResult?.people ?? [];
   const isFixture = apolloResult?.mode === "fixture" || apolloStatus?.mode === "fixture";
   const selectableIds = apolloPeople.map((p) => p.apolloId).filter((id): id is string => !!id && !importedMap[id]);
@@ -290,6 +500,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
   const selectedCount = selectableIds.filter((id) => selectedIds.has(id)).length;
   const importedCount = Object.keys(importedMap).length;
   const enrollableCount = Object.values(importedMap).filter((v) => v.email && v.leadId).length;
+  const unrevealedCount = Object.values(importedMap).filter((v) => !v.email).length;
 
   return (
     <div className="space-y-6">
@@ -491,18 +702,27 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                       </div>
                       <div className="shrink-0 text-right">
                         {imp ? (
-                          imp.email ? (
-                            <div className="flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
-                              <Mail className="h-2.5 w-2.5 shrink-0" />
-                              <span className="truncate max-w-[160px]">{imp.email}</span>
-                            </div>
-                          ) : (
-                            <Button size="sm" variant="outline" className="text-[10px] h-7" disabled={apolloEnrich.isPending}
-                              onClick={() => p.apolloId && handleRevealEmail(p.apolloId, imp.contactId)}>
-                              {apolloEnrich.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Mail className="h-3 w-3 mr-1" />}
-                              Reveal email
-                            </Button>
-                          )
+                          <div className="flex flex-col items-end gap-1">
+                            {imp.email && (
+                              <div className="flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
+                                <Mail className="h-2.5 w-2.5 shrink-0" />
+                                <span className="truncate max-w-[160px]">{imp.email}</span>
+                              </div>
+                            )}
+                            {imp.phone && (
+                              <div className="flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
+                                <Phone className="h-2.5 w-2.5 shrink-0" />
+                                <span className="truncate max-w-[160px]">{imp.phone}</span>
+                              </div>
+                            )}
+                            {!imp.email && (
+                              <Button size="sm" variant="outline" className="text-[10px] h-7" disabled={revealingId === imp.contactId || revealingAll}
+                                onClick={() => p.apolloId && handleReveal(p.apolloId, imp.contactId)}>
+                                {revealingId === imp.contactId ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Mail className="h-3 w-3 mr-1" />}
+                                Reveal {revealPhone ? "contact" : "email"}
+                              </Button>
+                            )}
+                          </div>
                         ) : (
                           <Badge variant="outline" className="text-[9px] text-muted-foreground border-border/50">
                             <Mail className="h-2.5 w-2.5 mr-1" />Email on import
@@ -529,9 +749,18 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
           <p className="text-[10px] text-muted-foreground mt-3 flex items-center gap-1">
             <AlertCircle className="h-3 w-3 shrink-0" />
             {isFixture
-              ? "Sample mode — Import creates leads with labeled sample emails. Connect Apollo to import real prospects and reveal verified emails."
-              : "Search is free. Import creates leads (no email); Reveal email enriches via Apollo and spends ~1 credit per contact."}
+              ? "Sample mode — Import creates leads with labeled sample data. Connect Apollo to import real prospects and reveal verified emails."
+              : "Search is free. Import creates leads (no email); Reveal enriches via Apollo and spends ~1 credit per email."}
           </p>
+
+          <label className="text-[10px] text-muted-foreground mt-1.5 flex items-start gap-1.5 cursor-pointer">
+            <input type="checkbox" className="h-3 w-3 mt-0.5 accent-crimson cursor-pointer shrink-0" checked={revealPhone} onChange={(e) => setRevealPhone(e.target.checked)} />
+            <span className="flex items-center gap-1"><Phone className="h-3 w-3 shrink-0" />
+              {apolloStatus?.phoneRevealEnabled
+                ? "Also reveal mobile numbers — Apollo verifies them asynchronously (~8 credits each) and delivers them to your webhook in a few minutes; refresh to see them land."
+                : "Also capture phone — returns numbers Apollo already has (no async reveal). Set APOLLO_WEBHOOK_URL to a public endpoint to unlock live mobile reveal."}
+            </span>
+          </label>
 
           {apolloStatus?.mode === "live" && (
             <p className="text-[10px] mt-1.5 flex items-center gap-1">
@@ -547,19 +776,35 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
             <div className="mt-3 flex flex-col gap-2 rounded-lg border border-crimson/15 bg-crimson/5 p-2.5 sm:flex-row sm:items-center">
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Send className="h-3 w-3 text-crimson shrink-0" />
-                <span>Enroll imported leads into a sequence — {enrollableCount} of {importedCount} have an email{enrollableCount < importedCount ? " (Reveal email first for the rest)" : ""}.</span>
+                <span>Enroll imported leads into a sequence — {enrollableCount} of {importedCount} have an email{enrollableCount < importedCount ? " (Reveal the rest first)" : ""}.</span>
               </div>
               <div className="flex items-center gap-2 sm:ml-auto">
-                <Select value={selectedSequenceId} onValueChange={setSelectedSequenceId}>
-                  <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Choose sequence" /></SelectTrigger>
-                  <SelectContent>
-                    {activeSequences.length === 0 ? (
-                      <div className="px-2 py-1.5 text-[11px] text-muted-foreground">No active sequences</div>
-                    ) : activeSequences.map((s: any) => (
-                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {unrevealedCount > 0 && (
+                  <Button size="sm" variant="outline" className="text-xs h-8" disabled={revealingAll || revealingId !== null}
+                    onClick={handleRevealAll}>
+                    {revealingAll ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Mail className="h-3 w-3 mr-1" />}
+                    Reveal all {unrevealedCount}
+                  </Button>
+                )}
+                {activeSequences.length === 0 ? (
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowNewSequence(true)}>
+                    <ListPlus className="h-3 w-3 mr-1" />Create a sequence
+                  </Button>
+                ) : (
+                  <>
+                    <Select value={selectedSequenceId} onValueChange={setSelectedSequenceId}>
+                      <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Choose sequence" /></SelectTrigger>
+                      <SelectContent>
+                        {activeSequences.map((s: any) => (
+                          <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" variant="ghost" className="h-8 text-xs px-2" onClick={() => setShowNewSequence(true)} title="Create a new sequence">
+                      <ListPlus className="h-3 w-3" />
+                    </Button>
+                  </>
+                )}
                 <Button size="sm" className="btn-premium text-white text-xs h-8"
                   disabled={!selectedSequenceId || enrollableCount === 0 || apolloEnroll.isPending}
                   onClick={handleEnroll}>
@@ -582,6 +827,25 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
         </GlassCard>
       ) : (
         <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <label className="flex items-center gap-2 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 accent-crimson cursor-pointer"
+                checked={allFilteredSelected}
+                onChange={() => setSelectedLeadIds((prev) => (filteredIds.every((id) => prev.has(id)) ? new Set() : new Set(filteredIds)))}
+              />
+              <span className="text-[10px] text-muted-foreground">
+                {selectedLeadIds.size > 0 ? `${selectedLeadIds.size} selected` : "Select all"}
+              </span>
+            </label>
+            {selectedLeadIds.size > 0 && (
+              <Button size="sm" variant="outline" className="h-7 text-xs border-crimson/40 text-crimson"
+                onClick={() => setConfirmDeleteIds([...selectedLeadIds])}>
+                <Trash2 className="h-3 w-3 mr-1" />Delete {selectedLeadIds.size}
+              </Button>
+            )}
+          </div>
           {filtered.map((lead: any) => (
             <motion.div key={lead.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
               className="glass-card rounded-lg p-4 cursor-pointer hover:glass-card-interactive transition-all"
@@ -589,6 +853,13 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-crimson cursor-pointer shrink-0"
+                    checked={selectedLeadIds.has(lead.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => toggleLeadSelect(lead.id)}
+                  />
                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-crimson/30 to-crimson/10 flex items-center justify-center text-crimson text-sm font-bold shrink-0">
                     {getLeadInitials(lead)}
                   </div>
@@ -665,7 +936,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
       <AnimatePresence>
         {selectedLead && (
           <Dialog open={!!selectedLead} onOpenChange={() => setSelectedLead(null)}>
-            <DialogContent className="glass-panel border-border/50 max-w-2xl">
+            <DialogContent className="glass-panel border-border/50 max-w-3xl">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-crimson/30 to-crimson/10 flex items-center justify-center text-crimson text-sm font-bold">
@@ -678,8 +949,8 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm"><Building2 className="h-4 w-4 text-muted-foreground" /><span>{getLeadCompany(selectedLead) || "No company"}</span></div>
-                  <div className="flex items-center gap-2 text-sm"><Mail className="h-4 w-4 text-muted-foreground" /><span>{selectedLead.email || "No email yet — enrich to discover"}</span></div>
-                  <div className="flex items-center gap-2 text-sm"><Phone className="h-4 w-4 text-muted-foreground" /><span>{selectedLead.phone || "No phone yet — enrich to discover"}</span></div>
+                  <div className="flex items-center gap-2 text-sm"><Mail className="h-4 w-4 text-muted-foreground" /><span>{selectedLead.contactEmail || "No email yet — enrich to discover"}</span></div>
+                  <div className="flex items-center gap-2 text-sm"><Phone className="h-4 w-4 text-muted-foreground" /><span>{selectedLead.contactPhone || "No phone yet — enrich to discover"}</span></div>
                   <div className="flex items-center gap-2 text-sm"><Globe className="h-4 w-4 text-muted-foreground" /><span>Source: {(selectedLead.source ?? "Unknown").replace(/_/g, " ")}</span></div>
                   {selectedLead.painPoints && (
                     <div className="flex items-start gap-2 text-sm"><AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" /><span className="text-xs text-muted-foreground">{selectedLead.painPoints}</span></div>
@@ -711,11 +982,10 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                 <Button variant="outline" className="text-sm flex-1" onClick={() => { setSelectedLead(null); onTabChange("strategy"); }}>
                   <Target className="h-4 w-4 mr-2" />Plan Approach
                 </Button>
-                <Button variant="outline" className="text-sm" onClick={() => {
-                  toast({ title: "Enriching Lead", description: `Running AI enrichment for ${getLeadName(selectedLead)}...` });
-                  setTimeout(() => toast({ title: "Enrichment Complete", description: "Contact data verified and company intel updated" }), 1500);
-                }}>
-                  <Zap className="h-4 w-4 mr-2" />Enrich
+                <Button variant="outline" className="text-sm" disabled={enrichingLead || !selectedLead.contactId}
+                  title={selectedLead.contactId ? undefined : "No linked contact to enrich"}
+                  onClick={() => handleEnrichLead(selectedLead)}>
+                  {enrichingLead ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}Enrich
                 </Button>
                 {["qualified","routing","routed","active","closed_won","closed_lost"].includes(selectedLead.status) ? (
                   <Button variant="outline" className="text-sm opacity-60" disabled>
@@ -726,86 +996,244 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                     <ArrowRight className="h-4 w-4 mr-2" />Move to CRM
                   </Button>
                 )}
+                <Button variant="outline" className="text-sm border-destructive/40 text-destructive"
+                  onClick={() => setConfirmDeleteIds([selectedLead.id])}>
+                  <Trash2 className="h-4 w-4 mr-2" />Delete
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
         )}
       </AnimatePresence>
+
+      <Dialog open={confirmDeleteIds !== null} onOpenChange={(open) => { if (!open) setConfirmDeleteIds(null); }}>
+        <DialogContent className="glass-panel border-border/50 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Delete {confirmDeleteIds?.length ?? 0} prospect{(confirmDeleteIds?.length ?? 0) === 1 ? "" : "s"}?
+            </DialogTitle>
+            <DialogDescription>
+              This permanently removes the lead{(confirmDeleteIds?.length ?? 0) === 1 ? "" : "s"} from your pipeline. Any linked CRM deal is kept but unlinked. This can't be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setConfirmDeleteIds(null)} disabled={deleting}>Cancel</Button>
+            <Button className="bg-destructive text-white hover:bg-destructive/90" disabled={deleting}
+              onClick={() => confirmDeleteIds && handleDeleteLeads(confirmDeleteIds)}>
+              {deleting ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNewSequence} onOpenChange={setShowNewSequence}>
+        <DialogContent className="glass-panel border-border/50 max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><ListPlus className="h-5 w-5 text-crimson" />New Outreach Sequence</DialogTitle>
+            <DialogDescription>
+              A sequence is an automated series of messages your enrolled prospects move through — e.g. an intro email now, a follow-up in 3 days, another in 7. Sends are still gated by your AI mode (drafts wait for approval in Hybrid/Human).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label className="text-xs">Sequence Name</Label>
+                <Input value={newSequence.name} onChange={(e) => setNewSequence({ ...newSequence, name: e.target.value })} placeholder="Cybersecurity CISO outbound" className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs">Channel</Label>
+                <Select value={newSequence.channel} onValueChange={(v) => setNewSequence({ ...newSequence, channel: v })}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="linkedin_message">LinkedIn Message</SelectItem>
+                    <SelectItem value="sms">SMS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label className="text-xs">Steps</Label>
+                <Button size="sm" variant="ghost" className="h-6 text-[11px]" onClick={addSequenceStep}>
+                  <Plus className="h-3 w-3 mr-1" />Add step
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {sequenceSteps.map((step, i) => (
+                  <div key={i} className="p-2.5 rounded-lg glass-surface space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium">Step {i + 1}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">Wait</span>
+                        <Input type="number" min={0} value={step.delayDays}
+                          onChange={(e) => updateSequenceStep(i, { delayDays: Number(e.target.value) })}
+                          className="h-7 w-16 text-xs" />
+                        <span className="text-[10px] text-muted-foreground">day(s)</span>
+                        {sequenceSteps.length > 1 && (
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground" onClick={() => removeSequenceStep(i)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {newSequence.channel === "email" && (
+                      <Input value={step.subject} onChange={(e) => updateSequenceStep(i, { subject: e.target.value })} placeholder="Subject line" className="h-8 text-xs" />
+                    )}
+                    <Textarea value={step.body} onChange={(e) => updateSequenceStep(i, { body: e.target.value })}
+                      placeholder={`Message body for step ${i + 1}...`} className="min-h-[70px] text-xs" />
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5">The first step's delay is the wait before the first message goes out. Created as an <span className="text-foreground">active</span> sequence so you can enroll immediately.</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowNewSequence(false)} disabled={createSequence.isPending}>Cancel</Button>
+            <Button className="btn-premium text-white" onClick={handleCreateSequence} disabled={createSequence.isPending || !newSequence.name.trim()}>
+              {createSequence.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <ListPlus className="h-4 w-4 mr-2" />}
+              Create sequence
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+// Channel definitions for the unified inbox. `connected` is derived from real
+// integrations (never hardcoded); `types` maps a channel to communication.type
+// values so per-channel counts reflect real data.
+const SOCIAL_CHANNELS: { name: string; icon: ReactNode; color: string; match: RegExp; types: string[] }[] = [
+  { name: "LinkedIn", icon: <Linkedin className="h-4 w-4" />, color: "text-blue-400", match: /linkedin/i, types: ["linkedin"] },
+  { name: "Email", icon: <Mail className="h-4 w-4" />, color: "text-crimson", match: /mail|smtp|gmail|outlook|sendgrid|imap/i, types: ["email"] },
+  { name: "Facebook", icon: <Facebook className="h-4 w-4" />, color: "text-blue-500", match: /facebook|meta/i, types: ["facebook"] },
+  { name: "X (Twitter)", icon: <Twitter className="h-4 w-4" />, color: "text-foreground", match: /twitter|(^|[^a-z])x([^a-z]|$)/i, types: ["twitter", "x"] },
+  { name: "Instagram", icon: <Instagram className="h-4 w-4" />, color: "text-pink-400", match: /instagram/i, types: ["instagram"] },
+  { name: "Slack", icon: <Slack className="h-4 w-4" />, color: "text-purple-400", match: /slack/i, types: ["slack"] },
+  { name: "Website Forms", icon: <FileText className="h-4 w-4" />, color: "text-green-400", match: /webhook|form|website|landing/i, types: ["form", "web", "website", "webhook"] },
+];
+
+function socialChannelIcon(type: string) {
+  const t = (type ?? "").toLowerCase();
+  if (t.includes("linkedin")) return <Linkedin className="h-3.5 w-3.5 text-blue-400" />;
+  if (t.includes("email") || t.includes("mail")) return <Mail className="h-3.5 w-3.5 text-crimson" />;
+  if (t.includes("facebook")) return <Facebook className="h-3.5 w-3.5 text-blue-500" />;
+  if (t === "x" || t.includes("twitter")) return <Twitter className="h-3.5 w-3.5" />;
+  if (t.includes("instagram")) return <Instagram className="h-3.5 w-3.5 text-pink-400" />;
+  if (t.includes("slack")) return <Slack className="h-3.5 w-3.5 text-purple-400" />;
+  if (t.includes("form") || t.includes("web")) return <FileText className="h-3.5 w-3.5 text-green-400" />;
+  if (t.includes("call") || t.includes("phone")) return <Phone className="h-3.5 w-3.5 text-gold" />;
+  return <MessageSquare className="h-3.5 w-3.5" />;
+}
+
+function relTime(value?: string | Date | null): string {
+  if (!value) return "";
+  const d = new Date(value);
+  const ms = Date.now() - d.getTime();
+  if (!Number.isFinite(ms)) return "";
+  const mins = Math.round(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.round(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return d.toLocaleDateString();
 }
 
 function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) {
   const { isHuman, isAuto, currentMode } = useAiModeContext();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: comms } = useListCommunications();
+  const { data: integrations } = useIntegrationStatus();
   const [selectedMsg, setSelectedMsg] = useState<any>(null);
   const [replyDraft, setReplyDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [movedIds, setMovedIds] = useState<Set<number>>(new Set());
 
-  const [messages, setMessages] = useState<{id:number;channel:string;from:string;company:string;subject:string;time:string;type:string;priority:string;classification:string;body:string;movedToCrm?:boolean}[]>([
-    { id: 1, channel: "LinkedIn", from: "David Chen, CTO", company: "ShieldNet Systems", subject: "Re: Your cybersecurity marketing insights", time: "2h ago", type: "reply", priority: "high", classification: "Hot Lead", body: "Hi Shershah, thanks for connecting. I've been looking at improving our market positioning for our SIEM solutions. Your case study about generating 20+ leads was interesting. We're currently evaluating marketing partners — would love to discuss further. What does your availability look like next week?" },
-    { id: 2, channel: "Email", from: "Rachel Torres, VP Marketing", company: "CyberVault Defense", subject: "Re: Quick question about CyberVault's marketing", time: "4h ago", type: "reply", priority: "high", classification: "Hot Lead", body: "Shershah, your timing is perfect. We just closed a Series B and are looking to scale our lead generation significantly. Our current agency doesn't understand the cybersecurity space at all. Can you send over your pricing and a few case studies? We're looking at budgets for next quarter." },
-    { id: 3, channel: "Facebook", from: "Mike Sullivan, CEO", company: "IronGate MSSP", subject: "Saw your post about MDR marketing", time: "6h ago", type: "message", priority: "medium", classification: "Warm", body: "Hey Shershah, I came across your post about MDR vendor marketing challenges. You nailed it — we struggle with exactly those issues. Our sales team says they need better qualified leads. Not sure if we're ready for a full engagement but would be open to hearing more about what you do." },
-    { id: 4, channel: "Email", from: "Jennifer Liu, Director of Sales", company: "SecureOps Group", subject: "Introduction from Mark at CyberSafe", time: "1d ago", type: "referral", priority: "medium", classification: "Warm", body: "Hi Shershah, Mark from CyberSafe mentioned that PMG Group helped them significantly grow their pipeline. We're a SOC-as-a-service provider looking for similar results. Our current marketing is mostly events and word of mouth. Could we set up a brief call?" },
-    { id: 5, channel: "LinkedIn", from: "Tom Wright, Marketing Manager", company: "EdgePoint Security", subject: "Interesting approach to cybersecurity content", time: "1d ago", type: "engagement", priority: "low", classification: "Cold", body: "Thanks for sharing that article about NIST compliance content marketing. We're a small EDR company just starting to think about outbound marketing. Bookmarked your post for future reference." },
-    { id: 6, channel: "X (Twitter)", from: "Sarah Kim, CISO", company: "VaultStream Technologies", subject: "Re: Thread about XDR demand gen", time: "2d ago", type: "reply", priority: "low", classification: "Warm", body: "Great thread on XDR marketing. We launched our XDR product last quarter and the demand gen has been harder than expected. Following for more insights." },
-    { id: 7, channel: "Website Forms", from: "Alex Brennan, VP Sales", company: "ClearDefense Inc", subject: "Contact form: Need marketing help", time: "3d ago", type: "inbound", priority: "high", classification: "Hot Lead", body: "We're a managed security services provider doing about $5M ARR. Looking for a marketing agency that understands cybersecurity. Found you through a Google search. We need help with lead generation, content marketing, and LinkedIn outreach. Budget is flexible for the right partner." },
-  ]);
+  const commList = (comms ?? []) as any[];
+  // The unified inbox is inbound communications (replies, form fills, messages).
+  const inbound = commList.filter((c) => String(c.direction ?? "").toLowerCase() === "inbound");
+  const integrationList: any[] = Array.isArray(integrations) ? integrations : [];
+  const providerActive = (re: RegExp) =>
+    integrationList.some((i: any) => re.test(String(i.provider ?? i.name ?? "")) && i.isActive);
 
-  const channels = [
-    { name: "LinkedIn", icon: <Linkedin className="h-4 w-4" />, unread: messages.filter(m => m.channel === "LinkedIn" && !m.movedToCrm).length, color: "text-blue-400", connected: true },
-    { name: "Email", icon: <Mail className="h-4 w-4" />, unread: messages.filter(m => m.channel === "Email" && !m.movedToCrm).length, color: "text-crimson", connected: true },
-    { name: "Facebook", icon: <Facebook className="h-4 w-4" />, unread: messages.filter(m => m.channel === "Facebook" && !m.movedToCrm).length, color: "text-blue-500", connected: true },
-    { name: "X (Twitter)", icon: <Twitter className="h-4 w-4" />, unread: messages.filter(m => m.channel === "X (Twitter)" && !m.movedToCrm).length, color: "text-foreground", connected: true },
-    { name: "Instagram", icon: <Instagram className="h-4 w-4" />, unread: messages.filter(m => m.channel === "Instagram" && !m.movedToCrm).length, color: "text-pink-400", connected: false },
-    { name: "Slack", icon: <Slack className="h-4 w-4" />, unread: messages.filter(m => m.channel === "Slack" && !m.movedToCrm).length, color: "text-purple-400", connected: false },
-    { name: "Website Forms", icon: <FileText className="h-4 w-4" />, unread: messages.filter(m => m.channel === "Website Forms" && !m.movedToCrm).length, color: "text-green-400", connected: true },
-  ];
+  const channels = SOCIAL_CHANNELS.map((ch) => ({
+    ...ch,
+    connected: providerActive(ch.match),
+    unread: inbound.filter((c) => ch.types.includes(String(c.type ?? "").toLowerCase())).length,
+  }));
 
-  const getClassBadge = (cls: string) => {
-    if (cls === "Hot Lead") return "bg-crimson/20 text-crimson border-crimson/30";
-    if (cls === "Warm") return "bg-yellow-400/20 text-yellow-400 border-yellow-400/30";
-    if (cls === "Cold") return "bg-blue-400/20 text-blue-400 border-blue-400/30";
-    return "bg-muted text-muted-foreground border-muted-foreground/30";
-  };
+  const senderName = (m: any) => m.contactName || m.companyName || m.performedBy || "Unknown sender";
 
-  const getChannelIcon = (ch: string) => {
-    if (ch === "LinkedIn") return <Linkedin className="h-3.5 w-3.5 text-blue-400" />;
-    if (ch === "Email") return <Mail className="h-3.5 w-3.5 text-crimson" />;
-    if (ch === "Facebook") return <Facebook className="h-3.5 w-3.5 text-blue-500" />;
-    if (ch === "X (Twitter)") return <Twitter className="h-3.5 w-3.5" />;
-    if (ch === "Instagram") return <Instagram className="h-3.5 w-3.5 text-pink-400" />;
-    if (ch === "Slack") return <Slack className="h-3.5 w-3.5 text-purple-400" />;
-    if (ch === "Website Forms") return <FileText className="h-3.5 w-3.5 text-green-400" />;
-    return <MessageSquare className="h-3.5 w-3.5" />;
+  const handleReply = async (msg: any) => {
+    const text = (replyDraft || "").trim();
+    if (!text) {
+      toast({ title: "Empty reply", description: "Write a reply first.", variant: "destructive" });
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await fetch(`${API_BASE}/communications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          type: msg.type || "email",
+          direction: "outbound",
+          subject: msg.subject ? `Re: ${msg.subject}` : "Reply",
+          summary: text,
+          contactId: msg.contactId ?? undefined,
+          companyId: msg.companyId ?? undefined,
+          opportunityId: msg.opportunityId ?? undefined,
+          performedBy: "user",
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || err?.message || `Request failed (${res.status})`);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["/api/communications"] });
+      toast({ title: "Reply logged", description: "Saved to the contact timeline. Connect the channel in Settings to send directly." });
+      setSelectedMsg(null);
+      setReplyDraft("");
+    } catch (err: any) {
+      toast({ title: "Reply failed", description: err?.message || "Request failed", variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleMoveToCrm = async (msg: any) => {
     try {
-      const nameParts = (msg.from || "").split(",")[0].trim().split(" ");
+      const parts = String(msg.contactName || "").trim().split(/\s+/).filter(Boolean);
       const res = await fetch(`${API_BASE}/leads`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          firstName: nameParts[0] || "Contact",
-          lastName: nameParts.slice(1).join(" ") || "",
-          email: msg.email || "",
-          company: msg.company,
-          title: (msg.from || "").split(",")[1]?.trim() || "",
-          source: msg.channel.toLowerCase(),
+          firstName: parts[0] || (msg.companyName || "Contact"),
+          lastName: parts.slice(1).join(" ") || "",
+          company: msg.companyName || undefined,
+          companyId: msg.companyId ?? undefined,
+          contactId: msg.contactId ?? undefined,
+          source: (msg.type || "inbound").toLowerCase(),
           status: "qualified",
-          confidenceScore: msg.classification === "Hot Lead" ? 92 : 75,
         }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: "Failed" }));
-        toast({ title: "Error", description: err.message || "Could not create CRM lead", variant: "destructive" });
+        toast({ title: "Error", description: err.message || err.error || "Could not create CRM lead", variant: "destructive" });
         return;
       }
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, movedToCrm: true } : m));
-      toast({ title: "Moved to CRM", description: `${msg.from} from ${msg.company} added as qualified lead` });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      setMovedIds((prev) => new Set(prev).add(msg.id));
+      toast({ title: "Moved to CRM", description: `${senderName(msg)} added as a qualified lead` });
       setSelectedMsg(null);
     } catch {
       toast({ title: "Error", description: "Failed to create CRM lead", variant: "destructive" });
@@ -816,14 +1244,14 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {channels.map((ch) => (
-          <GlassCard key={ch.name} variant="interactive" className="cursor-pointer p-3">
+          <GlassCard key={ch.name} className="p-3">
             <div className="flex flex-col items-center text-center gap-1">
               <div className={ch.color}>{ch.icon}</div>
               <span className="text-[10px] font-medium">{ch.name}</span>
               <div className="flex items-center gap-1">
                 {ch.unread > 0 && <Badge className="bg-crimson text-white text-[9px] px-1 py-0">{ch.unread}</Badge>}
                 <span className={`text-[9px] ${ch.connected ? "text-success" : "text-muted-foreground"}`}>
-                  {ch.connected ? "Connected" : "Connect"}
+                  {ch.connected ? "Connected" : "Not connected"}
                 </span>
               </div>
             </div>
@@ -831,49 +1259,59 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
         ))}
       </div>
 
-      {currentMode !== "human" && (
-        <div className="flex items-center gap-1.5 px-1">
-          <Bot className="h-3 w-3 text-crimson/70" />
-          <span className="text-[10px] text-muted-foreground">
-            {isAuto ? "Messages auto-classified. Hot leads auto-flagged for CRM." : "AI classifies messages — you review before taking action."}
-          </span>
-        </div>
-      )}
+      <div className="flex items-center gap-1.5 px-1">
+        <Globe className="h-3 w-3 text-crimson/70" />
+        <span className="text-[10px] text-muted-foreground">
+          Inbound messages appear here from connected channels. Connect LinkedIn, email, or a webhook in Settings → Integrations to route replies into this inbox.
+        </span>
+      </div>
 
       <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Unified Inbox</h3>
-          <Badge variant="outline" className="text-xs">{messages.filter(m => m.classification !== "Spam").length} messages</Badge>
+          <Badge variant="outline" className="text-xs">{inbound.length} message{inbound.length === 1 ? "" : "s"}</Badge>
         </div>
-        <div className="space-y-2">
-          {messages.filter(m => isHuman || m.classification !== "Spam").map((msg) => (
-            <motion.div key={msg.id} whileHover={{ scale: 1.002 }}
-              className="p-3 rounded-lg glass-surface cursor-pointer flex items-center gap-3 hover:bg-white/[0.02] transition-colors"
-              onClick={() => { setSelectedMsg(msg); setReplyDraft(""); }}
-            >
-              <div className="p-1.5 rounded-lg glass-surface shrink-0">{getChannelIcon(msg.channel)}</div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium truncate">{msg.from}</p>
-                  {msg.company && <span className="text-[10px] text-muted-foreground truncate">at {msg.company}</span>}
-                  {!isHuman && <Badge variant="outline" className={`text-[9px] ${getClassBadge(msg.classification)}`}>{msg.classification}</Badge>}
-                  {msg.priority === "high" && <AlertCircle className="h-3 w-3 text-crimson shrink-0" />}
-                </div>
-                <p className="text-xs text-muted-foreground truncate">{msg.subject}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] text-muted-foreground">{msg.time}</span>
-                {msg.movedToCrm ? (
-                  <Badge className="bg-success/20 text-success text-[9px] border-success/30">In CRM</Badge>
-                ) : (msg.classification === "Hot Lead" || msg.classification === "Warm") && !isHuman ? (
-                  <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 border-crimson/30 text-crimson" onClick={(e) => { e.stopPropagation(); handleMoveToCrm(msg); }}>
-                    <ArrowRight className="h-2.5 w-2.5 mr-1" />CRM
-                  </Button>
-                ) : null}
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        {inbound.length === 0 ? (
+          <div className="text-center py-10">
+            <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground/20 mb-3" />
+            <p className="text-sm font-semibold">No messages yet</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+              Inbound replies and form submissions land here once a channel is connected. Nothing has come in yet.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {inbound.map((msg) => {
+              const moved = movedIds.has(msg.id);
+              return (
+                <motion.div key={msg.id} whileHover={{ scale: 1.002 }}
+                  className="p-3 rounded-lg glass-surface cursor-pointer flex items-center gap-3 hover:bg-white/[0.02] transition-colors"
+                  onClick={() => { setSelectedMsg(msg); setReplyDraft(""); }}
+                >
+                  <div className="p-1.5 rounded-lg glass-surface shrink-0">{socialChannelIcon(msg.type)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium truncate">{senderName(msg)}</p>
+                      {msg.companyName && msg.contactName && <span className="text-[10px] text-muted-foreground truncate">at {msg.companyName}</span>}
+                      {msg.sentiment && <Badge variant="outline" className="text-[9px] capitalize">{msg.sentiment}</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{msg.subject || msg.summary || "(no subject)"}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] text-muted-foreground">{relTime(msg.createdAt)}</span>
+                    {moved ? (
+                      <Badge className="bg-success/20 text-success text-[9px] border-success/30">In CRM</Badge>
+                    ) : (
+                      <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 border-crimson/30 text-crimson" onClick={(e) => { e.stopPropagation(); handleMoveToCrm(msg); }}>
+                        <ArrowRight className="h-2.5 w-2.5 mr-1" />CRM
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </GlassCard>
 
       {selectedMsg && (
@@ -881,27 +1319,30 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
           <DialogContent className="glass-panel border-border/50 max-w-xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                {getChannelIcon(selectedMsg.channel)}
-                {selectedMsg.from}
+                {socialChannelIcon(selectedMsg.type)}
+                {senderName(selectedMsg)}
               </DialogTitle>
-              <DialogDescription>{selectedMsg.subject}</DialogDescription>
+              <DialogDescription>{selectedMsg.subject || selectedMsg.summary || "Inbound message"}</DialogDescription>
             </DialogHeader>
-            <div className="mt-3 p-4 rounded-lg glass-surface text-sm leading-relaxed">{selectedMsg.body}</div>
+            <div className="mt-3 p-4 rounded-lg glass-surface text-sm leading-relaxed whitespace-pre-wrap">
+              {selectedMsg.transcript || selectedMsg.summary || "No message body recorded."}
+            </div>
             {!isHuman && (
               <div className="mt-3">
-                <Label className="text-xs">AI Draft Reply</Label>
+                <Label className="text-xs">Reply</Label>
                 <Textarea
-                  value={replyDraft || `Hi ${selectedMsg.from.split(",")[0].split(" ")[0]}, thank you for reaching out. I'd be happy to discuss how PMG Group can help ${selectedMsg.company || "your company"} with cybersecurity marketing. Would you be available for a quick 15-minute call this week to explore the fit?`}
+                  value={replyDraft}
+                  placeholder={`Hi ${String(senderName(selectedMsg)).split(" ")[0]}, thank you for reaching out...`}
                   onChange={(e) => setReplyDraft(e.target.value)}
                   className="mt-1 min-h-[100px]"
                 />
               </div>
             )}
             <div className="flex gap-2 mt-4">
-              <Button className="btn-premium text-white text-sm flex-1" onClick={() => { toast({ title: "Reply Sent", description: `Response sent via ${selectedMsg.channel}` }); setSelectedMsg(null); }}>
-                <Send className="h-4 w-4 mr-2" />Send Reply
+              <Button className="btn-premium text-white text-sm flex-1" disabled={sending || !replyDraft.trim()} onClick={() => handleReply(selectedMsg)}>
+                {sending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}Log Reply
               </Button>
-              {selectedMsg.movedToCrm ? (
+              {movedIds.has(selectedMsg.id) ? (
                 <Button variant="outline" className="text-sm opacity-60" disabled>
                   <CheckCircle2 className="h-4 w-4 mr-2" />In CRM
                 </Button>
@@ -1205,18 +1646,20 @@ function ComposeTab() {
           tone,
         }),
       });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody?.error || errBody?.message || `Request failed (${res.status})`);
+      }
       const data = await res.json();
       const msg = data?.message || data?.result;
-      if (msg) {
-        const text = typeof msg === "string" ? msg : msg.message || msg.body || JSON.stringify(msg);
-        setBody(text);
-        if (typeof msg !== "string" && msg.subject) setSubject(msg.subject);
-        toast({ title: "AI Draft Ready", description: "Message generated — review and edit before sending" });
-      }
-    } catch {
-      setBody(`Hi [Name],\n\nI came across [Company] and was impressed by your work in the cybersecurity space. At PMG Group, we specialize exclusively in marketing for SIEM, EDR, MDR, and XDR vendors.\n\nOur clients typically see 20+ qualified leads within the first month. I noticed some areas where [Company] could significantly improve lead generation through targeted content and multi-channel outreach.\n\nWould you be open to a quick 15-minute call this week to explore the fit?\n\nBest regards,\nShershah Nawabi\nPMG Group LLC`);
-      setSubject("Quick question about your marketing strategy");
-      toast({ title: "Draft Generated", description: "Review and personalize before sending" });
+      if (!msg) throw new Error("AI did not return a usable message. Try again or use a template.");
+      const text = typeof msg === "string" ? msg : msg.message || msg.body || JSON.stringify(msg);
+      setBody(text);
+      if (typeof msg !== "string" && msg.subject) setSubject(msg.subject);
+      toast({ title: "AI Draft Ready", description: "Message generated — review and edit before sending" });
+    } catch (err: any) {
+      // Surface the real failure — never fabricate a draft + success toast.
+      toast({ title: "AI draft failed", description: err?.message || "Could not generate a draft. Use a template or write your own.", variant: "destructive" });
     } finally {
       setIsDrafting(false);
     }
@@ -1436,202 +1879,224 @@ function ComposeTab() {
 }
 
 function FollowUpsTab({ onTabChange }: { onTabChange: (tab: string) => void }) {
-  const { isHuman, isAuto } = useAiModeContext();
+  const { isAuto } = useAiModeContext();
   const { toast } = useToast();
-  const [snoozedIds, setSnoozedIds] = useState<Set<number>>(new Set());
-  const [draftingId, setDraftingId] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+  const { data: tasks } = useListTasks();
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-  const [followUps, setFollowUps] = useState<{id:number;name:string;company:string;channel:string;lastContact:string;nextAction:string;priority:string;daysOverdue:number;attempts:number;channelHistory:string[]}[]>([
-    { id: 1, name: "David Chen", company: "ShieldNet Systems", channel: "Email", lastContact: "2 days ago", nextAction: "Send case study follow-up with SOC 2 compliance results", priority: "high", daysOverdue: 1, attempts: 2, channelHistory: ["LinkedIn", "LinkedIn"] },
-    { id: 2, name: "Rachel Torres", company: "CyberVault Defense", channel: "LinkedIn", lastContact: "3 days ago", nextAction: "Share pricing deck — Starter $2,500 and Growth $5,000 options", priority: "high", daysOverdue: 2, attempts: 1, channelHistory: ["Email"] },
-    { id: 3, name: "Mike Sullivan", company: "IronGate MSSP", channel: "Email", lastContact: "5 days ago", nextAction: "Follow up on MDR marketing conversation with ROI data", priority: "medium", daysOverdue: 0, attempts: 3, channelHistory: ["LinkedIn", "LinkedIn", "LinkedIn"] },
-    { id: 4, name: "Jennifer Liu", company: "SecureOps Group", channel: "Phone", lastContact: "4 days ago", nextAction: "Schedule discovery call — referral from Mark at CyberSafe", priority: "medium", daysOverdue: 0, attempts: 2, channelHistory: ["Email", "Email"] },
-    { id: 5, name: "Alex Brennan", company: "ClearDefense Inc", channel: "Email", lastContact: "1 day ago", nextAction: "Send detailed proposal with Growth package pricing", priority: "high", daysOverdue: 0, attempts: 1, channelHistory: ["Website Forms"] },
-    { id: 6, name: "Tom Wright", company: "EdgePoint Security", channel: "LinkedIn", lastContact: "7 days ago", nextAction: "Nurture with content — share EDR marketing insights article", priority: "low", daysOverdue: 3, attempts: 4, channelHistory: ["LinkedIn", "Email", "LinkedIn", "Email"] },
-    { id: 7, name: "Sarah Kim", company: "VaultStream Technologies", channel: "Email", lastContact: "6 days ago", nextAction: "Share XDR demand generation case study", priority: "medium", daysOverdue: 1, attempts: 3, channelHistory: ["LinkedIn", "LinkedIn", "LinkedIn"] },
-  ]);
+  const taskList = (tasks ?? []) as any[];
+  const CLOSED = new Set(["completed", "done", "cancelled", "archived"]);
+  const open = taskList.filter((t) => !CLOSED.has(String(t.status ?? "").toLowerCase()));
 
-  const visibleFollowUps = followUps.filter(f => !snoozedIds.has(f.id));
+  const daysOverdue = (t: any): number | null =>
+    t.dueDate ? Math.floor((Date.now() - new Date(t.dueDate).getTime()) / 86400000) : null;
 
-  const handleDraft = (fu: any) => {
-    setDraftingId(fu.id);
-    toast({ title: "Drafting Follow-up", description: `Preparing ${fu.channel} message for ${fu.name}` });
-    setTimeout(() => {
-      setDraftingId(null);
-      onTabChange("compose");
-    }, 500);
-  };
+  const overdueCount = open.filter((t) => (daysOverdue(t) ?? -1) > 0).length;
+  const dueTodayCount = open.filter((t) => daysOverdue(t) === 0).length;
 
-  const handleSnooze = (fu: any) => {
-    setSnoozedIds(prev => new Set([...prev, fu.id]));
-    toast({ title: "Snoozed", description: `${fu.name} follow-up snoozed for 3 days` });
-  };
-
-  const getEscalationSuggestion = (fu: any) => {
-    if (fu.attempts >= 3 && fu.channelHistory.every((c: string) => c === fu.channelHistory[0])) {
-      const currentCh = fu.channelHistory[0];
-      if (currentCh === "LinkedIn") return { suggest: "Email", reason: "3 LinkedIn attempts with no response — try email" };
-      if (currentCh === "Email") return { suggest: "Phone", reason: "3 email attempts with no response — try direct call" };
-      return { suggest: "LinkedIn", reason: "Multiple attempts — try a different channel" };
+  const patchTask = async (id: number, body: Record<string, unknown>, okMsg: { title: string; description: string }) => {
+    setUpdatingId(id);
+    try {
+      const res = await fetch(`${API_BASE}/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || err?.message || `Request failed (${res.status})`);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast(okMsg);
+    } catch (err: any) {
+      toast({ title: "Update failed", description: err?.message || "Request failed", variant: "destructive" });
+    } finally {
+      setUpdatingId(null);
     }
-    if (fu.attempts >= 5) return { suggest: "Final", reason: "5+ attempts across channels — consider archiving" };
-    return null;
   };
+
+  const handleComplete = (t: any) =>
+    patchTask(t.id, { status: "completed" }, { title: "Marked complete", description: `"${t.title}" closed.` });
+
+  const handleSnooze = (t: any) => {
+    const next = new Date(Date.now() + 3 * 86400000).toISOString();
+    patchTask(t.id, { dueDate: next }, { title: "Snoozed 3 days", description: `"${t.title}" rescheduled.` });
+  };
+
+  const priorityBorder = (p: string) =>
+    p === "high" || p === "urgent" ? "border-l-crimson" : p === "medium" ? "border-l-gold" : "border-l-muted-foreground/30";
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <KpiCard label="Overdue" value={visibleFollowUps.filter(f => f.daysOverdue > 0).length} icon={<AlertCircle className="h-4 w-4" />} accent="crimson" />
-        <KpiCard label="Due Today" value={visibleFollowUps.filter(f => f.daysOverdue === 0).length} icon={<Clock className="h-4 w-4" />} accent="gold" />
-        <KpiCard label="Total Queued" value={visibleFollowUps.length} icon={<Calendar className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="Overdue" value={overdueCount} icon={<AlertCircle className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Due Today" value={dueTodayCount} icon={<Clock className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Open Tasks" value={open.length} icon={<Calendar className="h-4 w-4" />} accent="blue" />
       </div>
 
-      {isAuto && (
-        <div className="flex items-center gap-1.5 px-1">
-          <Bot className="h-3 w-3 text-crimson/70" />
-          <span className="text-[10px] text-muted-foreground">Follow-ups auto-scheduled. AI escalates across channels after 3 failed attempts.</span>
-        </div>
-      )}
+      <div className="flex items-center gap-1.5 px-1">
+        {isAuto ? <Bot className="h-3 w-3 text-crimson/70" /> : <Hand className="h-3 w-3 text-yellow-400/70" />}
+        <span className="text-[10px] text-muted-foreground">
+          Follow-up tasks created across the OS (calls, proposals, nurture) surface here. Draft opens the composer; Complete closes the task.
+        </span>
+      </div>
 
       <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Follow-up Queue</h3>
+          <Badge variant="outline" className="text-xs">{open.length} open</Badge>
         </div>
-        <div className="space-y-3">
-          {visibleFollowUps.map((fu) => {
-            const escalation = getEscalationSuggestion(fu);
-            return (
-              <div key={fu.id} className={`p-3 rounded-lg glass-surface border-l-2 ${fu.daysOverdue > 0 ? "border-l-crimson" : fu.priority === "medium" ? "border-l-gold" : "border-l-muted-foreground/30"}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium">{fu.name}</p>
-                      <span className="text-[10px] text-muted-foreground">at {fu.company}</span>
-                      {fu.daysOverdue > 0 && <Badge className="bg-crimson/20 text-crimson text-[10px] border-crimson/30">{fu.daysOverdue}d overdue</Badge>}
-                      <Badge variant="outline" className="text-[9px]">Attempt {fu.attempts}</Badge>
+        {open.length === 0 ? (
+          <div className="text-center py-10">
+            <CheckCircle2 className="h-10 w-10 mx-auto text-muted-foreground/20 mb-3" />
+            <p className="text-sm font-semibold">No follow-ups due</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+              You're all caught up. Tasks appear here as leads progress and follow-ups get scheduled.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {open.map((t) => {
+              const od = daysOverdue(t);
+              return (
+                <div key={t.id} className={`p-3 rounded-lg glass-surface border-l-2 ${priorityBorder(String(t.priority ?? "").toLowerCase())}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium truncate">{t.title}</p>
+                        {od != null && od > 0 && <Badge className="bg-crimson/20 text-crimson text-[10px] border-crimson/30">{od}d overdue</Badge>}
+                        {od === 0 && <Badge className="bg-gold/20 text-gold text-[10px] border-gold/30">Due today</Badge>}
+                        {t.priority && <Badge variant="outline" className="text-[9px] capitalize">{t.priority}</Badge>}
+                        {t.entityType && <Badge variant="outline" className="text-[9px] capitalize">{t.entityType}{t.entityId ? ` #${t.entityId}` : ""}</Badge>}
+                      </div>
+                      {t.description && <p className="text-xs text-muted-foreground truncate mt-1">{t.description}</p>}
+                      <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{t.dueDate ? `Due ${new Date(t.dueDate).toLocaleDateString()}` : "No due date"}</span>
+                        {t.assignedTo && <span>Assigned: {t.assignedTo}</span>}
+                        {t.status && <span className="capitalize">{String(t.status).replace(/_/g, " ")}</span>}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        {fu.channel === "LinkedIn" ? <Linkedin className="h-3 w-3" /> : fu.channel === "Phone" ? <Phone className="h-3 w-3" /> : <Mail className="h-3 w-3" />}
-                        {fu.channel}
-                      </span>
-                      <span className="text-xs text-muted-foreground">Last: {fu.lastContact}</span>
-                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        History: {fu.channelHistory.map((c: string, i: number) => (
-                          <span key={i} className="inline-flex">{c === "LinkedIn" ? "Li" : c === "Email" ? "Em" : "Ph"}{i < fu.channelHistory.length - 1 ? " → " : ""}</span>
-                        ))}
-                      </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button size="sm" className="btn-premium text-white text-xs h-7" onClick={() => onTabChange("compose")}>
+                        <Send className="h-3 w-3 mr-1" />Draft
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-xs h-7" disabled={updatingId === t.id} onClick={() => handleSnooze(t)}>
+                        {updatingId === t.id ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Clock className="h-3 w-3 mr-1" />}Snooze
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-xs h-7 border-success/30 text-success" disabled={updatingId === t.id} onClick={() => handleComplete(t)}>
+                        <CheckCircle2 className="h-3 w-3 mr-1" />Done
+                      </Button>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button size="sm" className="btn-premium text-white text-xs h-7" onClick={() => handleDraft(fu)} disabled={draftingId === fu.id}>
-                      {draftingId === fu.id ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
-                      Draft
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => handleSnooze(fu)}>
-                      <Clock className="h-3 w-3 mr-1" />Snooze
-                    </Button>
                   </div>
                 </div>
-                <p className="text-xs text-info mt-2 flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors" onClick={() => onTabChange("compose")}>
-                  <ArrowRight className="h-3 w-3" />Next: {fu.nextAction}
-                </p>
-                {escalation && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                    className="mt-2 p-2 rounded-lg bg-yellow-400/5 border border-yellow-400/20 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <SkipForward className="h-3.5 w-3.5 text-yellow-400" />
-                      <span className="text-[10px] text-yellow-400">{escalation.reason}</span>
-                    </div>
-                    {escalation.suggest !== "Final" ? (
-                      <Button size="sm" className="text-[10px] h-6 px-2 bg-yellow-400/10 text-yellow-400 border border-yellow-400/30 hover:bg-yellow-400/20" onClick={() => { toast({ title: "Channel Escalated", description: `Switching to ${escalation.suggest} for ${fu.name}` }); }}>
-                        Switch to {escalation.suggest}
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline" className="text-[10px] h-6 px-2" onClick={() => handleSnooze(fu)}>
-                        Archive
-                      </Button>
-                    )}
-                  </motion.div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </GlassCard>
     </div>
   );
 }
 
 function AnalyticsTab() {
-  const { isHuman, isAuto } = useAiModeContext();
   const { data: leads } = useListLeads();
+  const { data: comms } = useListCommunications();
+  const { data: tasks } = useListTasks();
   const leadList = (leads ?? []) as any[];
-  const { toast } = useToast();
+  const commList = (comms ?? []) as any[];
+  const taskList = (tasks ?? []) as any[];
 
-  const totalSent = leadList.length * 3;
-  const responseRate = leadList.length > 0 ? Math.min(34, Math.round((leadList.filter((l: any) => l.status === "contacted" || l.status === "qualified").length / Math.max(leadList.length, 1)) * 100)) : 0;
-  const meetingsBooked = Math.max(0, leadList.filter((l: any) => l.status === "qualified").length);
-  const pipelineAdded = leadList.reduce((s: number, l: any) => s + (l.confidenceScore ?? l.confidence_score ?? 0) * 50, 0);
+  const dir = (c: any) => String(c.direction ?? "").toLowerCase();
+  const outbound = commList.filter((c) => dir(c) === "outbound");
+  const inbound = commList.filter((c) => dir(c) === "inbound");
+  const isMeeting = (c: any) => /meeting|call|demo/i.test(`${c.type ?? ""} ${c.outcome ?? ""}`);
 
-  const recommendations = [
-    { text: "Case study emails have 34% reply rate vs 8% for cold intros — use more case studies", impact: "High", applied: false },
-    { text: "Tuesday 9-11am LinkedIn messages get 2.4x more responses — adjust timing", impact: "High", applied: false },
-    { text: "Messages under 100 words get 22% more replies — shorten templates", impact: "Medium", applied: false },
-    { text: "Prospects with 85+ fit score convert 3x more — focus outreach on high-score leads", impact: "Medium", applied: false },
+  const messagesSent = outbound.length;
+  const replies = inbound.length;
+  const responseRate = messagesSent > 0 ? Math.round((replies / messagesSent) * 100) : 0;
+  const meetings = commList.filter(isMeeting).length;
+  const qualified = leadList.filter((l: any) => ["qualified", "routing", "routed", "active"].includes(l.status)).length;
+
+  // Real per-channel performance grouped by communication.type.
+  const byType: Record<string, { sent: number; replies: number }> = {};
+  for (const c of commList) {
+    const t = String(c.type ?? "other").toLowerCase();
+    (byType[t] ??= { sent: 0, replies: 0 });
+    if (dir(c) === "outbound") byType[t].sent++;
+    else if (dir(c) === "inbound") byType[t].replies++;
+  }
+  const channelRows = Object.entries(byType)
+    .map(([channel, v]) => ({ channel, sent: v.sent, replies: v.replies, rate: v.sent ? Math.round((v.replies / v.sent) * 100) : 0 }))
+    .sort((a, b) => b.sent + b.replies - (a.sent + a.replies));
+
+  const weekAgo = Date.now() - 7 * 86400000;
+  const within = (d?: string | Date | null) => (d ? new Date(d).getTime() >= weekAgo : false);
+  const goals = [
+    { goal: "New prospects (7d)", current: leadList.filter((l: any) => within(l.createdAt)).length, target: 50 },
+    { goal: "Messages sent (7d)", current: outbound.filter((c) => within(c.createdAt)).length, target: 100 },
+    { goal: "Follow-ups completed (7d)", current: taskList.filter((t: any) => String(t.status).toLowerCase() === "completed" && within(t.completedAt ?? t.updatedAt)).length, target: 30 },
+    { goal: "Meetings logged (7d)", current: commList.filter((c) => isMeeting(c) && within(c.createdAt)).length, target: 5 },
   ];
 
-  const [appliedRecs, setAppliedRecs] = useState<Set<number>>(new Set());
+  const bestPractices = [
+    "Lead with a case study — outcome-first intros consistently out-reply generic pitches.",
+    "Keep LinkedIn messages under ~100 words with a single, specific ask.",
+    "Reference the prospect's compliance context (SOC 2, NIST) — it signals you know their world.",
+    "Escalate channels after 2–3 unanswered touches instead of repeating the same one.",
+  ];
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="Messages Sent" value={totalSent} icon={<Mail className="h-4 w-4" />} accent="blue" />
-        <KpiCard label="Response Rate" value={`${responseRate}%`} icon={<MessageSquare className="h-4 w-4" />} accent="success" />
-        <KpiCard label="Meetings Booked" value={meetingsBooked} icon={<Calendar className="h-4 w-4" />} accent="crimson" />
-        <KpiCard label="Pipeline Added" value={`$${Math.round(pipelineAdded / 1000)}k`} icon={<TrendingUp className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Messages Sent" value={messagesSent} icon={<Mail className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="Replies" value={replies} icon={<MessageSquare className="h-4 w-4" />} accent="success" />
+        <KpiCard label="Response Rate" value={messagesSent > 0 ? `${responseRate}%` : "--"} icon={<TrendingUp className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Meetings Logged" value={meetings} icon={<Calendar className="h-4 w-4" />} accent="gold" />
+      </div>
+
+      <div className="flex items-center gap-1.5 px-1">
+        <BarChart3 className="h-3 w-3 text-crimson/70" />
+        <span className="text-[10px] text-muted-foreground">
+          Metrics are computed live from logged communications ({commList.length}) and {qualified} qualified lead{qualified === 1 ? "" : "s"}. Log sends and replies in the inbox/composer to populate them.
+        </span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <GlassCard>
           <h3 className="text-sm font-semibold mb-4">Channel Performance</h3>
-          <div className="space-y-3">
-            {([
-              { channel: "LinkedIn", sent: Math.max(leadList.length * 2, 24), responses: Math.max(Math.round(leadList.length * 0.6), 8), meetings: Math.max(Math.round(leadList.length * 0.15), 3), rate: 34 },
-              { channel: "Email", sent: Math.max(leadList.length * 3, 42), responses: Math.max(Math.round(leadList.length * 0.3), 5), meetings: Math.max(Math.round(leadList.length * 0.1), 2), rate: 12 },
-              { channel: "Phone", sent: Math.max(Math.round(leadList.length * 0.5), 8), responses: Math.max(Math.round(leadList.length * 0.2), 3), meetings: Math.max(Math.round(leadList.length * 0.12), 2), rate: 38 },
-              { channel: "X / Twitter", sent: Math.max(Math.round(leadList.length * 0.4), 6), responses: Math.max(Math.round(leadList.length * 0.05), 1), meetings: 0, rate: 8 },
-              { channel: "Facebook", sent: Math.max(Math.round(leadList.length * 0.3), 4), responses: Math.max(Math.round(leadList.length * 0.04), 1), meetings: 0, rate: 6 },
-            ] as {channel:string;sent:number;responses:number;meetings:number;rate:number}[]).map((ch) => (
-              <div key={ch.channel} className="p-3 rounded-lg glass-surface">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">{ch.channel}</span>
-                  <span className="text-xs text-crimson font-semibold">{ch.rate}% reply rate</span>
+          {channelRows.length === 0 ? (
+            <div className="text-center py-8">
+              <BarChart3 className="h-9 w-9 mx-auto text-muted-foreground/20 mb-2" />
+              <p className="text-xs text-muted-foreground">No channel activity yet. Metrics appear once messages are logged per channel.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {channelRows.map((ch) => (
+                <div key={ch.channel} className="p-3 rounded-lg glass-surface">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium capitalize">{ch.channel}</span>
+                    <span className="text-xs text-crimson font-semibold">{ch.rate}% reply rate</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-white/5 mb-2 overflow-hidden">
+                    <div className="h-full rounded-full bg-crimson/60" style={{ width: `${Math.min(ch.rate, 100)}%` }} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div><p className="text-sm font-bold">{ch.sent}</p><p className="text-[10px] text-muted-foreground">Sent</p></div>
+                    <div><p className="text-sm font-bold">{ch.replies}</p><p className="text-[10px] text-muted-foreground">Replies</p></div>
+                  </div>
                 </div>
-                <div className="w-full h-2 rounded-full bg-white/5 mb-2 overflow-hidden">
-                  <div className="h-full rounded-full bg-crimson/60" style={{ width: `${ch.rate}%` }} />
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div><p className="text-sm font-bold">{ch.sent}</p><p className="text-[10px] text-muted-foreground">Sent</p></div>
-                  <div><p className="text-sm font-bold">{ch.responses}</p><p className="text-[10px] text-muted-foreground">Replies</p></div>
-                  <div><p className="text-sm font-bold">{ch.meetings}</p><p className="text-[10px] text-muted-foreground">Meetings</p></div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </GlassCard>
 
         <div className="space-y-4">
           <GlassCard>
-            <h3 className="text-sm font-semibold mb-4">Weekly Goal Tracker</h3>
+            <h3 className="text-sm font-semibold mb-4">This Week</h3>
             <div className="space-y-4">
-              {[
-                { goal: "New prospects researched", current: Math.min(leadList.length, 50), target: 50 },
-                { goal: "Outreach messages sent", current: Math.min(totalSent, 100), target: 100 },
-                { goal: "Follow-ups completed", current: 0, target: 30 },
-                { goal: "Discovery calls booked", current: meetingsBooked, target: 5 },
-              ].map((g) => (
+              {goals.map((g) => (
                 <div key={g.goal}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium">{g.goal}</span>
@@ -1649,21 +2114,16 @@ function AnalyticsTab() {
           </GlassCard>
 
           <GlassCard>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">AI Recommendations</h3>
-              {isAuto && <Badge variant="outline" className="text-[9px] border-crimson/30 text-crimson">Auto-apply enabled</Badge>}
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-4 w-4 text-crimson" />
+              <h3 className="text-sm font-semibold">Outreach Best Practices</h3>
+              <Badge variant="outline" className="text-[9px] text-muted-foreground">General guidance</Badge>
             </div>
             <div className="space-y-2">
-              {recommendations.map((rec, i) => (
-                <div key={i} className="p-2 rounded-lg glass-surface">
-                  <p className="text-[10px] text-muted-foreground mb-1.5">{rec.text}</p>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className={`text-[9px] ${rec.impact === "High" ? "border-crimson/30 text-crimson" : "border-yellow-400/30 text-yellow-400"}`}>{rec.impact} Impact</Badge>
-                    <Button size="sm" disabled={appliedRecs.has(i)} className={appliedRecs.has(i) ? "text-[10px] h-6 px-2 bg-muted text-muted-foreground" : "text-[10px] h-6 px-2 btn-premium text-white"}
-                      onClick={() => { setAppliedRecs(prev => new Set([...prev, i])); toast({ title: "Applied", description: "Recommendation applied to your outreach strategy" }); }}>
-                      {appliedRecs.has(i) ? <><CheckCircle2 className="h-2.5 w-2.5 mr-1" />Applied</> : "Apply"}
-                    </Button>
-                  </div>
+              {bestPractices.map((tip, i) => (
+                <div key={i} className="p-2 rounded-lg glass-surface flex items-start gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-muted-foreground">{tip}</p>
                 </div>
               ))}
             </div>

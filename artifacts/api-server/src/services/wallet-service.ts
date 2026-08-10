@@ -8,7 +8,11 @@ const LOW_BALANCE_THRESHOLD = 10;
 const CRITICAL_BALANCE_THRESHOLD = 2;
 const ANOMALY_MULTIPLIER = 5;
 
-let dummyMode = true;
+// AI/wallet dummy mode. Env-gated (env is loaded via `node --env-file=.env`),
+// default ON so existing behavior is unchanged. Set AI_DUMMY_MODE=false — with a
+// real AI_INTEGRATIONS_OPENAI_API_KEY — to charge the wallet and run live AI.
+// Still runtime-toggleable via setDummyMode(); testing-service reads the same var.
+let dummyMode = process.env.AI_DUMMY_MODE !== "false";
 
 const TOOL_COSTS: Record<string, number> = {
   "ai-enrich-lead": 0.05,

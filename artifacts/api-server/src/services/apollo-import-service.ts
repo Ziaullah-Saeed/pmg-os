@@ -2,10 +2,14 @@ import { db, companiesTable, contactsTable, leadsTable, activitiesTable } from "
 import { eq, ilike, inArray } from "drizzle-orm";
 import {
   apolloRequest,
+  ApolloError,
   getApolloApiKey,
   getApolloMode,
   assertCreditBudget,
   recordCreditSpend,
+  buildApolloWebhookUrl,
+  recordPhonePending,
+  resolvePhonePending,
   APOLLO_ENDPOINTS,
   type ApolloMode,
   type NormalizedPerson,
@@ -32,6 +36,22 @@ import { enrollContact } from "./sequence-engine";
 // ---------------------------------------------------------------------------
 
 const DECISION_MAKER_SENIORITIES = new Set(["owner", "founder", "c_suite", "partner", "vp", "head"]);
+
+/** Apollo person id shape (24-char hex ObjectId). Apollo's free `api_search`
+ *  preview omits `last_name` and the org `domain`, so name/org matching at enrich
+ *  time is unreliable — but the exact person `id` (stored in `externalCrmId` at
+ *  import) matches deterministically. Guarded so a non-Apollo externalCrmId from
+ *  another CRM falls back to name/org matching instead of being sent as an id. */
+const APOLLO_PERSON_ID_RE = /^[a-f0-9]{24}$/i;
+
+/** Hard per-request enrich cap — bounds the credit blast radius of a single live
+ *  call, on top of the soft monthly cap (which only blocks the *next* request).
+ *  Env-overridable; default 100 (one full search page), so a normal one-page UI
+ *  selection never trips it. Fixture mode is unaffected (no credits spent). */
+const MAX_ENRICH_PER_REQUEST = (() => {
+  const n = Number(process.env.APOLLO_MAX_ENRICH_PER_REQUEST);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 100;
+})();
 
 function headcountToSize(n: number | null): string | null {
   if (n == null) return null;
@@ -216,27 +236,108 @@ export async function importProspects(people: NormalizedPerson[]): Promise<Apoll
 // Enrichment (credit sink) — reveal emails for already-imported contacts
 // ---------------------------------------------------------------------------
 
+export interface ApolloEnrichOptions {
+  /** Also capture a phone number from the enrichment response. Apollo delivers
+   *  *freshly-revealed* mobile numbers asynchronously (webhook-only), so sync
+   *  capture returns already-known numbers — no extra credit, may be empty. */
+  revealPhone?: boolean;
+}
+
 export interface ApolloEnrichResult {
   mode: ApolloMode;
-  enriched: Array<{ contactId: number; email: string | null; contactStatus: string }>;
+  enriched: Array<{ contactId: number; email: string | null; phone: string | null; contactStatus: string }>;
   creditsSpent: number;
+  /** Batch counters so callers can show "revealed X of N" / "0 available". */
+  emailsRevealed: number;
+  phonesRevealed: number;
+  /** True when a live async mobile reveal was dispatched to Apollo's webhook.
+   *  Those numbers arrive minutes later via `handleApolloPhoneWebhook`, not here. */
+  phoneRevealAsync: boolean;
+  /** How many contacts a webhook mobile-reveal was requested for. */
+  phoneRevealsRequested: number;
+}
+
+interface ApolloPhone {
+  raw_number?: string | null;
+  sanitized_number?: string | null;
+  type_cd?: string | null;
 }
 
 interface ApolloMatch {
+  id?: string | null;
   email?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  name?: string | null;
+  title?: string | null;
+  sanitized_phone?: string | null;
+  phone_numbers?: Array<ApolloPhone | null> | null;
 }
 
-export async function enrichContacts(contactIds: number[]): Promise<ApolloEnrichResult> {
+/** Apollo's `bulk_match` echoes the FULL person (first_name/last_name/name) that
+ *  the free `api_search` preview redacts. Derive clean name parts so we can
+ *  backfill contacts that were imported with an empty last name. */
+function nameFromMatch(m: ApolloMatch | null | undefined): { firstName: string | null; lastName: string | null } {
+  if (!m) return { firstName: null, lastName: null };
+  const full = (m.name ?? "").trim();
+  const first = (m.first_name ?? "").trim() || (full ? full.split(/\s+/)[0] : "");
+  const last = (m.last_name ?? "").trim() || (full ? full.split(/\s+/).slice(1).join(" ") : "");
+  return { firstName: first || null, lastName: last || null };
+}
+
+/** Apollo returns the sentinel `email_not_unlocked@domain.com` (or null) when it
+ *  can't/ won't reveal an address. Treat those as "no email" so we never persist
+ *  a fake address (email-fabrication anti-pattern). */
+function normalizeRevealedEmail(raw: string | null | undefined): string | null {
+  const email = raw?.trim();
+  if (!email || /email_not_unlocked/i.test(email)) return null;
+  return email;
+}
+
+/** Best phone from a `phone_numbers` array — prefers a mobile line, then any
+ *  line; within a line prefers E.164 `sanitized_number` over `raw_number`. */
+function phoneFromArray(nums: Array<ApolloPhone | null> | null | undefined): string | null {
+  const arr = (nums ?? []).filter((p): p is ApolloPhone => !!p && !!(p.sanitized_number || p.raw_number));
+  if (arr.length === 0) return null;
+  const chosen = arr.find((p) => p.type_cd === "mobile") ?? arr[0];
+  return (chosen.sanitized_number || chosen.raw_number || "").trim() || null;
+}
+
+/** Best phone from a match's sync response — the `phone_numbers` array, then a
+ *  top-level `sanitized_phone`. (Freshly-revealed mobiles are webhook-only.) */
+function pickPhone(m: ApolloMatch | null | undefined): string | null {
+  if (!m) return null;
+  return phoneFromArray(m.phone_numbers) ?? (m.sanitized_phone?.trim() || null);
+}
+
+/** Deterministic, clearly-fictional sample phone (555 = reserved test exchange).
+ *  Only used in fixture mode so the pipeline can be demoed for $0. */
+function buildSamplePhone(seed: number): string {
+  const n = Math.abs(Math.trunc(seed));
+  const mid = String(100 + (n % 900));
+  const last = String(1000 + (n * 37) % 9000);
+  return `+1-555-${mid}-${last}`;
+}
+
+export async function enrichContacts(
+  contactIds: number[],
+  opts: ApolloEnrichOptions = {},
+): Promise<ApolloEnrichResult> {
+  const revealPhone = opts.revealPhone === true;
   const ids = [...new Set(contactIds)].filter((n) => Number.isFinite(n));
-  if (ids.length === 0) return { mode: await getApolloMode(), enriched: [], creditsSpent: 0 };
+  if (ids.length === 0) {
+    return { mode: await getApolloMode(), enriched: [], creditsSpent: 0, emailsRevealed: 0, phonesRevealed: 0, phoneRevealAsync: false, phoneRevealsRequested: 0 };
+  }
 
   const apiKey = await getApolloApiKey();
   const rows = await db
     .select({
       id: contactsTable.id,
+      externalCrmId: contactsTable.externalCrmId,
       firstName: contactsTable.firstName,
       lastName: contactsTable.lastName,
       email: contactsTable.email,
+      phone: contactsTable.phone,
       companyName: companiesTable.name,
       website: companiesTable.website,
     })
@@ -250,49 +351,211 @@ export async function enrichContacts(contactIds: number[]): Promise<ApolloEnrich
   if (!apiKey) {
     for (const c of rows) {
       const email = c.email ?? buildSampleEmail(c.firstName, c.lastName, c.website ?? null, c.companyName ?? null);
+      const phone = revealPhone ? c.phone ?? buildSamplePhone(c.id) : c.phone ?? null;
       await db
         .update(contactsTable)
-        .set({ email, contactStatus: "sample", lastSyncedAt: new Date() })
+        .set({ email, phone, contactStatus: "sample", lastSyncedAt: new Date() })
         .where(eq(contactsTable.id, c.id));
-      enriched.push({ contactId: c.id, email, contactStatus: "sample" });
+      enriched.push({ contactId: c.id, email, phone, contactStatus: "sample" });
     }
-    return { mode: "fixture", enriched, creditsSpent: 0 };
+    return {
+      mode: "fixture",
+      enriched,
+      creditsSpent: 0,
+      emailsRevealed: enriched.filter((e) => e.email).length,
+      phonesRevealed: enriched.filter((e) => e.phone).length,
+      phoneRevealAsync: false,
+      phoneRevealsRequested: 0,
+    };
+  }
+
+  // Never re-reveal (and re-pay for) data we already have. A contact needs a live
+  // Apollo call only when its email is missing, or a phone was requested and is
+  // missing. Contacts that already have everything requested are returned with
+  // their stored data and cost 0 credits.
+  const hasStoredEmail = (c: (typeof rows)[number]) => !!normalizeRevealedEmail(c.email);
+  const hasStoredPhone = (c: (typeof rows)[number]) => !!(c.phone && c.phone.trim());
+  const needsEnrich = rows.filter((c) => !hasStoredEmail(c) || (revealPhone && !hasStoredPhone(c)));
+  const needsIds = new Set(needsEnrich.map((c) => c.id));
+  for (const c of rows) {
+    if (needsIds.has(c.id)) continue;
+    enriched.push({ contactId: c.id, email: c.email ?? null, phone: c.phone ?? null, contactStatus: "enriched" });
+  }
+
+  // Nothing left to fetch — everything requested is already on file (0 credits).
+  if (needsEnrich.length === 0) {
+    return {
+      mode: "live",
+      enriched,
+      creditsSpent: 0,
+      emailsRevealed: enriched.filter((e) => e.email).length,
+      phonesRevealed: enriched.filter((e) => e.phone).length,
+      phoneRevealAsync: false,
+      phoneRevealsRequested: 0,
+    };
+  }
+
+  // Hard per-request guard (live path only) — bound one call's credit spend.
+  if (needsEnrich.length > MAX_ENRICH_PER_REQUEST) {
+    throw new ApolloError(
+      `Too many contacts in one enrichment request (${needsEnrich.length} > ${MAX_ENRICH_PER_REQUEST}). Enrich in smaller batches to control credit spend.`,
+      422,
+      "batch_too_large",
+    );
   }
 
   // Soft monthly cap — blocks once this month's spend has hit the cap.
   await assertCreditBudget();
 
+  // Async mobile reveal: only when phone requested AND a public webhook is
+  // configured (Apollo delivers freshly-revealed mobiles there, ~8 credits each,
+  // minutes later). Without a webhook we fall back to sync-capture of any number
+  // already present in the response.
+  const webhookUrl = revealPhone ? buildApolloWebhookUrl() : null;
+  const asyncPhone = revealPhone && !!webhookUrl;
+
+  // Apollo requires the reveal flags as QUERY params — in the body they are
+  // silently ignored and every match comes back with no contact data.
+  const query: Record<string, string> = { reveal_personal_emails: "true" };
+  if (asyncPhone && webhookUrl) {
+    query.reveal_phone_number = "true";
+    query.webhook_url = webhookUrl;
+  }
+
   // Live: Apollo bulk_match, ≤10 per call, reveal personal emails (~1 credit each).
   let creditsSpent = 0;
-  for (const group of chunk(rows, 10)) {
-    const details = group.map((c) => ({
-      first_name: c.firstName,
-      last_name: c.lastName,
-      organization_name: c.companyName ?? undefined,
-      domain: c.website ?? undefined,
-    }));
+  let phoneRevealsRequested = 0;
+  for (const group of chunk(needsEnrich, 10)) {
+    const details = group.map((c) =>
+      // Prefer the exact Apollo person id (stored at import). Apollo's search
+      // preview redacts last_name + domain, so name/org matching often fails to
+      // identify the person → null match → no email. The id matches exactly.
+      c.externalCrmId && APOLLO_PERSON_ID_RE.test(c.externalCrmId)
+        ? { id: c.externalCrmId }
+        : {
+            first_name: c.firstName,
+            last_name: c.lastName || undefined,
+            organization_name: c.companyName ?? undefined,
+            domain: c.website ?? undefined,
+          },
+    );
     const data = await apolloRequest<{ matches?: Array<ApolloMatch | null> }>({
       endpoint: APOLLO_ENDPOINTS.bulkMatch,
       apiKey,
       method: "POST",
-      body: { details, reveal_personal_emails: true },
+      query,
+      body: { details },
     });
     const matches = data.matches ?? [];
     for (let i = 0; i < group.length; i++) {
-      const email = matches[i]?.email ?? null;
+      const c = group[i];
+      const m = matches[i];
+      const revealedEmail = normalizeRevealedEmail(m?.email);
+      const existingEmail = normalizeRevealedEmail(c.email);
+      // Never wipe an email we already have with a null reveal; only bill for a
+      // genuinely new address.
+      const email = revealedEmail ?? existingEmail ?? null;
+      if (revealedEmail && !existingEmail) creditsSpent++;
+      // Capture any phone already present in the sync response; never overwrite
+      // an existing number with null.
+      const phone = revealPhone ? pickPhone(m) : null;
       const contactStatus = email ? "enriched" : "missing_contact";
-      if (email) creditsSpent++;
-      await db
-        .update(contactsTable)
-        .set({ email, contactStatus, lastSyncedAt: new Date() })
-        .where(eq(contactsTable.id, group[i].id));
-      enriched.push({ contactId: group[i].id, email, contactStatus });
+      const update: { contactStatus: string; lastSyncedAt: Date; email?: string; phone?: string; firstName?: string; lastName?: string } = {
+        contactStatus,
+        lastSyncedAt: new Date(),
+      };
+      if (revealedEmail) update.email = revealedEmail;
+      if (phone) update.phone = phone;
+      // Backfill the name the search preview redacted — only when ours is empty,
+      // so a manually-entered name is never clobbered. Runs even with no email.
+      const revealedName = nameFromMatch(m);
+      if (revealedName.firstName && !(c.firstName && c.firstName.trim())) update.firstName = revealedName.firstName;
+      if (revealedName.lastName && !(c.lastName && c.lastName.trim())) update.lastName = revealedName.lastName;
+      await db.update(contactsTable).set(update).where(eq(contactsTable.id, c.id));
+      enriched.push({ contactId: c.id, email, phone: phone ?? c.phone ?? null, contactStatus });
+
+      // Register the async mobile reveal so the webhook can map it back later.
+      if (asyncPhone && m?.id) {
+        await recordPhonePending(m.id, c.id);
+        phoneRevealsRequested++;
+      }
     }
   }
 
-  if (creditsSpent > 0) await recordCreditSpend(creditsSpent, "enrich", { contacts: rows.length });
+  if (creditsSpent > 0) await recordCreditSpend(creditsSpent, "enrich", { contacts: needsEnrich.length });
 
-  return { mode: "live", enriched, creditsSpent };
+  return {
+    mode: "live",
+    enriched,
+    creditsSpent,
+    emailsRevealed: enriched.filter((e) => e.email).length,
+    phonesRevealed: enriched.filter((e) => e.phone).length,
+    phoneRevealAsync: asyncPhone,
+    phoneRevealsRequested,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Async mobile-reveal webhook — Apollo POSTs revealed numbers here minutes later
+// ---------------------------------------------------------------------------
+
+interface ApolloWebhookPerson {
+  id?: string | null;
+  status?: string | null;
+  phone_numbers?: Array<ApolloPhone | null> | null;
+}
+
+export interface ApolloPhoneWebhookResult {
+  updated: number;
+  /** Person entries with no matching pending request (e.g. already resolved). */
+  unmatched: number;
+  /** Resolved to a contact but Apollo returned no usable number. */
+  noNumber: number;
+  creditsConsumed: number;
+}
+
+/** Handle Apollo's async phone-reveal callback. Payload shape:
+ *  `{ credits_consumed, people: [{ id, status, phone_numbers: [...] }] }`.
+ *  Correlates each person `id` (echoed from the bulk_match sync response) to the
+ *  pending contact recorded at request time, then writes the mobile number. */
+export async function handleApolloPhoneWebhook(payload: unknown): Promise<ApolloPhoneWebhookResult> {
+  const body = (payload ?? {}) as { credits_consumed?: unknown; people?: unknown };
+  const people: ApolloWebhookPerson[] = Array.isArray(body.people) ? (body.people as ApolloWebhookPerson[]) : [];
+  let updated = 0;
+  let unmatched = 0;
+  let noNumber = 0;
+
+  for (const person of people) {
+    const apolloPersonId = person?.id ? String(person.id) : null;
+    if (!apolloPersonId) {
+      unmatched++;
+      continue;
+    }
+    // Resolve (and mark completed) first, so a delivery with no number doesn't
+    // leave the request stuck pending forever.
+    const contactId = await resolvePhonePending(apolloPersonId);
+    if (contactId == null) {
+      unmatched++;
+      continue;
+    }
+    const phone = phoneFromArray(person.phone_numbers);
+    if (!phone) {
+      noNumber++;
+      continue;
+    }
+    await db
+      .update(contactsTable)
+      .set({ phone, lastSyncedAt: new Date() })
+      .where(eq(contactsTable.id, contactId));
+    updated++;
+  }
+
+  const creditsConsumed = Number(body.credits_consumed);
+  if (Number.isFinite(creditsConsumed) && creditsConsumed > 0) {
+    await recordCreditSpend(creditsConsumed, "phone_reveal", { people: people.length, updated });
+  }
+
+  return { updated, unmatched, noNumber, creditsConsumed: Number.isFinite(creditsConsumed) ? creditsConsumed : 0 };
 }
 
 // ---------------------------------------------------------------------------

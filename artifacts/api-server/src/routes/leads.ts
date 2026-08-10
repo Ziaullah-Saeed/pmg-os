@@ -29,6 +29,13 @@ async function autoCreateDealForLead(leadId: number, companyName?: string | null
     .where(eq(opportunitiesTable.leadId, leadId));
   if (existing.length > 0) return;
 
+  // Inherit the lead's company + contact so the deal carries real contact
+  // details (name/email/phone) into the CRM instead of resolving to "—".
+  const [leadRow] = await db
+    .select({ companyId: leadsTable.companyId, contactId: leadsTable.contactId })
+    .from(leadsTable)
+    .where(eq(leadsTable.id, leadId));
+
   const title = companyName
     ? `${companyName}${contactName ? ` — ${contactName}` : ""}`
     : contactName ?? `Lead #${leadId}`;
@@ -39,6 +46,8 @@ async function autoCreateDealForLead(leadId: number, companyName?: string | null
   await db.insert(opportunitiesTable).values({
     title,
     leadId,
+    companyId: leadRow?.companyId ?? null,
+    contactId: leadRow?.contactId ?? null,
     stage: "new",
     value: 0,
     serviceType: "cybersecurity",
@@ -68,6 +77,8 @@ router.get("/leads", async (req, res): Promise<void> => {
       companyName: companiesTable.name,
       contactId: leadsTable.contactId,
       contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
+      contactEmail: contactsTable.email,
+      contactPhone: contactsTable.phone,
       source: leadsTable.source,
       status: leadsTable.status,
       priority: leadsTable.priority,
@@ -197,6 +208,8 @@ router.get("/leads/:id", async (req, res): Promise<void> => {
       companyName: companiesTable.name,
       contactId: leadsTable.contactId,
       contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
+      contactEmail: contactsTable.email,
+      contactPhone: contactsTable.phone,
       source: leadsTable.source,
       status: leadsTable.status,
       priority: leadsTable.priority,

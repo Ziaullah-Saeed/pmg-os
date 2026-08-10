@@ -1,5 +1,7 @@
 # PMG Group OS — v3.0 Rebuild
 
+> ⚠️ **SUPERSEDED (2026-08-05).** This is a historical build log. The live session bootstrap is **[CLAUDE.md](CLAUDE.md)** — use it for current architecture, conventions, and status. Since this doc was written: all sections were wired to real data (the "Make Everything Real" initiative — no more fake/dummy data), the Apollo lead-gen integration was completed (go-live pending), and the Legal & Compliance agent + a text video-guide endpoint were built (UI/video surfaces still pending). The "dummy data" and "canned AI" descriptions below are **out of date**.
+
 ## Overview
 
 PMG Group OS is an AI-native business operating system for PMG Group LLC, a niche digital marketing agency serving exclusively cybersecurity and IT sector companies. Core promise: "Generate 20 ready-to-close deals in your first month."

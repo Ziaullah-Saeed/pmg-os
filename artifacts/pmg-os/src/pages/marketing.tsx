@@ -18,13 +18,15 @@ import {
   useAiSeoAudit,
   useAiOrchestrateCampaign,
   useAiCompetitorIntel,
+  useAiOutputs,
+  useSaveAiOutput,
 } from "@/hooks/use-api";
 import {
   Megaphone, FileText, Search, Globe, Zap, Plus,
   Sparkles, Calendar, TrendingUp, DollarSign, Users, Eye,
   CheckCircle2, X, ArrowRight, RefreshCw,
   PenTool, Send, AlertTriangle,
-  ArrowUpRight, ArrowDownRight, Shield,
+  ArrowUpRight, ArrowDownRight,
   Linkedin, Facebook, Instagram, Youtube, Mail,
   Bot, Hand, Copy, Play, Pause
 } from "lucide-react";
@@ -65,18 +67,9 @@ export default function Marketing() {
         setGeneratingPlan(false);
         toast({ title: "Content Plan Generated", description: "Weekly content strategy created by AI" });
       },
-      onError: () => {
-        setContentPlan({
-          weeklyPlan: [
-            { day: "Monday", channel: "LinkedIn", type: "Thought Leadership", topic: "Why MSSPs Need a Dedicated Marketing Strategy in 2024", status: "ready" },
-            { day: "Tuesday", channel: "Blog", type: "SEO Article", topic: "The CISO's Guide to Evaluating MDR Providers — What Marketing Won't Tell You", status: "ready" },
-            { day: "Wednesday", channel: "LinkedIn", type: "Case Study", topic: "How SecureNet Went from 0 to 40 Qualified Leads in 60 Days", status: "ready" },
-            { day: "Thursday", channel: "Email", type: "Newsletter", topic: "Cybersecurity Marketing ROI: The Numbers Your Board Needs to See", status: "ready" },
-            { day: "Friday", channel: "LinkedIn", type: "Data Insight", topic: "73% of Cybersecurity Buyers Start with Google — Is Your SEO Ready?", status: "ready" },
-          ],
-        });
+      onError: (err: any) => {
         setGeneratingPlan(false);
-        toast({ title: "Content Plan Generated", description: "Weekly content strategy created by AI" });
+        toast({ title: "Content plan failed", description: err?.message || "Request failed", variant: "destructive" });
       },
     });
   };
@@ -118,7 +111,7 @@ export default function Marketing() {
                 <Badge variant="outline" className="text-[10px] w-28 justify-center">{item.type}</Badge>
                 <span className="text-xs flex-1 truncate">{item.topic}</span>
                 <Button size="sm" variant="outline" className="text-[10px] h-6 px-2 border-success/30 text-success"
-                  onClick={() => toast({ title: "Added to Calendar", description: `"${item.topic}" scheduled for ${item.day}` })}>
+                  disabled title="Content scheduling integration not configured yet">
                   <Calendar className="h-2.5 w-2.5 mr-0.5" />Add
                 </Button>
               </div>
@@ -179,7 +172,7 @@ function ContentStrategyTab({ campaigns, isHuman, isAuto, currentMode }: { campa
   const [createType, setCreateType] = useState("blog_post");
   const [createTopic, setCreateTopic] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [contentStatus, setContentStatus] = useState<Record<string, string>>({});
+  const [contentStatus] = useState<Record<string, string>>({});
 
   const channelSchedule = [
     { channel: "LinkedIn", frequency: "3/week", icon: <Linkedin className="h-4 w-4" />, color: "text-blue-400" },
@@ -212,18 +205,9 @@ function ContentStrategyTab({ campaigns, isHuman, isAuto, currentMode }: { campa
         setGeneratingContent(null);
         toast({ title: "Content Created", description: `${createType.replace(/_/g, " ")} generated successfully` });
       },
-      onError: () => {
-        const typeLabels: Record<string, string> = { blog_post: "Blog Post", linkedin_post: "LinkedIn Post", email: "Email", social_graphic: "Social Post", video_script: "Video Script" };
-        setGeneratedContent(prev => ({
-          ...prev, custom: {
-            title: createTopic,
-            type: typeLabels[createType] || createType,
-            content: `${createTopic}\n\nMost ${createType === "blog_post" ? "cybersecurity companies" : "MSSPs"} struggle with this exact problem. Here's what the data shows:\n\n• 78% of cybersecurity buyers research vendors online before making contact\n• Companies with consistent content marketing generate 3.5x more leads\n• SOC 2 and NIST-compliant messaging increases trust scores by 42%\n\nThe solution isn't more content — it's the right content, targeting the right buyers, at the right stage of their journey.\n\nAt PMG Group, we guarantee 20 qualified leads in your first month. Not vanity metrics — real, sales-ready conversations with cybersecurity decision makers.\n\n[CTA: Book a 15-minute strategy call]`,
-            status: "draft",
-          }
-        }));
+      onError: (err: any) => {
         setGeneratingContent(null);
-        toast({ title: "Content Created", description: `${typeLabels[createType] || createType} generated successfully` });
+        toast({ title: "Content creation failed", description: err?.message || "Request failed", variant: "destructive" });
       },
     });
   };
@@ -237,15 +221,9 @@ function ContentStrategyTab({ campaigns, isHuman, isAuto, currentMode }: { campa
         setGeneratingContent(null);
         toast({ title: "Content Generated", description: `${item.type} for ${item.channel} ready for review` });
       },
-      onError: () => {
-        setGeneratedContent(prev => ({
-          ...prev, [idx]: {
-            content: `${item.topic}\n\nThis is AI-generated content for ${item.channel}. The content follows PMG brand voice: authoritative, data-driven, honest. Uses cybersecurity terminology (NIST, SOC 2, SIEM, EDR, MDR) naturally without jargon overload.\n\n[Generated by PMG Content Engine — ready for review]`,
-            status: "draft",
-          }
-        }));
+      onError: (err: any) => {
         setGeneratingContent(null);
-        toast({ title: "Content Generated", description: `${item.type} for ${item.channel} ready for review` });
+        toast({ title: "Content generation failed", description: err?.message || "Request failed", variant: "destructive" });
       },
     });
   };
@@ -309,14 +287,12 @@ function ContentStrategyTab({ campaigns, isHuman, isAuto, currentMode }: { campa
                   }}>
                     <Copy className="h-3 w-3 mr-0.5" />Copy
                   </Button>
-                  <Button size="sm" variant="outline" className="text-[10px] h-6 border-success/30 text-success" onClick={() => {
-                    toast({ title: "Content Approved", description: "Moved to scheduled queue" });
-                  }}>
+                  <Button size="sm" variant="outline" className="text-[10px] h-6 border-success/30 text-success"
+                    disabled title="Content approval workflow not built yet">
                     <CheckCircle2 className="h-3 w-3 mr-0.5" />Approve
                   </Button>
-                  <Button size="sm" variant="outline" className="text-[10px] h-6 border-blue-500/30 text-blue-400" onClick={() => {
-                    toast({ title: "Content Scheduled", description: "Published to channel queue" });
-                  }}>
+                  <Button size="sm" variant="outline" className="text-[10px] h-6 border-blue-500/30 text-blue-400"
+                    disabled title="Channel publishing integration not configured yet">
                     <Send className="h-3 w-3 mr-0.5" />Publish
                   </Button>
                 </div>
@@ -354,18 +330,14 @@ function ContentStrategyTab({ campaigns, isHuman, isAuto, currentMode }: { campa
                   </Button>
                 )}
                 {item.status === "draft" && (
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => {
-                    setContentStatus(prev => ({ ...prev, [idx]: "scheduled" }));
-                    toast({ title: "Scheduled", description: `"${item.topic}" scheduled for ${item.day}` });
-                  }}>
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]"
+                    disabled title="Content scheduling integration not configured yet">
                     <Send className="h-2.5 w-2.5 mr-0.5" />Schedule
                   </Button>
                 )}
                 {item.status === "scheduled" && (
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-success" onClick={() => {
-                    setContentStatus(prev => ({ ...prev, [idx]: "published" }));
-                    toast({ title: "Published", description: `"${item.topic}" published to ${item.channel}` });
-                  }}>
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-success"
+                    disabled title="Channel publishing integration not configured yet">
                     <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />Publish
                   </Button>
                 )}
@@ -389,10 +361,8 @@ function ContentStrategyTab({ campaigns, isHuman, isAuto, currentMode }: { campa
                   }}>
                     <Copy className="h-3 w-3" />
                   </Button>
-                  <Button size="sm" variant="outline" className="text-[10px] h-6 border-success/30 text-success" onClick={() => {
-                    setContentStatus(prev => ({ ...prev, [key]: "approved" }));
-                    toast({ title: "Approved", description: "Content approved and ready to schedule" });
-                  }}>
+                  <Button size="sm" variant="outline" className="text-[10px] h-6 border-success/30 text-success"
+                    disabled title="Content approval workflow not built yet">
                     <CheckCircle2 className="h-3 w-3 mr-0.5" />Approve
                   </Button>
                 </div>
@@ -490,31 +460,15 @@ function CampaignsTab({ campaigns, isHuman, isAuto, currentMode, showNew, setSho
 
   const handleGenerateAd = (campaign: any) => {
     setGeneratingAd(campaign.id);
-    createAd.mutate({ platform: campaign.channel, objective: campaign.type, budget: campaign.budget, targetAudience: campaign.targetAudience }, {
+    createAd.mutate({ platform: campaign.channel, objective: campaign.type, audience: campaign.targetAudience }, {
       onSuccess: (data: any) => {
         setAdCopy(prev => ({ ...prev, [campaign.id]: data }));
         setGeneratingAd(null);
         toast({ title: "Ad Copy Generated", description: `A/B variations created for ${campaign.name}` });
       },
-      onError: () => {
-        setAdCopy(prev => ({
-          ...prev, [campaign.id]: {
-            variations: [
-              { headline: "Stop Chasing Leads. Start Closing Deals.", body: `Your cybersecurity company deserves a marketing partner who speaks your language. NIST, SOC 2, MDR — we don't just know the acronyms, we know your buyers. 20 qualified leads guaranteed in month one.`, cta: "Book Strategy Call" },
-              { headline: "20 Qualified Leads in 30 Days. Guaranteed.", body: `Most agencies promise "awareness." We promise pipeline. PMG Group exclusively serves cybersecurity companies — MDR, MSSP, EDR, SIEM vendors. We know what converts because it's all we do.`, cta: "See How It Works" },
-              { headline: "Your Competitors Are Outranking You. Fix It.", body: `Arctic Wolf has 45K organic visits/month. You have 1,200. The gap isn't budget — it's strategy. PMG Group's cybersecurity-specific SEO and content engine closes that gap in 90 days.`, cta: "Get Your SEO Audit" },
-            ],
-            targeting: {
-              audience: campaign.targetAudience || "Cybersecurity executives",
-              interests: ["Information Security", "SOC Operations", "Managed Security Services", "CISO", "IT Director"],
-              companySize: "50-500 employees",
-              industries: ["Computer & Network Security", "IT Services", "Cybersecurity"],
-            },
-            budgetAllocation: { daily: `$${Math.round((campaign.budget || 600) / 30)}`, testing: "40% (first 2 weeks)", scaling: "60% (remaining)" },
-          }
-        }));
+      onError: (err: any) => {
         setGeneratingAd(null);
-        toast({ title: "Ad Copy Generated", description: `3 A/B variations created for ${campaign.name}` });
+        toast({ title: "Ad copy generation failed", description: err?.message || "Request failed", variant: "destructive" });
       },
     });
   };
@@ -697,12 +651,13 @@ function CampaignsTab({ campaigns, isHuman, isAuto, currentMode, showNew, setSho
 
 function SeoGrowthTab({ isHuman, isAuto, currentMode }: { isHuman: boolean; isAuto: boolean; currentMode: string }) {
   const seoAudit = useAiSeoAudit();
-  const createContent = useAiCreateContent();
+  const saveOutput = useSaveAiOutput();
+  const { data: audits } = useAiOutputs("seo_audit", { domain: "marketing", limit: 10 });
   const { toast } = useToast();
   const [showAudit, setShowAudit] = useState(false);
-  const [auditGenerated, setAuditGenerated] = useState(false);
   const [generatingAudit, setGeneratingAudit] = useState(false);
-  const [creatingContent, setCreatingContent] = useState<number | null>(null);
+
+  const auditList = audits ?? [];
 
   const keywords = [
     { keyword: "managed detection and response", volume: 2400, difficulty: 68, position: 34, trend: "up" as const },
@@ -715,39 +670,27 @@ function SeoGrowthTab({ isHuman, isAuto, currentMode }: { isHuman: boolean; isAu
     { keyword: "IT security marketing agency", volume: 210, difficulty: 18, position: 5, trend: "stable" as const },
   ];
 
-  const auditItems = [
-    { category: "Technical", issue: "No blog or resource center — zero long-tail keyword capture", priority: "critical", fix: "Launch a blog with weekly posts targeting long-tail cybersecurity keywords" },
-    { category: "On-Page", issue: "Missing meta descriptions on 12 of 15 pages", priority: "critical", fix: "Write unique meta descriptions for each page with target keywords" },
-    { category: "Performance", issue: "Page speed: 4.2s on mobile (target: <2.5s)", priority: "high", fix: "Compress images, enable lazy loading, optimize Core Web Vitals" },
-    { category: "Schema", issue: "No schema markup for services or FAQ", priority: "medium", fix: "Add FAQ schema to all service pages, add Organization schema" },
-    { category: "Backlinks", issue: "Only 23 referring domains — competitor average is 150+", priority: "medium", fix: "Build backlink strategy through guest posts on CSO Online, Dark Reading, SC Media" },
-    { category: "Content", issue: "No dedicated landing pages for individual services", priority: "high", fix: "Create dedicated pages for MDR, SOC, SIEM, EDR — each targeting specific keywords" },
-  ];
-
   const handleRunAudit = () => {
     setGeneratingAudit(true);
     seoAudit.mutate({ websiteUrl: "client website", competitors: ["Arctic Wolf", "Expel"] }, {
-      onSuccess: () => {
-        setAuditGenerated(true);
+      onSuccess: (data: any) => {
         setGeneratingAudit(false);
         setShowAudit(true);
-        toast({ title: "SEO Audit Complete", description: "Found 6 issues across technical, on-page, and content areas" });
+        const text = String(data?.audit ?? data?.result ?? "");
+        saveOutput.mutate({
+          domain: "marketing",
+          kind: "seo_audit",
+          title: `SEO Audit — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+          summary: text.slice(0, 280),
+          data: { content: text },
+        });
+        toast({ title: "SEO Audit Complete", description: "Saved to audit history" });
       },
-      onError: () => {
-        setAuditGenerated(true);
+      onError: (err: any) => {
         setGeneratingAudit(false);
-        setShowAudit(true);
-        toast({ title: "SEO Audit Complete", description: "Found 6 issues across technical, on-page, and content areas" });
+        toast({ title: "SEO audit failed", description: err?.message || "Request failed", variant: "destructive" });
       },
     });
-  };
-
-  const handleCreateContentForGap = (idx: number) => {
-    setCreatingContent(idx);
-    setTimeout(() => {
-      setCreatingContent(null);
-      toast({ title: "Content Created", description: `SEO-targeted article drafted for "${auditItems[idx].issue.substring(0, 40)}..."` });
-    }, 1500);
   };
 
   return (
@@ -772,8 +715,8 @@ function SeoGrowthTab({ isHuman, isAuto, currentMode }: { isHuman: boolean; isAu
           <p className="text-lg font-bold text-gold">{Math.round(keywords.filter(k => k.position).reduce((s, k) => s + (k.position ?? 0), 0) / keywords.filter(k => k.position).length)}</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
-          <p className="text-[10px] text-muted-foreground">Audit Issues</p>
-          <p className="text-lg font-bold text-crimson">{auditItems.length}</p>
+          <p className="text-[10px] text-muted-foreground">Audits Run</p>
+          <p className="text-lg font-bold text-crimson">{auditList.length}</p>
         </div>
       </div>
 
@@ -841,43 +784,26 @@ function SeoGrowthTab({ isHuman, isAuto, currentMode }: { isHuman: boolean; isAu
             </div>
           </div>
         </GlassCard>
-      ) : (
+      ) : auditList.length === 0 ? (
         <GlassCard>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold">SEO Audit Report</h3>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] text-red-400 border-red-500/20">{auditItems.filter(a => a.priority === "critical").length} Critical</Badge>
-              <Badge variant="outline" className="text-[10px] text-yellow-400 border-yellow-500/20">{auditItems.filter(a => a.priority === "high").length} High</Badge>
-              <Badge variant="outline" className="text-[10px]">Score: 42/100</Badge>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {auditItems.map((item, idx) => (
-              <div key={idx} className="p-3 rounded-lg glass-surface">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px]">{item.category}</Badge>
-                    <Badge variant="outline" className={`text-[10px] ${
-                      item.priority === "critical" ? "text-red-400 border-red-500/20" :
-                      item.priority === "high" ? "text-yellow-400 border-yellow-500/20" :
-                      "text-blue-400 border-blue-500/20"
-                    }`}>{item.priority}</Badge>
-                  </div>
-                  {!isHuman && (
-                    <Button size="sm" variant="outline" className="text-[10px] h-6 border-crimson/30 text-crimson"
-                      disabled={creatingContent === idx}
-                      onClick={() => handleCreateContentForGap(idx)}>
-                      {creatingContent === idx ? <RefreshCw className="h-2.5 w-2.5 mr-0.5 animate-spin" /> : <PenTool className="h-2.5 w-2.5 mr-0.5" />}
-                      Create Content
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs font-medium">{item.issue}</p>
-                <p className="text-[10px] text-success mt-1">Fix: {item.fix}</p>
-              </div>
-            ))}
+          <div className="text-center py-10">
+            <Search className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+            <p className="text-xs text-muted-foreground">No audit run yet{isHuman ? "." : " — click Run SEO Audit."}</p>
           </div>
         </GlassCard>
+      ) : (
+        <div className="space-y-3">
+          {auditList.map((a) => (
+            <GlassCard key={a.id} className="border border-crimson/10">
+              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
+                <Search className="h-4 w-4 text-crimson" />
+                <p className="text-sm font-semibold flex-1">{a.title}</p>
+                <span className="text-[10px] text-muted-foreground">{new Date(a.createdAt).toLocaleString()}</span>
+              </div>
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{(a.data?.content ?? a.summary) || "—"}</p>
+            </GlassCard>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -916,19 +842,9 @@ function OrchestratorTab({ campaigns, isHuman, isAuto, currentMode }: { campaign
         setGeneratingSprint(false);
         toast({ title: "Sprint Plan Generated", description: "90-day campaign orchestration plan created" });
       },
-      onError: () => {
-        setSprintPlan({
-          name: "Stop Chasing Leads — Q2 Demand Gen Sprint",
-          budget: "$4,500/mo ($1,500 ads + $3,000 content/management)",
-          goal: "20 qualified leads in 30 days, 60 in 90 days",
-          phases: [
-            { name: "Foundation (Week 1-2)", tasks: ["Audit existing content and SEO gaps", "Set up tracking pixels and conversion goals", "Create 4 pillar content pieces", "Launch initial LinkedIn campaign"] },
-            { name: "Scale (Week 3-6)", tasks: ["Expand to Google and Facebook ads", "Launch email nurture sequences", "Publish case studies and testimonials", "Host monthly webinar"] },
-            { name: "Optimize (Week 7-12)", tasks: ["A/B test all ad creative", "Refine audience targeting from data", "Scale winning channels, cut losers", "Measure cost-per-SQL and ROI"] },
-          ],
-        });
+      onError: (err: any) => {
         setGeneratingSprint(false);
-        toast({ title: "Sprint Plan Generated", description: "90-day campaign orchestration plan created" });
+        toast({ title: "Sprint plan failed", description: err?.message || "Request failed", variant: "destructive" });
       },
     });
   };
@@ -1064,51 +980,32 @@ function OrchestratorTab({ campaigns, isHuman, isAuto, currentMode }: { campaign
 
 function CompetitorIntelTab({ isHuman, isAuto, currentMode }: { isHuman: boolean; isAuto: boolean; currentMode: string }) {
   const competitorIntel = useAiCompetitorIntel();
+  const saveOutput = useSaveAiOutput();
+  const { data: reports } = useAiOutputs("competitor", { domain: "marketing", limit: 10 });
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
 
-  const competitors = [
-    {
-      name: "Directive Consulting",
-      positioning: "Performance marketing for tech",
-      strengths: ["Strong SEO presence", "Data-driven approach", "Large team", "B2B SaaS focus"],
-      weaknesses: ["Not cybersecurity-specific", "No lead guarantee", "High minimums ($10k+/mo)", "Generic playbook for all tech"],
-      battleCard: "Directive is a generalist tech agency. They don't understand NIST, SOC 2 compliance content, or the cybersecurity buyer journey. Ask: 'Can they name 3 SIEM vendors your prospects compare you against?' PMG lives in this space exclusively.",
-    },
-    {
-      name: "SmartBug Media",
-      positioning: "Inbound marketing + HubSpot",
-      strengths: ["HubSpot Diamond partner", "Content marketing expertise", "Established brand", "Process-driven"],
-      weaknesses: ["Not cybersecurity-focused", "Relies heavily on inbound only", "No outbound/SDR capability", "Cookie-cutter HubSpot templates"],
-      battleCard: "SmartBug builds beautiful HubSpot instances but their content reads like it was written for any B2B SaaS company. They can't write about EDR vs. XDR or explain why MSSPs need different messaging than MDR providers. PMG's content passes compliance review on day one.",
-    },
-    {
-      name: "Bora (cybersecurity marketing)",
-      positioning: "Cybersecurity-focused marketing",
-      strengths: ["Industry knowledge", "Cybersecurity network", "Conference presence"],
-      weaknesses: ["Small team", "No performance guarantees", "Limited ad capabilities", "No AI automation"],
-      battleCard: "Bora knows the industry but can't scale. They don't have AI-powered lead generation or performance guarantees. PMG delivers 20 qualified leads in month one with full AI automation. Ask: 'What's their monthly lead delivery guarantee?'",
-    },
-  ];
-
-  const gaps = [
-    "No competitor offers a quantified lead generation guarantee (PMG: 20 leads in month one)",
-    "Most agencies use generic B2B playbooks — none have cybersecurity-specific AI agents",
-    "No competitor provides both content + paid + outbound in one platform with AI orchestration",
-    "Competitor pricing starts at $10k+ — PMG Starter at $2,500/mo makes enterprise marketing accessible",
-    "None offer real-time deal intelligence tied to marketing attribution (PMG CRM integration)",
-  ];
+  const reportList = reports ?? [];
+  const lastUpdated = reportList[0]?.createdAt ? new Date(reportList[0].createdAt).toLocaleDateString() : "Never";
 
   const handleRefresh = () => {
     setRefreshing(true);
     competitorIntel.mutate({ competitors: ["Directive", "SmartBug", "Bora"] }, {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
         setRefreshing(false);
-        toast({ title: "Analysis Updated", description: "Competitor intelligence refreshed with latest data" });
+        const text = String(data?.intelligence ?? data?.result ?? "");
+        saveOutput.mutate({
+          domain: "marketing",
+          kind: "competitor",
+          title: `Competitor Intel — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+          summary: text.slice(0, 280),
+          data: { content: text },
+        });
+        toast({ title: "Analysis Complete", description: "Saved to intel history" });
       },
-      onError: () => {
+      onError: (err: any) => {
         setRefreshing(false);
-        toast({ title: "Analysis Updated", description: "Competitor intelligence refreshed with latest data" });
+        toast({ title: "Analysis refresh failed", description: err?.message || "Request failed", variant: "destructive" });
       },
     });
   };
@@ -1123,82 +1020,50 @@ function CompetitorIntelTab({ isHuman, isAuto, currentMode }: { isHuman: boolean
 
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-lg glass-surface p-3">
-          <p className="text-[10px] text-muted-foreground">Competitors Tracked</p>
-          <p className="text-lg font-bold">{competitors.length}</p>
+          <p className="text-[10px] text-muted-foreground">Reports Generated</p>
+          <p className="text-lg font-bold">{reportList.length}</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
-          <p className="text-[10px] text-muted-foreground">Market Gaps Found</p>
-          <p className="text-lg font-bold text-success">{gaps.length}</p>
+          <p className="text-[10px] text-muted-foreground">Latest Report</p>
+          <p className="text-sm font-bold text-gold">{lastUpdated}</p>
         </div>
-        <div className="rounded-lg glass-surface p-3">
-          <p className="text-[10px] text-muted-foreground">Last Updated</p>
-          <p className="text-sm font-bold">This month</p>
-        </div>
-      </div>
-
-      <GlassCard>
-        <h3 className="text-sm font-semibold mb-3">PMG Competitive Advantages</h3>
-        <div className="space-y-2">
-          {gaps.map((gap, idx) => (
-            <div key={idx} className="flex items-start gap-2 p-2 rounded-lg glass-surface">
-              <Shield className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
-              <span className="text-xs">{gap}</span>
-            </div>
-          ))}
-        </div>
-      </GlassCard>
-
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Battle Cards</h3>
+        <div className="rounded-lg glass-surface p-3 flex items-center justify-center">
           <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
-            disabled={refreshing}
+            disabled={refreshing || isHuman}
+            title={isHuman ? "Switch out of Human mode to run AI analysis" : undefined}
             onClick={handleRefresh}>
-            {refreshing ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}Refresh Analysis
+            {refreshing ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Run Analysis
           </Button>
         </div>
-        {competitors.map((comp) => (
-          <GlassCard key={comp.name}>
-            <div className="flex items-center gap-2 mb-3">
-              <Globe className="h-4 w-4 text-crimson" />
-              <p className="text-sm font-semibold">{comp.name}</p>
-              <Badge variant="outline" className="text-[10px]">{comp.positioning}</Badge>
-              <Button size="sm" variant="ghost" className="text-[10px] h-6 ml-auto" onClick={() => {
-                navigator.clipboard.writeText(comp.battleCard);
-                toast({ title: "Copied", description: `Battle card for ${comp.name} copied to clipboard` });
-              }}>
-                <Copy className="h-3 w-3 mr-0.5" />Copy
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div className="p-2 rounded-lg glass-surface">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Their Strengths</p>
-                <ul className="space-y-0.5">
-                  {comp.strengths.map((s) => (
-                    <li key={s} className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <ArrowUpRight className="h-2.5 w-2.5 text-red-400" />{s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="p-2 rounded-lg glass-surface">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Their Weaknesses (Our Advantage)</p>
-                <ul className="space-y-0.5">
-                  {comp.weaknesses.map((w) => (
-                    <li key={w} className="text-[10px] text-success flex items-center gap-1">
-                      <CheckCircle2 className="h-2.5 w-2.5" />{w}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="p-2 rounded-lg bg-crimson/5 border border-crimson/10">
-              <p className="text-[10px] text-crimson uppercase tracking-wider mb-0.5">Sales Battle Card</p>
-              <p className="text-xs">{comp.battleCard}</p>
-            </div>
-          </GlassCard>
-        ))}
       </div>
+
+      {reportList.length === 0 ? (
+        <GlassCard>
+          <div className="text-center py-10">
+            <Globe className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+            <p className="text-xs text-muted-foreground">No competitor analysis yet{isHuman ? "." : " — click Run Analysis to generate battle cards and market gaps."}</p>
+          </div>
+        </GlassCard>
+      ) : (
+        <div className="space-y-3">
+          {reportList.map((r) => (
+            <GlassCard key={r.id}>
+              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/5">
+                <Globe className="h-4 w-4 text-crimson" />
+                <p className="text-sm font-semibold flex-1">{r.title}</p>
+                <span className="text-[10px] text-muted-foreground">{new Date(r.createdAt).toLocaleString()}</span>
+                <Button size="sm" variant="ghost" className="text-[10px] h-6" onClick={() => {
+                  navigator.clipboard.writeText(String(r.data?.content ?? r.summary ?? ""));
+                  toast({ title: "Copied", description: "Competitor intel copied to clipboard" });
+                }}>
+                  <Copy className="h-3 w-3 mr-0.5" />Copy
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{(r.data?.content ?? r.summary) || "—"}</p>
+            </GlassCard>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

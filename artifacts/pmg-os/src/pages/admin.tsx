@@ -13,6 +13,11 @@ import {
   useAiManageKnowledge,
   useAiExecutiveBriefing,
   useAiSystemEvolution,
+  useAdminOverview,
+  useCompleteTask,
+  useAiOutputs,
+  useSaveAiOutput,
+  type AdminOverview,
 } from "@/hooks/use-api";
 import {
   Shield, ClipboardList, BookOpen, BarChart3, RefreshCw,
@@ -45,6 +50,9 @@ export default function Admin() {
   const { isHuman, isAuto } = useAiModeContext();
   const { toast } = useToast();
   const executiveBriefing = useAiExecutiveBriefing();
+  const saveOutput = useSaveAiOutput();
+  const { data: overview } = useAdminOverview();
+  const k = overview?.kpis;
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
@@ -57,8 +65,8 @@ export default function Admin() {
             <Button variant="outline" className="text-sm border-crimson/30 text-crimson hover:bg-crimson/10"
               disabled={executiveBriefing.isPending}
               onClick={() => executiveBriefing.mutate(undefined, {
-                onSuccess: () => toast({ title: "Morning Briefing Generated", description: "Executive briefing updated with latest data" }),
-                onError: () => toast({ title: "Morning Briefing Generated", description: "Executive briefing updated with latest data" }),
+                onSuccess: (data: any) => { const text = typeof data === "string" ? data : (data?.result ?? data?.output ?? ""); saveOutput.mutate({ domain: "admin", kind: "briefing", title: `Morning Briefing — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`, summary: String(text).slice(0, 280), data: { content: String(text) } }); setActiveTab("briefing"); toast({ title: "Morning Briefing Generated", description: "Saved to briefing history" }); },
+                onError: (err: any) => toast({ title: "Briefing generation failed", description: err?.message || "Request failed", variant: "destructive" }),
               })}>
               {executiveBriefing.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}Generate Morning Briefing
             </Button>
@@ -67,10 +75,10 @@ export default function Admin() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="Active Tasks" value={12} icon={<ClipboardList className="h-4 w-4" />} accent="crimson" />
-        <KpiCard label="Overdue" value={2} icon={<AlertTriangle className="h-4 w-4" />} accent="gold" />
-        <KpiCard label="Knowledge Docs" value={24} icon={<BookOpen className="h-4 w-4" />} accent="blue" />
-        <KpiCard label="System Health" value="98%" icon={<Shield className="h-4 w-4" />} accent="success" />
+        <KpiCard label="Active Tasks" value={k?.activeTasks ?? 0} icon={<ClipboardList className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Overdue" value={k?.overdueTasks ?? 0} icon={<AlertTriangle className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Knowledge Docs" value={k?.docs ?? 0} icon={<BookOpen className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="Team" value={k?.teamSize ?? 0} icon={<Users className="h-4 w-4" />} accent="success" />
       </div>
 
       <div className="flex gap-1 border-b border-white/5">
@@ -98,8 +106,8 @@ export default function Admin() {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
         >
-          {activeTab === "operations" && <OperationsTab isHuman={isHuman} isAuto={isAuto} />}
-          {activeTab === "knowledge" && <KnowledgeTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "operations" && <OperationsTab isHuman={isHuman} isAuto={isAuto} overview={overview} />}
+          {activeTab === "knowledge" && <KnowledgeTab isHuman={isHuman} isAuto={isAuto} overview={overview} />}
           {activeTab === "briefing" && <BriefingTab isHuman={isHuman} isAuto={isAuto} />}
           {activeTab === "evolution" && <EvolutionTab isHuman={isHuman} isAuto={isAuto} />}
         </motion.div>
@@ -108,34 +116,19 @@ export default function Admin() {
   );
 }
 
-function OperationsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+function OperationsTab({ isHuman, isAuto, overview }: { isHuman: boolean; isAuto: boolean; overview?: AdminOverview }) {
   const assignTasks = useAiAssignTasks();
+  const completeTask = useCompleteTask();
   const { toast } = useToast();
 
-  const teamMembers = [
-    { name: "Sher Shah Nawabi", role: "CEO / Super Admin", tasks: 5, completed: 12, overdue: 0 },
-    { name: "AI Outreach Agent", role: "Outreach Automation", tasks: 3, completed: 45, overdue: 0 },
-    { name: "AI Content Agent", role: "Content Production", tasks: 4, completed: 28, overdue: 2 },
-  ];
+  const teamMembers = overview?.team ?? [];
+  const tasks = overview?.tasks ?? [];
 
-  const [tasks, setTasks] = useState([
-    { task: "Review 5 new leads for SecureNet", assignee: "Sher Shah", due: "Today", priority: "high", source: "CRM", status: "in_progress" },
-    { task: "Approve LinkedIn post batch (Week 12)", assignee: "Sher Shah", due: "Today", priority: "high", source: "Marketing", status: "in_progress" },
-    { task: "Publish blog: Why EDR Isn't Enough", assignee: "AI Content", due: "Tomorrow", priority: "medium", source: "Marketing", status: "pending" },
-    { task: "Generate 10 new prospect profiles", assignee: "AI Outreach", due: "Tomorrow", priority: "medium", source: "Outreach", status: "pending" },
-    { task: "Send follow-up emails to 8 warm leads", assignee: "AI Outreach", due: "Today", priority: "high", source: "Outreach", status: "in_progress" },
-    { task: "Prepare monthly report — CyberShield IT", assignee: "AI Content", due: "Mar 31", priority: "medium", source: "Production", status: "pending" },
-    { task: "Update SOC 2 compliance checklist template", assignee: "Sher Shah", due: "Overdue", priority: "high", source: "Knowledge", status: "overdue" },
-    { task: "Review DataVault MSP campaign metrics", assignee: "Sher Shah", due: "Mar 28", priority: "low", source: "Production", status: "pending" },
-    { task: "Create infographic: MDR vs MSSP", assignee: "AI Content", due: "Overdue", priority: "medium", source: "Production", status: "overdue" },
-    { task: "Sync GHL sub-account — partner deals", assignee: "AI Outreach", due: "Mar 29", priority: "low", source: "CRM", status: "pending" },
-    { task: "Draft proposal for Fortress Cybersecurity", assignee: "AI Content", due: "Mar 30", priority: "high", source: "CRM", status: "pending" },
-    { task: "Set up retargeting pixel — SecureNet website", assignee: "Sher Shah", due: "Mar 31", priority: "medium", source: "Marketing", status: "pending" },
-  ]);
-
-  const handleComplete = (taskName: string) => {
-    setTasks(prev => prev.map(t => t.task === taskName ? { ...t, status: "completed" } : t));
-    toast({ title: "Task Completed", description: taskName });
+  const handleComplete = (id: number, taskName: string) => {
+    completeTask.mutate(id, {
+      onSuccess: () => toast({ title: "Task Completed", description: taskName }),
+      onError: (err: any) => toast({ title: "Couldn't complete task", description: err?.message || "Request failed", variant: "destructive" }),
+    });
   };
 
   return (
@@ -176,12 +169,12 @@ function OperationsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean 
                 disabled={assignTasks.isPending}
                 onClick={() => assignTasks.mutate({ teamMembers: ["Shershah", "AI Outreach", "AI Content"] }, {
                   onSuccess: () => toast({ title: "Tasks Auto-Assigned", description: "12 tasks redistributed by priority and capacity" }),
-                  onError: () => toast({ title: "Tasks Auto-Assigned", description: "12 tasks redistributed by priority and capacity" }),
+                  onError: (err: any) => toast({ title: "Task assignment failed", description: err?.message || "Request failed", variant: "destructive" }),
                 })}>
                 {assignTasks.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Assign
               </Button>
             )}
-            <Button size="sm" variant="outline" className="text-xs" onClick={() => toast({ title: "New Task", description: "Task creation dialog coming soon" })}>
+            <Button size="sm" variant="outline" className="text-xs" disabled title="Task creation UI not built yet">
               <Plus className="h-3 w-3 mr-1" />Add Task
             </Button>
           </div>
@@ -208,7 +201,7 @@ function OperationsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean 
                 task.priority === "medium" ? "text-yellow-400 border-yellow-500/20" :
                 "text-muted-foreground"
               }`}>{task.priority}</Badge>
-              <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => handleComplete(task.task)}>
+              <Button size="sm" variant="ghost" className="h-6 px-1.5" disabled={completeTask.isPending} onClick={() => handleComplete(task.id, task.task)}>
                 <CheckCircle2 className="h-3 w-3" />
               </Button>
             </div>
@@ -219,44 +212,24 @@ function OperationsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean 
   );
 }
 
-function KnowledgeTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+function KnowledgeTab({ isHuman, isAuto, overview }: { isHuman: boolean; isAuto: boolean; overview?: AdminOverview }) {
   const [searchQuery, setSearchQuery] = useState("");
   const manageKnowledge = useAiManageKnowledge();
   const { toast } = useToast();
 
-  const categories = [
-    { name: "SOPs", count: 8, icon: <FileText className="h-4 w-4" />, color: "text-crimson" },
-    { name: "Playbooks", count: 6, icon: <BookOpen className="h-4 w-4" />, color: "text-blue-400" },
-    { name: "Templates", count: 5, icon: <Layers className="h-4 w-4" />, color: "text-gold" },
-    { name: "Win/Loss Analysis", count: 5, icon: <Target className="h-4 w-4" />, color: "text-success" },
-  ];
+  const CATEGORY_STYLE: Record<string, { icon: any; color: string }> = {
+    "SOPs": { icon: <FileText className="h-4 w-4" />, color: "text-crimson" },
+    "Playbooks": { icon: <BookOpen className="h-4 w-4" />, color: "text-blue-400" },
+    "Templates": { icon: <Layers className="h-4 w-4" />, color: "text-gold" },
+    "Win/Loss Analysis": { icon: <Target className="h-4 w-4" />, color: "text-success" },
+  };
+  const categories = (overview?.categories ?? []).map((c) => ({
+    ...c,
+    icon: CATEGORY_STYLE[c.name]?.icon ?? <FileText className="h-4 w-4" />,
+    color: CATEGORY_STYLE[c.name]?.color ?? "text-muted-foreground",
+  }));
 
-  const documents = [
-    { title: "Client Onboarding SOP", category: "SOPs", updated: "Mar 22", version: "v3.1", autoGenerated: false },
-    { title: "LinkedIn Outreach Playbook", category: "Playbooks", updated: "Mar 20", version: "v2.4", autoGenerated: true },
-    { title: "SOC 2 Compliance Content Guide", category: "SOPs", updated: "Mar 19", version: "v1.2", autoGenerated: true },
-    { title: "Cold Email Sequence Templates", category: "Templates", updated: "Mar 18", version: "v4.0", autoGenerated: false },
-    { title: "NIST Framework Marketing Angles", category: "Playbooks", updated: "Mar 17", version: "v1.0", autoGenerated: true },
-    { title: "Proposal Template — Enterprise", category: "Templates", updated: "Mar 15", version: "v2.1", autoGenerated: false },
-    { title: "Win Analysis: SecureNet Deal", category: "Win/Loss Analysis", updated: "Mar 14", version: "v1.0", autoGenerated: true },
-    { title: "Loss Analysis: TechDefend RFP", category: "Win/Loss Analysis", updated: "Mar 12", version: "v1.0", autoGenerated: true },
-    { title: "EDR/MDR/XDR Positioning Guide", category: "Playbooks", updated: "Mar 11", version: "v1.3", autoGenerated: true },
-    { title: "Google Ads SOP — Cybersecurity", category: "SOPs", updated: "Mar 10", version: "v2.0", autoGenerated: false },
-    { title: "Client Reporting Template", category: "Templates", updated: "Mar 9", version: "v3.0", autoGenerated: false },
-    { title: "Competitor Battle Card: CrowdStrike Partners", category: "Win/Loss Analysis", updated: "Mar 8", version: "v1.1", autoGenerated: true },
-    { title: "SIEM vs SOC Explainer Script", category: "Playbooks", updated: "Mar 7", version: "v1.0", autoGenerated: true },
-    { title: "Monthly KPI Tracking SOP", category: "SOPs", updated: "Mar 6", version: "v1.5", autoGenerated: false },
-    { title: "Case Study Template", category: "Templates", updated: "Mar 5", version: "v2.2", autoGenerated: false },
-    { title: "Win Analysis: DataVault MSP Upsell", category: "Win/Loss Analysis", updated: "Mar 4", version: "v1.0", autoGenerated: true },
-    { title: "Email Deliverability SOP", category: "SOPs", updated: "Mar 3", version: "v1.1", autoGenerated: false },
-    { title: "Social Media Calendar SOP", category: "SOPs", updated: "Mar 2", version: "v2.0", autoGenerated: false },
-    { title: "Content Repurposing Playbook", category: "Playbooks", updated: "Mar 1", version: "v1.0", autoGenerated: true },
-    { title: "SEO Keyword Research SOP", category: "SOPs", updated: "Feb 28", version: "v1.4", autoGenerated: false },
-    { title: "Lead Scoring Playbook", category: "Playbooks", updated: "Feb 27", version: "v2.0", autoGenerated: true },
-    { title: "Loss Analysis: ShieldOps Pricing", category: "Win/Loss Analysis", updated: "Feb 25", version: "v1.0", autoGenerated: true },
-    { title: "Webinar Follow-up Template", category: "Templates", updated: "Feb 24", version: "v1.0", autoGenerated: false },
-    { title: "Brand Voice Guidelines SOP", category: "SOPs", updated: "Feb 22", version: "v1.0", autoGenerated: false },
-  ];
+  const documents = overview?.documents ?? [];
 
   const filtered = documents.filter((d) =>
     !searchQuery || d.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -278,7 +251,7 @@ function KnowledgeTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
           <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson" disabled={manageKnowledge.isPending}
             onClick={() => manageKnowledge.mutate({}, {
               onSuccess: () => toast({ title: "Knowledge Base Updated", description: "3 new entries auto-generated from recent activity" }),
-              onError: () => toast({ title: "Knowledge Base Updated", description: "3 new entries auto-generated from recent activity" }),
+              onError: (err: any) => toast({ title: "Knowledge update failed", description: err?.message || "Request failed", variant: "destructive" }),
             })}>
             {manageKnowledge.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Update
           </Button>
@@ -309,9 +282,8 @@ function KnowledgeTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
                   <Sparkles className="h-2 w-2 mr-0.5" />Auto
                 </Badge>
               )}
-              <span className="text-[10px] text-muted-foreground w-12">{doc.version}</span>
               <span className="text-[10px] text-muted-foreground w-14">{doc.updated}</span>
-              <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => toast({ title: "Document Opened", description: doc.title })}><Eye className="h-3 w-3" /></Button>
+              <Button size="sm" variant="ghost" className="h-6 px-1.5" disabled title="Document viewer not built yet"><Eye className="h-3 w-3" /></Button>
             </div>
           ))}
         </div>
@@ -332,37 +304,16 @@ function KnowledgeTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
 
 function BriefingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
   const executiveBriefing = useAiExecutiveBriefing();
+  const saveOutput = useSaveAiOutput();
+  const { data: briefings } = useAiOutputs("briefing", { domain: "admin", limit: 10 });
   const { toast } = useToast();
 
-  const morningBriefing = {
-    date: new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
-    urgent: [
-      { item: "SecureNet proposal expires tomorrow — needs follow-up call", section: "CRM", action: "Call Now" },
-      { item: "CyberShield IT LinkedIn ad budget depleted — campaign paused", section: "Marketing", action: "Add Budget" },
-      { item: "2 overdue content pieces blocking this week's publishing schedule", section: "Production", action: "Review" },
-    ],
-    priorities: [
-      { item: "Review 5 new leads (avg score 89) — 3 ready for outreach", section: "Outreach" },
-      { item: "Approve LinkedIn post batch for Week 12", section: "Marketing" },
-      { item: "Finalize DataVault MSP monthly performance report", section: "Production" },
-      { item: "Schedule discovery call with Fortress Cybersecurity", section: "CRM" },
-    ],
-    wins: [
-      { item: "SecureNet Solutions: 42% increase in website traffic (month over month)", section: "Marketing" },
-      { item: "DataVault MSP: 3 new enterprise leads from SEO content strategy", section: "Outreach" },
-      { item: "Email campaign open rate: 34% (industry avg: 21%)", section: "Marketing" },
-      { item: "CyberShield IT: First meeting booked from LinkedIn outreach", section: "CRM" },
-    ],
+  const persist = (data: any) => {
+    const text = typeof data === "string" ? data : (data?.result ?? data?.output ?? "");
+    saveOutput.mutate({ domain: "admin", kind: "briefing", title: `Morning Briefing — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`, summary: String(text).slice(0, 280), data: { content: String(text) } });
   };
 
-  const weeklyMetrics = [
-    { metric: "Pipeline Value", value: "$142,500", change: "+$22,500", direction: "up" },
-    { metric: "Active Deals", value: "8", change: "+2", direction: "up" },
-    { metric: "Leads This Week", value: "14", change: "+5 vs last wk", direction: "up" },
-    { metric: "Content Published", value: "6", change: "On target", direction: "stable" },
-    { metric: "Meetings Booked", value: "4", change: "+1 vs last wk", direction: "up" },
-    { metric: "Revenue (MTD)", value: "$17,500", change: "+$5,000", direction: "up" },
-  ];
+  const list = briefings ?? [];
 
   return (
     <div className="space-y-4">
@@ -371,112 +322,60 @@ function BriefingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean })
         hybridText="Hybrid — briefing generated on demand. You review before distribution."
         manualText="Manual — generate briefings when you need them." />
 
-      <GlassCard className="border border-crimson/10">
-        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/5">
-          <Sun className="h-5 w-5 text-gold" />
-          <div>
-            <p className="text-sm font-semibold">Morning Briefing</p>
-            <p className="text-[10px] text-muted-foreground">{morningBriefing.date}</p>
-          </div>
-          {!isHuman && (
-            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson ml-auto"
-              disabled={executiveBriefing.isPending}
-              onClick={() => executiveBriefing.mutate(undefined, {
-                onSuccess: () => toast({ title: "Briefing Regenerated", description: "Updated with latest data from all sections" }),
-                onError: () => toast({ title: "Briefing Regenerated", description: "Updated with latest data from all sections" }),
-              })}>
-              {executiveBriefing.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Regenerate
-            </Button>
-          )}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold">Executive Briefings</h3>
+          <p className="text-xs text-muted-foreground">AI-generated briefings, saved to history</p>
         </div>
+        {!isHuman && (
+          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+            disabled={executiveBriefing.isPending}
+            onClick={() => executiveBriefing.mutate(undefined, {
+              onSuccess: (data: any) => { persist(data); toast({ title: "Briefing Generated", description: "Saved to history" }); },
+              onError: (err: any) => toast({ title: "Briefing generation failed", description: err?.message || "Request failed", variant: "destructive" }),
+            })}>
+            {executiveBriefing.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Generate Briefing
+          </Button>
+        )}
+      </div>
 
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs font-semibold text-red-400 flex items-center gap-1.5 mb-2">
-              <AlertTriangle className="h-3.5 w-3.5" />Urgent — Action Required ({morningBriefing.urgent.length})
-            </p>
-            <div className="space-y-1.5">
-              {morningBriefing.urgent.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 p-2 rounded-lg glass-surface ring-1 ring-red-500/10">
-                  <AlertCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
-                  <span className="text-xs flex-1">{item.item}</span>
-                  <Badge variant="outline" className="text-[9px]">{item.section}</Badge>
-                  <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2" onClick={() => toast({ title: item.action, description: item.item })}>
-                    <ArrowRight className="h-2.5 w-2.5 mr-1" />{item.action}
-                  </Button>
-                </div>
-              ))}
-            </div>
+      {list.length === 0 ? (
+        <GlassCard>
+          <div className="text-center py-10">
+            <Sun className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+            <p className="text-xs text-muted-foreground">No briefing generated yet{isHuman ? "." : " — click Generate Briefing."}</p>
           </div>
-
-          <div>
-            <p className="text-xs font-semibold text-gold flex items-center gap-1.5 mb-2">
-              <Target className="h-3.5 w-3.5" />Today's Priorities ({morningBriefing.priorities.length})
-            </p>
-            <div className="space-y-1.5">
-              {morningBriefing.priorities.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 p-2 rounded-lg glass-surface">
-                  <ChevronRight className="h-3.5 w-3.5 text-gold flex-shrink-0" />
-                  <span className="text-xs flex-1">{item.item}</span>
-                  <Badge variant="outline" className="text-[9px]">{item.section}</Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-success flex items-center gap-1.5 mb-2">
-              <Star className="h-3.5 w-3.5" />Recent Wins ({morningBriefing.wins.length})
-            </p>
-            <div className="space-y-1.5">
-              {morningBriefing.wins.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 p-2 rounded-lg glass-surface">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-success flex-shrink-0" />
-                  <span className="text-xs flex-1">{item.item}</span>
-                  <Badge variant="outline" className="text-[9px]">{item.section}</Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </GlassCard>
-
-      <GlassCard>
-        <h3 className="text-sm font-semibold mb-3">Weekly Metrics</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {weeklyMetrics.map((m) => (
-            <div key={m.metric} className="p-3 rounded-lg glass-surface text-center">
-              <p className="text-sm font-bold">{m.value}</p>
-              <p className="text-[10px] text-muted-foreground">{m.metric}</p>
-              <div className={`flex items-center justify-center gap-0.5 mt-1 text-[10px] ${
-                m.direction === "up" ? "text-success" : m.direction === "down" ? "text-red-400" : "text-muted-foreground"
-              }`}>
-                {m.direction === "up" && <ArrowUpRight className="h-2.5 w-2.5" />}
-                {m.direction === "down" && <ArrowDownRight className="h-2.5 w-2.5" />}
-                {m.change}
+        </GlassCard>
+      ) : (
+        <div className="space-y-3">
+          {list.map((b) => (
+            <GlassCard key={b.id} className="border border-crimson/10">
+              <div className="flex items-center gap-3 mb-2 pb-2 border-b border-white/5">
+                <Sun className="h-5 w-5 text-gold" />
+                <p className="text-sm font-semibold flex-1">{b.title}</p>
+                <span className="text-[10px] text-muted-foreground">{new Date(b.createdAt).toLocaleString()}</span>
               </div>
-            </div>
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{(b.data?.content ?? b.summary) || "—"}</p>
+            </GlassCard>
           ))}
         </div>
-      </GlassCard>
+      )}
     </div>
   );
 }
 
 function EvolutionTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
   const systemEvolution = useAiSystemEvolution();
+  const saveOutput = useSaveAiOutput();
+  const { data: scans } = useAiOutputs("evolution", { domain: "admin", limit: 10 });
   const { toast } = useToast();
 
-  const updates = [
-    { title: "Claude 3.5 Sonnet → Claude 4 Upgrade", category: "AI Model", date: "Mar 20", impact: "Higher quality output", cost: "+$15/mo", benefit: "30% better content", status: "recommended" },
-    { title: "HubSpot CRM Integration", category: "Integration", date: "Mar 18", impact: "Bidirectional sync", cost: "$0 (API)", benefit: "Unified pipeline view", status: "recommended" },
-    { title: "Runway ML Gen-3 for Video", category: "AI Tool", date: "Mar 15", impact: "Better video quality", cost: "+$20/mo", benefit: "Cinematic brand videos", status: "explore" },
-    { title: "LinkedIn Sales Navigator API", category: "Integration", date: "Mar 12", impact: "Advanced prospecting", cost: "$99/mo", benefit: "3x better lead targeting", status: "recommended" },
-    { title: "Perplexity API for Research", category: "AI Tool", date: "Mar 10", impact: "Faster market research", cost: "+$20/mo", benefit: "Real-time competitor intel", status: "explore" },
-    { title: "Anthropic MCP Protocol", category: "Platform", date: "Mar 8", impact: "Tool orchestration", cost: "$0", benefit: "Better agent coordination", status: "monitor" },
-    { title: "ElevenLabs Voice Cloning v2", category: "AI Tool", date: "Mar 5", impact: "Brand voice consistency", cost: "+$10/mo", benefit: "Custom voice for video", status: "explore" },
-    { title: "Zapier → n8n Migration", category: "Platform", date: "Mar 3", impact: "Self-hosted automation", cost: "-$49/mo savings", benefit: "More control, lower cost", status: "monitor" },
-  ];
+  const persist = (data: any) => {
+    const text = typeof data === "string" ? data : (data?.result ?? data?.output ?? "");
+    saveOutput.mutate({ domain: "admin", kind: "evolution", title: `System Evolution Scan — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`, summary: String(text).slice(0, 280), data: { content: String(text) } });
+  };
+
+  const list = scans ?? [];
 
   return (
     <div className="space-y-4">
@@ -485,76 +384,46 @@ function EvolutionTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
         hybridText="Hybrid — AI finds opportunities. You decide what to adopt."
         manualText="Manual — review technology updates when you want. AI provides analysis on request." />
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg glass-surface p-3">
-          <p className="text-lg font-bold text-success">{updates.filter(u => u.status === "recommended").length}</p>
-          <p className="text-[10px] text-muted-foreground">Recommended</p>
-        </div>
-        <div className="rounded-lg glass-surface p-3">
-          <p className="text-lg font-bold text-gold">{updates.filter(u => u.status === "explore").length}</p>
-          <p className="text-[10px] text-muted-foreground">Explore Later</p>
-        </div>
-        <div className="rounded-lg glass-surface p-3">
-          <p className="text-lg font-bold text-blue-400">{updates.filter(u => u.status === "monitor").length}</p>
-          <p className="text-[10px] text-muted-foreground">Monitoring</p>
-        </div>
-      </div>
-
       <GlassCard className="border border-crimson/10 bg-crimson/5">
         <div className="flex items-center gap-3">
           <Sparkles className="h-5 w-5 text-crimson" />
           <div className="flex-1">
-            <p className="text-sm font-semibold">Weekly Auto-Scan</p>
-            <p className="text-xs text-muted-foreground">Scans for new AI tools, APIs, platforms, and market trends. Monthly report with cost/benefit analysis.</p>
+            <p className="text-sm font-semibold">Technology Evolution Scan</p>
+            <p className="text-xs text-muted-foreground">AI scans for new tools, APIs, platforms, and trends. Results saved to history.</p>
           </div>
-          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
-            disabled={systemEvolution.isPending}
-            onClick={() => systemEvolution.mutate(undefined, {
-              onSuccess: () => toast({ title: "Scan Complete", description: "3 new recommendations found. 2 tools worth exploring." }),
-              onError: () => toast({ title: "Scan Complete", description: "3 new recommendations found. 2 tools worth exploring." }),
-            })}>
-            {systemEvolution.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}Scan Now
-          </Button>
+          {!isHuman && (
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+              disabled={systemEvolution.isPending}
+              onClick={() => systemEvolution.mutate(undefined, {
+                onSuccess: (data: any) => { persist(data); toast({ title: "Scan Complete", description: "Saved to history" }); },
+                onError: (err: any) => toast({ title: "System scan failed", description: err?.message || "Request failed", variant: "destructive" }),
+              })}>
+              {systemEvolution.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}Scan Now
+            </Button>
+          )}
         </div>
       </GlassCard>
 
-      <GlassCard>
-        <h3 className="text-sm font-semibold mb-3">What's New — Technology Updates</h3>
+      {list.length === 0 ? (
+        <GlassCard>
+          <div className="text-center py-10">
+            <RefreshCw className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+            <p className="text-xs text-muted-foreground">No scan run yet{isHuman ? "." : " — click Scan Now."}</p>
+          </div>
+        </GlassCard>
+      ) : (
         <div className="space-y-3">
-          {updates.map((update) => (
-            <div key={update.title} className="p-3 rounded-lg glass-surface">
-              <div className="flex items-center gap-2 mb-2">
-                <p className="text-xs font-semibold flex-1">{update.title}</p>
-                <Badge variant="outline" className="text-[9px]">{update.category}</Badge>
-                <Badge variant="outline" className={`text-[9px] ${
-                  update.status === "recommended" ? "text-success border-success/20" :
-                  update.status === "explore" ? "text-gold border-gold/20" :
-                  "text-blue-400 border-blue-500/20"
-                }`}>{update.status}</Badge>
-                <span className="text-[10px] text-muted-foreground">{update.date}</span>
+          {list.map((s) => (
+            <GlassCard key={s.id}>
+              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
+                <p className="text-sm font-semibold flex-1">{s.title}</p>
+                <span className="text-[10px] text-muted-foreground">{new Date(s.createdAt).toLocaleString()}</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-[10px]">
-                <div><span className="text-muted-foreground">Impact:</span> <span className="text-white">{update.impact}</span></div>
-                <div><span className="text-muted-foreground">Cost:</span> <span className="text-white">{update.cost}</span></div>
-                <div><span className="text-muted-foreground">Benefit:</span> <span className="text-success">{update.benefit}</span></div>
-              </div>
-              <div className="flex gap-2 mt-2">
-                {update.status === "recommended" && (
-                  <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2" onClick={() => toast({ title: "Approved", description: `${update.title} queued for implementation` })}>
-                    <CheckCircle2 className="h-2.5 w-2.5 mr-1" />Approve
-                  </Button>
-                )}
-                {update.status === "explore" && (
-                  <Button size="sm" variant="outline" className="text-[10px] h-6 px-2" onClick={() => toast({ title: "Added to Explore List", description: `${update.title} scheduled for evaluation` })}>
-                    <Eye className="h-2.5 w-2.5 mr-1" />Explore
-                  </Button>
-                )}
-                <Button size="sm" variant="ghost" className="text-[10px] h-6 px-2 text-muted-foreground" onClick={() => toast({ title: "Skipped", description: `${update.title} dismissed` })}>Skip</Button>
-              </div>
-            </div>
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{(s.data?.content ?? s.summary) || "—"}</p>
+            </GlassCard>
           ))}
         </div>
-      </GlassCard>
+      )}
     </div>
   );
 }

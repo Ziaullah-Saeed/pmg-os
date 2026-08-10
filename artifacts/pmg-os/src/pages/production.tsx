@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -18,6 +18,11 @@ import {
   useAiGenerateLeads,
   useAiBuildCampaign,
   useAiGenerateClientReport,
+  useProductionOverview,
+  useIntegrationStatus,
+  useSyncLogs,
+  useTriggerSync,
+  type ProductionOverview,
 } from "@/hooks/use-api";
 import {
   Palette, Image, Video, FileText, Folder, PenTool, UserCheck, BookOpen,
@@ -46,6 +51,7 @@ export default function Production() {
   const { isHuman, isAuto } = useAiModeContext();
   const { toast } = useToast();
   const createImage = useAiCreateImage();
+  const { data: overview } = useProductionOverview();
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
@@ -61,7 +67,7 @@ export default function Production() {
                 onClick={() => {
                   createImage.mutate({ type: "social_graphic", description: "Cybersecurity marketing visual", brandColors: "#001a4d #8B0000 #FFD700" }, {
                     onSuccess: () => toast({ title: "Asset Generated", description: "Social graphic prompt created and queued" }),
-                    onError: () => toast({ title: "Asset Generated", description: "Social graphic prompt created and queued" }),
+                    onError: (err: any) => toast({ title: "Asset generation failed", description: err?.message || "Request failed", variant: "destructive" }),
                   });
                 }}>
                 {createImage.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}AI Generate Assets
@@ -76,8 +82,8 @@ export default function Production() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard label="Active Clients" value={3} icon={<UserCheck className="h-4 w-4" />} accent="crimson" />
-        <KpiCard label="Assets Created" value={47} icon={<Image className="h-4 w-4" />} accent="gold" />
-        <KpiCard label="Pending Review" value={8} icon={<BookOpen className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="Assets" value={overview?.assets.length ?? 0} icon={<Image className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Pending Review" value={overview?.quality.filter((q) => q.score !== "Ready to Publish" && q.score !== "Published").length ?? 0} icon={<BookOpen className="h-4 w-4" />} accent="blue" />
         <KpiCard label="Quality Score" value="94%" icon={<Star className="h-4 w-4" />} accent="success" />
       </div>
 
@@ -97,12 +103,12 @@ export default function Production() {
           {activeTab === "onboarding" && <OnboardingTab isHuman={isHuman} isAuto={isAuto} />}
           {activeTab === "audit" && <AuditTab isHuman={isHuman} isAuto={isAuto} />}
           {activeTab === "creative" && <CreativeTab isHuman={isHuman} isAuto={isAuto} />}
-          {activeTab === "leads" && <LeadGenTab isHuman={isHuman} isAuto={isAuto} />}
-          {activeTab === "campaigns" && <CampaignsFunnelsTab isHuman={isHuman} isAuto={isAuto} />}
-          {activeTab === "reporting" && <ReportingTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "leads" && <LeadGenTab isHuman={isHuman} isAuto={isAuto} overview={overview} />}
+          {activeTab === "campaigns" && <CampaignsFunnelsTab isHuman={isHuman} isAuto={isAuto} overview={overview} />}
+          {activeTab === "reporting" && <ReportingTab isHuman={isHuman} isAuto={isAuto} overview={overview} />}
           {activeTab === "integrations" && <IntegrationsTab isHuman={isHuman} isAuto={isAuto} />}
-          {activeTab === "library" && <LibraryTab isHuman={isHuman} isAuto={isAuto} />}
-          {activeTab === "quality" && <QualityTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "library" && <LibraryTab isHuman={isHuman} isAuto={isAuto} overview={overview} />}
+          {activeTab === "quality" && <QualityTab isHuman={isHuman} isAuto={isAuto} overview={overview} />}
         </motion.div>
       </AnimatePresence>
     </div>
@@ -155,14 +161,14 @@ function OnboardingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean 
   const handleRunAudit = (clientName: string) => {
     auditClient.mutate({ clientName, websiteUrl: `https://${clientName.toLowerCase().replace(/\s/g, "")}.com` }, {
       onSuccess: () => toast({ title: "Audit Complete", description: `Marketing audit generated for ${clientName}` }),
-      onError: () => toast({ title: "Audit Complete", description: `Marketing audit generated for ${clientName}` }),
+      onError: (err: any) => toast({ title: "Audit failed", description: err?.message || "Request failed", variant: "destructive" }),
     });
   };
 
   const handleViewPlan = (clientName: string) => {
     onboardClient.mutate({ clientName, companyName: clientName }, {
       onSuccess: () => toast({ title: "90-Day Plan Ready", description: `Success plan generated for ${clientName}` }),
-      onError: () => toast({ title: "90-Day Plan Ready", description: `Success plan generated for ${clientName}` }),
+      onError: (err: any) => toast({ title: "Plan generation failed", description: err?.message || "Request failed", variant: "destructive" }),
     });
   };
 
@@ -274,7 +280,7 @@ function AuditTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
           <Button size="sm" className="btn-premium text-white text-xs" disabled={auditClient.isPending}
             onClick={() => auditClient.mutate({ clientName: "Client", websiteUrl: "https://example.com" }, {
               onSuccess: () => toast({ title: "Full Audit Complete", description: "All areas assessed with priority recommendations" }),
-              onError: () => toast({ title: "Full Audit Complete", description: "All areas assessed with priority recommendations" }),
+              onError: (err: any) => toast({ title: "Audit failed", description: err?.message || "Request failed", variant: "destructive" }),
             })}>
             {auditClient.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Run Full Audit
           </Button>
@@ -309,7 +315,7 @@ function AuditTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
               </ul>
               {!isHuman && (
                 <Button size="sm" variant="outline" className="mt-2 text-[10px] border-crimson/20 text-crimson h-6 px-2"
-                  onClick={() => toast({ title: "Fix Plan Generated", description: `Action plan for ${item.area} created with timeline` })}>
+                  disabled title="Automated fix-plan generation not built yet">
                   <Sparkles className="h-2.5 w-2.5 mr-1" />Generate Fix Plan
                 </Button>
               )}
@@ -357,7 +363,7 @@ function CreativeTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean })
     const isVid = videoTypes.find(t => t.type === selectedType);
     const handler = {
       onSuccess: () => { toast({ title: `${selectedType} Generated`, description: `Your ${selectedType.toLowerCase()} has been created and added to the Content Library` }); setSelectedType(null); setPrompt(""); },
-      onError: () => { toast({ title: `${selectedType} Generated`, description: `Your ${selectedType.toLowerCase()} has been created and added to the Content Library` }); setSelectedType(null); setPrompt(""); },
+      onError: (err: any) => { toast({ title: "Generation failed", description: err?.message || "Request failed", variant: "destructive" }); },
     };
     if (isImg) createImage.mutate({ type: selectedType.toLowerCase().replace(/\s/g, "_"), description: prompt, brandColors: "#001a4d #8B0000 #FFD700" }, handler);
     else if (isVid) createVideo.mutate({ type: selectedType.toLowerCase().replace(/\s/g, "_"), description: prompt, duration: 30 }, handler);
@@ -452,17 +458,11 @@ function CreativeTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean })
   );
 }
 
-function LeadGenTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+function LeadGenTab({ isHuman, isAuto, overview }: { isHuman: boolean; isAuto: boolean; overview?: ProductionOverview }) {
   const generateLeads = useAiGenerateLeads();
   const { toast } = useToast();
 
-  const sampleLeads = [
-    { company: "Fortress Cybersecurity", contact: "Michael Torres", email: "m.torres@fortresscyber.com", phone: "(312) 555-0187", score: 94, pain: "Growing but invisible online — zero inbound leads despite strong service reputation", approach: "ROI-focused: show competitor traffic vs. theirs", status: "delivered" },
-    { company: "ShieldOps Inc", contact: "Sarah Williams", email: "s.williams@shieldops.io", phone: "(617) 555-0234", score: 91, pain: "Spending $8k/mo on Google Ads with no lead tracking — unknown ROI", approach: "Audit their current spend, show waste vs. opportunity", status: "delivered" },
-    { company: "CyberVault Partners", contact: "James Chen", email: "j.chen@cybervault.com", phone: "(415) 555-0156", score: 88, pain: "Lost 3 deals to competitors with better marketing last quarter", approach: "Battle card approach — specific competitor weaknesses", status: "delivered" },
-    { company: "TrustLayer Security", contact: "Amanda Rodriguez", email: "a.rodriguez@trustlayer.io", phone: "(512) 555-0198", score: 87, pain: "New MSSP division needs complete marketing from scratch", approach: "Starter package — full setup with guaranteed 20 leads", status: "pending_review" },
-    { company: "RedTeam Digital", contact: "David Park", email: "d.park@redteamdigital.com", phone: "(206) 555-0143", score: 85, pain: "Website redesigned 6 months ago — still no organic traffic", approach: "SEO audit + content strategy with quick wins", status: "pending_review" },
-  ];
+  const sampleLeads = overview?.leads ?? [];
 
   return (
     <div className="space-y-4">
@@ -501,7 +501,7 @@ function LeadGenTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
             <Button size="sm" className="btn-premium text-white text-xs" disabled={generateLeads.isPending}
               onClick={() => generateLeads.mutate({ clientName: "PMG Group", targetMarket: "Enterprise Cybersecurity", industryFocus: "Tech, Finance, Healthcare" }, {
                 onSuccess: () => toast({ title: "Leads Generated", description: "5 new qualified leads found and scored" }),
-                onError: () => toast({ title: "Leads Generated", description: "5 new qualified leads found and scored" }),
+                onError: (err: any) => toast({ title: "Lead generation failed", description: err?.message || "Request failed", variant: "destructive" }),
               })}>
               {generateLeads.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Generate More Leads
             </Button>
@@ -520,7 +520,7 @@ function LeadGenTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
                   <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => { navigator.clipboard.writeText(`${lead.contact} - ${lead.email} - ${lead.phone}`); toast({ title: "Copied", description: `${lead.contact}'s details copied` }); }}>
                     <Copy className="h-2.5 w-2.5" />
                   </Button>
-                  <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-success/20 text-success" onClick={() => toast({ title: "Meeting Booked", description: `Outreach initiated for ${lead.contact}` })}>
+                  <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-success/20 text-success" disabled title="Calendar/booking integration not configured yet">
                     <Phone className="h-2.5 w-2.5 mr-0.5" />Book
                   </Button>
                 </div>
@@ -554,14 +554,11 @@ function LeadGenTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
   );
 }
 
-function CampaignsFunnelsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+function CampaignsFunnelsTab({ isHuman, isAuto, overview }: { isHuman: boolean; isAuto: boolean; overview?: ProductionOverview }) {
   const buildCampaign = useAiBuildCampaign();
   const { toast } = useToast();
-  const [campaignsState, setCampaignsState] = useState([
-    { client: "SecureNet Solutions", name: "Stop Chasing Leads", channel: "LinkedIn + Google", status: "active", funnel: "Ad → Landing Page → Lead Magnet → Email Nurture → Sales Call", metrics: { visitors: 4200, leads: 65, meetings: 12, clients: 3 }, conversionRate: "5.1%", budget: "$2,000", spent: "$1,240" },
-    { client: "CyberShield IT", name: "MDR Authority Launch", channel: "LinkedIn + Email", status: "active", funnel: "Content → Webinar Signup → Webinar → Follow-up → Demo", metrics: { visitors: 2800, leads: 45, meetings: 8, clients: 2 }, conversionRate: "4.2%", budget: "$1,500", spent: "$890" },
-    { client: "DataVault MSP", name: "Compliance Content Blitz", channel: "Google + Blog", status: "draft", funnel: "SEO Content → Gated PDF → Email Sequence → Consultation", metrics: { visitors: 0, leads: 0, meetings: 0, clients: 0 }, conversionRate: "—", budget: "$1,000", spent: "$0" },
-  ]);
+  const [campaignsState, setCampaignsState] = useState<ProductionOverview["campaigns"]>([]);
+  useEffect(() => { if (overview?.campaigns) setCampaignsState(overview.campaigns); }, [overview]);
 
   const funnelStages = [
     { stage: "Awareness", desc: "Ads, content, social posts", icon: <Eye className="h-3.5 w-3.5" />, color: "text-blue-400" },
@@ -594,7 +591,7 @@ function CampaignsFunnelsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: bo
             <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson" disabled={buildCampaign.isPending}
               onClick={() => buildCampaign.mutate({ campaignType: "lead_gen", targetAudience: "CISOs and IT Directors", marketingGap: "not generating enough leads" }, {
                 onSuccess: () => toast({ title: "Funnel Built", description: "Complete lead gen funnel created with landing page copy and email sequence" }),
-                onError: () => toast({ title: "Funnel Built", description: "Complete lead gen funnel created with landing page copy and email sequence" }),
+                onError: (err: any) => toast({ title: "Funnel build failed", description: err?.message || "Request failed", variant: "destructive" }),
               })}>
               {buildCampaign.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Build Funnel
             </Button>
@@ -631,7 +628,7 @@ function CampaignsFunnelsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: bo
                 <p className="text-[10px] text-muted-foreground">{campaign.client} · {campaign.channel}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs font-semibold">{campaign.spent} / {campaign.budget}</p>
+                <p className="text-xs font-semibold">${campaign.spent.toLocaleString()} / ${campaign.budget.toLocaleString()}</p>
                 <p className="text-[9px] text-muted-foreground">Budget</p>
               </div>
             </div>
@@ -689,18 +686,16 @@ function CampaignsFunnelsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: bo
   );
 }
 
-function ReportingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+function ReportingTab({ isHuman, isAuto, overview }: { isHuman: boolean; isAuto: boolean; overview?: ProductionOverview }) {
   const generateReport = useAiGenerateClientReport();
   const { toast } = useToast();
 
-  const reportSections = [
-    { name: "Leads Delivered", metric: "14/20", change: "+3 from last week", status: "positive" },
-    { name: "Website Traffic", metric: "2,840", change: "+42% vs last month", status: "positive" },
-    { name: "LinkedIn Engagement", metric: "8.3%", change: "+2.1% vs benchmark", status: "positive" },
-    { name: "Email Open Rate", metric: "34%", change: "+8% vs industry avg", status: "positive" },
-    { name: "Cost Per Lead", metric: "$47", change: "-$12 vs target $59", status: "positive" },
-    { name: "Pipeline Generated", metric: "$62,500", change: "5 deals in negotiation", status: "positive" },
-  ];
+  const reportData = (overview?.report?.data ?? {}) as any;
+  const reportSections: Array<{ name: string; metric: string; change: string; status: string }> = reportData.sections ?? [];
+  const reportClient = reportData.client ?? "—";
+  const reportPeriod = overview?.report?.period ?? "";
+  const reportRoi = reportData.roi ?? "";
+  const reportWeekly: Array<{ week: string; leads: number; meetings: number }> = reportData.weekly ?? [];
 
   return (
     <div className="space-y-4">
@@ -716,12 +711,12 @@ function ReportingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
             <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson" disabled={generateReport.isPending}
               onClick={() => generateReport.mutate({ reportType: "monthly", timeframe: "last 30 days" }, {
                 onSuccess: () => toast({ title: "Report Generated", description: "Monthly performance report ready for review" }),
-                onError: () => toast({ title: "Report Generated", description: "Monthly performance report ready for review" }),
+                onError: (err: any) => toast({ title: "Report generation failed", description: err?.message || "Request failed", variant: "destructive" }),
               })}>
               {generateReport.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Generate Report
             </Button>
           )}
-          <Button size="sm" variant="outline" className="text-xs" onClick={() => toast({ title: "Exported", description: "PDF report downloaded" })}>
+          <Button size="sm" variant="outline" className="text-xs" disabled title="PDF export not built yet">
             <Download className="h-3 w-3 mr-1" />Export PDF
           </Button>
         </div>
@@ -732,7 +727,7 @@ function ReportingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
           <div className="p-2 rounded-lg glass-surface text-crimson"><BarChart3 className="h-5 w-5" /></div>
           <div>
             <p className="text-sm font-semibold">Monthly Performance Summary</p>
-            <p className="text-[10px] text-muted-foreground">SecureNet Solutions — March 2024</p>
+            <p className="text-[10px] text-muted-foreground">{reportClient} — {reportPeriod}</p>
           </div>
           <Badge variant="outline" className="text-[10px] text-success border-success/20 ml-auto">On Track</Badge>
         </div>
@@ -750,14 +745,14 @@ function ReportingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
         </div>
         <div className="mt-4 p-3 rounded-lg bg-success/5 border border-success/10">
           <p className="text-xs font-semibold text-success">ROI Summary</p>
-          <p className="text-[10px] text-muted-foreground mt-1">Client investment: $5,000/mo → Pipeline generated: $62,500 → ROI: 12.5x</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{reportRoi}</p>
         </div>
       </GlassCard>
 
       <GlassCard>
         <h3 className="text-sm font-semibold mb-3">Progress: "20 Ready-to-Close Leads / Month"</h3>
         <div className="flex items-end gap-2 h-24">
-          {[{ week: "Wk 1", leads: 3, meetings: 1 }, { week: "Wk 2", leads: 5, meetings: 2 }, { week: "Wk 3", leads: 4, meetings: 2 }, { week: "Wk 4", leads: 2, meetings: 1 }].map((w) => (
+          {reportWeekly.map((w) => (
             <div key={w.week} className="flex-1 flex flex-col items-center gap-1">
               <div className="w-full flex gap-0.5 items-end justify-center" style={{ height: "80px" }}>
                 <div className="w-5 bg-crimson rounded-t" style={{ height: `${(w.leads / 5) * 100}%` }} />
@@ -777,22 +772,28 @@ function ReportingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
 }
 
 function IntegrationsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+  const { data: statusData } = useIntegrationStatus();
+  const { data: logsData } = useSyncLogs();
+  const triggerSync = useTriggerSync();
   const { toast } = useToast();
-  const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  const integrations = [
-    { name: "GoHighLevel (Main)", status: "connected", lastSync: "2 min ago", records: 142, direction: "bidirectional", health: "healthy" },
-    { name: "GHL Sub-Account (Partner)", status: "connected", lastSync: "5 min ago", records: 38, direction: "bidirectional", health: "healthy" },
-    { name: "HubSpot", status: "pending", lastSync: "—", records: 0, direction: "bidirectional", health: "setup" },
-  ];
+  const integrations: any[] = Array.isArray(statusData) ? statusData : [];
+  const logs: any[] = Array.isArray(logsData?.logs) ? logsData.logs : [];
 
-  const syncActivity = [
-    { time: "2 min ago", action: "Lead synced to GHL", record: "Fortress Cybersecurity → Main Account", status: "success" },
-    { time: "5 min ago", action: "Partner deal pushed", record: "DataVault MSP → Sub-Account", status: "success" },
-    { time: "12 min ago", action: "Contact updated", record: "Sarah Williams — new phone number", status: "success" },
-    { time: "1 hr ago", action: "Pipeline stage sync", record: "CyberShield IT → Discovery", status: "success" },
-    { time: "2 hrs ago", action: "Sync retry", record: "TrustLayer — field mapping conflict", status: "warning" },
-  ];
+  const handleSync = (integrationId: string, name: string) => {
+    setSyncingId(integrationId);
+    triggerSync.mutate(integrationId, {
+      onSuccess: (res: any) => {
+        setSyncingId(null);
+        toast({ title: "Sync Triggered", description: res?.synced != null ? `${name}: ${res.synced} records synced, ${res.errors ?? 0} errors.` : `${name} sync started.` });
+      },
+      onError: (err: any) => {
+        setSyncingId(null);
+        toast({ title: "Sync failed", description: err?.message || "Request failed", variant: "destructive" });
+      },
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -802,72 +803,93 @@ function IntegrationsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolea
         manualText="Manual — sync when you click. Review all changes before push." />
 
       <div className="space-y-3">
-        {integrations.map((integration) => (
-          <GlassCard key={integration.name}>
-            <div className="flex items-center gap-4">
-              <div className={`p-2 rounded-lg glass-surface ${integration.health === "healthy" ? "text-success" : "text-yellow-400"}`}>
-                <RefreshCw className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold">{integration.name}</p>
-                  <Badge variant="outline" className={`text-[10px] ${integration.status === "connected" ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"}`}>{integration.status}</Badge>
-                  <Badge variant="outline" className="text-[10px]">{integration.direction}</Badge>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Last sync: {integration.lastSync} · {integration.records} records</p>
-              </div>
-              <div className="flex gap-2">
-                {integration.status === "connected" && (
-                  <Button size="sm" variant="outline" className="text-xs h-7" disabled={syncing === integration.name}
-                    onClick={() => { setSyncing(integration.name); setTimeout(() => { setSyncing(null); toast({ title: "Sync Complete", description: `${integration.records} records synced with ${integration.name}` }); }, 1500); }}>
-                    {syncing === integration.name ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}Sync Now
-                  </Button>
-                )}
-                {integration.status === "pending" && (
-                  <Button size="sm" className="btn-premium text-white text-xs h-7" onClick={() => toast({ title: "Connecting", description: "Navigate to Settings > Integrations to configure" })}>
-                    <Zap className="h-3 w-3 mr-1" />Connect
-                  </Button>
-                )}
-              </div>
+        {integrations.length === 0 ? (
+          <GlassCard>
+            <div className="text-center py-10">
+              <RefreshCw className="h-10 w-10 mx-auto text-muted-foreground/20 mb-3" />
+              <p className="text-sm font-semibold">No Integrations Connected</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+                Connect GoHighLevel, HubSpot, or another service in Settings → Integrations to enable CRM sync. No integration is configured yet.
+              </p>
+              <Button size="sm" className="btn-premium text-white text-xs h-7 mt-4" onClick={() => { window.location.href = "/settings"; }}>
+                Go to Settings → Integrations
+              </Button>
             </div>
           </GlassCard>
-        ))}
+        ) : (
+          integrations.map((integration) => {
+            const id = String(integration.id);
+            return (
+              <GlassCard key={id}>
+                <div className="flex items-center gap-4">
+                  <div className={`p-2 rounded-lg glass-surface ${integration.isActive ? "text-success" : "text-muted-foreground"}`}>
+                    <RefreshCw className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold">{integration.name ?? integration.provider}</p>
+                      <Badge variant="outline" className={`text-[10px] ${integration.isActive ? "text-success border-success/20" : "text-muted-foreground"}`}>
+                        {integration.isActive ? "Connected" : "Inactive"}
+                      </Badge>
+                      {integration.tokenExpired && <Badge variant="outline" className="text-[10px] text-red-400 border-red-500/20">Token expired</Badge>}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 capitalize">
+                      {integration.provider}
+                      {" · "}Last sync: {integration.lastSyncAt ? new Date(integration.lastSyncAt).toLocaleString() : "Never"}
+                      {integration.lastSyncStatus ? ` · ${integration.lastSyncStatus}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="text-xs h-7"
+                      disabled={!integration.isActive || (syncingId === id && triggerSync.isPending)}
+                      title={integration.isActive ? undefined : "Integration is inactive — reconnect in Settings"}
+                      onClick={() => handleSync(id, integration.name ?? integration.provider)}>
+                      <RefreshCw className={`h-3 w-3 mr-1 ${syncingId === id && triggerSync.isPending ? "animate-spin" : ""}`} />
+                      {syncingId === id && triggerSync.isPending ? "Syncing..." : "Sync Now"}
+                    </Button>
+                  </div>
+                </div>
+              </GlassCard>
+            );
+          })
+        )}
       </div>
 
       <GlassCard>
-        <h3 className="text-sm font-semibold mb-3">Sync Activity</h3>
-        <div className="space-y-1.5">
-          {syncActivity.map((activity, idx) => (
-            <div key={idx} className="flex items-center gap-3 p-2 rounded-lg glass-surface">
-              <div className={`flex-shrink-0 ${activity.status === "success" ? "text-success" : "text-yellow-400"}`}>
-                {activity.status === "success" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
-              </div>
-              <span className="text-[10px] text-muted-foreground w-16">{activity.time}</span>
-              <span className="text-xs font-medium w-36">{activity.action}</span>
-              <span className="text-[10px] text-muted-foreground flex-1">{activity.record}</span>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Sync Activity</h3>
+          <Badge variant="outline" className="text-[10px]">{logs.length} events</Badge>
         </div>
+        {logs.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6">No sync events yet. Activity appears here once an integration runs a sync.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {logs.slice(0, 20).map((log, idx) => {
+              const ok = ["success", "completed", "received"].includes(String(log.status));
+              return (
+                <div key={log.id ?? idx} className="flex items-center gap-3 p-2 rounded-lg glass-surface">
+                  <div className={`flex-shrink-0 ${ok ? "text-success" : "text-yellow-400"}`}>
+                    {ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground w-32 flex-shrink-0">{log.createdAt ? new Date(log.createdAt).toLocaleString() : "—"}</span>
+                  <span className="text-xs font-medium flex-1 capitalize">{log.direction ?? "sync"} · {log.entityType ?? "record"}</span>
+                  <Badge variant="outline" className={`text-[10px] ${ok ? "text-success" : "text-yellow-400"}`}>{log.status}</Badge>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </GlassCard>
     </div>
   );
 }
 
-function LibraryTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+function LibraryTab({ isHuman, isAuto, overview }: { isHuman: boolean; isAuto: boolean; overview?: ProductionOverview }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const { toast } = useToast();
 
-  const assets = [
-    { name: "CISO's Guide to Vendor Evaluation", type: "document", format: "PDF", date: "Mar 22", status: "published", score: 95 },
-    { name: "MDR vs MSSP Comparison Infographic", type: "image", format: "PNG", date: "Mar 20", status: "published", score: 92 },
-    { name: "Stop Chasing Leads — LinkedIn Ad", type: "image", format: "JPG", date: "Mar 19", status: "approved", score: 88 },
-    { name: "SOC 2 Compliance Checklist", type: "document", format: "PDF", date: "Mar 18", status: "published", score: 94 },
-    { name: "Cybersecurity ROI Calculator", type: "content", format: "Web", date: "Mar 17", status: "in_review", score: 85 },
-    { name: "Why EDR Isn't Enough — Blog Post", type: "content", format: "MD", date: "Mar 15", status: "published", score: 90 },
-    { name: "Client Testimonial — SecureNet", type: "video", format: "MP4", date: "Mar 14", status: "approved", score: 91 },
-    { name: "Threat Landscape 2024 — Whitepaper", type: "document", format: "PDF", date: "Mar 12", status: "in_review", score: null },
-  ];
+  const assets = overview?.assets ?? [];
 
   const types = ["all", "content", "image", "video", "document"];
   const filtered = assets.filter((a) => {
@@ -923,8 +945,8 @@ function LibraryTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
               <Badge variant="outline" className={`text-[9px] w-16 justify-center ${asset.status === "published" ? "text-success border-success/20" : asset.status === "approved" ? "text-blue-400 border-blue-500/20" : "text-yellow-400 border-yellow-500/20"}`}>{asset.status.replace("_", " ")}</Badge>
               <span className={`w-12 text-center text-[10px] font-semibold ${asset.score && asset.score >= 90 ? "text-success" : asset.score ? "text-gold" : "text-muted-foreground"}`}>{asset.score ?? "—"}</span>
               <div className="w-20 flex gap-1 justify-end">
-                <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => toast({ title: "Preview", description: `Viewing ${asset.name}` })}><Eye className="h-3 w-3" /></Button>
-                <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => toast({ title: "Downloaded", description: `${asset.name} downloaded` })}><Download className="h-3 w-3" /></Button>
+                <Button size="sm" variant="ghost" className="h-6 px-1.5" disabled title="Asset preview not built yet"><Eye className="h-3 w-3" /></Button>
+                <Button size="sm" variant="ghost" className="h-6 px-1.5" disabled title="Asset download not built yet"><Download className="h-3 w-3" /></Button>
               </div>
             </div>
           ))}
@@ -934,17 +956,12 @@ function LibraryTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
   );
 }
 
-function QualityTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+function QualityTab({ isHuman, isAuto, overview }: { isHuman: boolean; isAuto: boolean; overview?: ProductionOverview }) {
   const auditClient = useAiAuditClient();
   const { toast } = useToast();
 
-  const [reviewItems, setReviewItems] = useState([
-    { name: "LinkedIn Post: 5 Signs Your MSSP Needs Marketing", type: "content", score: "Ready to Publish", issues: [] as string[], details: "Passes all quality checks. Brand voice consistent." },
-    { name: "Google Ad: MDR Services — Variation C", type: "image", score: "Needs Minor Edits", issues: ["CTA button text too small at mobile size", "Missing UTM parameters"], details: "Creative is strong but needs technical fixes." },
-    { name: "Blog: Why EDR Companies Fail at Lead Gen", type: "content", score: "Ready to Publish", issues: [] as string[], details: "SEO optimized. 1,200 words. 3 internal links." },
-    { name: "Email Sequence: Nurture Flow #3", type: "content", score: "Needs Minor Edits", issues: ["Subject line A/B test not configured", "Unsubscribe link formatting"], details: "Content approved. Technical setup needs attention." },
-    { name: "Case Study Video: DataVault MSP Results", type: "video", score: "Needs Rewrite", issues: ["Audio quality drops at 1:23", "No closed captions", "Missing CTA end card", "B-roll footage needed"], details: "Story is strong but production quality needs improvement." },
-  ]);
+  const [reviewItems, setReviewItems] = useState<ProductionOverview["quality"]>([]);
+  useEffect(() => { if (overview?.quality) setReviewItems(overview.quality); }, [overview]);
 
   const handleApprove = (name: string) => {
     setReviewItems(prev => prev.map(item => item.name === name ? { ...item, score: "Published", issues: [] } : item));
@@ -954,14 +971,14 @@ function QualityTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
   const handleAutoFix = (name: string) => {
     auditClient.mutate({ clientName: name, websiteUrl: "auto-fix" }, {
       onSuccess: () => { setReviewItems(prev => prev.map(item => item.name === name ? { ...item, score: "Ready to Publish", issues: [] } : item)); toast({ title: "Auto-Fixed", description: `${name} issues resolved by AI` }); },
-      onError: () => { setReviewItems(prev => prev.map(item => item.name === name ? { ...item, score: "Ready to Publish", issues: [] } : item)); toast({ title: "Auto-Fixed", description: `${name} issues resolved by AI` }); },
+      onError: (err: any) => { toast({ title: "Auto-fix failed", description: err?.message || "Request failed", variant: "destructive" }); },
     });
   };
 
   const handleRegenerate = (name: string) => {
     auditClient.mutate({ clientName: name, websiteUrl: "regenerate" }, {
       onSuccess: () => { setReviewItems(prev => prev.map(item => item.name === name ? { ...item, score: "Ready to Publish", issues: [], details: "Regenerated — ready for review." } : item)); toast({ title: "Regenerated", description: `${name} has been regenerated` }); },
-      onError: () => { setReviewItems(prev => prev.map(item => item.name === name ? { ...item, score: "Ready to Publish", issues: [], details: "Regenerated — ready for review." } : item)); toast({ title: "Regenerated", description: `${name} has been regenerated` }); },
+      onError: (err: any) => { toast({ title: "Regeneration failed", description: err?.message || "Request failed", variant: "destructive" }); },
     });
   };
 

@@ -6,4 +6,4 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export type CreateOutreachSequenceBodySteps = { [key: string]: unknown };
+export type UpdateOutreachSequenceBodyStepsItem = { [key: string]: unknown };

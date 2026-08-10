@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import {
@@ -15,10 +16,17 @@ import {
   Linkedin, Facebook, Twitter, Youtube, Mail, MessageSquare,
   CheckCircle2, AlertCircle, Zap, Bot, User, ArrowLeftRight,
   Building2, Bell, Activity, FileText, Lock, Scale, Eye,
-  AlertTriangle, Database, Cpu, Server, Clock, Palette
+  AlertTriangle, Database, Palette, Sparkles, Plus, X, RefreshCw
 } from "lucide-react";
-import { useApolloStatus, useTestApollo, useConnectApollo, useDisconnectApollo } from "@/hooks/use-api";
+import {
+  useApolloStatus, useTestApollo, useConnectApollo, useDisconnectApollo,
+  useWalletBalance, useWalletAnalytics, useAgents, useAgentStats, useIntegrationStatus,
+  useWalletThresholds, useUpsertThreshold,
+  useAiCheckCompliance, useChannelHealth, useOptOutList, useAddOptOut, useRemoveOptOut,
+  useAiOutputs, useSaveAiOutput,
+} from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 const tabs = [
   { id: "general", label: "General", icon: <Building2 className="h-3.5 w-3.5" /> },
@@ -35,14 +43,6 @@ const tabs = [
 
 function AiModesTab() {
   const { currentMode, setMode } = useAiModeContext();
-  const [sectionModes, setSectionModes] = useState<Record<string, string>>({
-    outreach: "inherit",
-    crm: "inherit",
-    marketing: "inherit",
-    production: "inherit",
-    admin: "inherit",
-    finance: "inherit",
-  });
 
   const modes = [
     {
@@ -109,26 +109,24 @@ function AiModesTab() {
 
       <div>
         <h3 className="text-sm font-semibold mb-1">Per-Section Overrides</h3>
-        <p className="text-xs text-muted-foreground mb-4">Override the global mode for specific sections.</p>
+        <p className="text-xs text-muted-foreground mb-4">
+          Not yet supported — the mode engine resolves at global, per-workflow, and per-record levels only. All sections currently follow the Global mode above.
+        </p>
         <GlassCard>
           <div className="space-y-3">
             {sections.map((section) => (
-              <div key={section.id} className="flex items-center justify-between p-3 rounded-lg glass-surface">
+              <div key={section.id} className="flex items-center justify-between p-3 rounded-lg glass-surface opacity-60">
                 <span className="text-sm font-medium">{section.label}</span>
-                <Select
-                  value={sectionModes[section.id]}
-                  onValueChange={(v) => setSectionModes({ ...sectionModes, [section.id]: v })}
-                >
-                  <SelectTrigger className="w-44 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="inherit">Inherit Global ({currentMode === "ai_auto" ? "Auto" : currentMode === "hybrid" ? "Hybrid" : "Manual"})</SelectItem>
-                    <SelectItem value="ai_auto">AI Autonomous</SelectItem>
-                    <SelectItem value="hybrid">Hybrid</SelectItem>
-                    <SelectItem value="human">Manual Control</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div title="Per-section overrides are not yet supported">
+                  <Select value="inherit" disabled>
+                    <SelectTrigger className="w-44 h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="inherit">Inherit Global ({currentMode === "ai_auto" ? "Auto" : currentMode === "hybrid" ? "Hybrid" : "Manual"})</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             ))}
           </div>
@@ -139,53 +137,81 @@ function AiModesTab() {
 }
 
 function WalletTab() {
+  const { data: wallet } = useWalletBalance();
+  const { data: analytics } = useWalletAnalytics();
+  const { data: thresholds } = useWalletThresholds();
+  const upsertThreshold = useUpsertThreshold();
+  const { toast } = useToast();
+  const fmt = (n?: number) => (n == null ? "—" : `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+
+  const globalThreshold = (Array.isArray(thresholds) ? thresholds : []).find((t: any) => t.scopeType === "global" && t.scopeId === "global");
+  const [dailyLimit, setDailyLimit] = useState<string>("");
+  useEffect(() => {
+    if (globalThreshold?.dailyLimit != null) setDailyLimit(String(Number(globalThreshold.dailyLimit)));
+  }, [globalThreshold?.dailyLimit]);
+
+  const saveDailyLimit = () => {
+    const val = parseFloat(dailyLimit);
+    if (Number.isNaN(val) || val < 0) {
+      toast({ title: "Enter a valid limit", description: "Daily limit must be a non-negative number.", variant: "destructive" });
+      return;
+    }
+    upsertThreshold.mutate({ scopeType: "global", scopeId: "global", dailyLimit: val, enabled: true }, {
+      onSuccess: () => toast({ title: "Daily limit saved", description: `Global AI spend capped at $${val}/day` }),
+      onError: (err: any) => toast({ title: "Save failed", description: err?.message || "Request failed", variant: "destructive" }),
+    });
+  };
+  const byDomain: any[] = Array.isArray(analytics?.byDomain) ? analytics.byDomain : [];
+  const maxDomainSpend = Math.max(1, ...byDomain.map((d: any) => Number(d.spent) || 0));
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <GlassCard glow="crimson">
           <div className="text-center">
             <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
-            <p className="text-3xl font-bold text-crimson">$360.29</p>
+            <p className="text-3xl font-bold text-crimson">{fmt(wallet?.balance)}</p>
           </div>
         </GlassCard>
         <GlassCard>
           <div className="text-center">
             <p className="text-xs text-muted-foreground mb-1">This Month Spent</p>
-            <p className="text-3xl font-bold">$89.71</p>
+            <p className="text-3xl font-bold">{fmt(analytics?.month?.spent)}</p>
           </div>
         </GlassCard>
         <GlassCard>
           <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Monthly Budget</p>
-            <p className="text-3xl font-bold text-success">$450.00</p>
+            <p className="text-xs text-muted-foreground mb-1">Available Balance</p>
+            <p className="text-3xl font-bold text-success">{fmt(wallet?.availableBalance)}</p>
           </div>
         </GlassCard>
       </div>
 
       <GlassCard>
-        <h3 className="text-sm font-semibold mb-4">Budget Pools</h3>
-        <div className="space-y-3">
-          {[
-            { pool: "Standard", budget: 200, spent: 45, agents: "Outreach, CRM, Admin" },
-            { pool: "Premium", budget: 100, spent: 30, agents: "Marketing, Intelligence" },
-            { pool: "Creative", budget: 100, spent: 10, agents: "Production (DALL-E, Runway)" },
-            { pool: "System", budget: 50, spent: 5, agents: "Legal, Evolution" },
-          ].map((p) => (
-            <div key={p.pool} className="p-3 rounded-lg glass-surface">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">{p.pool}</span>
-                <span className="text-xs text-muted-foreground">${p.spent} / ${p.budget}</span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-muted/20">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-crimson to-crimson/60 transition-all"
-                  style={{ width: `${(p.spent / p.budget) * 100}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1">{p.agents}</p>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold">Spend by Section</h3>
+          <span className="text-[10px] text-muted-foreground">Today: {fmt(analytics?.today?.spent)} · {analytics?.today?.transactions ?? 0} calls</span>
         </div>
+        {byDomain.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No AI spend recorded yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {byDomain.map((d: any) => (
+              <div key={d.domain ?? "unknown"} className="p-3 rounded-lg glass-surface">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium capitalize">{d.domain ?? "unknown"}</span>
+                  <span className="text-xs text-muted-foreground">{fmt(Number(d.spent))} · {d.transactions ?? 0} calls</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-muted/20">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-crimson to-crimson/60 transition-all"
+                    style={{ width: `${((Number(d.spent) || 0) / maxDomainSpend) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </GlassCard>
 
       <GlassCard>
@@ -193,24 +219,29 @@ function WalletTab() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm">Auto-pause when balance low</Label>
-              <p className="text-xs text-muted-foreground">Pause AI agents when wallet drops below threshold</p>
+              <Label className="text-sm">Global daily spend limit</Label>
+              <p className="text-xs text-muted-foreground">Blocks AI calls once total spend today exceeds this ($/day). Enforced by the wallet engine.</p>
             </div>
-            <Switch defaultChecked />
+            <div className="flex items-center gap-2">
+              <Input type="number" min="0" value={dailyLimit} onChange={(e) => setDailyLimit(e.target.value)} placeholder="none" className="w-24 h-8 text-sm" />
+              <Button size="sm" className="text-xs h-8" onClick={saveDailyLimit} disabled={upsertThreshold.isPending}>
+                {upsertThreshold.isPending ? "Saving…" : "Save"}
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between opacity-60">
+            <div>
+              <Label className="text-sm">Auto-pause when balance low</Label>
+              <p className="text-xs text-muted-foreground">Not yet wired — the wallet engine has no auto-pause hook.</p>
+            </div>
+            <Switch disabled />
+          </div>
+          <div className="flex items-center justify-between opacity-60">
             <div>
               <Label className="text-sm">Low balance threshold</Label>
-              <p className="text-xs text-muted-foreground">Alert when balance drops below this amount</p>
+              <p className="text-xs text-muted-foreground">Not yet wired — no balance-floor alerting in the backend.</p>
             </div>
-            <Input type="number" defaultValue="50" className="w-24 h-8 text-sm" />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-sm">Max charge per agent run</Label>
-              <p className="text-xs text-muted-foreground">Prevent any single agent from spending more than this</p>
-            </div>
-            <Input type="number" defaultValue="5" className="w-24 h-8 text-sm" />
+            <Input type="number" defaultValue="50" disabled className="w-24 h-8 text-sm" title="Balance-floor alerting not built yet" />
           </div>
         </div>
       </GlassCard>
@@ -233,7 +264,7 @@ function UsersTab() {
           <h3 className="text-sm font-semibold">Team Members</h3>
           <p className="text-xs text-muted-foreground">Manage who has access to PMG OS</p>
         </div>
-        <Button className="btn-premium text-white text-sm">
+        <Button className="btn-premium text-white text-sm" disabled title="User invitation flow not built yet">
           <Users className="h-4 w-4 mr-2" />Invite User
         </Button>
       </div>
@@ -302,7 +333,7 @@ function ChannelsTab() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{ch.description}</p>
               </div>
-              <Button variant="outline" size="sm" className="text-xs">
+              <Button variant="outline" size="sm" className="text-xs" disabled title={`${ch.name} channel integration not configured yet`}>
                 Connect
               </Button>
             </div>
@@ -349,8 +380,8 @@ function IntegrationsTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold mb-1">Connected Services</h3>
-        <p className="text-xs text-muted-foreground mb-4">All integrations run through a single API gateway for easy server migration.</p>
+        <h3 className="text-sm font-semibold mb-1">Planned Integrations</h3>
+        <p className="text-xs text-muted-foreground mb-4">Reference list — not yet wired to live connections. Live connection status appears under System Health once connected.</p>
       </div>
       <div className="space-y-3">
         {integrations.map((int) => (
@@ -361,11 +392,14 @@ function IntegrationsTab() {
                   <Globe className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{int.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">{int.name}</p>
+                    <Badge variant="outline" className="text-[10px] border-muted-foreground/30">Not connected</Badge>
+                  </div>
                   <p className="text-xs text-muted-foreground">{int.description}</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="text-xs">
+              <Button variant="outline" size="sm" className="text-xs" disabled title={`${int.name} integration not configured yet`}>
                 Configure
               </Button>
             </div>
@@ -531,7 +565,7 @@ function ApiKeysTab() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">{k.cost}</span>
-                <Button variant="outline" size="sm" className="text-xs">
+                <Button variant="outline" size="sm" className="text-xs" disabled title={`${k.service} key management not wired yet`}>
                   <Key className="h-3 w-3 mr-1" />Add Key
                 </Button>
               </div>
@@ -565,7 +599,7 @@ function GeneralTab() {
             <div className="flex-1">
               <Label className="text-sm">Company Logo</Label>
               <p className="text-xs text-muted-foreground mb-2">Upload your company logo (PNG, SVG, or JPG)</p>
-              <Button size="sm" variant="outline" className="text-xs">
+              <Button size="sm" variant="outline" className="text-xs" disabled title="Logo upload not built yet">
                 <Palette className="h-3 w-3 mr-1" />Upload Logo
               </Button>
             </div>
@@ -656,7 +690,7 @@ function GeneralTab() {
       </GlassCard>
 
       <div className="flex justify-end">
-        <Button className="btn-premium text-white text-sm">
+        <Button className="btn-premium text-white text-sm" disabled title="Company settings persistence not built yet">
           <CheckCircle2 className="h-4 w-4 mr-2" />Save Changes
         </Button>
       </div>
@@ -664,106 +698,189 @@ function GeneralTab() {
   );
 }
 
+const CHANNEL_LABELS: Record<string, string> = { email: "Email", sms: "SMS", linkedin_message: "LinkedIn" };
+
 function LegalComplianceTab() {
+  const checkCompliance = useAiCheckCompliance();
+  const saveOutput = useSaveAiOutput();
+  const { data: checks } = useAiOutputs("compliance_check", { domain: "legal", limit: 10 });
+  const { data: channelData } = useChannelHealth();
+  const { data: optOutData } = useOptOutList();
+  const addOptOut = useAddOptOut();
+  const removeOptOut = useRemoveOptOut();
+  const { toast } = useToast();
+
+  const [contentType, setContentType] = useState("email");
+  const [channel, setChannel] = useState("email");
+  const [content, setContent] = useState("");
+  const [newOptOut, setNewOptOut] = useState("");
+
+  const checkList = checks ?? [];
+  const health: Record<string, any> = channelData?.health ?? {};
+  const limits: Record<string, any> = channelData?.limits ?? {};
+  const optOuts: string[] = Array.isArray(optOutData?.contacts) ? optOutData.contacts : [];
+
+  const runCheck = () => {
+    if (!content.trim()) return;
+    checkCompliance.mutate({ contentType, content, channel }, {
+      onSuccess: (data: any) => {
+        const text = String(data?.compliance ?? data?.result ?? "");
+        saveOutput.mutate({
+          domain: "legal",
+          kind: "compliance_check",
+          title: `${contentType.replace(/_/g, " ")} · ${CHANNEL_LABELS[channel] ?? channel} — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+          summary: text.slice(0, 280),
+          data: { content: text },
+        });
+        toast({ title: "Compliance Check Complete", description: "Saved to history below" });
+      },
+      onError: (err: any) => toast({ title: "Compliance check failed", description: err?.message || "Request failed", variant: "destructive" }),
+    });
+  };
+
+  const handleAddOptOut = () => {
+    const email = newOptOut.trim();
+    if (!email) return;
+    addOptOut.mutate(email, {
+      onSuccess: () => { setNewOptOut(""); toast({ title: "Added to opt-out list", description: email }); },
+      onError: (err: any) => toast({ title: "Could not add", description: err?.message || "Request failed", variant: "destructive" }),
+    });
+  };
+
+  const handleRemoveOptOut = (email: string) => {
+    removeOptOut.mutate(email, {
+      onSuccess: () => toast({ title: "Removed from opt-out list", description: email }),
+      onError: (err: any) => toast({ title: "Could not remove", description: err?.message || "Request failed", variant: "destructive" }),
+    });
+  };
+
   return (
     <div className="space-y-6">
       <GlassCard>
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 rounded-lg glass-surface text-crimson"><Scale className="h-5 w-5" /></div>
           <div>
-            <h3 className="text-sm font-semibold">Communication Compliance</h3>
-            <p className="text-xs text-muted-foreground">Automated enforcement across all outbound channels</p>
+            <h3 className="text-sm font-semibold">Compliance Checker</h3>
+            <p className="text-xs text-muted-foreground">AI checks content against CAN-SPAM, GDPR, TCPA, and platform ad policies before you send.</p>
           </div>
         </div>
-        <div className="space-y-3">
-          {[
-            { label: "CAN-SPAM Compliance", desc: "Unsubscribe links, physical address, opt-out handling in every email", enabled: true, status: "active" },
-            { label: "GDPR Compliance", desc: "Consent tracking, data deletion rights, DPA management for EU contacts", enabled: true, status: "active" },
-            { label: "TCPA Compliance", desc: "Do-not-call list checking, calling hours enforcement", enabled: true, status: "active" },
-            { label: "Platform Rate Limits", desc: "LinkedIn connection limits, Facebook messaging policies, Instagram DM rules", enabled: true, status: "active" },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center justify-between p-3 rounded-lg glass-surface">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium">{item.label}</p>
-                  <Badge variant="outline" className="text-[10px] text-success border-success/20">{item.status}</Badge>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+          <div>
+            <Label className="text-xs">Content type</Label>
+            <Select value={contentType} onValueChange={setContentType}>
+              <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="linkedin_message">LinkedIn message</SelectItem>
+                <SelectItem value="ad">Ad copy</SelectItem>
+                <SelectItem value="blog_post">Blog post</SelectItem>
+                <SelectItem value="landing_page">Landing page</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Channel</Label>
+            <Select value={channel} onValueChange={setChannel}>
+              <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="linkedin">LinkedIn</SelectItem>
+                <SelectItem value="facebook">Facebook</SelectItem>
+                <SelectItem value="instagram">Instagram</SelectItem>
+                <SelectItem value="google">Google Ads</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Textarea placeholder="Paste the content to check for compliance…" value={content} onChange={(e) => setContent(e.target.value)}
+          className="bg-white/5 border-white/10 text-sm min-h-[110px]" />
+        <div className="flex justify-end mt-3">
+          <Button size="sm" className="btn-premium text-white text-xs" onClick={runCheck} disabled={checkCompliance.isPending || !content.trim()}>
+            {checkCompliance.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Run Compliance Check
+          </Button>
+        </div>
+      </GlassCard>
+
+      <GlassCard>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Compliance Reports</h3>
+          <Badge variant="outline" className="text-[10px]">{checkList.length} saved</Badge>
+        </div>
+        {checkList.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No compliance checks run yet — use the checker above.</p>
+        ) : (
+          <div className="space-y-3">
+            {checkList.map((c) => (
+              <div key={c.id} className="p-3 rounded-lg glass-surface">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
+                  <Shield className="h-3.5 w-3.5 text-crimson" />
+                  <p className="text-xs font-semibold flex-1">{c.title}</p>
+                  <span className="text-[10px] text-muted-foreground">{new Date(c.createdAt).toLocaleString()}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{(c.data?.content ?? c.summary) || "—"}</p>
               </div>
-              <Switch defaultChecked={item.enabled} />
-            </div>
-          ))}
+            ))}
+          </div>
+        )}
+      </GlassCard>
+
+      <GlassCard>
+        <h3 className="text-sm font-semibold mb-3">Channel Health & Rate Limits</h3>
+        <p className="text-xs text-muted-foreground mb-3">Live bounce/complaint tracking and daily send caps per channel (resets daily).</p>
+        <div className="space-y-2">
+          {["email", "sms", "linkedin_message"].map((ch) => {
+            const m = health[ch] ?? {};
+            const l = limits[ch] ?? {};
+            const status = m.status ?? "healthy";
+            return (
+              <div key={ch} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
+                <div className={`h-2.5 w-2.5 rounded-full ${status === "critical" ? "bg-crimson" : status === "warning" ? "bg-yellow-400" : status === "paused" ? "bg-muted-foreground" : "bg-success"}`} />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">{CHANNEL_LABELS[ch] ?? ch}</p>
+                    <Badge variant="outline" className={`text-[9px] ${status === "critical" ? "text-crimson border-crimson/20" : status === "warning" ? "text-yellow-400 border-yellow-500/20" : "text-success border-success/20"}`}>{status}</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Health {m.healthScore ?? 100}/100 · Bounce {((m.bounceRate ?? 0) * 100).toFixed(1)}% · Sent today {l.sent ?? 0}/{l.limit ?? "—"} ({l.remaining ?? 0} left)
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </GlassCard>
 
       <GlassCard>
-        <h3 className="text-sm font-semibold mb-4">Anti-Spam Enforcement</h3>
-        <div className="space-y-3">
-          {[
-            { rule: "Email warm-up sequences", desc: "New accounts start slow, gradually increase volume", value: "Enabled" },
-            { rule: "Bounce rate monitoring", desc: "Auto-pauses if bounce rate exceeds threshold", value: "5% max" },
-            { rule: "Domain reputation tracking", desc: "Monitors email domain health and blacklist status", value: "Healthy" },
-            { rule: "Business hours only", desc: "Only sends during business hours in recipient's timezone", value: "Enabled" },
-            { rule: "Personalization required", desc: "AI never sends generic templates — every message references specific details", value: "Enforced" },
-          ].map((item) => (
-            <div key={item.rule} className="flex items-center justify-between p-3 rounded-lg glass-surface">
-              <div className="flex-1">
-                <p className="text-sm font-medium">{item.rule}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-              </div>
-              <Badge variant="outline" className="text-[10px] text-success border-success/20">{item.value}</Badge>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Opt-Out List</h3>
+          <Badge variant="outline" className="text-[10px]">{optOuts.length} contacts</Badge>
         </div>
-      </GlassCard>
-
-      <GlassCard>
-        <h3 className="text-sm font-semibold mb-4">Contract Compliance</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {[
-            { doc: "NDA Template", status: "configured", icon: <Lock className="h-4 w-4" /> },
-            { doc: "Terms of Service", status: "configured", icon: <FileText className="h-4 w-4" /> },
-            { doc: "Data Processing Agreement (DPA)", status: "configured", icon: <Database className="h-4 w-4" /> },
-            { doc: "Service Level Agreement (SLA)", status: "needs_review", icon: <Scale className="h-4 w-4" /> },
-          ].map((item) => (
-            <div key={item.doc} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
-              <div className="text-muted-foreground">{item.icon}</div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">{item.doc}</p>
-              </div>
-              <Badge variant="outline" className={`text-[10px] ${
-                item.status === "configured" ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"
-              }`}>{item.status.replace("_", " ")}</Badge>
-              <Button size="sm" variant="outline" className="text-xs h-7">Edit</Button>
-            </div>
-          ))}
-        </div>
-      </GlassCard>
-
-      <GlassCard>
-        <h3 className="text-sm font-semibold mb-4">Opt-Out Management</h3>
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="rounded-lg glass-surface p-3 text-center">
-            <p className="text-lg font-bold">12</p>
-            <p className="text-[10px] text-muted-foreground">Total Opt-Outs</p>
-          </div>
-          <div className="rounded-lg glass-surface p-3 text-center">
-            <p className="text-lg font-bold text-success">100%</p>
-            <p className="text-[10px] text-muted-foreground">Compliance Rate</p>
-          </div>
-          <div className="rounded-lg glass-surface p-3 text-center">
-            <p className="text-lg font-bold">0</p>
-            <p className="text-[10px] text-muted-foreground">Violations</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="text-xs">
-            <Eye className="h-3 w-3 mr-1" />View Opt-Out List
-          </Button>
-          <Button size="sm" variant="outline" className="text-xs">
-            <FileText className="h-3 w-3 mr-1" />Export Compliance Report
+        <p className="text-xs text-muted-foreground mb-3">Suppressed addresses — the sequence engine blocks all outbound to anyone on this list.</p>
+        <div className="flex items-center gap-2 mb-3">
+          <Input placeholder="email@company.com" value={newOptOut} onChange={(e) => setNewOptOut(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAddOptOut(); }}
+            className="bg-white/5 border-white/10 text-sm" />
+          <Button size="sm" className="text-xs shrink-0" onClick={handleAddOptOut} disabled={addOptOut.isPending || !newOptOut.trim()}>
+            <Plus className="h-3 w-3 mr-1" />Add
           </Button>
         </div>
+        {optOuts.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-4 text-center">No opt-outs recorded.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {optOuts.map((email) => (
+              <div key={email} className="flex items-center gap-3 p-2 rounded-lg glass-surface">
+                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs flex-1">{email}</span>
+                <Button size="sm" variant="ghost" className="h-6 px-1.5 text-red-400" onClick={() => handleRemoveOptOut(email)} disabled={removeOptOut.isPending} title="Remove from opt-out list">
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </GlassCard>
     </div>
   );
@@ -846,7 +963,7 @@ function NotificationsTab() {
       ))}
 
       <div className="flex justify-end">
-        <Button className="btn-premium text-white text-sm">
+        <Button className="btn-premium text-white text-sm" disabled title="Notification preference persistence not built yet">
           <CheckCircle2 className="h-4 w-4 mr-2" />Save Preferences
         </Button>
       </div>
@@ -855,26 +972,34 @@ function NotificationsTab() {
 }
 
 function SystemHealthTab() {
-  const agents = [
-    { name: "Prospect Intelligence", section: "Outreach", status: "operational", lastRun: "2 min ago", calls: 142 },
-    { name: "Social Command Center", section: "Outreach", status: "operational", lastRun: "30 sec ago", calls: 89 },
-    { name: "Lead Qualification", section: "CRM", status: "operational", lastRun: "1 min ago", calls: 78 },
-    { name: "Deal Intelligence", section: "CRM", status: "operational", lastRun: "5 min ago", calls: 56 },
-    { name: "Content Strategist", section: "Marketing", status: "operational", lastRun: "10 min ago", calls: 34 },
-    { name: "Creative Production", section: "Production", status: "warning", lastRun: "15 min ago", calls: 23 },
-    { name: "Operations Manager", section: "Admin", status: "operational", lastRun: "3 min ago", calls: 67 },
-    { name: "Billing & Revenue", section: "Finance", status: "operational", lastRun: "20 min ago", calls: 12 },
-    { name: "Legal & Compliance", section: "Cross-System", status: "operational", lastRun: "1 min ago", calls: 198 },
-  ];
+  const qc = useQueryClient();
+  const { data: agentsData, isFetching: agentsFetching } = useAgents();
+  const { data: stats } = useAgentStats();
+  const { data: analytics } = useWalletAnalytics();
+  const { data: integrationsData } = useIntegrationStatus();
 
-  const apis = [
-    { name: "Claude API (Anthropic)", status: "healthy", latency: "320ms", uptime: "99.9%" },
-    { name: "OpenAI (DALL-E 3)", status: "healthy", latency: "1.2s", uptime: "99.7%" },
-    { name: "Runway ML", status: "degraded", latency: "3.4s", uptime: "98.2%" },
-    { name: "ElevenLabs", status: "healthy", latency: "450ms", uptime: "99.8%" },
-    { name: "Hunter.io", status: "healthy", latency: "200ms", uptime: "99.9%" },
-    { name: "SendGrid", status: "healthy", latency: "180ms", uptime: "99.9%" },
-  ];
+  const agents: any[] = Array.isArray(agentsData) ? agentsData : [];
+  const integrations: any[] = Array.isArray(integrationsData) ? integrationsData : [];
+  const errorAgents = agents.filter((a) => a.status === "error").length;
+  const byProvider: any[] = Array.isArray(analytics?.byProvider) ? analytics.byProvider : [];
+
+  const relTime = (d?: string | Date) => {
+    if (!d) return "never";
+    const diff = Date.now() - new Date(d).getTime();
+    if (diff < 0 || Number.isNaN(diff)) return "never";
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m} min ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  };
+
+  const runHealthCheck = () => {
+    qc.invalidateQueries({ queryKey: ["agents"] });
+    qc.invalidateQueries({ queryKey: ["wallet"] });
+    qc.invalidateQueries({ queryKey: ["integration-hub"] });
+  };
 
   return (
     <div className="space-y-6">
@@ -882,25 +1007,29 @@ function SystemHealthTab() {
         <GlassCard>
           <div className="text-center">
             <p className="text-xs text-muted-foreground mb-1">System Status</p>
-            <p className="text-lg font-bold text-success">Operational</p>
+            <p className={`text-lg font-bold ${errorAgents > 0 ? "text-yellow-400" : "text-success"}`}>
+              {errorAgents > 0 ? "Degraded" : "Operational"}
+            </p>
           </div>
         </GlassCard>
         <GlassCard>
           <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Active Agents</p>
-            <p className="text-lg font-bold">32 / 32</p>
+            <p className="text-xs text-muted-foreground mb-1">Registered Agents</p>
+            <p className="text-lg font-bold">{stats?.total ?? agents.length}</p>
           </div>
         </GlassCard>
         <GlassCard>
           <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">API Calls Today</p>
-            <p className="text-lg font-bold text-crimson">699</p>
+            <p className="text-xs text-muted-foreground mb-1">AI Calls Today</p>
+            <p className="text-lg font-bold text-crimson">{analytics?.today?.transactions ?? 0}</p>
           </div>
         </GlassCard>
         <GlassCard>
           <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Database</p>
-            <p className="text-lg font-bold text-success">Healthy</p>
+            <p className="text-xs text-muted-foreground mb-1">AI Billing</p>
+            <p className={`text-lg font-bold ${analytics?.dummyMode ? "text-yellow-400" : "text-success"}`}>
+              {analytics?.dummyMode ? "Dummy" : "Live"}
+            </p>
           </div>
         </GlassCard>
       </div>
@@ -908,73 +1037,82 @@ function SystemHealthTab() {
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Agent Status</h3>
-          <Button size="sm" variant="outline" className="text-xs">
-            <Activity className="h-3 w-3 mr-1" />Run Health Check
+          <Button size="sm" variant="outline" className="text-xs" onClick={runHealthCheck} disabled={agentsFetching}>
+            <Activity className={`h-3 w-3 mr-1 ${agentsFetching ? "animate-spin" : ""}`} />Refresh
           </Button>
         </div>
-        <div className="space-y-1">
-          <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] text-muted-foreground uppercase tracking-wider">
-            <span className="flex-1">Agent</span>
-            <span className="w-20">Section</span>
-            <span className="w-20 text-center">Status</span>
-            <span className="w-20 text-center">Last Run</span>
-            <span className="w-16 text-center">Calls</span>
+        {agents.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No agents registered.</p>
+        ) : (
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] text-muted-foreground uppercase tracking-wider">
+              <span className="flex-1">Agent</span>
+              <span className="w-20">Section</span>
+              <span className="w-20 text-center">Status</span>
+              <span className="w-20 text-center">Last Run</span>
+              <span className="w-16 text-center">Runs</span>
+            </div>
+            {agents.map((agent) => (
+              <div key={agent.id ?? agent.name} className="flex items-center gap-3 px-3 py-2 rounded-lg glass-surface">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className={`h-2 w-2 rounded-full ${agent.status === "error" ? "bg-crimson" : agent.status === "running" ? "bg-blue-400" : agent.status === "paused" ? "bg-muted-foreground" : "bg-success"}`} />
+                  <span className="text-xs font-medium">{agent.name}</span>
+                </div>
+                <span className="w-20 text-[10px] text-muted-foreground capitalize">{agent.domain}</span>
+                <div className="w-20 flex justify-center">
+                  <Badge variant="outline" className={`text-[9px] ${
+                    agent.status === "error" ? "text-crimson border-crimson/20" :
+                    agent.status === "running" ? "text-blue-400 border-blue-500/20" :
+                    agent.status === "paused" ? "text-muted-foreground" :
+                    "text-success border-success/20"
+                  }`}>{agent.status}</Badge>
+                </div>
+                <span className="w-20 text-center text-[10px] text-muted-foreground">{relTime(agent.lastRun)}</span>
+                <span className="w-16 text-center text-[10px]">{agent.totalRuns ?? 0}</span>
+              </div>
+            ))}
           </div>
-          {agents.map((agent) => (
-            <div key={agent.name} className="flex items-center gap-3 px-3 py-2 rounded-lg glass-surface">
-              <div className="flex items-center gap-2 flex-1">
-                <div className={`h-2 w-2 rounded-full ${agent.status === "operational" ? "bg-success" : "bg-yellow-400"}`} />
-                <span className="text-xs font-medium">{agent.name}</span>
-              </div>
-              <span className="w-20 text-[10px] text-muted-foreground">{agent.section}</span>
-              <div className="w-20 flex justify-center">
-                <Badge variant="outline" className={`text-[9px] ${
-                  agent.status === "operational" ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"
-                }`}>{agent.status}</Badge>
-              </div>
-              <span className="w-20 text-center text-[10px] text-muted-foreground">{agent.lastRun}</span>
-              <span className="w-16 text-center text-[10px]">{agent.calls}</span>
-            </div>
-          ))}
-        </div>
+        )}
       </GlassCard>
 
       <GlassCard>
-        <h3 className="text-sm font-semibold mb-3">API Health</h3>
-        <div className="space-y-2">
-          {apis.map((api) => (
-            <div key={api.name} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
-              <div className={`h-2.5 w-2.5 rounded-full ${api.status === "healthy" ? "bg-success" : "bg-yellow-400"}`} />
-              <div className="flex-1">
-                <p className="text-sm font-medium">{api.name}</p>
+        <h3 className="text-sm font-semibold mb-3">Connected Integrations</h3>
+        {integrations.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No integrations connected yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {integrations.map((int) => (
+              <div key={int.id ?? int.provider} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
+                <div className={`h-2.5 w-2.5 rounded-full ${int.isActive ? "bg-success" : "bg-muted-foreground"}`} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium capitalize">{int.provider}</p>
+                </div>
+                <div className="flex items-center gap-4 text-[10px]">
+                  {int.lastSyncAt && <span className="text-muted-foreground">Last sync: <span className="text-white">{new Date(int.lastSyncAt).toLocaleString()}</span></span>}
+                  <Badge variant="outline" className={`text-[9px] ${int.isActive ? "text-success border-success/20" : "text-muted-foreground"}`}>
+                    {int.isActive ? "active" : "inactive"}
+                  </Badge>
+                </div>
               </div>
-              <div className="flex items-center gap-4 text-[10px]">
-                <span className="text-muted-foreground">Latency: <span className="text-white">{api.latency}</span></span>
-                <span className="text-muted-foreground">Uptime: <span className="text-success">{api.uptime}</span></span>
-                <Badge variant="outline" className={`text-[9px] ${
-                  api.status === "healthy" ? "text-success border-success/20" : "text-yellow-400 border-yellow-500/20"
-                }`}>{api.status}</Badge>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </GlassCard>
 
       <GlassCard>
-        <h3 className="text-sm font-semibold mb-3">Database Stats</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "Total Records", value: "2,847" },
-            { label: "Leads", value: "342" },
-            { label: "Contacts", value: "1,205" },
-            { label: "Assets", value: "156" },
-          ].map((stat) => (
-            <div key={stat.label} className="rounded-lg glass-surface p-3 text-center">
-              <p className="text-lg font-bold">{stat.value}</p>
-              <p className="text-[10px] text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
-        </div>
+        <h3 className="text-sm font-semibold mb-3">AI Provider Spend</h3>
+        {byProvider.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No AI provider usage recorded yet.</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {byProvider.slice(0, 8).map((p: any) => (
+              <div key={p.provider ?? "unknown"} className="rounded-lg glass-surface p-3 text-center">
+                <p className="text-lg font-bold">${Number(p.spent).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{p.provider ?? "unknown"} · {p.transactions ?? 0} calls</p>
+              </div>
+            ))}
+          </div>
+        )}
       </GlassCard>
     </div>
   );

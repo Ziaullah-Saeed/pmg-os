@@ -255,6 +255,81 @@ export async function assertCreditBudget(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Async phone reveal — webhook config + pending-request correlation map
+// ---------------------------------------------------------------------------
+
+export interface ApolloWebhookConfig {
+  enabled: boolean;
+  url: string | null;
+  secret: string | null;
+}
+
+/** Apollo delivers freshly-revealed MOBILE numbers asynchronously to a webhook,
+ *  not in the enrichment response. Set `APOLLO_WEBHOOK_URL` to a PUBLICLY
+ *  reachable URL pointing at `POST /api/apollo/phone-webhook` (prod, or a tunnel
+ *  like ngrok/cloudflared in dev — Apollo cannot reach localhost). Optional
+ *  `APOLLO_WEBHOOK_SECRET` is appended as `?secret=` and verified on the way in. */
+export function getApolloWebhookConfig(): ApolloWebhookConfig {
+  const url = process.env.APOLLO_WEBHOOK_URL?.trim() || null;
+  const secret = process.env.APOLLO_WEBHOOK_SECRET?.trim() || null;
+  return { enabled: !!url, url, secret };
+}
+
+/** The exact URL handed to Apollo — appends the shared secret when configured. */
+export function buildApolloWebhookUrl(): string | null {
+  const { url, secret } = getApolloWebhookConfig();
+  if (!url) return null;
+  if (!secret) return url;
+  try {
+    const u = new URL(url);
+    u.searchParams.set("secret", secret);
+    return u.toString();
+  } catch {
+    return url; // malformed URL — send as-is rather than dropping the reveal
+  }
+}
+
+const PHONE_PENDING_ENTITY = "apollo_phone_pending";
+
+/** Persist a pending async phone reveal so the webhook can map Apollo's person
+ *  `id` (echoed from the bulk_match sync response) back to our contact. Durable
+ *  in sync_logs so it survives restarts during Apollo's multi-minute delay. */
+export async function recordPhonePending(apolloPersonId: string, contactId: number): Promise<void> {
+  if (!apolloPersonId || !Number.isFinite(contactId)) return;
+  await db.insert(syncLogsTable).values({
+    integrationId: APOLLO_PROVIDER,
+    direction: "outbound",
+    entityType: PHONE_PENDING_ENTITY,
+    status: "pending",
+    payload: { apolloPersonId, contactId },
+  });
+}
+
+/** Resolve a webhook's person `id` to the pending contact and mark it completed.
+ *  Returns the contactId (null if no pending request matches). */
+export async function resolvePhonePending(apolloPersonId: string): Promise<number | null> {
+  const [row] = await db
+    .select({
+      id: syncLogsTable.id,
+      contactId: sql<number>`(${syncLogsTable.payload} ->> 'contactId')::int`,
+    })
+    .from(syncLogsTable)
+    .where(
+      and(
+        eq(syncLogsTable.integrationId, APOLLO_PROVIDER),
+        eq(syncLogsTable.entityType, PHONE_PENDING_ENTITY),
+        eq(syncLogsTable.status, "pending"),
+        sql`${syncLogsTable.payload} ->> 'apolloPersonId' = ${apolloPersonId}`,
+      ),
+    )
+    .orderBy(sql`${syncLogsTable.createdAt} DESC`)
+    .limit(1);
+  if (!row) return null;
+  await db.update(syncLogsTable).set({ status: "completed" }).where(eq(syncLogsTable.id, row.id));
+  return Number.isFinite(row.contactId) ? row.contactId : null;
+}
+
+// ---------------------------------------------------------------------------
 // Status + connection test
 // ---------------------------------------------------------------------------
 
@@ -270,6 +345,8 @@ export interface ApolloStatus {
   creditsThisMonth: number;
   monthlyCap: number;
   creditsRemaining: number;
+  /** True when APOLLO_WEBHOOK_URL is set → async mobile reveal is available. */
+  phoneRevealEnabled: boolean;
 }
 
 /** Lightweight status — DB only, no external Apollo call. */
@@ -292,6 +369,7 @@ export async function getApolloStatus(): Promise<ApolloStatus> {
     creditsThisMonth: usage.used,
     monthlyCap: usage.cap,
     creditsRemaining: usage.remaining,
+    phoneRevealEnabled: getApolloWebhookConfig().enabled,
   };
 }
 

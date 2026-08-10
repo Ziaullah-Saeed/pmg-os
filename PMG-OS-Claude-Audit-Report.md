@@ -6,6 +6,19 @@
 
 ---
 
+> ## ✅ RESOLUTION STATUS (updated 2026-08-05)
+>
+> **This audit is now a historical record — its findings have been addressed.** The "Make Everything Real" initiative + the Apollo integration resolved every P0/P1 below:
+> - **P0 `dummyMode=true` hardcoded** → env-gated via `AI_DUMMY_MODE`.
+> - **False-success `onError` toasts (5 pages)** → purged; errors now surface honestly.
+> - **Hardcoded constants as live data** (Finance, Admin, Production, Settings wallet/system-health, Dashboard) → wired to real endpoints; residual fabricated lists relabeled/disabled honestly.
+> - **`targetAudience`↔`audience` mismatch, Dashboard field-drift** → fixed.
+> - **Fake LLM "prospecting" / no real lead source** → replaced by the real **Apollo** integration (build complete; user go-live pending — free key 403s, needs Basic+).
+>
+> Current authoritative status lives in **[CLAUDE.md](CLAUDE.md) §3**. The text below is preserved as-is for history; **file:line citations are from May 2026 and are stale.**
+
+---
+
 ## TL;DR
 
 The app currently behaves like a **demo simulator**, not a working product. In most sections, buttons return canned/static data, errors are silently swallowed and shown as success, and large parts of the UI (Finance, Admin, Production demo leads, Settings status badges) are **hardcoded constants pretending to be live data**.

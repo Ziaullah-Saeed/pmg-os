@@ -6,7 +6,4 @@
  * OpenAPI spec version: 0.2.0
  */
 
-/**
- * @nullable
- */
-export type OutreachSequenceSteps = { [key: string]: unknown } | null;
+export type OutreachSequenceStepsItem = { [key: string]: unknown };

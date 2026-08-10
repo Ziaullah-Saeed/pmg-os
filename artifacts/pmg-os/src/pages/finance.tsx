@@ -10,11 +10,16 @@ import { useToast } from "@/hooks/use-toast";
 import {
   useAiCreateInvoice,
   useAiManageContracts,
+  useFinanceOverview,
+  useWalletBalance,
+  useAiOutputs,
+  useSaveAiOutput,
+  type FinanceOverview,
 } from "@/hooks/use-api";
 import {
   Landmark, Receipt, FileText, TrendingUp, DollarSign,
-  Sparkles, CheckCircle2, Clock, AlertTriangle,
-  Plus, Send, Eye, Download, ArrowUpRight, ArrowDownRight,
+  Sparkles, Clock,
+  Plus, Send, Eye, Download,
   Bell, RefreshCw, Bot, Hand
 } from "lucide-react";
 
@@ -22,6 +27,27 @@ const tabs = [
   { id: "billing", label: "Billing & Revenue", icon: <Receipt className="h-4 w-4" /> },
   { id: "contracts", label: "Contracts & Expenses", icon: <FileText className="h-4 w-4" /> },
 ];
+
+function fmtDate(d: string | null): string {
+  if (!d) return "—";
+  const date = new Date(d);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/** Days from now to a date, or null. */
+function daysUntil(d: string | null): number | null {
+  if (!d) return null;
+  const ms = new Date(d).getTime() - Date.now();
+  return Number.isNaN(ms) ? null : Math.round(ms / (1000 * 60 * 60 * 24));
+}
+
+function renewalLabel(d: string | null): string {
+  const days = daysUntil(d);
+  if (days == null) return "—";
+  if (days <= 0) return "now";
+  if (days < 45) return `${days} days`;
+  return `${Math.round(days / 30)} months`;
+}
 
 function ModeIndicator({ isHuman, isAuto, autoText, hybridText, manualText }: { isHuman: boolean; isAuto: boolean; autoText: string; hybridText: string; manualText: string }) {
   return (
@@ -37,7 +63,8 @@ export default function Finance() {
   const [activeTab, setActiveTab] = useState("billing");
   const { isHuman, isAuto } = useAiModeContext();
   const { toast } = useToast();
-  const createInvoice = useAiCreateInvoice();
+  const { data: overview, isLoading } = useFinanceOverview();
+  const k = overview?.kpis;
 
   return (
     <div className="max-w-[1600px] mx-auto w-full space-y-6">
@@ -46,17 +73,17 @@ export default function Finance() {
         subtitle={isHuman ? "Invoicing, payments, contracts, and expenses" : "AI-powered financial management and forecasting"}
         icon={<Landmark className="h-5 w-5" />}
         actions={
-          <Button className="btn-premium text-white text-sm" onClick={() => toast({ title: "New Invoice", description: "Creating invoice — navigate to Billing tab" })}>
+          <Button className="btn-premium text-white text-sm" onClick={() => setActiveTab("billing")}>
             <Plus className="h-4 w-4 mr-2" />New Invoice
           </Button>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="MRR" value="$17,500" icon={<TrendingUp className="h-4 w-4" />} accent="crimson" />
-        <KpiCard label="Outstanding" value="$7,500" icon={<Clock className="h-4 w-4" />} accent="gold" />
-        <KpiCard label="Collected (MTD)" value="$12,500" icon={<DollarSign className="h-4 w-4" />} accent="success" />
-        <KpiCard label="Active Contracts" value={3} icon={<FileText className="h-4 w-4" />} accent="blue" />
+        <KpiCard label="MRR" value={k ? `$${k.mrr.toLocaleString()}` : (isLoading ? "…" : "$0")} icon={<TrendingUp className="h-4 w-4" />} accent="crimson" />
+        <KpiCard label="Outstanding" value={k ? `$${k.outstanding.toLocaleString()}` : (isLoading ? "…" : "$0")} icon={<Clock className="h-4 w-4" />} accent="gold" />
+        <KpiCard label="Collected (MTD)" value={k ? `$${k.collectedMtd.toLocaleString()}` : (isLoading ? "…" : "$0")} icon={<DollarSign className="h-4 w-4" />} accent="success" />
+        <KpiCard label="Active Contracts" value={k?.activeContracts ?? 0} icon={<FileText className="h-4 w-4" />} accent="blue" />
       </div>
 
       <div className="flex gap-1 border-b border-white/5">
@@ -84,34 +111,26 @@ export default function Finance() {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
         >
-          {activeTab === "billing" && <BillingTab isHuman={isHuman} isAuto={isAuto} />}
-          {activeTab === "contracts" && <ContractsTab isHuman={isHuman} isAuto={isAuto} />}
+          {activeTab === "billing" && <BillingTab isHuman={isHuman} isAuto={isAuto} overview={overview} />}
+          {activeTab === "contracts" && <ContractsTab isHuman={isHuman} isAuto={isAuto} overview={overview} />}
         </motion.div>
       </AnimatePresence>
     </div>
   );
 }
 
-function BillingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+function BillingTab({ isHuman, isAuto, overview }: { isHuman: boolean; isAuto: boolean; overview?: FinanceOverview }) {
   const createInvoice = useAiCreateInvoice();
+  const saveOutput = useSaveAiOutput();
+  const { data: invoiceDrafts } = useAiOutputs("invoice_draft", { domain: "finance", limit: 10 });
   const { toast } = useToast();
+  const { data: wallet } = useWalletBalance();
 
-  const invoices = [
-    { id: "INV-001", client: "SecureNet Solutions", amount: 5000, status: "paid", type: "recurring", date: "Mar 1", paidDate: "Mar 3", package: "Growth" },
-    { id: "INV-002", client: "CyberShield IT", amount: 2500, status: "paid", type: "recurring", date: "Mar 1", paidDate: "Mar 5", package: "Starter" },
-    { id: "INV-003", client: "DataVault MSP", amount: 10000, status: "paid", type: "recurring", date: "Mar 1", paidDate: "Mar 2", package: "Enterprise" },
-    { id: "INV-004", client: "SecureNet Solutions", amount: 1500, status: "sent", type: "one-time", date: "Mar 15", paidDate: null, package: "Add-on" },
-    { id: "INV-005", client: "Fortress Cybersecurity", amount: 5000, status: "draft", type: "recurring", date: "Mar 20", paidDate: null, package: "Growth" },
-    { id: "INV-006", client: "CyberShield IT", amount: 750, status: "overdue", type: "one-time", date: "Feb 15", paidDate: null, package: "Add-on" },
-    { id: "INV-007", client: "ShieldOps Inc", amount: 2500, status: "sent", type: "recurring", date: "Mar 22", paidDate: null, package: "Starter" },
-    { id: "INV-008", client: "DataVault MSP", amount: 2000, status: "overdue", type: "one-time", date: "Feb 28", paidDate: null, package: "Add-on" },
-  ];
-
-  const revenueByClient = [
-    { client: "DataVault MSP", revenue: 10000, cost: 2800, package: "Enterprise", months: 6 },
-    { client: "SecureNet Solutions", revenue: 5000, cost: 1500, package: "Growth", months: 3 },
-    { client: "CyberShield IT", revenue: 2500, cost: 900, package: "Starter", months: 2 },
-  ];
+  const draftList = invoiceDrafts ?? [];
+  const invoices = overview?.invoices ?? [];
+  const revenueByClient = overview?.revenueByClient ?? [];
+  const paidTotal = invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.totalAmount, 0);
+  const overdue = invoices.filter(i => i.status === "overdue");
 
   return (
     <div className="space-y-4">
@@ -123,7 +142,7 @@ function BillingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Total Revenue</p>
-          <p className="text-lg font-bold text-success">${invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0).toLocaleString()}</p>
+          <p className="text-lg font-bold text-success">${paidTotal.toLocaleString()}</p>
           <p className="text-[9px] text-muted-foreground">{invoices.filter(i => i.status === "paid").length} paid invoices</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
@@ -133,12 +152,12 @@ function BillingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Overdue</p>
-          <p className="text-lg font-bold text-red-400">${invoices.filter(i => i.status === "overdue").reduce((s, i) => s + i.amount, 0).toLocaleString()}</p>
-          <p className="text-[9px] text-muted-foreground">{invoices.filter(i => i.status === "overdue").length} overdue</p>
+          <p className="text-lg font-bold text-red-400">${overdue.reduce((s, i) => s + i.totalAmount, 0).toLocaleString()}</p>
+          <p className="text-[9px] text-muted-foreground">{overdue.length} overdue</p>
         </div>
         <div className="rounded-lg glass-surface p-3">
           <p className="text-[10px] text-muted-foreground">Wallet Balance</p>
-          <p className="text-lg font-bold text-blue-400">$355</p>
+          <p className="text-lg font-bold text-blue-400">{wallet ? `$${wallet.balance.toLocaleString()}` : "—"}</p>
           <p className="text-[9px] text-muted-foreground">AI API credits</p>
         </div>
       </div>
@@ -150,35 +169,48 @@ function BillingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
             {!isHuman && (
               <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
                 disabled={createInvoice.isPending}
-                onClick={() => createInvoice.mutate({ clientName: "All Clients", amount: 5000, services: ["Lead Generation", "Campaign Management"], dueDate: "30 days" }, {
-                  onSuccess: () => toast({ title: "Invoices Generated", description: "Monthly invoices auto-generated for all active clients" }),
-                  onError: () => toast({ title: "Invoices Generated", description: "Monthly invoices auto-generated for all active clients" }),
+                onClick={() => createInvoice.mutate({ services: ["Lead Generation", "Campaign Management"], dueDate: "30 days" }, {
+                  onSuccess: (data: any) => {
+                    const text = String(data?.invoice ?? data?.result ?? "");
+                    saveOutput.mutate({
+                      domain: "finance",
+                      kind: "invoice_draft",
+                      title: `AI Invoice Draft — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+                      summary: text.slice(0, 280),
+                      data: { content: text },
+                    });
+                    toast({ title: "Invoice Draft Generated", description: "AI draft saved to history below" });
+                  },
+                  onError: (err: any) => toast({ title: "Invoice generation failed", description: err?.message || "Request failed", variant: "destructive" }),
                 })}>
-                {createInvoice.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Auto-Generate Monthly
+                {createInvoice.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Invoice Draft
               </Button>
             )}
-            <Button size="sm" className="btn-premium text-white text-xs" onClick={() => toast({ title: "New Invoice", description: "Invoice creation dialog coming soon" })}>
+            <Button size="sm" className="btn-premium text-white text-xs" disabled title="Manual invoice creation form not built yet">
               <Plus className="h-3 w-3 mr-1" />New Invoice
             </Button>
           </div>
         </div>
+        {invoices.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No invoices yet.</p>
+        ) : (
         <div className="space-y-1.5">
           <div className="flex items-center gap-3 p-2 text-[10px] text-muted-foreground uppercase tracking-wider">
-            <span className="w-20">Invoice</span>
+            <span className="w-24">Invoice</span>
             <span className="flex-1">Client</span>
             <span className="w-16">Package</span>
             <span className="w-16 text-right">Amount</span>
             <span className="w-14 text-center">Type</span>
             <span className="w-14 text-center">Status</span>
-            <span className="w-14 text-center">Date</span>
+            <span className="w-14 text-center">Due</span>
             <span className="w-20" />
           </div>
           {invoices.map((inv) => (
             <div key={inv.id} className={`flex items-center gap-3 p-2.5 rounded-lg glass-surface ${inv.status === "overdue" ? "ring-1 ring-red-500/20" : ""}`}>
-              <span className="w-20 text-xs font-mono">{inv.id}</span>
+              <span className="w-24 text-xs font-mono">{inv.invoiceNumber}</span>
               <span className="flex-1 text-xs font-medium">{inv.client}</span>
               <Badge variant="outline" className="text-[9px] w-16 justify-center">{inv.package}</Badge>
-              <span className="w-16 text-right text-xs font-bold">${inv.amount.toLocaleString()}</span>
+              <span className="w-16 text-right text-xs font-bold">${inv.totalAmount.toLocaleString()}</span>
               <Badge variant="outline" className="text-[9px] w-14 justify-center">{inv.type}</Badge>
               <Badge variant="outline" className={`text-[9px] w-14 justify-center ${
                 inv.status === "paid" ? "text-success border-success/20" :
@@ -186,28 +218,61 @@ function BillingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
                 inv.status === "overdue" ? "text-red-400 border-red-500/20" :
                 "text-muted-foreground"
               }`}>{inv.status}</Badge>
-              <span className="w-14 text-center text-[10px] text-muted-foreground">{inv.date}</span>
+              <span className="w-14 text-center text-[10px] text-muted-foreground">{fmtDate(inv.dueDate)}</span>
               <div className="w-20 flex gap-1 justify-end">
                 {inv.status === "draft" && (
-                  <Button size="sm" variant="ghost" className="h-6 px-1.5 text-blue-400" onClick={() => toast({ title: "Invoice Sent", description: `${inv.id} sent to ${inv.client}` })}><Send className="h-3 w-3" /></Button>
+                  <Button size="sm" variant="ghost" className="h-6 px-1.5 text-blue-400" disabled title="Email integration not configured yet"><Send className="h-3 w-3" /></Button>
                 )}
                 {inv.status === "overdue" && (
-                  <Button size="sm" variant="ghost" className="h-6 px-1.5 text-red-400" onClick={() => toast({ title: "Reminder Sent", description: `Payment reminder sent to ${inv.client}` })}><Bell className="h-3 w-3" /></Button>
+                  <Button size="sm" variant="ghost" className="h-6 px-1.5 text-red-400" disabled title="Email integration not configured yet"><Bell className="h-3 w-3" /></Button>
                 )}
-                <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => toast({ title: "Invoice Preview", description: `Viewing ${inv.id}` })}><Eye className="h-3 w-3" /></Button>
-                <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => toast({ title: "Downloaded", description: `${inv.id} PDF downloaded` })}><Download className="h-3 w-3" /></Button>
+                <Button size="sm" variant="ghost" className="h-6 px-1.5" disabled title="Invoice preview not built yet"><Eye className="h-3 w-3" /></Button>
+                <Button size="sm" variant="ghost" className="h-6 px-1.5" disabled title="PDF export not built yet"><Download className="h-3 w-3" /></Button>
               </div>
             </div>
           ))}
         </div>
+        )}
+      </GlassCard>
+
+      <GlassCard>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">AI Invoice Drafts</h3>
+          <Badge variant="outline" className="text-[10px]">{draftList.length} saved</Badge>
+        </div>
+        {draftList.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No AI drafts yet{isHuman ? "." : " — click AI Invoice Draft to generate one."}</p>
+        ) : (
+          <div className="space-y-3">
+            {draftList.map((d) => (
+              <div key={d.id} className="p-3 rounded-lg glass-surface">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
+                  <FileText className="h-3.5 w-3.5 text-crimson" />
+                  <p className="text-xs font-semibold flex-1">{d.title}</p>
+                  <span className="text-[10px] text-muted-foreground">{new Date(d.createdAt).toLocaleString()}</span>
+                  <Button size="sm" variant="ghost" className="text-[10px] h-6" onClick={() => {
+                    navigator.clipboard.writeText(String(d.data?.content ?? d.summary ?? ""));
+                    toast({ title: "Copied", description: "Invoice draft copied to clipboard" });
+                  }}>
+                    <Download className="h-3 w-3 mr-0.5" />Copy
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{(d.data?.content ?? d.summary) || "—"}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </GlassCard>
 
       <GlassCard>
         <h3 className="text-sm font-semibold mb-3">Client Profitability</h3>
+        {revenueByClient.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-4 text-center">No paid revenue yet.</p>
+        ) : (
         <div className="space-y-2">
           {revenueByClient.map((client) => {
             const profit = client.revenue - client.cost;
-            const margin = Math.round((profit / client.revenue) * 100);
+            const margin = client.revenue ? Math.round((profit / client.revenue) * 100) : 0;
             return (
               <div key={client.client} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
                 <div className="flex-1">
@@ -226,58 +291,26 @@ function BillingTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) 
             );
           })}
         </div>
+        )}
       </GlassCard>
     </div>
   );
 }
 
-function ContractsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }) {
+function ContractsTab({ isHuman, isAuto, overview }: { isHuman: boolean; isAuto: boolean; overview?: FinanceOverview }) {
   const manageContracts = useAiManageContracts();
-  const createInvoice = useAiCreateInvoice();
+  const saveOutput = useSaveAiOutput();
+  const { data: contractDrafts } = useAiOutputs("contract_draft", { domain: "finance", limit: 10 });
   const { toast } = useToast();
 
-  const contracts = [
-    { client: "DataVault MSP", package: "Enterprise", value: "$10,000/mo", start: "Sep 2023", end: "Sep 2024", renewal: "6 months", status: "active" },
-    { client: "SecureNet Solutions", package: "Growth", value: "$5,000/mo", start: "Jan 2024", end: "Jan 2025", renewal: "10 months", status: "active" },
-    { client: "CyberShield IT", package: "Starter", value: "$2,500/mo", start: "Feb 2024", end: "Aug 2024", renewal: "5 months", status: "active" },
-    { client: "Fortress Cybersecurity", package: "Growth", value: "$5,000/mo", start: "Mar 2024", end: "Jun 2024", renewal: "22 days", status: "expiring" },
-  ];
-
-  const expenses = [
-    { category: "AI & API Services", items: [
-      { name: "Claude (Anthropic) — Primary AI", cost: 65 },
-      { name: "OpenAI (DALL-E 3) — Image Gen", cost: 28 },
-      { name: "OpenAI (GPT-4o) — Fallback AI", cost: 15 },
-      { name: "ElevenLabs — Voice Gen", cost: 10 },
-    ], total: 118 },
-    { category: "Marketing Tools", items: [
-      { name: "Hunter.io — Email Discovery", cost: 49 },
-      { name: "SEMrush — SEO & Keywords", cost: 120 },
-      { name: "Canva Pro — Design Templates", cost: 13 },
-    ], total: 182 },
-    { category: "Infrastructure", items: [
-      { name: "Replit — Hosting & Dev", cost: 25 },
-      { name: "GoHighLevel — CRM Platform", cost: 97 },
-      { name: "Google Workspace — Email/Docs", cost: 12 },
-      { name: "Cloudflare — CDN/DNS", cost: 0 },
-    ], total: 134 },
-    { category: "Subscriptions", items: [
-      { name: "LinkedIn Premium — Prospecting", cost: 60 },
-      { name: "Zoom — Meetings & Recordings", cost: 14 },
-      { name: "Slack — Team Communication", cost: 8 },
-    ], total: 82 },
-  ];
-
-  const totalExpenses = expenses.reduce((s, e) => s + e.total, 0);
-  const totalMRR = 17500;
-  const profit = totalMRR - totalExpenses;
-
-  const scenarios = [
-    { label: "Current trajectory — no new clients", revenue: "$210,000/yr", newMRR: "$17,500" },
-    { label: "Add 2 Starter clients ($2,500/mo each)", revenue: "$270,000/yr", newMRR: "$22,500" },
-    { label: "Add 1 Enterprise + 1 Growth client", revenue: "$390,000/yr", newMRR: "$32,500" },
-    { label: "Full capacity — 10 clients across all tiers", revenue: "$600,000/yr", newMRR: "$50,000" },
-  ];
+  const draftList = contractDrafts ?? [];
+  const contracts = overview?.contracts ?? [];
+  const expenses = overview?.expenses ?? [];
+  const scenarios = overview?.scenarios ?? [];
+  const pnl = overview?.pnl ?? { mrr: 0, totalExpenses: 0, profit: 0, margin: 0 };
+  const totalExpenses = pnl.totalExpenses;
+  const totalMRR = pnl.mrr;
+  const profit = pnl.profit;
 
   return (
     <div className="space-y-4">
@@ -292,17 +325,30 @@ function ContractsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
           {!isHuman && (
             <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
               disabled={manageContracts.isPending}
-              onClick={() => manageContracts.mutate({ clientName: "New Client", serviceType: "Lead Generation", duration: "12 months", monthlyValue: 5000 }, {
-                onSuccess: () => toast({ title: "Contract Drafted", description: "12-month Growth contract drafted for review" }),
-                onError: () => toast({ title: "Contract Drafted", description: "12-month Growth contract drafted for review" }),
+              onClick={() => manageContracts.mutate({ serviceType: "Lead Generation", duration: "12 months", monthlyValue: 5000 }, {
+                onSuccess: (data: any) => {
+                  const text = String(data?.contract ?? data?.result ?? "");
+                  saveOutput.mutate({
+                    domain: "finance",
+                    kind: "contract_draft",
+                    title: `AI Contract Draft — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+                    summary: text.slice(0, 280),
+                    data: { content: text },
+                  });
+                  toast({ title: "Contract Draft Generated", description: "AI draft saved to history below" });
+                },
+                onError: (err: any) => toast({ title: "Contract drafting failed", description: err?.message || "Request failed", variant: "destructive" }),
               })}>
-              {manageContracts.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Draft New Contract
+              {manageContracts.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Contract Draft
             </Button>
           )}
         </div>
+        {contracts.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No contracts yet.</p>
+        ) : (
         <div className="space-y-2">
           {contracts.map((contract) => (
-            <div key={contract.client} className={`flex items-center gap-3 p-3 rounded-lg glass-surface ${contract.status === "expiring" ? "ring-1 ring-red-500/20" : ""}`}>
+            <div key={contract.id} className={`flex items-center gap-3 p-3 rounded-lg glass-surface ${contract.status === "expiring" ? "ring-1 ring-red-500/20" : ""}`}>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-xs font-semibold">{contract.client}</p>
@@ -311,25 +357,55 @@ function ContractsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
                     {contract.status}
                   </Badge>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{contract.start} → {contract.end}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{fmtDate(contract.effectiveDate)} → {fmtDate(contract.expirationDate)}</p>
               </div>
-              <span className="text-xs font-bold text-gold">{contract.value}</span>
+              <span className="text-xs font-bold text-gold">${contract.monthlyValue.toLocaleString()}/mo</span>
               <div className="text-right">
                 <p className={`text-[10px] ${contract.status === "expiring" ? "text-red-400 font-semibold" : "text-muted-foreground"}`}>
-                  {contract.status === "expiring" ? "⚠ Expiring in " : "Renewal in "}{contract.renewal}
+                  {contract.status === "expiring" ? "⚠ Expiring in " : "Renewal in "}{renewalLabel(contract.renewalDate ?? contract.expirationDate)}
                 </p>
               </div>
               <div className="flex gap-1">
                 {contract.status === "expiring" && (
-                  <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2" onClick={() => toast({ title: "Renewal Initiated", description: `Renewal proposal sent to ${contract.client}` })}>
+                  <Button size="sm" className="btn-premium text-white text-[10px] h-6 px-2" disabled title="Contract renewal flow not built yet">
                     <RefreshCw className="h-2.5 w-2.5 mr-1" />Renew
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => toast({ title: "Contract Details", description: `Viewing ${contract.client} contract` })}><Eye className="h-3 w-3" /></Button>
+                <Button size="sm" variant="ghost" className="h-6 px-1.5" disabled title="Contract detail view not built yet"><Eye className="h-3 w-3" /></Button>
               </div>
             </div>
           ))}
         </div>
+        )}
+      </GlassCard>
+
+      <GlassCard>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">AI Contract Drafts</h3>
+          <Badge variant="outline" className="text-[10px]">{draftList.length} saved</Badge>
+        </div>
+        {draftList.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No AI drafts yet{isHuman ? "." : " — click AI Contract Draft to generate one."}</p>
+        ) : (
+          <div className="space-y-3">
+            {draftList.map((d) => (
+              <div key={d.id} className="p-3 rounded-lg glass-surface">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
+                  <FileText className="h-3.5 w-3.5 text-crimson" />
+                  <p className="text-xs font-semibold flex-1">{d.title}</p>
+                  <span className="text-[10px] text-muted-foreground">{new Date(d.createdAt).toLocaleString()}</span>
+                  <Button size="sm" variant="ghost" className="text-[10px] h-6" onClick={() => {
+                    navigator.clipboard.writeText(String(d.data?.content ?? d.summary ?? ""));
+                    toast({ title: "Copied", description: "Contract draft copied to clipboard" });
+                  }}>
+                    <Download className="h-3 w-3 mr-0.5" />Copy
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{(d.data?.content ?? d.summary) || "—"}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </GlassCard>
 
       <GlassCard>
@@ -368,19 +444,15 @@ function ContractsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
             <div key={scenario.label} className="flex items-center gap-3 p-3 rounded-lg glass-surface">
               <TrendingUp className="h-4 w-4 text-success flex-shrink-0" />
               <span className="text-xs flex-1">{scenario.label}</span>
-              <span className="text-xs font-bold text-success">{scenario.newMRR}</span>
-              <span className="text-xs font-bold text-gold">{scenario.revenue}</span>
+              <span className="text-xs font-bold text-success">${scenario.newMRR.toLocaleString()}</span>
+              <span className="text-xs font-bold text-gold">${scenario.annual.toLocaleString()}/yr</span>
             </div>
           ))}
         </div>
         {!isHuman && (
           <Button size="sm" variant="outline" className="mt-3 text-xs border-crimson/30 text-crimson"
-            disabled={createInvoice.isPending}
-            onClick={() => createInvoice.mutate({ clientName: "Custom Scenario", amount: 10000, services: ["Full Service Package"], dueDate: "NET 15" }, {
-              onSuccess: () => toast({ title: "Scenario Analysis Complete", description: "Custom revenue projection calculated with margin analysis" }),
-              onError: () => toast({ title: "Scenario Analysis Complete", description: "Custom revenue projection calculated with margin analysis" }),
-            })}>
-            {createInvoice.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}Run Custom Scenario
+            disabled title="Revenue forecasting engine not built yet — scenarios above are from live data">
+            <Sparkles className="h-3 w-3 mr-1" />Run Custom Scenario
           </Button>
         )}
       </GlassCard>
@@ -393,7 +465,7 @@ function ContractsTab({ isHuman, isAuto }: { isHuman: boolean; isAuto: boolean }
             <p className="text-xs text-muted-foreground">Starter $2,500/mo · Growth $5,000/mo · Enterprise $10,000/mo</p>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-success">{Math.round((profit / totalMRR) * 100)}%</p>
+            <p className="text-lg font-bold text-success">{totalMRR ? Math.round((profit / totalMRR) * 100) : 0}%</p>
             <p className="text-[9px] text-muted-foreground">Net margin</p>
           </div>
         </div>

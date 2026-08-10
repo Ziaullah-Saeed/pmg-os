@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db, communicationsTable, contactsTable, companiesTable } from "@workspace/db";
 import { parseDate } from "../lib/parse-date";
 import {
@@ -34,7 +34,7 @@ router.get("/communications", async (req, res): Promise<void> => {
       subject: communicationsTable.subject,
       summary: communicationsTable.summary,
       contactId: communicationsTable.contactId,
-      contactName: contactsTable.firstName,
+      contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
       companyId: communicationsTable.companyId,
       companyName: companiesTable.name,
       opportunityId: communicationsTable.opportunityId,
@@ -91,7 +91,7 @@ router.get("/communications/:id", async (req, res): Promise<void> => {
       subject: communicationsTable.subject,
       summary: communicationsTable.summary,
       contactId: communicationsTable.contactId,
-      contactName: contactsTable.firstName,
+      contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
       companyId: communicationsTable.companyId,
       companyName: companiesTable.name,
       opportunityId: communicationsTable.opportunityId,

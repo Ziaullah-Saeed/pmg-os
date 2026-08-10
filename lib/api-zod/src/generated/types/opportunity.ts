@@ -18,6 +18,10 @@ export interface Opportunity {
   /** @nullable */
   contactName?: string | null;
   /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
+  /** @nullable */
   leadId?: number | null;
   stage: string;
   value: number;

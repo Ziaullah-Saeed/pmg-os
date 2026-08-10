@@ -12,7 +12,7 @@
 - **My role (the user):** Sole full-stack developer + founder. Treat me as the architect — I know the codebase. Accelerate, don't lecture.
 - **Sections (6 + Settings):** Outreach · CRM · Marketing · Production · Admin · Finance · Settings.
 - **Agents:** 32 PhD-level agents, all on `gpt-4o-mini` via Replit AI Integrations proxy, governed by tri-mode (AI Autonomous / Hybrid / Human Controlled).
-- **Pending work:** Legal & Compliance agent · Video Guide System · final polish.
+- **Status (2026-08-05):** "Make Everything Real" COMPLETE — all sections + Settings real; Apollo build done; Legal & Compliance + AI video-guide walkthroughs wired. Remaining: real guide video, optional integration wiring, polish. Detail in §3.
 
 ---
 
@@ -46,18 +46,13 @@ Workspace globs: `artifacts/*` · `lib/*` · `lib/integrations/*` · `scripts`. 
 
 ## SECTION 3 — Current State
 
-- **Sessions 1–9 COMPLETE.** Outreach (6 tabs), CRM (5 tabs), Marketing (5 tabs), Production (9 tabs), Admin (4 tabs), Finance (2 tabs), Dashboard, Settings (6 tabs) — all built with realistic cybersecurity-themed dummy data.
-- Session 5 wired all 32 AI endpoints to `gpt-4o-mini`; Session 8 added `createdByMode` on leads/opportunities and the `ModeBadge` component (red=AI Auto, blue=Hybrid, gold=Human).
-- **NOT built:** Legal & Compliance agent · Video Guide System · final polish pass.
-- **Known issues** (from [PMG-OS-Claude-Audit-Report.md](PMG-OS-Claude-Audit-Report.md), May 2026 — re-verify before acting):
-  - `dummyMode = true` hardcoded in `testing-service.ts:6` AND `wallet-service.ts:11` → all AI calls return canned text, wallet never charges.
-  - "False success" toast anti-pattern across 5 pages (marketing/production/admin/finance/dashboard): `onError` toasts success and injects fabricated fallback data — user can't tell when something failed.
-  - Hardcoded constants posing as live data: Finance invoices/contracts/P&L, Admin operations/briefing, Production demo leads, Settings status badges, dashboard recent leads.
-  - `targetAudience` vs `audience` payload mismatch in marketing ads → ad targeting silently dropped.
-  - Dashboard recent-leads reads `firstName/lastName` but API returns `contactName/companyName`.
-  - AI-mode vocabulary drift: `ai_autonomous` vs `ai_auto` with a translation shim in `use-ai-mode-context.tsx`.
-  - No real lead-source integration (Apollo / Hunter / Clearbit / ZoomInfo). "Generate Leads" just prompts the LLM. CSV+webhook ingestion exists in `integration-hub-service.ts` but is not wired to UI.
+- **Sessions 1–9 + "Make Everything Real" COMPLETE (2026-08-05).** All sections (Outreach · CRM · Marketing · Production · Admin · Finance · Dashboard) + Settings (10 tabs) show **real data + honest empty/disabled states**; both packages build green. All 32 AI endpoints on `gpt-4o-mini`; leads/opportunities stamp `createdByMode` + render `ModeBadge` (red=Auto, blue=Hybrid, gold=Human).
+- **Apollo lead-gen COMPLETE** (phases 1–5; replaces the old fake LLM "prospecting"). Only **user go-live** remains: DB holds a free-plan key that 403s on search/enrich — upgrade to Basic+ (~$59/mo), paste key in Settings. See [[apollo-integration]].
+- **Legal & Compliance UI + Video-Guide AI walkthroughs BUILT.** Settings → Legal & Compliance tab is real (Compliance Checker `/legal/check-compliance`, Opt-Out CRUD `/opt-out`, Channel Health `/channel-health`); contract tools left to Finance. `VideoGuideOverlay` ([sidebar-layout.tsx](artifacts/pmg-os/src/components/layout/sidebar-layout.tsx)) has an "AI Guide" toggle → `/video/get-guide`. Detail in §8 + [[make-everything-real-handoff]].
+- **NOT built:** actual guide **video** generation (needs external video/voice APIs — Runway/ElevenLabs). Other integrations (Hunter, HubSpot, GHL, Stripe, Zoom) honestly labeled "planned / not connected"; CSV+webhook ingestion exists in `integration-hub-service.ts` but is not surfaced in UI.
+- **Tech debt (non-blocking):** `ai_autonomous` ↔ `ai_auto` shim in `use-ai-mode-context.tsx` (use `isAuto`/`isHybrid`/`isHuman`).
 - **Demo creds:** `shershah_nawabi@pmggroup-llc.com` / `PMGAdmin2024!`
+- Fixed issues (env-gated dummyMode, purged false-success toasts, real wallet/health/integration data, `audience` payload, dashboard field drift, Apollo lead source): see [PMG-OS-Claude-Audit-Report.md](PMG-OS-Claude-Audit-Report.md) + §8.
 
 ---
 
@@ -104,9 +99,24 @@ pnpm --filter @workspace/db push
 
 # API codegen (after editing openapi.yaml)
 pnpm --filter @workspace/api-spec codegen
+```
 
-# Local Postgres (maps to :5433)
-docker compose up -d
+**Run the WHOLE app in Docker (one command)** — Postgres + schema push + API + web, no local Node/pnpm needed:
+
+```bash
+./run.ps1                 # Windows: build + start, opens http://localhost:5173
+./run.sh                  # macOS/Linux/Git-Bash equivalent
+docker compose up -d --build   # the raw command run.ps1/run.sh wrap
+# subcommands: down | logs | restart | rebuild | status
+```
+
+- **App → http://localhost:5173** (nginx serves the Vite build + proxies `/api` → api). Login with the demo creds below (auto-seeded on boot by `seedDefaultAdmin`).
+- **Zero-config:** boots with no `.env`; **AI runs in dummy mode** (`AI_DUMMY_MODE=true`) so there's no key/cost. For real AI, copy `.env.docker.example` → `.env` (next to compose), set `AI_DUMMY_MODE=false` + a real key.
+- Files: [Dockerfile](Dockerfile) (`base`/`build-web`/`web`/`api`) · [docker-compose.yml](docker-compose.yml) · [nginx.conf](artifacts/pmg-os/nginx.conf) · [.dockerignore](.dockerignore). Gotchas (full rationale in §8): image strips win32-only native-binary `overrides` from its copy of `pnpm-workspace.yaml` (committed file untouched) so pnpm installs linux binaries; `api` stage keeps `node_modules` (lazy `import()` deps); `migrate` runs `drizzle-kit push` with stdin closed (safe on fresh + populated DBs); reuses `pgdata` volume.
+
+```bash
+# DB-only (legacy dev workflow — run api/web natively with pnpm):
+docker compose up -d postgres
 ```
 
 **API server env** ([artifacts/api-server/.env](artifacts/api-server/.env)):
@@ -189,9 +199,23 @@ Open only to extract a specific snippet: `package-management`, `ai-integrations-
 
 *Append one-liners here. Format: `YYYY-MM-DD — decision — why`.*
 
-- 2026-05-30 — Adopted this CLAUDE.md as the persistent session bootstrap; replaced minimal earlier version — so Claude is context-aware without re-reading replit.md every session.
-- 2026-05-30 — Adopted the `.claude/` agentic architecture (6 custom subagents, anti-pattern catalog, tri-mode skill, tiered skill index) and tracked it in git — so the architecture is portable and self-documenting.
-- 2026-05-30 — Deferred adopting a test runner — "always verify" gate is `pnpm typecheck` + `pnpm build` until further notice.
+- 2026-05-30 — Adopted this CLAUDE.md as persistent session bootstrap — context-aware without re-reading replit.md each session.
+- 2026-05-30 — Adopted `.claude/` agentic architecture (6 subagents, anti-pattern catalog, tri-mode skill, tiered skill index), tracked in git — portable + self-documenting.
+- 2026-05-30 — Deferred a test runner — verify gate is `pnpm typecheck` + `pnpm build`.
+- 2026-08-05 — "Make Everything Real" COMPLETE — every section + Settings wired to real data/honest states; false-success purged; Finance AI drafts persist to `ai_generated_outputs`; unpersistable controls disabled honestly.
+- 2026-08-05 — Built real Legal & Compliance UI (Settings) — Compliance Checker (`/legal/check-compliance`, persisted), Opt-Out CRUD (`/opt-out`), Channel Health (`/channel-health`); contract tools left to Finance.
+- 2026-08-05 — Wired Video-Guide AI walkthroughs — "AI Guide" toggle in `VideoGuideOverlay` → `/video/get-guide`; actual video generation deferred.
+- 2026-08-05 — Added Docker packaging — multi-stage Dockerfile + full-stack compose (postgres+migrate+api+web) + `run.ps1`/`run.sh`. Strips win32 `overrides` for linux build; `api` keeps `node_modules`; migrate push with stdin closed; reuses `pgdata`; AI defaults to dummy mode.
+- 2026-08-07 — Fixed Apollo email reveal — `reveal_personal_emails` must be a QUERY param on `bulk_match` (was in the body → ignored → null emails); guard the `email_not_unlocked@…` sentinel. Added opt-in phone capture (sync-only; no `reveal_phone_number` sent — Apollo delivers new mobiles webhook-only) + batch "Reveal all" with an honest "0 emails available" message. See [[apollo-integration]] §2.
+- 2026-08-08 — Built Apollo async MOBILE reveal — sends `reveal_phone_number=true&webhook_url` when `APOLLO_WEBHOOK_URL` set; pending map in `sync_logs` (keyed by bulk_match sync `id`); public receiver `POST /api/apollo/phone-webhook` (before `requireAuth`, `?secret=` guard) writes `contacts.phone` + logs the 8-cr spend. No schema change. User must point `APOLLO_WEBHOOK_URL` at a PUBLIC URL (ngrok/prod) — Apollo can't reach localhost. See [[apollo-integration]] §2.
+- 2026-08-08 — Fixed Apollo email reveal matching — `enrichContacts` now matches by the exact Apollo person `id` (stored in `contacts.externalCrmId` at import; guarded by 24-hex regex, falls back to name/org) instead of name+org+domain. Root cause: Apollo's `api_search` preview REDACTS `last_name` + org `domain`, so name-matching at enrich time returned null matches → 0 emails. Verified live: id-match reveals verified emails (1 cr); name-match returns null. Separate non-bug: Afghan-bank prospects return `email_status:"unavailable"` (Apollo has no data — not a plan issue). See [[apollo-integration]] §2.
+- 2026-08-08 — Made Apollo enrich idempotent + stopped double-charging — `enrichContacts` now SKIPS contacts that already have the requested email/phone (no bulk_match call, 0 credits), NEVER overwrites an existing email with a null reveal, and only bills for genuinely-new emails. Directly addresses "don't re-pay for data we already have." See [[apollo-integration]] §2.
+- 2026-08-08 — Surfaced contact email/phone to later stages (CRM) — revealed emails WERE persisted on `contacts.email` but the leads API never selected them, so CRM showed blank. Added `contactEmail`/`contactPhone` to the OpenAPI `Lead` schema → codegen → both `leads.ts` selects → rendered on the CRM lead card. Verified live: `GET /api/leads` returns real emails. Contract change (spec+regen), not a hand-edit of generated files.
+- 2026-08-08 — Prospect Finder fixes (Outreach → Prospect Finder). (1) **"Enriched" filter always empty** — the status dropdown compared `lead.status === "enriched"`, a transient state the AI pipeline instantly advances to `scored` (and Apollo reveal updates the *contact*, not the lead). Rebuilt the funnel filter on real data: `enriched`=has `contactEmail`, `scored`=has `fitScore`/`confidenceScore`, `new`=neither. (2) **Delete prospects** — added per-card checkboxes + "Select all" + a bulk "Delete N" bar + a Delete button in the lead dialog, all behind a confirmation Dialog; wired to existing `DELETE /api/leads/:id` (safe: `opportunities.leadId` is `onDelete:set null`, `sequence_enrollments.leadId` has no FK). (3) **Empty sequence dropdown** — added a guided "New Sequence" dialog (explains what a sequence is; builds ≥1 step; creates it **active** so `enrollContact` accepts it) via `useCreateOutreachSequence`, plus a "Create a sequence" affordance when none exist.
+- 2026-08-08 — `OutreachSequence.steps` contract: object → **array** (spec `CreateOutreachSequenceBody`/`UpdateOutreachSequenceBody`/`OutreachSequence` `steps: type array/items object`) + codegen. Root cause: the Zod body validated `steps` as `zod.object().passthrough()`, which **rejects arrays**, so any POST of a real step array (what `sequence-engine` reads) 400'd. Contract change (spec+regen), not a generated-file hand-edit.
+- 2026-08-08 — **Pinned orval to exact `8.5.3`** (was `^8.5.2` → resolved to 8.12.3 while committed codegen/header was 8.5.3). The mismatch reformatted 140 generated files AND made orval 8.12's split `types/*Body` interfaces collide with the same-named Zod consts. Pinning restores the version that produced the committed output → codegen diff stays minimal.
+- 2026-08-08 — **Fixed pre-existing `pnpm typecheck` breakage** in `lib/api-zod/src/index.ts`: dropped `export * from "./generated/types"` (kept `./generated/api`). The two barrels re-export the same `Create*Body`/`Update*Body` names (Zod value vs TS interface) → TS2308 ambiguous-star error that was red at HEAD. Verified all 161 `@workspace/api-zod` imports repo-wide resolve to Zod values in `api.ts`; the `types/` model interfaces are consumed via `@workspace/api-client-react`, not here. NOTE: apps still have unrelated pre-existing typecheck errors (api-server 78, pmg-os 1 — websocket/slack/scheduler/wallet event-type drift), untouched here.
+- 2026-08-08 — Investor-demo hardening of Outreach + CRM (full sweep). (1) **Last name**: Apollo `api_search` redacts `last_name`, so imported contacts had empty last names everywhere downstream; `enrichContacts` now backfills first/last name from the `bulk_match` person echo (only when ours is empty) — fixes CRM/pipeline/lead cards after reveal. (2) **Reveal spinner**: per-row `revealingId`/`revealingAll` state replaces the shared `apolloEnrich.isPending` so only the clicked row spins. (3) **CRM deal contact**: `autoCreateDealForLead` now inherits the lead's `companyId`/`contactId`; opportunities+communications routes select full `contactName` (was `firstName` only) and Opportunity gained `contactEmail`/`contactPhone` (OpenAPI+codegen) → shown in `DealDetailPanel`. (4) Purged fakes: removed the `setTimeout` fake-Enrich (now real Apollo enrich), the Compose fabricated-draft-on-error, lead-dialog `email`/`phone`→`contactEmail`/`contactPhone` drift. (5) Rewired the three fabricated tabs to real data + honest empty states: **Social** unified inbox → `/communications` (inbound) with real channel-connection status from integrations + real reply persistence; **Follow-ups** → `/tasks`; **Analytics** → live comm/lead/task metrics (best-practices relabeled "General guidance"). Both packages build green. Residual (left, calls real AI endpoint): StrategyTab hardcoded fallback when AI returns empty.
 
 ---
 

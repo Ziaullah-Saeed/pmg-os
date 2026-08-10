@@ -59,8 +59,10 @@ router.post("/apollo/import", async (req, res): Promise<void> => {
   }
 });
 
-// Reveal emails for already-imported contacts. Live = Apollo bulk_match (spends
-// credits ~1/contact); fixture = labeled sample emails (no credits).
+// Reveal contact data for already-imported contacts. Live = Apollo bulk_match
+// (spends credits ~1/email); fixture = labeled sample data (no credits). Pass
+// `revealPhone: true` to also capture any phone Apollo returns synchronously
+// (freshly-revealed mobiles are webhook-only and not consumed here).
 router.post("/apollo/enrich", async (req, res): Promise<void> => {
   const contactIds = Array.isArray(req.body?.contactIds)
     ? (req.body.contactIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
@@ -69,8 +71,9 @@ router.post("/apollo/enrich", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Provide a non-empty `contactIds` array to enrich.", code: "invalid_request" });
     return;
   }
+  const revealPhone = req.body?.revealPhone === true;
   try {
-    res.json(await enrichContacts(contactIds));
+    res.json(await enrichContacts(contactIds, { revealPhone }));
   } catch (err: any) {
     res.status(apolloErrorStatus(err)).json({ error: err?.message ?? "Apollo enrich failed", code: err?.code ?? "apollo_error" });
   }

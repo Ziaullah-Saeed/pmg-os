@@ -30,6 +30,7 @@ import {
   ArrowLeft,
   Sparkles,
   Info,
+  RefreshCw,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ import { WalletDisplay } from "@/components/wallet-display";
 import { GlobalSearch } from "@/components/global-search";
 import { useAuth } from "@/hooks/use-auth";
 import { useAiModeContext } from "@/hooks/use-ai-mode-context";
+import { useAiGetGuide } from "@/hooks/use-api";
 import { ModeIndicatorBanner } from "@/components/mode-aware-wrapper";
 
 interface GuideStep {
@@ -182,9 +184,9 @@ function Logo({ collapsed }: { collapsed?: boolean }) {
             <div className="font-bold text-base tracking-tight whitespace-nowrap">
               PMG <span className="text-crimson">OS</span>
             </div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-widest -mt-0.5 whitespace-nowrap">
+            {/* <div className="text-[10px] text-muted-foreground uppercase tracking-widest -mt-0.5 whitespace-nowrap">
               Business Operating System
-            </div>
+            </div> */}
           </motion.div>
         )}
       </AnimatePresence>
@@ -402,13 +404,24 @@ function StepAnimation({ stepIndex, heading, mockup }: { stepIndex: number; head
 
 function VideoGuideOverlay({
   guide,
+  section,
   onClose,
 }: {
   guide: { title: string; steps: GuideStep[] };
+  section: string;
   onClose: () => void;
 }) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [view, setView] = useState<"walkthrough" | "ai">("walkthrough");
   const { currentMode } = useAiModeContext();
+  const getGuide = useAiGetGuide();
+  const aiGuideText = String(getGuide.data?.guide ?? getGuide.data?.result ?? "");
+
+  const requestAiGuide = () => getGuide.mutate({ section });
+  const showAiGuide = () => {
+    setView("ai");
+    if (!getGuide.data && !getGuide.isPending) requestAiGuide();
+  };
 
   const step = guide.steps[currentStep];
   const StepIcon = stepIcons[step?.heading] || HelpCircle;
@@ -451,10 +464,22 @@ function VideoGuideOverlay({
             </div>
             <div>
               <h2 className="text-sm font-semibold">{guide.title}</h2>
-              <p className="text-[10px] text-muted-foreground">Step {currentStep + 1} of {guide.steps.length}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {view === "walkthrough" ? `Step ${currentStep + 1} of ${guide.steps.length}` : "AI-generated guide"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0.5 rounded-lg border border-white/10 p-0.5">
+              <button onClick={() => setView("walkthrough")}
+                className={cn("text-[10px] px-2 py-1 rounded-md transition-colors", view === "walkthrough" ? "bg-crimson/20 text-crimson" : "text-muted-foreground hover:text-white")}>
+                Walkthrough
+              </button>
+              <button onClick={showAiGuide}
+                className={cn("text-[10px] px-2 py-1 rounded-md transition-colors flex items-center gap-1", view === "ai" ? "bg-crimson/20 text-crimson" : "text-muted-foreground hover:text-white")}>
+                <Sparkles className="h-2.5 w-2.5" />AI Guide
+              </button>
+            </div>
             <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 flex items-center gap-1", modeBorderClass, modeTextClass)}>
               <ModeIcon className="h-2.5 w-2.5" />
               {modeLabel}
@@ -465,19 +490,51 @@ function VideoGuideOverlay({
           </div>
         </div>
 
-        <div className="flex gap-1 px-5 pt-3">
-          {guide.steps.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentStep(i)}
-              className={cn(
-                "flex-1 h-1 rounded-full transition-all",
-                i === currentStep ? "bg-crimson" : i < currentStep ? "bg-crimson/40" : "bg-white/10"
-              )}
-            />
-          ))}
-        </div>
+        {view === "walkthrough" && (
+          <div className="flex gap-1 px-5 pt-3">
+            {guide.steps.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentStep(i)}
+                className={cn(
+                  "flex-1 h-1 rounded-full transition-all",
+                  i === currentStep ? "bg-crimson" : i < currentStep ? "bg-crimson/40" : "bg-white/10"
+                )}
+              />
+            ))}
+          </div>
+        )}
 
+        {view === "ai" ? (
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            {getGuide.isPending ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <RefreshCw className="h-6 w-6 text-crimson animate-spin mb-3" />
+                <p className="text-xs text-muted-foreground">Generating an up-to-date AI guide for this section…</p>
+              </div>
+            ) : getGuide.isError ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Info className="h-6 w-6 text-red-400 mb-3" />
+                <p className="text-xs text-muted-foreground mb-3">{(getGuide.error as any)?.message || "Could not generate the guide."}</p>
+                <Button size="sm" onClick={requestAiGuide} className="text-xs h-8 btn-premium text-white">
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" />Try again
+                </Button>
+              </div>
+            ) : aiGuideText ? (
+              <div className="rounded-xl bg-black/30 border border-white/5 p-4">
+                <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{aiGuideText}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Sparkles className="h-6 w-6 text-crimson mb-3" />
+                <p className="text-xs text-muted-foreground mb-3">Generate a fresh, AI-written walkthrough for this section.</p>
+                <Button size="sm" onClick={requestAiGuide} className="text-xs h-8 btn-premium text-white">
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />Generate AI Guide
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <AnimatePresence mode="wait">
             <motion.div
@@ -519,7 +576,9 @@ function VideoGuideOverlay({
             </motion.div>
           </AnimatePresence>
         </div>
+        )}
 
+        {view === "walkthrough" ? (
         <div className="flex items-center justify-between px-5 py-3 border-t border-white/10 bg-white/[0.02]">
           <Button
             variant="outline"
@@ -564,6 +623,16 @@ function VideoGuideOverlay({
             </Button>
           )}
         </div>
+        ) : (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-white/10 bg-white/[0.02]">
+            <Button variant="outline" size="sm" onClick={requestAiGuide} disabled={getGuide.isPending} className="text-xs h-8 px-3 border-white/10">
+              <RefreshCw className={cn("h-3.5 w-3.5 mr-1", getGuide.isPending && "animate-spin")} />Regenerate
+            </Button>
+            <Button size="sm" onClick={onClose} className="text-xs h-8 px-3 btn-premium text-white">
+              Done
+            </Button>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );
@@ -808,6 +877,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         {activeGuide && guideContent[activeGuide] && (
           <VideoGuideOverlay
             guide={guideContent[activeGuide]}
+            section={activeGuide.replace(/^\//, "") || "dashboard"}
             onClose={() => setActiveGuide(null)}
           />
         )}

@@ -326,6 +326,8 @@ export const ListLeadsResponseItem = zod.object({
   companyName: zod.string().nullish(),
   contactId: zod.number().nullish(),
   contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  contactPhone: zod.string().nullish(),
   source: zod.string(),
   status: zod.string(),
   priority: zod.string(),
@@ -338,7 +340,6 @@ export const ListLeadsResponseItem = zod.object({
   notes: zod.string().nullish(),
   channelSource: zod.string().nullish(),
   qualifiedAt: zod.coerce.date().nullish(),
-  createdByMode: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -376,6 +377,8 @@ export const GetLeadResponse = zod.object({
   companyName: zod.string().nullish(),
   contactId: zod.number().nullish(),
   contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  contactPhone: zod.string().nullish(),
   source: zod.string(),
   status: zod.string(),
   priority: zod.string(),
@@ -421,6 +424,8 @@ export const UpdateLeadResponse = zod.object({
   companyName: zod.string().nullish(),
   contactId: zod.number().nullish(),
   contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  contactPhone: zod.string().nullish(),
   source: zod.string(),
   status: zod.string(),
   priority: zod.string(),
@@ -460,6 +465,8 @@ export const ListOpportunitiesResponseItem = zod.object({
   companyName: zod.string().nullish(),
   contactId: zod.number().nullish(),
   contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  contactPhone: zod.string().nullish(),
   leadId: zod.number().nullish(),
   stage: zod.string(),
   value: zod.number(),
@@ -473,7 +480,6 @@ export const ListOpportunitiesResponseItem = zod.object({
   wonAt: zod.coerce.date().nullish(),
   lostAt: zod.coerce.date().nullish(),
   lostReason: zod.string().nullish(),
-  createdByMode: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -514,6 +520,8 @@ export const GetOpportunityResponse = zod.object({
   companyName: zod.string().nullish(),
   contactId: zod.number().nullish(),
   contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  contactPhone: zod.string().nullish(),
   leadId: zod.number().nullish(),
   stage: zod.string(),
   value: zod.number(),
@@ -562,6 +570,8 @@ export const UpdateOpportunityResponse = zod.object({
   companyName: zod.string().nullish(),
   contactId: zod.number().nullish(),
   contactName: zod.string().nullish(),
+  contactEmail: zod.string().nullish(),
+  contactPhone: zod.string().nullish(),
   leadId: zod.number().nullish(),
   stage: zod.string(),
   value: zod.number(),
@@ -1064,20 +1074,6 @@ export const GetCommunicationResponse = zod.object({
 /**
  * @summary List users
  */
-export const GovernancePermissionsSchema = zod.object({
-  domainAccess: zod.array(zod.string()),
-  actionPermissions: zod.record(zod.string(), zod.array(zod.string())),
-  approvalRights: zod.array(zod.string()),
-  publishingRights: zod.array(zod.string()),
-  financialVisibility: zod.array(zod.string()),
-  crmVisibility: zod.array(zod.string()),
-  archiveVisibility: zod.array(zod.string()),
-  integrationAccess: zod.array(zod.string()),
-  aiModePrivileges: zod.string(),
-  walletPermissions: zod.array(zod.string()),
-  manualIntegrationPermissions: zod.array(zod.string()),
-});
-
 export const ListUsersQueryParams = zod.object({
   role: zod.coerce.string().optional(),
   department: zod.coerce.string().optional(),
@@ -1095,19 +1091,18 @@ export const ListUsersResponseItem = zod.object({
   department: zod.string().nullish(),
   title: zod.string().nullish(),
   isActive: zod.boolean(),
-  governancePermissions: GovernancePermissionsSchema.nullish(),
-  deactivatedAt: zod.coerce.date().nullish(),
-  deactivatedBy: zod.number().nullish(),
   lastLoginAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
 
+/**
+ * @summary Create a user
+ */
 export const CreateUserBody = zod.object({
   email: zod.string(),
   name: zod.string(),
-  password: zod.string(),
   role: zod.string().optional(),
   avatarUrl: zod.string().optional(),
   department: zod.string().optional(),
@@ -1115,6 +1110,9 @@ export const CreateUserBody = zod.object({
   isActive: zod.boolean().optional(),
 });
 
+/**
+ * @summary Get a user
+ */
 export const GetUserParams = zod.object({
   id: zod.coerce.number(),
 });
@@ -1128,14 +1126,14 @@ export const GetUserResponse = zod.object({
   department: zod.string().nullish(),
   title: zod.string().nullish(),
   isActive: zod.boolean(),
-  governancePermissions: GovernancePermissionsSchema.nullish(),
-  deactivatedAt: zod.coerce.date().nullish(),
-  deactivatedBy: zod.number().nullish(),
   lastLoginAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
 
+/**
+ * @summary Update a user
+ */
 export const UpdateUserParams = zod.object({
   id: zod.coerce.number(),
 });
@@ -1148,7 +1146,6 @@ export const UpdateUserBody = zod.object({
   department: zod.string().optional(),
   title: zod.string().optional(),
   isActive: zod.boolean().optional(),
-  governancePermissions: GovernancePermissionsSchema.optional(),
 });
 
 export const UpdateUserResponse = zod.object({
@@ -1160,28 +1157,10 @@ export const UpdateUserResponse = zod.object({
   department: zod.string().nullish(),
   title: zod.string().nullish(),
   isActive: zod.boolean(),
-  governancePermissions: GovernancePermissionsSchema.nullish(),
-  deactivatedAt: zod.coerce.date().nullish(),
-  deactivatedBy: zod.number().nullish(),
   lastLoginAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
-
-export const UserAuditLogEntry = zod.object({
-  id: zod.number(),
-  userId: zod.number(),
-  action: zod.string(),
-  performedBy: zod.number(),
-  performedByName: zod.string().nullish(),
-  targetField: zod.string().nullish(),
-  oldValue: zod.string().nullish(),
-  newValue: zod.string().nullish(),
-  details: zod.record(zod.string(), zod.any()).nullish(),
-  ipAddress: zod.string().nullish(),
-  createdAt: zod.coerce.date(),
-});
-export const UserAuditLogResponse = zod.array(UserAuditLogEntry);
 
 /**
  * @summary List approvals
@@ -2305,7 +2284,7 @@ export const ListOutreachSequencesResponseItem = zod.object({
   type: zod.string(),
   status: zod.string(),
   channel: zod.string(),
-  steps: zod.object({}).passthrough().nullish(),
+  steps: zod.array(zod.object({}).passthrough()).nullish(),
   targetAudience: zod.string().nullish(),
   totalEnrolled: zod.number(),
   totalResponded: zod.number(),
@@ -2329,7 +2308,7 @@ export const CreateOutreachSequenceBody = zod.object({
   type: zod.string(),
   status: zod.string().optional(),
   channel: zod.string(),
-  steps: zod.object({}).passthrough().optional(),
+  steps: zod.array(zod.object({}).passthrough()).optional(),
   targetAudience: zod.string().optional(),
   totalEnrolled: zod.number().optional(),
   totalResponded: zod.number().optional(),
@@ -2353,7 +2332,7 @@ export const GetOutreachSequenceResponse = zod.object({
   type: zod.string(),
   status: zod.string(),
   channel: zod.string(),
-  steps: zod.object({}).passthrough().nullish(),
+  steps: zod.array(zod.object({}).passthrough()).nullish(),
   targetAudience: zod.string().nullish(),
   totalEnrolled: zod.number(),
   totalResponded: zod.number(),
@@ -2378,7 +2357,7 @@ export const UpdateOutreachSequenceBody = zod.object({
   type: zod.string().optional(),
   status: zod.string().optional(),
   channel: zod.string().optional(),
-  steps: zod.object({}).passthrough().optional(),
+  steps: zod.array(zod.object({}).passthrough()).optional(),
   targetAudience: zod.string().optional(),
   totalEnrolled: zod.number().optional(),
   totalResponded: zod.number().optional(),
@@ -2395,7 +2374,7 @@ export const UpdateOutreachSequenceResponse = zod.object({
   type: zod.string(),
   status: zod.string(),
   channel: zod.string(),
-  steps: zod.object({}).passthrough().nullish(),
+  steps: zod.array(zod.object({}).passthrough()).nullish(),
   targetAudience: zod.string().nullish(),
   totalEnrolled: zod.number(),
   totalResponded: zod.number(),

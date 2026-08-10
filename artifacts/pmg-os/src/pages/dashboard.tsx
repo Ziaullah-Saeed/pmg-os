@@ -1,4 +1,6 @@
-import { useListLeads, useListOpportunities, useListCompanies, useListTasks } from "@workspace/api-client-react";
+import { useMemo } from "react";
+import { useListLeads, useListOpportunities, useListCompanies, useListContacts, useListTasks } from "@workspace/api-client-react";
+import { useWalletBalance } from "@/hooks/use-api";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -17,12 +19,17 @@ export default function Dashboard() {
   const { data: leads } = useListLeads();
   const { data: opportunities } = useListOpportunities();
   const { data: tasks } = useListTasks();
+  const { data: companies } = useListCompanies();
+  const { data: contacts } = useListContacts();
+  const { data: wallet } = useWalletBalance();
   const { currentMode } = useAiModeContext();
   const [, setLocation] = useLocation();
 
   const leadList = (leads ?? []) as any[];
   const oppList = (opportunities ?? []) as any[];
   const taskList = (tasks ?? []) as any[];
+  const companyMap = useMemo(() => new Map(((companies ?? []) as any[]).map((c) => [c.id, c.name])), [companies]);
+  const contactMap = useMemo(() => new Map(((contacts ?? []) as any[]).map((c) => [c.id, `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim()])), [contacts]);
 
   const qualified = leadList.filter((l: any) => l.status === "qualified").length;
   const activeDeals = oppList.filter((o: any) => o.stage !== "closed_won" && o.stage !== "closed_lost").length;
@@ -68,8 +75,8 @@ export default function Dashboard() {
     },
     {
       label: "Wallet",
-      status: "active",
-      detail: "Credits available",
+      status: (wallet?.balance ?? 0) > 0 ? "active" : "standby",
+      detail: wallet ? `$${wallet.balance.toLocaleString()} available` : "Loading…",
       icon: DollarSign,
     },
     {
@@ -295,8 +302,8 @@ export default function Dashboard() {
                     onClick={() => setLocation("/outreach")}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{lead.firstName ?? lead.first_name ?? ""} {lead.lastName ?? lead.last_name ?? ""}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{lead.company ?? lead.companyName ?? ""}</p>
+                      <p className="text-xs font-medium truncate">{contactMap.get(lead.contactId) || "Unknown contact"}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{companyMap.get(lead.companyId) || ""}</p>
                     </div>
                     <Badge variant="outline" className={`text-[9px] capitalize ${modeInfo.badgeClass}`}>{modeInfo.badge}</Badge>
                   </div>

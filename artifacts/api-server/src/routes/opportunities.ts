@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, and } from "drizzle-orm";
+import { eq, ilike, and, sql } from "drizzle-orm";
 import { db, opportunitiesTable, companiesTable, contactsTable } from "@workspace/db";
 import { parseDate } from "../lib/parse-date";
 import { emit } from "../services/event-bus";
@@ -36,7 +36,9 @@ router.get("/opportunities", async (req, res): Promise<void> => {
       companyId: opportunitiesTable.companyId,
       companyName: companiesTable.name,
       contactId: opportunitiesTable.contactId,
-      contactName: contactsTable.firstName,
+      contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
+      contactEmail: contactsTable.email,
+      contactPhone: contactsTable.phone,
       leadId: opportunitiesTable.leadId,
       stage: opportunitiesTable.stage,
       value: opportunitiesTable.value,
@@ -105,7 +107,9 @@ router.get("/opportunities/:id", async (req, res): Promise<void> => {
       companyId: opportunitiesTable.companyId,
       companyName: companiesTable.name,
       contactId: opportunitiesTable.contactId,
-      contactName: contactsTable.firstName,
+      contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
+      contactEmail: contactsTable.email,
+      contactPhone: contactsTable.phone,
       leadId: opportunitiesTable.leadId,
       stage: opportunitiesTable.stage,
       value: opportunitiesTable.value,

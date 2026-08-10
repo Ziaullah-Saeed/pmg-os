@@ -2539,6 +2539,10 @@ components:
           type: ["integer", "null"]
         contactName:
           type: ["string", "null"]
+        contactEmail:
+          type: ["string", "null"]
+        contactPhone:
+          type: ["string", "null"]
         source:
           type: string
         status:
@@ -2654,6 +2658,10 @@ components:
         contactId:
           type: ["integer", "null"]
         contactName:
+          type: ["string", "null"]
+        contactEmail:
+          type: ["string", "null"]
+        contactPhone:
           type: ["string", "null"]
         leadId:
           type: ["integer", "null"]
@@ -4369,7 +4377,9 @@ components:
         channel:
           type: string
         steps:
-          type: ["object", "null"]
+          type: ["array", "null"]
+          items:
+            type: object
         targetAudience:
           type: ["string", "null"]
         totalEnrolled:
@@ -4416,7 +4426,9 @@ components:
         channel:
           type: string
         steps:
-          type: object
+          type: array
+          items:
+            type: object
         targetAudience:
           type: string
         totalEnrolled:
@@ -4450,7 +4462,9 @@ components:
         channel:
           type: string
         steps:
-          type: object
+          type: array
+          items:
+            type: object
         targetAudience:
           type: string
         totalEnrolled:

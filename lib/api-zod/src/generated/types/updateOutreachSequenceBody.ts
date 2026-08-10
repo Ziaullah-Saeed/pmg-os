@@ -7,14 +7,14 @@
  */
 import type { UpdateOutreachSequenceBodyCadenceRules } from "./updateOutreachSequenceBodyCadenceRules";
 import type { UpdateOutreachSequenceBodySafetyControls } from "./updateOutreachSequenceBodySafetyControls";
-import type { UpdateOutreachSequenceBodySteps } from "./updateOutreachSequenceBodySteps";
+import type { UpdateOutreachSequenceBodyStepsItem } from "./updateOutreachSequenceBodyStepsItem";
 
 export interface UpdateOutreachSequenceBody {
   name?: string;
   type?: string;
   status?: string;
   channel?: string;
-  steps?: UpdateOutreachSequenceBodySteps;
+  steps?: UpdateOutreachSequenceBodyStepsItem[];
   targetAudience?: string;
   totalEnrolled?: number;
   totalResponded?: number;

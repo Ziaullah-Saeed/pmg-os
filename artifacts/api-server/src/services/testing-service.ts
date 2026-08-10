@@ -3,7 +3,8 @@ import { eq, sql, count, desc } from "drizzle-orm";
 import { emit } from "./event-bus";
 import { logAudit } from "./audit-service";
 
-let dummyModeEnabled = true;
+// Same env gate as wallet-service (single source of truth: AI_DUMMY_MODE), default ON.
+let dummyModeEnabled = process.env.AI_DUMMY_MODE !== "false";
 const dummyResponses = new Map<string, (input: Record<string, any>) => Record<string, any>>();
 const testResults: TestRunResult[] = [];
 const MAX_HISTORY = 500;

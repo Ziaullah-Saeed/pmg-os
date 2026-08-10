@@ -185,6 +185,31 @@ router.post("/crm/sync-ghl", async (req, res) => {
   } catch (err: any) { handleErr(err, res); }
 });
 
+router.post("/crm/coaching", async (req, res) => {
+  try {
+    const { companyName, dealValue, serviceType, stage } = req.body;
+    const { result, confidence, runId } = await callAI({
+      systemPrompt: `You are a live-call coaching AI for PMG Group LLC, a cybersecurity/IT marketing agency. Generate 3 objection-handling coaching cards tailored to the specific deal. Return ONLY a JSON array of exactly 3 objects, each: {"trigger": "the exact objection/question a prospect might raise (in quotes)", "response": "a concise, persuasive rep response", "category": "Objection"|"Competitive"|"Trust"|"Stall"|"Discovery"}. Use cybersecurity terminology (NIST, SOC 2, SIEM, EDR) naturally. Return ONLY the JSON array, no prose.`,
+      userPrompt: `Deal: ${companyName || "Unknown company"} (value: $${dealValue || 0}, service: ${serviceType || "cybersecurity marketing"}, stage: ${stage || "discovery"}). Generate 3 custom coaching cards for this specific deal.`,
+      workflowKey: "call_preparation",
+      tool: "ai-prepare-call",
+      domain: "crm",
+      action: "coaching_cards",
+    });
+    let cards: Array<{ trigger: string; response: string; category: string }> = [];
+    try {
+      const match = result.match(/\[[\s\S]*\]/);
+      const parsed = JSON.parse(match ? match[0] : result);
+      if (Array.isArray(parsed)) {
+        cards = parsed
+          .filter((c: any) => c && (c.trigger || c.response))
+          .map((c: any) => ({ trigger: String(c.trigger ?? ""), response: String(c.response ?? ""), category: String(c.category ?? "Objection") }));
+      }
+    } catch { /* leave cards empty; frontend surfaces raw text fallback */ }
+    res.json({ status: "success", section: "crm", agent: "call-intelligence", cards, raw: result, confidence, runId });
+  } catch (err: any) { handleErr(err, res); }
+});
+
 router.post("/marketing/create-content", async (req, res) => {
   try {
     const { type, description, tone, wordCount } = req.body;

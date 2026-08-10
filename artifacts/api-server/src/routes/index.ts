@@ -52,6 +52,12 @@ import jobQueueRouter from "./job-queue";
 import channelsRouter from "./channels";
 import guideEndpointsRouter from "./guide-endpoints";
 import apolloRouter from "./apollo";
+import { handleApolloPhoneWebhook } from "../services/apollo-import-service";
+import { getApolloWebhookConfig } from "../services/apollo-service";
+import financeRouter from "./finance";
+import productionRouter from "./production";
+import aiOutputsRouter from "./ai-outputs";
+import adminRouter from "./admin";
 import { processInboundWebhook } from "../services/integration-hub-service";
 
 const router: IRouter = Router();
@@ -91,6 +97,23 @@ router.post("/ghl/webhook", async (req, res) => {
   const payload = req.body?.payload ?? req.body;
   const result = await handleGHLWebhook(event, payload);
   res.json(result);
+});
+
+// Apollo async mobile-reveal callback. PUBLIC (Apollo posts unauthenticated) —
+// must be mounted BEFORE requireAuth. Optional shared secret (?secret=) guards it.
+router.post("/apollo/phone-webhook", async (req, res) => {
+  const { secret } = getApolloWebhookConfig();
+  if (secret && req.query.secret !== secret) {
+    res.status(401).json({ error: "Invalid webhook secret" });
+    return;
+  }
+  try {
+    const result = await handleApolloPhoneWebhook(req.body);
+    res.json({ ok: true, ...result });
+  } catch (err: any) {
+    // 200 so Apollo doesn't retry-storm on our internal errors; log-shaped body.
+    res.status(200).json({ ok: false, error: err?.message ?? "webhook error" });
+  }
 });
 
 router.use(requireAuth);
@@ -139,6 +162,10 @@ router.use(pendingActionsRouter);
 router.use(brandKitsRouter);
 router.use(integrationHubRouter);
 router.use(apolloRouter);
+router.use(financeRouter);
+router.use(productionRouter);
+router.use(aiOutputsRouter);
+router.use(adminRouter);
 router.use(reportingKnowledgeRouter);
 router.use(testingRouter);
 router.use(channelHealthRouter);

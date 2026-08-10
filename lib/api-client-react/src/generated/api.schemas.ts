@@ -163,6 +163,10 @@ export interface Lead {
   contactId?: number | null;
   /** @nullable */
   contactName?: string | null;
+  /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
   source: string;
   status: string;
   priority: string;
@@ -231,6 +235,10 @@ export interface Opportunity {
   contactId?: number | null;
   /** @nullable */
   contactName?: string | null;
+  /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
   /** @nullable */
   leadId?: number | null;
   stage: string;
@@ -1236,10 +1244,7 @@ export interface UpdateIntegrationBody {
   metadata?: UpdateIntegrationBodyMetadata;
 }
 
-/**
- * @nullable
- */
-export type OutreachSequenceSteps = { [key: string]: unknown } | null;
+export type OutreachSequenceStepsItem = { [key: string]: unknown };
 
 /**
  * @nullable
@@ -1258,7 +1263,7 @@ export interface OutreachSequence {
   status: string;
   channel: string;
   /** @nullable */
-  steps?: OutreachSequenceSteps;
+  steps?: OutreachSequenceStepsItem[] | null;
   /** @nullable */
   targetAudience?: string | null;
   totalEnrolled: number;
@@ -1276,7 +1281,7 @@ export interface OutreachSequence {
   updatedAt: string;
 }
 
-export type CreateOutreachSequenceBodySteps = { [key: string]: unknown };
+export type CreateOutreachSequenceBodyStepsItem = { [key: string]: unknown };
 
 export type CreateOutreachSequenceBodyCadenceRules = { [key: string]: unknown };
 
@@ -1289,7 +1294,7 @@ export interface CreateOutreachSequenceBody {
   type: string;
   status?: string;
   channel: string;
-  steps?: CreateOutreachSequenceBodySteps;
+  steps?: CreateOutreachSequenceBodyStepsItem[];
   targetAudience?: string;
   totalEnrolled?: number;
   totalResponded?: number;
@@ -1300,7 +1305,7 @@ export interface CreateOutreachSequenceBody {
   notes?: string;
 }
 
-export type UpdateOutreachSequenceBodySteps = { [key: string]: unknown };
+export type UpdateOutreachSequenceBodyStepsItem = { [key: string]: unknown };
 
 export type UpdateOutreachSequenceBodyCadenceRules = { [key: string]: unknown };
 
@@ -1313,7 +1318,7 @@ export interface UpdateOutreachSequenceBody {
   type?: string;
   status?: string;
   channel?: string;
-  steps?: UpdateOutreachSequenceBodySteps;
+  steps?: UpdateOutreachSequenceBodyStepsItem[];
   targetAudience?: string;
   totalEnrolled?: number;
   totalResponded?: number;

@@ -7,7 +7,7 @@
  */
 import type { OutreachSequenceCadenceRules } from "./outreachSequenceCadenceRules";
 import type { OutreachSequenceSafetyControls } from "./outreachSequenceSafetyControls";
-import type { OutreachSequenceSteps } from "./outreachSequenceSteps";
+import type { OutreachSequenceStepsItem } from "./outreachSequenceStepsItem";
 
 export interface OutreachSequence {
   id: number;
@@ -16,7 +16,7 @@ export interface OutreachSequence {
   status: string;
   channel: string;
   /** @nullable */
-  steps?: OutreachSequenceSteps;
+  steps?: OutreachSequenceStepsItem[] | null;
   /** @nullable */
   targetAudience?: string | null;
   totalEnrolled: number;
