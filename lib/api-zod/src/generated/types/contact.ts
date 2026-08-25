@@ -27,6 +27,8 @@ export interface Contact {
   authorityLevel?: string | null;
   /** @nullable */
   linkedinUrl?: string | null;
+  /** @nullable */
+  twitterUrl?: string | null;
   status: string;
   /** @nullable */
   notes?: string | null;

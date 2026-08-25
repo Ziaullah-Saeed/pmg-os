@@ -5,6 +5,7 @@
  * PMG Group OS API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { LeadFieldSources } from "./leadFieldSources";
 
 export interface Lead {
   id: number;
@@ -20,6 +21,24 @@ export interface Lead {
   contactEmail?: string | null;
   /** @nullable */
   contactPhone?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  companyPhone?: string | null;
+  /** @nullable */
+  linkedinUrl?: string | null;
+  /** @nullable */
+  twitterUrl?: string | null;
+  /** @nullable */
+  facebookUrl?: string | null;
+  /** @nullable */
+  instagramUrl?: string | null;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  tiktokUrl?: string | null;
+  /** @nullable */
+  fieldSources?: LeadFieldSources;
   source: string;
   status: string;
   priority: string;

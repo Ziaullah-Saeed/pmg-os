@@ -4,6 +4,7 @@ import { db, opportunitiesTable, companiesTable, contactsTable } from "@workspac
 import { parseDate } from "../lib/parse-date";
 import { emit } from "../services/event-bus";
 import { getSessionUser } from "../middleware/auth";
+import { buildFieldSources } from "../services/field-sources";
 import {
   ListOpportunitiesQueryParams,
   ListOpportunitiesResponse,
@@ -39,6 +40,16 @@ router.get("/opportunities", async (req, res): Promise<void> => {
       contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
       contactEmail: contactsTable.email,
       contactPhone: contactsTable.phone,
+      website: companiesTable.website,
+      companyPhone: companiesTable.phone,
+      linkedinUrl: sql<string | null>`COALESCE(${contactsTable.linkedinUrl}, ${companiesTable.linkedinUrl})`.as("linkedin_url"),
+      twitterUrl: sql<string | null>`COALESCE(${contactsTable.twitterUrl}, ${companiesTable.twitterUrl})`.as("twitter_url"),
+      facebookUrl: companiesTable.facebookUrl,
+      instagramUrl: companiesTable.instagramUrl,
+      youtubeUrl: companiesTable.youtubeUrl,
+      tiktokUrl: companiesTable.tiktokUrl,
+      contactSources: contactsTable.enrichmentSources,
+      companySources: companiesTable.enrichmentSources,
       leadId: opportunitiesTable.leadId,
       stage: opportunitiesTable.stage,
       value: opportunitiesTable.value,
@@ -61,7 +72,8 @@ router.get("/opportunities", async (req, res): Promise<void> => {
     .leftJoin(contactsTable, eq(opportunitiesTable.contactId, contactsTable.id))
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(opportunitiesTable.createdAt);
-  res.json(ListOpportunitiesResponse.parse(rows));
+  const withSources = rows.map((r) => ({ ...r, fieldSources: buildFieldSources(r.contactSources, r.companySources) }));
+  res.json(ListOpportunitiesResponse.parse(withSources));
 });
 
 router.post("/opportunities", async (req, res): Promise<void> => {
@@ -110,6 +122,16 @@ router.get("/opportunities/:id", async (req, res): Promise<void> => {
       contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
       contactEmail: contactsTable.email,
       contactPhone: contactsTable.phone,
+      website: companiesTable.website,
+      companyPhone: companiesTable.phone,
+      linkedinUrl: sql<string | null>`COALESCE(${contactsTable.linkedinUrl}, ${companiesTable.linkedinUrl})`.as("linkedin_url"),
+      twitterUrl: sql<string | null>`COALESCE(${contactsTable.twitterUrl}, ${companiesTable.twitterUrl})`.as("twitter_url"),
+      facebookUrl: companiesTable.facebookUrl,
+      instagramUrl: companiesTable.instagramUrl,
+      youtubeUrl: companiesTable.youtubeUrl,
+      tiktokUrl: companiesTable.tiktokUrl,
+      contactSources: contactsTable.enrichmentSources,
+      companySources: companiesTable.enrichmentSources,
       leadId: opportunitiesTable.leadId,
       stage: opportunitiesTable.stage,
       value: opportunitiesTable.value,
@@ -134,7 +156,7 @@ router.get("/opportunities/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Opportunity not found" });
     return;
   }
-  res.json(GetOpportunityResponse.parse(opp));
+  res.json(GetOpportunityResponse.parse({ ...opp, fieldSources: buildFieldSources(opp.contactSources, opp.companySources) }));
 });
 
 router.patch("/opportunities/:id", async (req, res): Promise<void> => {

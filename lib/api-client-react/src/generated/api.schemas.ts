@@ -51,6 +51,20 @@ export interface Company {
   /** @nullable */
   website?: string | null;
   /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  linkedinUrl?: string | null;
+  /** @nullable */
+  twitterUrl?: string | null;
+  /** @nullable */
+  facebookUrl?: string | null;
+  /** @nullable */
+  instagramUrl?: string | null;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  tiktokUrl?: string | null;
+  /** @nullable */
   size?: string | null;
   /** @nullable */
   revenue?: string | null;
@@ -72,6 +86,13 @@ export interface CreateCompanyBody {
   industry: string;
   subIndustry?: string;
   website?: string;
+  phone?: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
+  tiktokUrl?: string;
   size?: string;
   revenue?: string;
   location?: string;
@@ -86,6 +107,13 @@ export interface UpdateCompanyBody {
   industry?: string;
   subIndustry?: string;
   website?: string;
+  phone?: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
+  tiktokUrl?: string;
   size?: string;
   revenue?: string;
   location?: string;
@@ -116,6 +144,8 @@ export interface Contact {
   authorityLevel?: string | null;
   /** @nullable */
   linkedinUrl?: string | null;
+  /** @nullable */
+  twitterUrl?: string | null;
   status: string;
   /** @nullable */
   notes?: string | null;
@@ -134,6 +164,7 @@ export interface CreateContactBody {
   isDecisionMaker?: boolean;
   authorityLevel?: string;
   linkedinUrl?: string;
+  twitterUrl?: string;
   status?: string;
   notes?: string;
 }
@@ -149,9 +180,15 @@ export interface UpdateContactBody {
   isDecisionMaker?: boolean;
   authorityLevel?: string;
   linkedinUrl?: string;
+  twitterUrl?: string;
   status?: string;
   notes?: string;
 }
+
+/**
+ * @nullable
+ */
+export type LeadFieldSources = { [key: string]: string } | null;
 
 export interface Lead {
   id: number;
@@ -167,6 +204,24 @@ export interface Lead {
   contactEmail?: string | null;
   /** @nullable */
   contactPhone?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  companyPhone?: string | null;
+  /** @nullable */
+  linkedinUrl?: string | null;
+  /** @nullable */
+  twitterUrl?: string | null;
+  /** @nullable */
+  facebookUrl?: string | null;
+  /** @nullable */
+  instagramUrl?: string | null;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  tiktokUrl?: string | null;
+  /** @nullable */
+  fieldSources?: LeadFieldSources;
   source: string;
   status: string;
   priority: string;
@@ -224,6 +279,11 @@ export interface UpdateLeadBody {
   channelSource?: string;
 }
 
+/**
+ * @nullable
+ */
+export type OpportunityFieldSources = { [key: string]: string } | null;
+
 export interface Opportunity {
   id: number;
   title: string;
@@ -239,6 +299,24 @@ export interface Opportunity {
   contactEmail?: string | null;
   /** @nullable */
   contactPhone?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  companyPhone?: string | null;
+  /** @nullable */
+  linkedinUrl?: string | null;
+  /** @nullable */
+  twitterUrl?: string | null;
+  /** @nullable */
+  facebookUrl?: string | null;
+  /** @nullable */
+  instagramUrl?: string | null;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  tiktokUrl?: string | null;
+  /** @nullable */
+  fieldSources?: OpportunityFieldSources;
   /** @nullable */
   leadId?: number | null;
   stage: string;

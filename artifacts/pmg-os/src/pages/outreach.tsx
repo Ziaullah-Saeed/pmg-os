@@ -15,6 +15,7 @@ import { useAiModeContext } from "@/hooks/use-ai-mode-context";
 import { useToast } from "@/hooks/use-toast";
 import { AiResultPanel } from "@/components/ai-result-panel";
 import { ModeBadge } from "@/components/mode-badge";
+import { ContactChannels, ContactChannelsDetail } from "@/components/contact-channels";
 import { useApolloSearch, useApolloStatus, useApolloImport, useApolloEnrich, useApolloEnroll, useIntegrationStatus, type ApolloPerson, type ApolloSearchResult } from "@/hooks/use-api";
 
 // Apollo seniority enum (UI labels). Sent verbatim to Apollo `person_seniorities`.
@@ -367,10 +368,23 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
             ? { ...prev, contactEmail: row?.email ?? prev.contactEmail, contactPhone: row?.phone ?? prev.contactPhone }
             : prev,
         );
+        const web = data.socialsFilled ? `+${data.socialsFilled} web/social field${data.socialsFilled === 1 ? "" : "s"}` : "";
+        // Surface PDL plan limits + errors honestly instead of hiding them.
+        if (data.pdlErrors && data.pdlErrors.length > 0) {
+          toast({ title: "People Data Labs error", description: data.pdlErrors[0], variant: "destructive" });
+        } else if (data.pdlEmailLocked || data.pdlPhoneLocked) {
+          const locked = [data.pdlEmailLocked ? "emails" : null, data.pdlPhoneLocked ? "phones" : null].filter(Boolean).join(" & ");
+          toast({ title: "PDL match found — but your plan locks contact data", description: `People Data Labs has ${locked} for this person, but your current PDL plan returns them locked. Upgrade to a PDL plan that includes contact/PII data to unlock them. Socials still came through.` });
+        }
         toast(
           row?.email
-            ? { title: data.mode === "fixture" ? "Sample contact filled" : "Contact enriched", description: [row.email, row.phone].filter(Boolean).join(" · ") }
-            : { title: "No contact found", description: "Apollo could not reveal a verified email for this lead.", variant: "destructive" },
+            ? {
+                title: data.mode === "fixture" ? "Sample contact filled" : "Contact enriched",
+                description: [[row.email, row.phone].filter(Boolean).join(" · "), web].filter(Boolean).join("  ·  "),
+              }
+            : data.socialsFilled
+              ? { title: "Website & social details found", description: `No verified email from Apollo, but ${web.replace(/^\+/, "")} added. See the card for links.` }
+              : { title: "No contact found", description: "No verified email, and no public website/social links were found for this prospect.", variant: "destructive" },
         );
       },
       onError: (err: any) => {
@@ -662,6 +676,10 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
               <div className="space-y-2">
                 {apolloPeople.map((p: ApolloPerson, i: number) => {
                   const fullName = `${p.firstName} ${p.lastName}`.trim() || "Unknown";
+                  // Apollo's free api_search preview redacts the last name; it's
+                  // revealed only on import + reveal (bulk_match echoes it). Flag
+                  // that so a first-name-only card doesn't look broken.
+                  const lastNameHidden = !!p.firstName?.trim() && !p.lastName?.trim();
                   const initials = `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}` || "?";
                   const imp = p.apolloId ? importedMap[p.apolloId] : undefined;
                   const isSelected = p.apolloId ? selectedIds.has(p.apolloId) : false;
@@ -684,6 +702,14 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium truncate">{fullName}</p>
+                          {lastNameHidden && !imp && (
+                            <span
+                              className="text-[9px] text-muted-foreground italic shrink-0 whitespace-nowrap"
+                              title="Apollo hides the last name in free search results. It's revealed when you import and reveal this prospect."
+                            >
+                              (last name on reveal)
+                            </span>
+                          )}
                           {p.linkedinUrl && (
                             <a href={p.linkedinUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground hover:text-blue-400 shrink-0">
                               <Linkedin className="h-3 w-3" />
@@ -874,6 +900,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                       {getLeadCompany(lead) && <span className="flex items-center gap-1 truncate"><Building2 className="h-3 w-3" />{getLeadCompany(lead)}</span>}
                       {lead.source && <span className="flex items-center gap-1 truncate capitalize">{lead.source.replace(/_/g, " ")}</span>}
                     </div>
+                    <ContactChannels data={lead} sources={lead.fieldSources} className="mt-1.5" />
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
@@ -949,9 +976,8 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm"><Building2 className="h-4 w-4 text-muted-foreground" /><span>{getLeadCompany(selectedLead) || "No company"}</span></div>
-                  <div className="flex items-center gap-2 text-sm"><Mail className="h-4 w-4 text-muted-foreground" /><span>{selectedLead.contactEmail || "No email yet — enrich to discover"}</span></div>
-                  <div className="flex items-center gap-2 text-sm"><Phone className="h-4 w-4 text-muted-foreground" /><span>{selectedLead.contactPhone || "No phone yet — enrich to discover"}</span></div>
-                  <div className="flex items-center gap-2 text-sm"><Globe className="h-4 w-4 text-muted-foreground" /><span>Source: {(selectedLead.source ?? "Unknown").replace(/_/g, " ")}</span></div>
+                  <ContactChannelsDetail data={selectedLead} sources={selectedLead.fieldSources} />
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className="capitalize">Source: {(selectedLead.source ?? "Unknown").replace(/_/g, " ")}</span></div>
                   {selectedLead.painPoints && (
                     <div className="flex items-start gap-2 text-sm"><AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" /><span className="text-xs text-muted-foreground">{selectedLead.painPoints}</span></div>
                   )}

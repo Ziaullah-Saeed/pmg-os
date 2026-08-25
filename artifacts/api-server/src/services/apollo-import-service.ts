@@ -123,6 +123,7 @@ async function upsertCompany(p: NormalizedPerson): Promise<{ id: number; created
       size: headcountToSize(p.estimatedNumEmployees),
       location: p.location ?? null,
       status: "prospect",
+      enrichmentSources: p.organizationDomain ? { website: "apollo" } : undefined,
     })
     .returning();
   return { id: created.id, created: true };
@@ -190,6 +191,7 @@ export async function importProspects(people: NormalizedPerson[]): Promise<Apoll
         contactStatus,
         externalCrmId: p.apolloId,
         lastSyncedAt: new Date(),
+        enrichmentSources: p.linkedinUrl ? { linkedinUrl: "apollo" } : undefined,
       })
       .returning();
 
@@ -338,12 +340,20 @@ export async function enrichContacts(
       lastName: contactsTable.lastName,
       email: contactsTable.email,
       phone: contactsTable.phone,
+      enrichmentSources: contactsTable.enrichmentSources,
       companyName: companiesTable.name,
       website: companiesTable.website,
     })
     .from(contactsTable)
     .leftJoin(companiesTable, eq(contactsTable.companyId, companiesTable.id))
     .where(inArray(contactsTable.id, ids));
+
+  // Tag Apollo-supplied fields for provenance (merged onto any existing map).
+  const apolloSources = (existing: Record<string, string> | null | undefined, fields: string[]) => {
+    const out = { ...(existing ?? {}) };
+    for (const f of fields) out[f] = "apollo";
+    return out;
+  };
 
   const enriched: ApolloEnrichResult["enriched"] = [];
 
@@ -352,9 +362,10 @@ export async function enrichContacts(
     for (const c of rows) {
       const email = c.email ?? buildSampleEmail(c.firstName, c.lastName, c.website ?? null, c.companyName ?? null);
       const phone = revealPhone ? c.phone ?? buildSamplePhone(c.id) : c.phone ?? null;
+      const filled = [!c.email && email ? "email" : null, revealPhone && !c.phone && phone ? "phone" : null].filter(Boolean) as string[];
       await db
         .update(contactsTable)
-        .set({ email, phone, contactStatus: "sample", lastSyncedAt: new Date() })
+        .set({ email, phone, contactStatus: "sample", lastSyncedAt: new Date(), enrichmentSources: apolloSources(c.enrichmentSources, filled) })
         .where(eq(contactsTable.id, c.id));
       enriched.push({ contactId: c.id, email, phone, contactStatus: "sample" });
     }
@@ -460,12 +471,15 @@ export async function enrichContacts(
       // an existing number with null.
       const phone = revealPhone ? pickPhone(m) : null;
       const contactStatus = email ? "enriched" : "missing_contact";
-      const update: { contactStatus: string; lastSyncedAt: Date; email?: string; phone?: string; firstName?: string; lastName?: string } = {
+      const update: { contactStatus: string; lastSyncedAt: Date; email?: string; phone?: string; firstName?: string; lastName?: string; enrichmentSources?: Record<string, string> } = {
         contactStatus,
         lastSyncedAt: new Date(),
       };
-      if (revealedEmail) update.email = revealedEmail;
-      if (phone) update.phone = phone;
+      const filledFields: string[] = [];
+      if (revealedEmail) { update.email = revealedEmail; filledFields.push("email"); }
+      if (phone && !c.phone) { update.phone = phone; filledFields.push("phone"); }
+      else if (phone) { update.phone = phone; }
+      if (filledFields.length > 0) update.enrichmentSources = apolloSources(c.enrichmentSources, filledFields);
       // Backfill the name the search preview redacted — only when ours is empty,
       // so a manually-entered name is never clobbered. Runs even with no email.
       const revealedName = nameFromMatch(m);

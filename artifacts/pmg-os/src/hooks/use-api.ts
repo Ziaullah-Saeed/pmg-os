@@ -223,6 +223,65 @@ export function useDisconnectApollo() {
   });
 }
 
+// People Data Labs — paid all-in-one enrichment provider. Connection-gated:
+// off until a key is connected, at which point it joins the enrich cascade.
+export interface PdlStatus {
+  provider: string;
+  mode: "live" | "off";
+  connected: boolean;
+  integrationId: number | null;
+  lastVerifiedAt: string | null;
+  lastStatus: string | null;
+  lastError: string | null;
+  notice: string | null;
+}
+
+export interface PdlTestResult {
+  mode: "live" | "off";
+  connected: boolean;
+  message: string;
+  code?: string;
+}
+
+export function usePdlStatus() {
+  return useQuery({
+    queryKey: ["pdl", "status"],
+    queryFn: () => apiFetch<PdlStatus>("/pdl/status"),
+  });
+}
+
+export function useTestPdl() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<PdlTestResult>("/pdl/test", { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pdl"] }),
+  });
+}
+
+export function useConnectPdl() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (apiKey: string) =>
+      apiFetch<{ success: boolean; integrationId?: number }>("/integration-hub/connect-api-key", {
+        method: "POST",
+        body: JSON.stringify({ provider: "pdl", apiKey }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pdl"] }),
+  });
+}
+
+export function useDisconnectPdl() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<{ success: boolean }>("/integration-hub/disconnect", {
+        method: "POST",
+        body: JSON.stringify({ provider: "pdl" }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pdl"] }),
+  });
+}
+
 // People search — free preview (no credits, no emails). Fixture vs live is
 // connection-gated server-side; `mode === "fixture"` means labeled sample data.
 export interface ApolloPerson {
@@ -308,6 +367,18 @@ export interface ApolloEnrichResult {
    *  (numbers arrive minutes later; refetch to see them). */
   phoneRevealAsync: boolean;
   phoneRevealsRequested: number;
+  /** Free website-scan leg: companies whose site was read for socials/office phone. */
+  companiesScanned?: number;
+  /** Total website/social/office-phone fields newly filled by the scan + PDL. */
+  socialsFilled?: number;
+  /** People Data Labs (paid) matches this run. */
+  pdlMatched?: number;
+  /** PDL matched but your PLAN returns emails only as locked flags (upgrade needed). */
+  pdlEmailLocked?: boolean;
+  /** Same for phones — PDL has them but the plan doesn't unlock them. */
+  pdlPhoneLocked?: boolean;
+  /** Per-contact PDL failures (surfaced, never hidden). */
+  pdlErrors?: string[];
 }
 
 export function useApolloEnrich() {

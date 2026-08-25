@@ -93,6 +93,13 @@ const SUPPORTED_PROVIDERS: Record<string, {
     requiredFields: ["apiKey"],
     entityTypes: ["contacts", "companies"],
   },
+  pdl: {
+    name: "People Data Labs",
+    type: "enrichment",
+    authMethod: "api_key",
+    requiredFields: ["apiKey"],
+    entityTypes: ["contacts", "companies"],
+  },
   stripe: {
     name: "Stripe",
     type: "payments",

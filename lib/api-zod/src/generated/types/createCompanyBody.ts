@@ -11,6 +11,13 @@ export interface CreateCompanyBody {
   industry: string;
   subIndustry?: string;
   website?: string;
+  phone?: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
+  tiktokUrl?: string;
   size?: string;
   revenue?: string;
   location?: string;

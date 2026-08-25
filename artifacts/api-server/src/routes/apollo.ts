@@ -8,6 +8,8 @@ import {
   type NormalizedPerson,
 } from "../services/apollo-service";
 import { importProspects, enrichContacts, enrollLeads } from "../services/apollo-import-service";
+import { enrichCompaniesForContacts } from "../services/website-enrichment-service";
+import { enrichContactsWithPDL } from "../services/pdl-service";
 import { getSessionUser } from "../middleware/auth";
 
 const router: IRouter = Router();
@@ -73,7 +75,60 @@ router.post("/apollo/enrich", async (req, res): Promise<void> => {
   }
   const revealPhone = req.body?.revealPhone === true;
   try {
-    res.json(await enrichContacts(contactIds, { revealPhone }));
+    // Enrichment cascade — CHEAPEST first, each step only fills columns still
+    // empty, so nothing verified is ever overwritten and paid lookups are skipped
+    // when free data already completed the record:
+    // Free, idempotent website scan → website + Instagram/YouTube/TikTok + office
+    // phone (channels no B2B provider carries). Runs once BEFORE paid steps (so a
+    // site that already lists everything can skip them) and once AFTER (Apollo's
+    // search redacts the company domain, so PDL often supplies the website the
+    // first pass had no URL to read). Idempotent: already-complete companies are
+    // skipped and hit no network. Best-effort, never fatal.
+    let companiesScanned = 0;
+    let websiteFilled = 0;
+    const runWebsiteScan = async (label: string) => {
+      try {
+        const web = await enrichCompaniesForContacts(contactIds);
+        companiesScanned += web.filter((r) => r.scanned).length;
+        websiteFilled += web.reduce((n, r) => n + r.filled.length, 0);
+      } catch (e: any) {
+        console.error(`[enrich] website scan (${label}) failed:`, e?.message ?? e);
+      }
+    };
+    await runWebsiteScan("pre");
+    // Apollo bulk_match → verified email (+ any sync phone). Credit sink.
+    const result = await enrichContacts(contactIds, { revealPhone });
+    // 3) People Data Labs (paid, only when connected) → fills any still-missing
+    //    email / mobile / person + company socials. Errors are surfaced, NOT
+    //    swallowed, so a billed credit is never silently lost.
+    let pdlMatched = 0;
+    let pdlFieldsFilled = 0;
+    let pdlEmailLocked = false;
+    let pdlPhoneLocked = false;
+    const pdlErrors: string[] = [];
+    try {
+      const pdl = await enrichContactsWithPDL(contactIds);
+      pdlMatched = pdl.matched;
+      pdlFieldsFilled = pdl.fieldsFilled;
+      pdlEmailLocked = pdl.emailLocked;
+      pdlPhoneLocked = pdl.phoneLocked;
+      pdlErrors.push(...pdl.errors);
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
+      console.error("[enrich] PDL failed:", msg);
+      pdlErrors.push(msg);
+    }
+    // Second scan — now that Apollo/PDL may have filled a company website.
+    await runWebsiteScan("post");
+    res.json({
+      ...result,
+      companiesScanned,
+      socialsFilled: websiteFilled + pdlFieldsFilled,
+      pdlMatched,
+      pdlEmailLocked,
+      pdlPhoneLocked,
+      pdlErrors,
+    });
   } catch (err: any) {
     res.status(apolloErrorStatus(err)).json({ error: err?.message ?? "Apollo enrich failed", code: err?.code ?? "apollo_error" });
   }

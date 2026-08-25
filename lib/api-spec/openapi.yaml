@@ -2338,6 +2338,20 @@ components:
           type: ["string", "null"]
         website:
           type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        twitterUrl:
+          type: ["string", "null"]
+        facebookUrl:
+          type: ["string", "null"]
+        instagramUrl:
+          type: ["string", "null"]
+        youtubeUrl:
+          type: ["string", "null"]
+        tiktokUrl:
+          type: ["string", "null"]
         size:
           type: ["string", "null"]
         revenue:
@@ -2377,6 +2391,20 @@ components:
           type: string
         website:
           type: string
+        phone:
+          type: string
+        linkedinUrl:
+          type: string
+        twitterUrl:
+          type: string
+        facebookUrl:
+          type: string
+        instagramUrl:
+          type: string
+        youtubeUrl:
+          type: string
+        tiktokUrl:
+          type: string
         size:
           type: string
         revenue:
@@ -2405,6 +2433,20 @@ components:
         subIndustry:
           type: string
         website:
+          type: string
+        phone:
+          type: string
+        linkedinUrl:
+          type: string
+        twitterUrl:
+          type: string
+        facebookUrl:
+          type: string
+        instagramUrl:
+          type: string
+        youtubeUrl:
+          type: string
+        tiktokUrl:
           type: string
         size:
           type: string
@@ -2448,6 +2490,8 @@ components:
           type: ["string", "null"]
         linkedinUrl:
           type: ["string", "null"]
+        twitterUrl:
+          type: ["string", "null"]
         status:
           type: string
         notes:
@@ -2490,6 +2534,8 @@ components:
           type: string
         linkedinUrl:
           type: string
+        twitterUrl:
+          type: string
         status:
           type: string
         notes:
@@ -2521,6 +2567,8 @@ components:
           type: string
         linkedinUrl:
           type: string
+        twitterUrl:
+          type: string
         status:
           type: string
         notes:
@@ -2543,6 +2591,26 @@ components:
           type: ["string", "null"]
         contactPhone:
           type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        companyPhone:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        twitterUrl:
+          type: ["string", "null"]
+        facebookUrl:
+          type: ["string", "null"]
+        instagramUrl:
+          type: ["string", "null"]
+        youtubeUrl:
+          type: ["string", "null"]
+        tiktokUrl:
+          type: ["string", "null"]
+        fieldSources:
+          type: ["object", "null"]
+          additionalProperties:
+            type: string
         source:
           type: string
         status:
@@ -2663,6 +2731,26 @@ components:
           type: ["string", "null"]
         contactPhone:
           type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        companyPhone:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        twitterUrl:
+          type: ["string", "null"]
+        facebookUrl:
+          type: ["string", "null"]
+        instagramUrl:
+          type: ["string", "null"]
+        youtubeUrl:
+          type: ["string", "null"]
+        tiktokUrl:
+          type: ["string", "null"]
+        fieldSources:
+          type: ["object", "null"]
+          additionalProperties:
+            type: string
         leadId:
           type: ["integer", "null"]
         stage:

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { companiesTable } from "./companies";
@@ -15,6 +15,12 @@ export const contactsTable = pgTable("contacts", {
   isDecisionMaker: boolean("is_decision_maker").notNull().default(false),
   authorityLevel: text("authority_level"),
   linkedinUrl: text("linkedin_url"),
+  // Person-level X/Twitter handle (paid providers like PDL return it; the
+  // website scan only yields company-level socials). Nullable.
+  twitterUrl: text("twitter_url"),
+  // Per-field enrichment provenance, e.g. { email: "apollo", twitterUrl: "pdl" }.
+  // Lets the UI tag each value with the provider that supplied it. Nullable.
+  enrichmentSources: jsonb("enrichment_sources").$type<Record<string, string>>(),
   status: text("status").notNull().default("active"),
   // Contact-data lifecycle, set by lead-gen import (Apollo). Nullable so contacts
   // from other paths are not mislabeled. Values: "missing_contact" (imported,

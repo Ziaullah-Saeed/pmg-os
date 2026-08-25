@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -8,6 +8,18 @@ export const companiesTable = pgTable("companies", {
   industry: text("industry").notNull(),
   subIndustry: text("sub_industry"),
   website: text("website"),
+  // Company-level contact + social channels. Populated by the website-scan
+  // enrichment (footer/contact-page harvest) and paid providers (PDL/Apollo).
+  // Nullable so companies from other paths are never mislabeled.
+  phone: text("phone"),
+  linkedinUrl: text("linkedin_url"),
+  twitterUrl: text("twitter_url"),
+  facebookUrl: text("facebook_url"),
+  instagramUrl: text("instagram_url"),
+  youtubeUrl: text("youtube_url"),
+  tiktokUrl: text("tiktok_url"),
+  // Per-field enrichment provenance, e.g. { website: "pdl", instagramUrl: "website" }.
+  enrichmentSources: jsonb("enrichment_sources").$type<Record<string, string>>(),
   size: text("size"),
   revenue: text("revenue"),
   location: text("location"),

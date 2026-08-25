@@ -14,6 +14,7 @@ import {
   DeleteLeadParams,
 } from "@workspace/api-zod";
 import { enrichAndScoreLead } from "../services/lead-enrichment-service";
+import { buildFieldSources } from "../services/field-sources";
 import { validateTransition, getValidTransitions, getInitialState } from "../services/state-machine";
 import { routeLead } from "../services/ghl-service";
 import { logAudit } from "../services/audit-service";
@@ -79,6 +80,17 @@ router.get("/leads", async (req, res): Promise<void> => {
       contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
       contactEmail: contactsTable.email,
       contactPhone: contactsTable.phone,
+      website: companiesTable.website,
+      companyPhone: companiesTable.phone,
+      // Prefer the person's own social handle, fall back to the company's.
+      linkedinUrl: sql<string | null>`COALESCE(${contactsTable.linkedinUrl}, ${companiesTable.linkedinUrl})`.as("linkedin_url"),
+      twitterUrl: sql<string | null>`COALESCE(${contactsTable.twitterUrl}, ${companiesTable.twitterUrl})`.as("twitter_url"),
+      facebookUrl: companiesTable.facebookUrl,
+      instagramUrl: companiesTable.instagramUrl,
+      youtubeUrl: companiesTable.youtubeUrl,
+      tiktokUrl: companiesTable.tiktokUrl,
+      contactSources: contactsTable.enrichmentSources,
+      companySources: companiesTable.enrichmentSources,
       source: leadsTable.source,
       status: leadsTable.status,
       priority: leadsTable.priority,
@@ -104,7 +116,8 @@ router.get("/leads", async (req, res): Promise<void> => {
     .leftJoin(contactsTable, eq(leadsTable.contactId, contactsTable.id))
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(leadsTable.createdAt);
-  res.json(ListLeadsResponse.parse(rows));
+  const withSources = rows.map((r) => ({ ...r, fieldSources: buildFieldSources(r.contactSources, r.companySources) }));
+  res.json(ListLeadsResponse.parse(withSources));
 });
 
 router.post("/leads", async (req, res): Promise<void> => {
@@ -210,6 +223,16 @@ router.get("/leads/:id", async (req, res): Promise<void> => {
       contactName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${contactsTable.firstName}, ' ', ${contactsTable.lastName})), ''), ${contactsTable.firstName})`.as("contact_name"),
       contactEmail: contactsTable.email,
       contactPhone: contactsTable.phone,
+      website: companiesTable.website,
+      companyPhone: companiesTable.phone,
+      linkedinUrl: sql<string | null>`COALESCE(${contactsTable.linkedinUrl}, ${companiesTable.linkedinUrl})`.as("linkedin_url"),
+      twitterUrl: sql<string | null>`COALESCE(${contactsTable.twitterUrl}, ${companiesTable.twitterUrl})`.as("twitter_url"),
+      facebookUrl: companiesTable.facebookUrl,
+      instagramUrl: companiesTable.instagramUrl,
+      youtubeUrl: companiesTable.youtubeUrl,
+      tiktokUrl: companiesTable.tiktokUrl,
+      contactSources: contactsTable.enrichmentSources,
+      companySources: companiesTable.enrichmentSources,
       source: leadsTable.source,
       status: leadsTable.status,
       priority: leadsTable.priority,
@@ -237,7 +260,7 @@ router.get("/leads/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Lead not found" });
     return;
   }
-  res.json(GetLeadResponse.parse(lead));
+  res.json(GetLeadResponse.parse({ ...lead, fieldSources: buildFieldSources(lead.contactSources, lead.companySources) }));
 });
 
 router.patch("/leads/:id", async (req, res): Promise<void> => {

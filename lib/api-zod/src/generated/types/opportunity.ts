@@ -5,6 +5,7 @@
  * PMG Group OS API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { OpportunityFieldSources } from "./opportunityFieldSources";
 
 export interface Opportunity {
   id: number;
@@ -21,6 +22,24 @@ export interface Opportunity {
   contactEmail?: string | null;
   /** @nullable */
   contactPhone?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  companyPhone?: string | null;
+  /** @nullable */
+  linkedinUrl?: string | null;
+  /** @nullable */
+  twitterUrl?: string | null;
+  /** @nullable */
+  facebookUrl?: string | null;
+  /** @nullable */
+  instagramUrl?: string | null;
+  /** @nullable */
+  youtubeUrl?: string | null;
+  /** @nullable */
+  tiktokUrl?: string | null;
+  /** @nullable */
+  fieldSources?: OpportunityFieldSources;
   /** @nullable */
   leadId?: number | null;
   stage: string;

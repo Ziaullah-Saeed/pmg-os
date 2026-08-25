@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import {
   useApolloStatus, useTestApollo, useConnectApollo, useDisconnectApollo,
+  usePdlStatus, useTestPdl, useConnectPdl, useDisconnectPdl,
   useWalletBalance, useWalletAnalytics, useAgents, useAgentStats, useIntegrationStatus,
   useWalletThresholds, useUpsertThreshold,
   useAiCheckCompliance, useChannelHealth, useOptOutList, useAddOptOut, useRemoveOptOut,
@@ -527,6 +528,123 @@ function ApolloConnectionCard() {
   );
 }
 
+function PdlConnectionCard() {
+  const { toast } = useToast();
+  const { data: status, isLoading } = usePdlStatus();
+  const connectPdl = useConnectPdl();
+  const testPdl = useTestPdl();
+  const disconnectPdl = useDisconnectPdl();
+  const [apiKey, setApiKey] = useState("");
+
+  const connected = status?.connected ?? false;
+  const busy = connectPdl.isPending || testPdl.isPending || disconnectPdl.isPending;
+
+  const runTest = async () => {
+    try {
+      const result = await testPdl.mutateAsync();
+      if (result.connected) {
+        toast({ title: "People Data Labs connected", description: result.message });
+      } else {
+        toast({ title: "PDL not verified", description: result.message, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "PDL test failed", description: err.message ?? "Unknown error", variant: "destructive" });
+    }
+  };
+
+  const handleConnect = async () => {
+    if (!apiKey.trim()) return;
+    try {
+      await connectPdl.mutateAsync(apiKey.trim());
+      setApiKey("");
+      await runTest();
+    } catch (err: any) {
+      toast({ title: "Could not save PDL key", description: err.message ?? "Unknown error", variant: "destructive" });
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnectPdl.mutateAsync();
+      toast({ title: "PDL disconnected", description: "Enrichment falls back to Apollo + the free website scan." });
+    } catch (err: any) {
+      toast({ title: "Disconnect failed", description: err.message ?? "Unknown error", variant: "destructive" });
+    }
+  };
+
+  return (
+    <GlassCard>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-navy/80 to-navy/40 flex items-center justify-center text-white shrink-0">
+            <Database className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium">People Data Labs</p>
+              {connected ? (
+                <Badge variant="outline" className="text-[10px] border-success/40 text-success">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />Connected
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-[10px] border-muted-foreground/40 text-muted-foreground">
+                  Not connected
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Paid all-in-one enrichment — fills email, phone, website &amp; socials in one lookup. Joins the enrich cascade after Apollo.
+            </p>
+          </div>
+        </div>
+        {connected && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="text-xs" onClick={runTest} disabled={busy}>
+              {testPdl.isPending ? "Testing…" : "Test Connection"}
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs text-crimson border-crimson/30" onClick={handleDisconnect} disabled={busy}>
+              Disconnect
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {!isLoading && !connected && (
+        <div className="mt-4 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            {status?.notice ?? "People Data Labs is not connected. Enrichment uses Apollo + the free website scan. Add your PDL key to fill more emails, phones and socials."}
+          </p>
+          <div className="flex items-center gap-2">
+            <Input
+              type="password"
+              autoComplete="off"
+              placeholder="People Data Labs API key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="bg-white/5 border-white/10 text-sm"
+            />
+            <Button size="sm" className="text-xs shrink-0" onClick={handleConnect} disabled={busy || !apiKey.trim()}>
+              <Key className="h-3 w-3 mr-1" />{connectPdl.isPending ? "Saving…" : "Connect"}
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Create a key at dashboard.peopledatalabs.com → API Keys. The free tier (100 lookups/month) is enough to test; each successful match uses ~1 credit.
+          </p>
+        </div>
+      )}
+
+      {connected && (
+        <div className="mt-3 text-xs text-muted-foreground space-y-1">
+          {status?.lastVerifiedAt && (
+            <p>Last verified: {new Date(status.lastVerifiedAt).toLocaleString()}{status.lastStatus ? ` · ${status.lastStatus}` : ""}</p>
+          )}
+          {status?.lastError && <p className="text-crimson">Last error: {status.lastError}</p>}
+        </div>
+      )}
+    </GlassCard>
+  );
+}
+
 function ApiKeysTab() {
   const keys = [
     { service: "Claude (Anthropic)", status: "required", purpose: "Primary AI — all text generation, analysis, recommendations", cost: "~$50/mo" },
@@ -545,6 +663,7 @@ function ApiKeysTab() {
       </div>
 
       <ApolloConnectionCard />
+      <PdlConnectionCard />
 
       <div>
         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-2 mb-1">Planned keys</h4>

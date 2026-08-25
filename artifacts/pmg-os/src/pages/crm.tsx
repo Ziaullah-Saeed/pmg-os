@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { AiResultPanel } from "@/components/ai-result-panel";
 import { ModeBadge } from "@/components/mode-badge";
+import { ContactChannels } from "@/components/contact-channels";
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -435,13 +436,27 @@ function DealDetailPanel({ deal, onClose, onStageChange, isHuman }: {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-4 text-xs">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-4 text-xs">
         {deal.contactEmail ? (
           <span className="flex items-center gap-1.5 text-muted-foreground"><Mail className="h-3.5 w-3.5 shrink-0" />{deal.contactEmail}</span>
         ) : (
           <span className="flex items-center gap-1.5 text-muted-foreground/60"><Mail className="h-3.5 w-3.5 shrink-0" />No email yet — reveal in Outreach</span>
         )}
         {deal.contactPhone && <span className="flex items-center gap-1.5 text-muted-foreground"><Phone className="h-3.5 w-3.5 shrink-0" />{deal.contactPhone}</span>}
+        {/* Website + office phone + all social handles from the enrichment cascade. */}
+        <ContactChannels
+          data={{
+            companyPhone: deal.companyPhone !== deal.contactPhone ? deal.companyPhone : null,
+            website: deal.website,
+            linkedinUrl: deal.linkedinUrl,
+            twitterUrl: deal.twitterUrl,
+            facebookUrl: deal.facebookUrl,
+            instagramUrl: deal.instagramUrl,
+            youtubeUrl: deal.youtubeUrl,
+            tiktokUrl: deal.tiktokUrl,
+          }}
+          sources={deal.fieldSources}
+        />
       </div>
 
       <div className="mb-4">
@@ -679,6 +694,21 @@ function QualificationTab({ leads, isHuman, isAuto, currentMode, onTabChange }: 
                     {lead.contactPhone && <span className="flex items-center gap-1 truncate"><Phone className="h-3 w-3 shrink-0" />{lead.contactPhone}</span>}
                   </div>
                 )}
+                {/* Website + office phone + all social handles from enrichment. */}
+                <ContactChannels
+                  data={{
+                    companyPhone: lead.companyPhone !== lead.contactPhone ? lead.companyPhone : null,
+                    website: lead.website,
+                    linkedinUrl: lead.linkedinUrl,
+                    twitterUrl: lead.twitterUrl,
+                    facebookUrl: lead.facebookUrl,
+                    instagramUrl: lead.instagramUrl,
+                    youtubeUrl: lead.youtubeUrl,
+                    tiktokUrl: lead.tiktokUrl,
+                  }}
+                  sources={lead.fieldSources}
+                  className="mt-1"
+                />
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Badge variant="outline" className="text-[10px]">{lead.status}</Badge>

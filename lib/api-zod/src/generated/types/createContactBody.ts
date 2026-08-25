@@ -17,6 +17,7 @@ export interface CreateContactBody {
   isDecisionMaker?: boolean;
   authorityLevel?: string;
   linkedinUrl?: string;
+  twitterUrl?: string;
   status?: string;
   notes?: string;
 }
