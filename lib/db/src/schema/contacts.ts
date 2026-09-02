@@ -8,9 +8,20 @@ export const contactsTable = pgTable("contacts", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   email: text("email"),
+  // Email-verification signal from the provider ("valid" | "verified" | "likely"
+  // | "catch-all" | "unavailable"). Drives the "Verified" badge. Nullable.
+  emailStatus: text("email_status"),
+  // Person's direct/mobile number lives on `phone`; the office/work-direct line
+  // (Apollo "Work Direct Phone") is captured separately here. Nullable.
   phone: text("phone"),
+  workPhone: text("work_phone"),
   title: text("title"),
   role: text("role"),
+  // Apollo "Departments" (e.g. "C-Suite", "Master Sales"). Nullable.
+  department: text("department"),
+  // Person city/state/country joined into one display string. The company HQ is
+  // on `companies.location`; a contact can sit elsewhere. Nullable.
+  location: text("location"),
   companyId: integer("company_id").references(() => companiesTable.id, { onDelete: "set null" }),
   isDecisionMaker: boolean("is_decision_maker").notNull().default(false),
   authorityLevel: text("authority_level"),

@@ -417,19 +417,38 @@ export interface PeopleSearchFilters {
 }
 
 /** Stable shape returned to the UI regardless of live vs fixture. Search never
- *  exposes emails/phones — `hasEmail` is always false here; reveal is enrichment. */
+ *  exposes emails/phones — `hasEmail` is always false here; reveal is enrichment.
+ *  Everything else Apollo returns in the search payload IS captured, so a prospect
+ *  looks complete before any credit is spent (org socials, phone, revenue,
+ *  technologies, keywords, department). */
 export interface NormalizedPerson {
   apolloId: string | null;
   firstName: string;
   lastName: string;
   title: string | null;
   seniority: string | null;
+  department: string | null;
+  linkedinUrl: string | null;
+  /** Person-level X/Twitter, when Apollo exposes it. */
+  twitterUrl: string | null;
   organizationName: string | null;
   organizationDomain: string | null;
   industry: string | null;
   estimatedNumEmployees: number | null;
   location: string | null;
-  linkedinUrl: string | null;
+  /** Company channels from the org object (business socials + office line). */
+  organizationLinkedinUrl: string | null;
+  organizationTwitterUrl: string | null;
+  organizationFacebookUrl: string | null;
+  organizationPhone: string | null;
+  /** Human-readable annual revenue, e.g. "$54M". */
+  revenue: string | null;
+  /** Funding summary, e.g. "Series D · $31.5M". */
+  funding: string | null;
+  /** Comma-joined technology stack. */
+  technologies: string | null;
+  /** Comma-joined industry/intent keywords. */
+  keywords: string | null;
   hasEmail: false;
 }
 
@@ -475,6 +494,28 @@ function buildSearchBody(filters: PeopleSearchFilters, page: number, perPage: nu
   return body;
 }
 
+interface ApolloRawOrganization {
+  name?: string;
+  primary_domain?: string;
+  website_url?: string;
+  industry?: string;
+  estimated_num_employees?: number;
+  linkedin_url?: string;
+  twitter_url?: string;
+  facebook_url?: string;
+  phone?: string;
+  sanitized_phone?: string;
+  primary_phone?: { number?: string; sanitized_number?: string } | null;
+  annual_revenue?: number;
+  annual_revenue_printed?: string;
+  total_funding?: number;
+  total_funding_printed?: string;
+  latest_funding_stage?: string;
+  latest_funding_round_date?: string;
+  technology_names?: string[];
+  keywords?: string[];
+}
+
 interface ApolloRawPerson {
   id?: string;
   first_name?: string;
@@ -483,16 +524,13 @@ interface ApolloRawPerson {
   title?: string;
   seniority?: string;
   linkedin_url?: string;
+  twitter_url?: string;
+  departments?: string[];
+  subdepartments?: string[];
   city?: string;
   state?: string;
   country?: string;
-  organization?: {
-    name?: string;
-    primary_domain?: string;
-    website_url?: string;
-    industry?: string;
-    estimated_num_employees?: number;
-  } | null;
+  organization?: ApolloRawOrganization | null;
 }
 
 function joinLocation(parts: Array<string | undefined | null>): string | null {
@@ -500,8 +538,93 @@ function joinLocation(parts: Array<string | undefined | null>): string | null {
   return out.length ? out.join(", ") : null;
 }
 
+/** Comma-join a string array (trims + drops empties). Optional cap keeps huge
+ *  Apollo technology/keyword lists from bloating a row. */
+export function joinList(arr: unknown, cap?: number): string | null {
+  if (!Array.isArray(arr)) return null;
+  const out = arr.map((s) => (typeof s === "string" ? s.trim() : "")).filter(Boolean);
+  const capped = typeof cap === "number" && cap > 0 ? out.slice(0, cap) : out;
+  return capped.length ? capped.join(", ") : null;
+}
+
+/** Turn a "c_suite"-style token into a readable "C Suite". */
+export function humanizeToken(s: string | null | undefined): string | null {
+  const t = (s ?? "").trim();
+  if (!t) return null;
+  return t.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Best org phone from the several shapes Apollo uses. */
+function orgPhone(org: ApolloRawOrganization | null): string | null {
+  return (
+    org?.sanitized_phone?.trim() ||
+    org?.phone?.trim() ||
+    org?.primary_phone?.sanitized_number?.trim() ||
+    org?.primary_phone?.number?.trim() ||
+    null
+  );
+}
+
+/** Prefer Apollo's pre-formatted "$54M"; else compact a raw number. */
+export function formatRevenue(printed?: string | null, raw?: number | null): string | null {
+  if (printed && printed.trim()) return printed.trim();
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return null;
+  if (raw >= 1e9) return `$${(raw / 1e9).toFixed(raw >= 1e10 ? 0 : 1)}B`;
+  if (raw >= 1e6) return `$${(raw / 1e6).toFixed(raw >= 1e7 ? 0 : 1)}M`;
+  if (raw >= 1e3) return `$${Math.round(raw / 1e3)}K`;
+  return `$${raw}`;
+}
+
+/** Build "Series D · $31.5M" from Apollo funding fields. */
+function formatFunding(org: ApolloRawOrganization | null): string | null {
+  if (!org) return null;
+  const stage = humanizeToken(org.latest_funding_stage);
+  const amount = formatRevenue(org.total_funding_printed, org.total_funding);
+  const parts = [stage, amount].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+/** Normalized organization fields, shared by search (`api_search`) and enrichment
+ *  (`bulk_match` echoes the same `organization` object). Used to fill company
+ *  columns from whichever call produced the data. */
+export interface NormalizedOrg {
+  name: string | null;
+  domain: string | null;
+  industry: string | null;
+  estimatedNumEmployees: number | null;
+  linkedinUrl: string | null;
+  twitterUrl: string | null;
+  facebookUrl: string | null;
+  phone: string | null;
+  revenue: string | null;
+  funding: string | null;
+  technologies: string | null;
+  keywords: string | null;
+}
+
+export function normalizeOrganization(org: ApolloRawOrganization | null | undefined): NormalizedOrg {
+  const o = org ?? null;
+  return {
+    name: o?.name?.trim() || null,
+    domain:
+      o?.primary_domain?.trim() ||
+      (o?.website_url ? o.website_url.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : null) ||
+      null,
+    industry: o?.industry?.trim() || null,
+    estimatedNumEmployees: typeof o?.estimated_num_employees === "number" ? o.estimated_num_employees : null,
+    linkedinUrl: o?.linkedin_url?.trim() || null,
+    twitterUrl: o?.twitter_url?.trim() || null,
+    facebookUrl: o?.facebook_url?.trim() || null,
+    phone: orgPhone(o),
+    revenue: formatRevenue(o?.annual_revenue_printed, o?.annual_revenue),
+    funding: formatFunding(o),
+    technologies: joinList(o?.technology_names, 40),
+    keywords: joinList(o?.keywords, 30),
+  };
+}
+
 function normalizePerson(p: ApolloRawPerson): NormalizedPerson {
-  const org = p.organization ?? null;
+  const org = normalizeOrganization(p.organization);
   const fullName = (p.name ?? "").trim();
   const firstName = p.first_name?.trim() || fullName.split(" ")[0] || "";
   const lastName =
@@ -511,17 +634,25 @@ function normalizePerson(p: ApolloRawPerson): NormalizedPerson {
     firstName,
     lastName,
     title: p.title?.trim() || null,
+    // Keep the raw Apollo token ("c_suite", "vp") — importProspects matches it
+    // against DECISION_MAKER_SENIORITIES; the UI humanizes it for display.
     seniority: p.seniority?.trim() || null,
-    organizationName: org?.name?.trim() || null,
-    organizationDomain:
-      org?.primary_domain?.trim() ||
-      (org?.website_url ? org.website_url.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : null) ||
-      null,
-    industry: org?.industry?.trim() || null,
-    estimatedNumEmployees:
-      typeof org?.estimated_num_employees === "number" ? org.estimated_num_employees : null,
-    location: joinLocation([p.city, p.state, p.country]),
+    department: humanizeToken(p.departments?.[0]) || humanizeToken(p.subdepartments?.[0]),
     linkedinUrl: p.linkedin_url?.trim() || null,
+    twitterUrl: p.twitter_url?.trim() || null,
+    organizationName: org.name,
+    organizationDomain: org.domain,
+    industry: org.industry,
+    estimatedNumEmployees: org.estimatedNumEmployees,
+    location: joinLocation([p.city, p.state, p.country]),
+    organizationLinkedinUrl: org.linkedinUrl,
+    organizationTwitterUrl: org.twitterUrl,
+    organizationFacebookUrl: org.facebookUrl,
+    organizationPhone: org.phone,
+    revenue: org.revenue,
+    funding: org.funding,
+    technologies: org.technologies,
+    keywords: org.keywords,
     hasEmail: false,
   };
 }
@@ -530,30 +661,61 @@ const FIXTURE_NOTICE =
   "Apollo is not connected — these are labeled sample prospects, not live data. Connect your API key in Settings → API Keys to run real searches.";
 
 /** Deterministic cyber/IT sample people for $0 fixture mode. Mirrors a real
- *  search payload: realistic firm/role data but NO emails (reveal is enrichment). */
-const FIXTURE_PEOPLE: NormalizedPerson[] = [
-  ["Marcus", "Reyes", "VP of Marketing", "vp", "SentinelEdge Security", "sentineledge.io", "Computer & Network Security", 180, "Austin, Texas, United States"],
-  ["Priya", "Nair", "Chief Marketing Officer", "c_suite", "Quorum Threat Labs", "quorumthreat.com", "Computer & Network Security", 95, "Boston, Massachusetts, United States"],
-  ["David", "Okonkwo", "Director of Demand Generation", "director", "NimbusGuard", "nimbusguard.io", "Cyber Security", 320, "Denver, Colorado, United States"],
-  ["Hannah", "Liebowitz", "Head of Growth", "head", "Aperture Defense", "aperturedefense.com", "Information Technology & Services", 60, "Seattle, Washington, United States"],
-  ["Tomás", "Beltran", "VP Demand Generation", "vp", "Citadel MSSP", "citadelmssp.com", "Computer & Network Security", 240, "Miami, Florida, United States"],
-  ["Aisha", "Rahman", "Marketing Director", "director", "BastionWorks", "bastionworks.io", "Cyber Security", 130, "Chicago, Illinois, United States"],
-  ["Liam", "Gallagher", "Chief Growth Officer", "c_suite", "RedCell Analytics", "redcell.ai", "Computer & Network Security", 75, "San Francisco, California, United States"],
-  ["Sofia", "Marchetti", "Senior Marketing Manager", "senior", "Helix IR", "helixir.com", "Information Technology & Services", 410, "New York, New York, United States"],
-  ["Jamal", "Carter", "Director of Brand", "director", "PhalanxSec", "phalanxsec.io", "Cyber Security", 200, "Atlanta, Georgia, United States"],
-  ["Nora", "Eklund", "VP of Revenue Marketing", "vp", "Verityware", "verityware.com", "Computer & Network Security", 150, "Raleigh, North Carolina, United States"],
-].map(([firstName, lastName, title, seniority, organizationName, organizationDomain, industry, est, location], i) => ({
+ *  search payload at full depth (org socials, phone, revenue, funding, tech,
+ *  keywords, department) so the disconnected "Sample" state renders the same
+ *  complete card a live search would — but with NO emails (reveal is enrichment). */
+interface FixtureSeed {
+  firstName: string;
+  lastName: string;
+  title: string;
+  seniority: string;
+  department: string;
+  organizationName: string;
+  organizationDomain: string;
+  industry: string;
+  est: number;
+  location: string;
+  revenue: string;
+  funding: string | null;
+  technologies: string;
+  keywords: string;
+}
+
+const FIXTURE_SEEDS: FixtureSeed[] = [
+  { firstName: "Marcus", lastName: "Reyes", title: "VP of Marketing", seniority: "vp", department: "Marketing", organizationName: "SentinelEdge Security", organizationDomain: "sentineledge.io", industry: "Computer & Network Security", est: 180, location: "Austin, Texas, United States", revenue: "$28M", funding: "Series B · $22M", technologies: "AWS, Cloudflare, HubSpot, Salesforce, Snowflake, Okta", keywords: "MDR, threat detection, EDR, SOC, cybersecurity" },
+  { firstName: "Priya", lastName: "Nair", title: "Chief Marketing Officer", seniority: "c_suite", department: "C-Suite", organizationName: "Quorum Threat Labs", organizationDomain: "quorumthreat.com", industry: "Computer & Network Security", est: 95, location: "Boston, Massachusetts, United States", revenue: "$14M", funding: "Series A · $9M", technologies: "GCP, Marketo, Drift, Segment, Datadog", keywords: "threat intelligence, SIEM, incident response, cyber" },
+  { firstName: "David", lastName: "Okonkwo", title: "Director of Demand Generation", seniority: "director", department: "Marketing", organizationName: "NimbusGuard", organizationDomain: "nimbusguard.io", industry: "Cyber Security", est: 320, location: "Denver, Colorado, United States", revenue: "$47M", funding: "Series C · $60M", technologies: "Azure, Microsoft 365, 6sense, Outreach, Gong", keywords: "CSPM, cloud security, DevSecOps, compliance" },
+  { firstName: "Hannah", lastName: "Liebowitz", title: "Head of Growth", seniority: "head", department: "Marketing", organizationName: "Aperture Defense", organizationDomain: "aperturedefense.com", industry: "Information Technology & Services", est: 60, location: "Seattle, Washington, United States", revenue: "$8M", funding: "Seed · $3M", technologies: "Webflow, HubSpot, Vercel, Stripe, Intercom", keywords: "managed IT, MSP, endpoint security, backup" },
+  { firstName: "Tomás", lastName: "Beltran", title: "VP Demand Generation", seniority: "vp", department: "Marketing", organizationName: "Citadel MSSP", organizationDomain: "citadelmssp.com", industry: "Computer & Network Security", est: 240, location: "Miami, Florida, United States", revenue: "$36M", funding: null, technologies: "AWS, Salesforce, Pardot, Zoom, ServiceNow", keywords: "MSSP, managed security, firewall, SOC as a service" },
+  { firstName: "Aisha", lastName: "Rahman", title: "Marketing Director", seniority: "director", department: "Marketing", organizationName: "BastionWorks", organizationDomain: "bastionworks.io", industry: "Cyber Security", est: 130, location: "Chicago, Illinois, United States", revenue: "$19M", funding: "Series A · $12M", technologies: "GCP, HubSpot, Clearbit, Slack, Notion", keywords: "zero trust, IAM, access control, cyber" },
+  { firstName: "Liam", lastName: "Gallagher", title: "Chief Growth Officer", seniority: "c_suite", department: "C-Suite", organizationName: "RedCell Analytics", organizationDomain: "redcell.ai", industry: "Computer & Network Security", est: 75, location: "San Francisco, California, United States", revenue: "$11M", funding: "Series A · $15M", technologies: "AWS, OpenAI, Snowflake, dbt, Segment", keywords: "AI security, anomaly detection, analytics, cyber" },
+  { firstName: "Sofia", lastName: "Marchetti", title: "Senior Marketing Manager", seniority: "senior", department: "Marketing", organizationName: "Helix IR", organizationDomain: "helixir.com", industry: "Information Technology & Services", est: 410, location: "New York, New York, United States", revenue: "$62M", funding: "Series C · $48M", technologies: "Azure, Marketo, Salesforce, Tableau, Okta", keywords: "incident response, forensics, DFIR, managed detection" },
+  { firstName: "Jamal", lastName: "Carter", title: "Director of Brand", seniority: "director", department: "Marketing", organizationName: "PhalanxSec", organizationDomain: "phalanxsec.io", industry: "Cyber Security", est: 200, location: "Atlanta, Georgia, United States", revenue: "$33M", funding: "Series B · $30M", technologies: "AWS, HubSpot, Webflow, Amplitude, PagerDuty", keywords: "penetration testing, red team, vulnerability, cyber" },
+  { firstName: "Nora", lastName: "Eklund", title: "VP of Revenue Marketing", seniority: "vp", department: "Marketing", organizationName: "Verityware", organizationDomain: "verityware.com", industry: "Computer & Network Security", est: 150, location: "Raleigh, North Carolina, United States", revenue: "$24M", funding: "Series B · $18M", technologies: "GCP, Salesforce, 6sense, Outreach, Looker", keywords: "GRC, compliance automation, audit, cyber" },
+];
+
+const FIXTURE_PEOPLE: NormalizedPerson[] = FIXTURE_SEEDS.map((s, i) => ({
   apolloId: `fixture-${i + 1}`,
-  firstName: firstName as string,
-  lastName: lastName as string,
-  title: title as string,
-  seniority: seniority as string,
-  organizationName: organizationName as string,
-  organizationDomain: organizationDomain as string,
-  industry: industry as string,
-  estimatedNumEmployees: est as number,
-  location: location as string,
-  linkedinUrl: `https://www.linkedin.com/in/${(firstName as string).toLowerCase()}-${(lastName as string).toLowerCase()}`,
+  firstName: s.firstName,
+  lastName: s.lastName,
+  title: s.title,
+  seniority: s.seniority,
+  department: s.department,
+  linkedinUrl: `https://www.linkedin.com/in/${s.firstName.toLowerCase()}-${s.lastName.toLowerCase()}`,
+  twitterUrl: null,
+  organizationName: s.organizationName,
+  organizationDomain: s.organizationDomain,
+  industry: s.industry,
+  estimatedNumEmployees: s.est,
+  location: s.location,
+  organizationLinkedinUrl: `https://www.linkedin.com/company/${s.organizationDomain.split(".")[0]}`,
+  organizationTwitterUrl: `https://twitter.com/${s.organizationDomain.split(".")[0]}`,
+  organizationFacebookUrl: null,
+  organizationPhone: null,
+  revenue: s.revenue,
+  funding: s.funding,
+  technologies: s.technologies,
+  keywords: s.keywords,
   hasEmail: false as const,
 }));
 

@@ -2611,6 +2611,34 @@ components:
           type: ["object", "null"]
           additionalProperties:
             type: string
+        contactTitle:
+          type: ["string", "null"]
+        seniority:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
+        emailStatus:
+          type: ["string", "null"]
+        workPhone:
+          type: ["string", "null"]
+        contactLocation:
+          type: ["string", "null"]
+        industry:
+          type: ["string", "null"]
+        subIndustry:
+          type: ["string", "null"]
+        companySize:
+          type: ["string", "null"]
+        employeeCount:
+          type: ["integer", "null"]
+        revenue:
+          type: ["string", "null"]
+        funding:
+          type: ["string", "null"]
+        keywords:
+          type: ["string", "null"]
+        technologies:
+          type: ["string", "null"]
         source:
           type: string
         status:
@@ -2632,6 +2660,8 @@ components:
         notes:
           type: ["string", "null"]
         channelSource:
+          type: ["string", "null"]
+        externalCrmId:
           type: ["string", "null"]
         qualifiedAt:
           type: ["string", "null"]
@@ -2751,6 +2781,34 @@ components:
           type: ["object", "null"]
           additionalProperties:
             type: string
+        contactTitle:
+          type: ["string", "null"]
+        seniority:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
+        emailStatus:
+          type: ["string", "null"]
+        workPhone:
+          type: ["string", "null"]
+        contactLocation:
+          type: ["string", "null"]
+        industry:
+          type: ["string", "null"]
+        subIndustry:
+          type: ["string", "null"]
+        companySize:
+          type: ["string", "null"]
+        employeeCount:
+          type: ["integer", "null"]
+        revenue:
+          type: ["string", "null"]
+        funding:
+          type: ["string", "null"]
+        keywords:
+          type: ["string", "null"]
+        technologies:
+          type: ["string", "null"]
         leadId:
           type: ["integer", "null"]
         stage:

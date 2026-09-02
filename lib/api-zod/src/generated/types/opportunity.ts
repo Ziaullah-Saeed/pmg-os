@@ -41,6 +41,34 @@ export interface Opportunity {
   /** @nullable */
   fieldSources?: OpportunityFieldSources;
   /** @nullable */
+  contactTitle?: string | null;
+  /** @nullable */
+  seniority?: string | null;
+  /** @nullable */
+  department?: string | null;
+  /** @nullable */
+  emailStatus?: string | null;
+  /** @nullable */
+  workPhone?: string | null;
+  /** @nullable */
+  contactLocation?: string | null;
+  /** @nullable */
+  industry?: string | null;
+  /** @nullable */
+  subIndustry?: string | null;
+  /** @nullable */
+  companySize?: string | null;
+  /** @nullable */
+  employeeCount?: number | null;
+  /** @nullable */
+  revenue?: string | null;
+  /** @nullable */
+  funding?: string | null;
+  /** @nullable */
+  keywords?: string | null;
+  /** @nullable */
+  technologies?: string | null;
+  /** @nullable */
   leadId?: number | null;
   stage: string;
   value: number;

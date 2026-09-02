@@ -290,12 +290,22 @@ export interface ApolloPerson {
   lastName: string;
   title: string | null;
   seniority: string | null;
+  department: string | null;
   organizationName: string | null;
   organizationDomain: string | null;
   industry: string | null;
   estimatedNumEmployees: number | null;
   location: string | null;
   linkedinUrl: string | null;
+  twitterUrl: string | null;
+  organizationLinkedinUrl: string | null;
+  organizationTwitterUrl: string | null;
+  organizationFacebookUrl: string | null;
+  organizationPhone: string | null;
+  revenue: string | null;
+  funding: string | null;
+  technologies: string | null;
+  keywords: string | null;
   hasEmail: false;
 }
 

@@ -120,6 +120,9 @@ export interface NormalizedPdlPerson {
   companyLinkedin: string | null;
   companyTwitter: string | null;
   companyFacebook: string | null;
+  companyIndustry: string | null;
+  companyEmployeeCount: number | null;
+  companySize: string | null;
   /** PDL returned a boolean flag (data exists but the plan doesn't unlock it)
    *  for emails / phones. Signals a PLAN limit, not "no data" — surfaced so the
    *  user knows a PII/contact-data plan is required to actually get these. */
@@ -138,6 +141,10 @@ function asStr(v: unknown): string | null {
 }
 function asArr(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
+}
+function asNum(v: unknown): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+  return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null;
 }
 /** True when PDL sent the "exists but plan-locked" boolean flag for a field. */
 function isLocked(v: unknown): boolean {
@@ -185,6 +192,9 @@ function normalizePdl(d: Raw): NormalizedPdlPerson {
     companyLinkedin: withScheme(d.job_company_linkedin_url),
     companyTwitter: withScheme(d.job_company_twitter_url),
     companyFacebook: withScheme(d.job_company_facebook_url),
+    companyIndustry: asStr(d.job_company_industry),
+    companyEmployeeCount: asNum(d.job_company_employee_count),
+    companySize: asStr(d.job_company_size),
     emailLocked: isLocked(d.work_email) || isLocked(d.emails) || isLocked(d.personal_emails),
     phoneLocked: isLocked(d.mobile_phone) || isLocked(d.phone_numbers),
   };
@@ -304,6 +314,8 @@ export async function enrichContactsWithPDL(contactIds: number[]): Promise<PdlEn
       coLinkedin: companiesTable.linkedinUrl,
       coTwitter: companiesTable.twitterUrl,
       coFacebook: companiesTable.facebookUrl,
+      coEmployeeCount: companiesTable.employeeCount,
+      coSize: companiesTable.size,
       coSources: companiesTable.enrichmentSources,
     })
     .from(contactsTable)
@@ -354,12 +366,14 @@ export async function enrichContactsWithPDL(contactIds: number[]): Promise<PdlEn
 
       // Company — fill only empty columns, tagging each with "pdl".
       if (c.companyId) {
-        const companyUpdate: Record<string, string> = {};
+        const companyUpdate: Record<string, string | number> = {};
         const companyFilled: string[] = [];
         if (!c.website && person.companyWebsite) { companyUpdate.website = person.companyWebsite; companyFilled.push("website"); }
         if (!c.coLinkedin && person.companyLinkedin) { companyUpdate.linkedinUrl = person.companyLinkedin; companyFilled.push("linkedinUrl"); }
         if (!c.coTwitter && person.companyTwitter) { companyUpdate.twitterUrl = person.companyTwitter; companyFilled.push("twitterUrl"); }
         if (!c.coFacebook && person.companyFacebook) { companyUpdate.facebookUrl = person.companyFacebook; companyFilled.push("facebookUrl"); }
+        if (!c.coEmployeeCount && person.companyEmployeeCount) { companyUpdate.employeeCount = person.companyEmployeeCount; companyFilled.push("employeeCount"); }
+        if (!c.coSize && person.companySize) { companyUpdate.size = person.companySize; companyFilled.push("size"); }
         if (companyFilled.length > 0) {
           await db
             .update(companiesTable)

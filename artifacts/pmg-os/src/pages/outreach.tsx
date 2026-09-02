@@ -16,7 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { AiResultPanel } from "@/components/ai-result-panel";
 import { ModeBadge } from "@/components/mode-badge";
 import { ContactChannels, ContactChannelsDetail } from "@/components/contact-channels";
-import { useApolloSearch, useApolloStatus, useApolloImport, useApolloEnrich, useApolloEnroll, useIntegrationStatus, type ApolloPerson, type ApolloSearchResult } from "@/hooks/use-api";
+import { ProspectCard, CompanyFacts, TechChips, KeywordChips, VerifiedBadge, humanizeSeniority } from "@/components/prospect-card";
+import { useApolloSearch, useApolloStatus, useApolloImport, useApolloEnrich, useApolloEnroll, useIntegrationStatus } from "@/hooks/use-api";
 
 // Apollo seniority enum (UI labels). Sent verbatim to Apollo `person_seniorities`.
 const APOLLO_SENIORITIES = [
@@ -30,6 +31,11 @@ const APOLLO_SENIORITIES = [
   { value: "manager", label: "Manager" },
   { value: "senior", label: "Senior" },
 ];
+
+// How many prospects to pull per search. Apollo's `per_page` (max 100) is the
+// lever that works on every plan — the pagination metadata (total_pages) comes
+// back empty on lower plans, so we control result volume with this, not paging.
+const PROSPECT_COUNTS = [10, 20, 30, 50, 100];
 
 // Apollo `organization_num_employees_ranges` buckets (value=lower,upper).
 const APOLLO_HEADCOUNT_RANGES = [
@@ -85,18 +91,17 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
   const { data: sequences } = useListOutreachSequences({ status: "active" });
   const activeSequences = (sequences ?? []) as any[];
   const [showFinder, setShowFinder] = useState(false);
-  const [apolloResult, setApolloResult] = useState<ApolloSearchResult | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedSequenceId, setSelectedSequenceId] = useState("");
-  // apolloId → result of import (so rows can show imported / reveal / enroll state)
-  const [importedMap, setImportedMap] = useState<Record<string, { contactId: number; leadId: number; email: string | null; phone: string | null; contactStatus: string }>>({});
-  // Opt-in: also capture a phone number when revealing (Apollo returns already-known
-  // numbers synchronously; freshly-revealed mobiles are webhook-only).
-  const [revealPhone, setRevealPhone] = useState(false);
-  // Track which single contact / batch is revealing so only the clicked row spins
-  // (apolloEnrich.isPending is shared across every row otherwise).
-  const [revealingId, setRevealingId] = useState<number | null>(null);
-  const [revealingAll, setRevealingAll] = useState(false);
+  // How many prospects to pull per search (drives Apollo per_page).
+  const [perPage, setPerPage] = useState(30);
+  // Search runs STRAIGHT into the pipeline (no intermediate results list): search
+  // → import all → prospects appear in the list below, where the user selects who
+  // to enrich / move to CRM. Track the in-flight state + a one-line last-run summary.
+  const [searching, setSearching] = useState(false);
+  const [searchSummary, setSearchSummary] = useState<{ imported: number; skipped: number } | null>(null);
+  // Bulk actions on the prospects selected in the pipeline.
+  const [bulkEnriching, setBulkEnriching] = useState(false);
+  const [bulkMoving, setBulkMoving] = useState(false);
   const [enrichingLead, setEnrichingLead] = useState(false);
   const [filters, setFilters] = useState({
     titles: "",
@@ -205,7 +210,12 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
 
   const splitCsv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
-  const runApolloSearch = useCallback((page = 1) => {
+  // Find Prospects = search Apollo AND import the matches straight into the
+  // pipeline in one action (the backend skips anyone already imported). No
+  // intermediate results list — prospects land in the list below.
+  const handleFindProspects = useCallback(() => {
+    setSearching(true);
+    setSearchSummary(null);
     apolloSearch.mutate(
       {
         titles: splitCsv(filters.titles),
@@ -214,142 +224,128 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
         seniorities: filters.seniorities,
         employeeRanges: filters.employeeRanges,
         keywords: filters.keywords.trim() || undefined,
-        page,
-        perPage: 25,
+        page: 1,
+        perPage,
       },
       {
         onSuccess: (data) => {
-          setApolloResult(data);
-          setSelectedIds(new Set());
-          setImportedMap({});
           if (data.people.length === 0) {
+            setSearching(false);
             toast({ title: "No prospects found", description: "Try broadening your filters." });
+            return;
           }
+          apolloImport.mutate(data.people, {
+            onSettled: () => setSearching(false),
+            onSuccess: (imp) => {
+              queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+              queryClient.refetchQueries({ queryKey: ["/api/leads"] });
+              setSearchSummary({ imported: imp.imported.length, skipped: imp.skipped.length });
+              toast({
+                title: imp.imported.length > 0 ? "Prospects added to pipeline" : "No new prospects",
+                description: imp.imported.length > 0
+                  ? `${imp.imported.length} added${imp.skipped.length ? `, ${imp.skipped.length} already in pipeline` : ""}. Select prospects below to enrich or move to CRM.`
+                  : `All ${imp.skipped.length} matches are already in your pipeline. Broaden filters or raise the result count.`,
+              });
+            },
+            onError: (err: any) => {
+              toast({ title: "Import failed", description: err?.message || "Request failed", variant: "destructive" });
+            },
+          });
         },
         // Surface the real failure — never toast success on error (anti-pattern guard).
         onError: (err: any) => {
+          setSearching(false);
           toast({ title: "Apollo search failed", description: err?.message || "Request failed", variant: "destructive" });
         },
       },
     );
-  }, [filters, apolloSearch, toast]);
+  }, [filters, perPage, apolloSearch, apolloImport, queryClient, toast]);
 
-  const toggleSelect = useCallback((apolloId: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(apolloId)) next.delete(apolloId);
-      else next.add(apolloId);
-      return next;
-    });
-  }, []);
+  const clearSelection = useCallback(() => setSelectedLeadIds(new Set()), []);
 
-  const handleImportSelected = useCallback(() => {
-    const people = (apolloResult?.people ?? []).filter(
-      (p) => p.apolloId && selectedIds.has(p.apolloId) && !importedMap[p.apolloId],
-    );
-    if (people.length === 0) return;
-    apolloImport.mutate(people, {
+  // Enrich the selected pipeline prospects in one Apollo/PDL/website-scan pass.
+  const handleBulkEnrich = useCallback(() => {
+    const contactIds = leadList
+      .filter((l: any) => selectedLeadIds.has(l.id))
+      .map((l: any) => l.contactId)
+      .filter((id: any): id is number => Number.isFinite(id));
+    if (contactIds.length === 0) {
+      toast({ title: "Nothing to enrich", description: "The selected prospects have no linked contacts.", variant: "destructive" });
+      return;
+    }
+    setBulkEnriching(true);
+    apolloEnrich.mutate({ contactIds, revealPhone: true }, {
+      onSettled: () => setBulkEnriching(false),
       onSuccess: (data) => {
-        setImportedMap((prev) => {
-          const next = { ...prev };
-          for (const row of data.imported) {
-            if (row.apolloId) next[row.apolloId] = { contactId: row.contactId, leadId: row.leadId, email: row.email, phone: null, contactStatus: row.contactStatus };
-          }
-          return next;
-        });
-        setSelectedIds(new Set());
-        const skipped = data.skipped.length ? `, ${data.skipped.length} skipped` : "";
-        toast({ title: "Imported to pipeline", description: `${data.imported.length} lead${data.imported.length === 1 ? "" : "s"} created${skipped}.` });
-      },
-      onError: (err: any) => {
-        toast({ title: "Import failed", description: err?.message || "Request failed", variant: "destructive" });
-      },
-    });
-  }, [apolloResult, selectedIds, importedMap, apolloImport, toast]);
-
-  const handleReveal = useCallback((apolloId: string, contactId: number) => {
-    setRevealingId(contactId);
-    apolloEnrich.mutate({ contactIds: [contactId], revealPhone }, {
-      onSettled: () => setRevealingId(null),
-      onSuccess: (data) => {
-        const row = data.enriched.find((e) => e.contactId === contactId);
-        setImportedMap((prev) => ({
-          ...prev,
-          [apolloId]: { ...prev[apolloId], contactId, email: row?.email ?? null, phone: row?.phone ?? prev[apolloId]?.phone ?? null, contactStatus: row?.contactStatus ?? "missing_contact" },
-        }));
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        const phones = data.phonesRevealed ? ` · ${data.phonesRevealed} phone${data.phonesRevealed === 1 ? "" : "s"}` : "";
+        const web = data.socialsFilled ? ` · +${data.socialsFilled} web/social` : "";
         toast(
-          row?.email
-            ? { title: data.mode === "fixture" ? "Sample contact filled" : "Contact revealed", description: [row.email, row.phone].filter(Boolean).join(" · ") }
-            : {
-                title: "No email found",
-                description: revealPhone && row?.phone
-                  ? `Apollo returned a phone (${row.phone}) but no email for this contact.`
-                  : "Apollo could not reveal an email for this contact.",
-                variant: "destructive",
-              },
+          data.emailsRevealed > 0 || data.socialsFilled
+            ? { title: "Prospects enriched", description: `${data.emailsRevealed} email${data.emailsRevealed === 1 ? "" : "s"}${phones}${web} across ${data.enriched.length} prospect${data.enriched.length === 1 ? "" : "s"}.` }
+            : { title: "No new contact data", description: `Apollo/PDL had no verified email or public socials for these ${data.enriched.length} prospect${data.enriched.length === 1 ? "" : "s"}.`, variant: "destructive" },
         );
-        if (data.phoneRevealAsync && data.phoneRevealsRequested > 0) {
-          toast({ title: "Mobile reveal requested", description: "Apollo verifies the number and delivers it to your webhook in a few minutes — refresh to see it land." });
+        if (data.pdlErrors && data.pdlErrors.length > 0) {
+          toast({ title: "People Data Labs error", description: data.pdlErrors[0], variant: "destructive" });
         }
       },
       onError: (err: any) => {
         toast({ title: "Enrich failed", description: err?.message || "Request failed", variant: "destructive" });
       },
     });
-  }, [apolloEnrich, revealPhone, toast]);
+  }, [leadList, selectedLeadIds, apolloEnrich, queryClient, toast]);
 
-  // Batch reveal every imported-but-unrevealed contact in one call, so a fully
-  // locked batch surfaces one honest "0 emails available" message.
-  const handleRevealAll = useCallback(() => {
-    const targets = Object.entries(importedMap).filter(([, v]) => !v.email);
-    const contactIds = targets.map(([, v]) => v.contactId);
-    if (contactIds.length === 0) return;
-    setRevealingAll(true);
-    apolloEnrich.mutate({ contactIds, revealPhone }, {
-      onSettled: () => setRevealingAll(false),
-      onSuccess: (data) => {
-        setImportedMap((prev) => {
-          const next = { ...prev };
-          for (const row of data.enriched) {
-            const key = Object.keys(next).find((k) => next[k].contactId === row.contactId);
-            if (key) next[key] = { ...next[key], email: row.email, phone: row.phone ?? next[key].phone ?? null, contactStatus: row.contactStatus };
-          }
-          return next;
-        });
-        const phones = data.phonesRevealed ? ` · ${data.phonesRevealed} phone${data.phonesRevealed === 1 ? "" : "s"}` : "";
-        toast(
-          data.emailsRevealed > 0
-            ? { title: data.mode === "fixture" ? "Sample contacts filled" : "Contacts revealed", description: `${data.emailsRevealed} email${data.emailsRevealed === 1 ? "" : "s"}${phones} of ${data.enriched.length}.` }
-            : { title: "No emails available", description: `Apollo could not reveal an email for any of these ${data.enriched.length} contact${data.enriched.length === 1 ? "" : "s"}.`, variant: "destructive" },
-        );
-        if (data.phoneRevealAsync && data.phoneRevealsRequested > 0) {
-          toast({ title: "Mobile reveal requested", description: `${data.phoneRevealsRequested} number${data.phoneRevealsRequested === 1 ? "" : "s"} arriving via webhook in a few minutes — refresh to see them.` });
-        }
-      },
-      onError: (err: any) => {
-        toast({ title: "Reveal failed", description: err?.message || "Request failed", variant: "destructive" });
-      },
-    });
-  }, [importedMap, revealPhone, apolloEnrich, toast]);
+  // Qualify the selected prospects into the CRM pipeline (skips ones already there).
+  const handleBulkMoveCrm = useCallback(async () => {
+    const ids = leadList
+      .filter((l: any) => selectedLeadIds.has(l.id) && !isInCrm(l.status))
+      .map((l: any) => l.id as number);
+    if (ids.length === 0) {
+      toast({ title: "Already in CRM", description: "The selected prospects are already in the CRM pipeline." });
+      return;
+    }
+    setBulkMoving(true);
+    try {
+      const results = await Promise.allSettled(
+        ids.map((id) => fetch(`${API_BASE}/leads/${id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+          body: JSON.stringify({ status: "qualified" }),
+        })),
+      );
+      const failed = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok)).length;
+      const ok = ids.length - failed;
+      await queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/leads"] });
+      clearSelection();
+      toast(
+        failed > 0
+          ? { title: ok > 0 ? "Partially moved" : "Move failed", description: `${ok} moved to CRM, ${failed} failed.`, variant: "destructive" }
+          : { title: "Moved to CRM", description: `${ok} prospect${ok === 1 ? "" : "s"} qualified into the CRM pipeline.` },
+      );
+    } catch (err: any) {
+      toast({ title: "Move failed", description: err?.message || "Request failed", variant: "destructive" });
+    } finally {
+      setBulkMoving(false);
+    }
+  }, [leadList, selectedLeadIds, queryClient, toast, clearSelection]);
 
-  const handleEnroll = useCallback(() => {
-    const leadIds = Object.values(importedMap).filter((v) => v.email && v.leadId).map((v) => v.leadId);
+  // Enroll the selected prospects into an outreach sequence (server skips leads
+  // with no email / already enrolled).
+  const handleBulkEnroll = useCallback(() => {
+    const leadIds = leadList.filter((l: any) => selectedLeadIds.has(l.id)).map((l: any) => l.id as number);
     const sequenceId = Number(selectedSequenceId);
     if (leadIds.length === 0 || !Number.isFinite(sequenceId)) return;
-    apolloEnroll.mutate(
-      { leadIds, sequenceId },
-      {
-        onSuccess: (data) => {
-          const skipped = data.skipped.length ? `, ${data.skipped.length} skipped (no email / already enrolled)` : "";
-          toast({ title: "Enrolled in sequence", description: `${data.enrolled.length} lead${data.enrolled.length === 1 ? "" : "s"} enrolled${skipped}.` });
-        },
-        // Surface the real failure — never toast success on error (anti-pattern guard).
-        onError: (err: any) => {
-          toast({ title: "Enroll failed", description: err?.message || "Request failed", variant: "destructive" });
-        },
+    apolloEnroll.mutate({ leadIds, sequenceId }, {
+      onSuccess: (data) => {
+        const skipped = data.skipped.length ? `, ${data.skipped.length} skipped (no email / already enrolled)` : "";
+        toast({ title: "Enrolled in sequence", description: `${data.enrolled.length} enrolled${skipped}. Reveal emails first if some were skipped.` });
       },
-    );
-  }, [importedMap, selectedSequenceId, apolloEnroll, toast]);
+      // Surface the real failure — never toast success on error (anti-pattern guard).
+      onError: (err: any) => {
+        toast({ title: "Enroll failed", description: err?.message || "Request failed", variant: "destructive" });
+      },
+    });
+  }, [leadList, selectedLeadIds, selectedSequenceId, apolloEnroll, toast]);
 
   // Real enrichment for a pipeline lead's linked contact (Apollo bulk_match).
   // Replaces the old setTimeout fake-success. Updates the open dialog in place.
@@ -507,14 +503,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
     );
   }, [newSequence, sequenceSteps, createSequence, queryClient, toast]);
 
-  const apolloPeople = apolloResult?.people ?? [];
-  const isFixture = apolloResult?.mode === "fixture" || apolloStatus?.mode === "fixture";
-  const selectableIds = apolloPeople.map((p) => p.apolloId).filter((id): id is string => !!id && !importedMap[id]);
-  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
-  const selectedCount = selectableIds.filter((id) => selectedIds.has(id)).length;
-  const importedCount = Object.keys(importedMap).length;
-  const enrollableCount = Object.values(importedMap).filter((v) => v.email && v.leadId).length;
-  const unrevealedCount = Object.values(importedMap).filter((v) => !v.email).length;
+  const isFixture = apolloStatus?.mode === "fixture";
 
   return (
     <div className="space-y-6">
@@ -555,18 +544,21 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
         </span>
       </div>
 
+      {/* Inline Find Prospects panel — search matches import straight into the
+          pipeline below (no dialog, no intermediate results list). */}
       {showFinder && (
         <GlassCard>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4 text-crimson" />
               <h3 className="text-sm font-semibold">Find Prospects (Apollo)</h3>
               {isFixture && <Badge variant="outline" className="text-[9px] border-gold/40 text-gold">Sample mode</Badge>}
             </div>
-            <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setShowFinder(false)}>
-              <X className="h-3 w-3" />
-            </Button>
+            <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setShowFinder(false)}><X className="h-3 w-3" /></Button>
           </div>
+          <p className="text-[10px] text-muted-foreground mb-3">
+            Matches import straight into your pipeline below — then select who to enrich &amp; move to CRM. Search is free.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">Job Titles</Label>
@@ -618,227 +610,43 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="ghost" className="text-xs"
-              onClick={() => setFilters({ titles: "", keywords: "", organizationKeywords: "", locations: "", seniorities: [], employeeRanges: [] })}>
-              Reset
-            </Button>
-            <Button className="btn-premium text-white text-sm" onClick={() => runApolloSearch(1)} disabled={apolloSearch.isPending}>
-              {apolloSearch.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-              Search Prospects
-            </Button>
-          </div>
-        </GlassCard>
-      )}
-
-      {apolloResult && (
-        <GlassCard>
-          {isFixture && apolloResult.fixtureNotice && (
-            <div className="flex items-start gap-2 mb-4 p-2.5 rounded-lg bg-gold/10 border border-gold/30">
-              <AlertCircle className="h-4 w-4 text-gold shrink-0 mt-0.5" />
-              <p className="text-[11px] text-gold/90">{apolloResult.fixtureNotice}</p>
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground">Results</Label>
+              <Select value={String(perPage)} onValueChange={(v) => setPerPage(Number(v))}>
+                <SelectTrigger className="h-9 w-[72px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PROSPECT_COUNTS.map((n) => (<SelectItem key={n} value={String(n)}>{n}</SelectItem>))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
-          <div className="flex items-center justify-between mb-4 gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <Users className="h-4 w-4 text-crimson shrink-0" />
-              <h3 className="text-sm font-semibold">{isFixture ? "Sample Prospects" : "Apollo Results"}</h3>
-              <Badge variant="outline" className="text-[10px]">{apolloResult.pagination.totalEntries.toLocaleString()} matches</Badge>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {selectedCount > 0 && (
-                <Button size="sm" className="btn-premium text-white text-xs h-7" onClick={handleImportSelected} disabled={apolloImport.isPending}>
-                  {apolloImport.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Bookmark className="h-3 w-3 mr-1" />}
-                  Import {selectedCount}
-                </Button>
-              )}
-              <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setApolloResult(null)}>
-                <X className="h-3 w-3" />
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="ghost" className="text-xs"
+                onClick={() => setFilters({ titles: "", keywords: "", organizationKeywords: "", locations: "", seniorities: [], employeeRanges: [] })}>
+                Reset
+              </Button>
+              <Button className="btn-premium text-white text-sm" onClick={handleFindProspects} disabled={searching}>
+                {searching ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                Find {perPage}
               </Button>
             </div>
           </div>
 
-          {apolloPeople.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">No prospects matched these filters. Broaden your criteria.</p>
-          ) : (
-            <>
-              {selectableIds.length > 0 && (
-                <label className="flex items-center gap-2 mb-2 px-1 cursor-pointer w-fit">
-                  <input
-                    type="checkbox"
-                    className="h-3.5 w-3.5 accent-crimson cursor-pointer"
-                    checked={allSelected}
-                    onChange={() => setSelectedIds((prev) => (selectableIds.every((id) => prev.has(id)) ? new Set() : new Set(selectableIds)))}
-                  />
-                  <span className="text-[10px] text-muted-foreground">Select all on this page</span>
-                </label>
-              )}
-              <div className="space-y-2">
-                {apolloPeople.map((p: ApolloPerson, i: number) => {
-                  const fullName = `${p.firstName} ${p.lastName}`.trim() || "Unknown";
-                  // Apollo's free api_search preview redacts the last name; it's
-                  // revealed only on import + reveal (bulk_match echoes it). Flag
-                  // that so a first-name-only card doesn't look broken.
-                  const lastNameHidden = !!p.firstName?.trim() && !p.lastName?.trim();
-                  const initials = `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}` || "?";
-                  const imp = p.apolloId ? importedMap[p.apolloId] : undefined;
-                  const isSelected = p.apolloId ? selectedIds.has(p.apolloId) : false;
-                  return (
-                    <div key={p.apolloId ?? i} className="p-3 rounded-lg glass-surface flex items-center gap-3">
-                      {imp ? (
-                        <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                      ) : (
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 accent-crimson cursor-pointer shrink-0"
-                          checked={isSelected}
-                          disabled={!p.apolloId}
-                          onChange={() => p.apolloId && toggleSelect(p.apolloId)}
-                        />
-                      )}
-                      <div className="h-10 w-10 rounded-lg bg-crimson/10 border border-crimson/20 flex items-center justify-center text-crimson text-sm font-bold shrink-0">
-                        {initials}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate">{fullName}</p>
-                          {lastNameHidden && !imp && (
-                            <span
-                              className="text-[9px] text-muted-foreground italic shrink-0 whitespace-nowrap"
-                              title="Apollo hides the last name in free search results. It's revealed when you import and reveal this prospect."
-                            >
-                              (last name on reveal)
-                            </span>
-                          )}
-                          {p.linkedinUrl && (
-                            <a href={p.linkedinUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground hover:text-blue-400 shrink-0">
-                              <Linkedin className="h-3 w-3" />
-                            </a>
-                          )}
-                          {imp && <Badge className="bg-success/20 text-success text-[9px] border-success/30 shrink-0">Imported</Badge>}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                          {p.title ?? "—"}{p.organizationName ? ` · ${p.organizationName}` : ""}
-                        </p>
-                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
-                          {p.industry && <span className="flex items-center gap-1 truncate"><Building2 className="h-3 w-3" />{p.industry}</span>}
-                          {p.estimatedNumEmployees != null && <span className="flex items-center gap-1"><Users className="h-3 w-3" />{p.estimatedNumEmployees.toLocaleString()}</span>}
-                          {p.location && <span className="flex items-center gap-1 truncate"><Globe className="h-3 w-3" />{p.location}</span>}
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        {imp ? (
-                          <div className="flex flex-col items-end gap-1">
-                            {imp.email && (
-                              <div className="flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
-                                <Mail className="h-2.5 w-2.5 shrink-0" />
-                                <span className="truncate max-w-[160px]">{imp.email}</span>
-                              </div>
-                            )}
-                            {imp.phone && (
-                              <div className="flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
-                                <Phone className="h-2.5 w-2.5 shrink-0" />
-                                <span className="truncate max-w-[160px]">{imp.phone}</span>
-                              </div>
-                            )}
-                            {!imp.email && (
-                              <Button size="sm" variant="outline" className="text-[10px] h-7" disabled={revealingId === imp.contactId || revealingAll}
-                                onClick={() => p.apolloId && handleReveal(p.apolloId, imp.contactId)}>
-                                {revealingId === imp.contactId ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Mail className="h-3 w-3 mr-1" />}
-                                Reveal {revealPhone ? "contact" : "email"}
-                              </Button>
-                            )}
-                          </div>
-                        ) : (
-                          <Badge variant="outline" className="text-[9px] text-muted-foreground border-border/50">
-                            <Mail className="h-2.5 w-2.5 mr-1" />Email on import
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+          {searchSummary && (
+            <p className="text-[10px] mt-3 flex items-center gap-1 text-muted-foreground">
+              <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
+              {searchSummary.imported > 0
+                ? `${searchSummary.imported} prospect${searchSummary.imported === 1 ? "" : "s"} added to your pipeline${searchSummary.skipped ? `, ${searchSummary.skipped} already there` : ""}.`
+                : `No new prospects — all ${searchSummary.skipped} matches are already in your pipeline.`}
+            </p>
           )}
-
-          {apolloResult.pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-[10px] text-muted-foreground">Page {apolloResult.pagination.page} of {apolloResult.pagination.totalPages}</p>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" className="text-xs h-7" disabled={apolloResult.pagination.page <= 1 || apolloSearch.isPending} onClick={() => runApolloSearch(apolloResult.pagination.page - 1)}>Prev</Button>
-                <Button size="sm" variant="outline" className="text-xs h-7" disabled={apolloResult.pagination.page >= apolloResult.pagination.totalPages || apolloSearch.isPending} onClick={() => runApolloSearch(apolloResult.pagination.page + 1)}>Next</Button>
-              </div>
-            </div>
-          )}
-
-          <p className="text-[10px] text-muted-foreground mt-3 flex items-center gap-1">
-            <AlertCircle className="h-3 w-3 shrink-0" />
-            {isFixture
-              ? "Sample mode — Import creates leads with labeled sample data. Connect Apollo to import real prospects and reveal verified emails."
-              : "Search is free. Import creates leads (no email); Reveal enriches via Apollo and spends ~1 credit per email."}
-          </p>
-
-          <label className="text-[10px] text-muted-foreground mt-1.5 flex items-start gap-1.5 cursor-pointer">
-            <input type="checkbox" className="h-3 w-3 mt-0.5 accent-crimson cursor-pointer shrink-0" checked={revealPhone} onChange={(e) => setRevealPhone(e.target.checked)} />
-            <span className="flex items-center gap-1"><Phone className="h-3 w-3 shrink-0" />
-              {apolloStatus?.phoneRevealEnabled
-                ? "Also reveal mobile numbers — Apollo verifies them asynchronously (~8 credits each) and delivers them to your webhook in a few minutes; refresh to see them land."
-                : "Also capture phone — returns numbers Apollo already has (no async reveal). Set APOLLO_WEBHOOK_URL to a public endpoint to unlock live mobile reveal."}
-            </span>
-          </label>
-
           {apolloStatus?.mode === "live" && (
             <p className="text-[10px] mt-1.5 flex items-center gap-1">
               <Zap className="h-3 w-3 shrink-0 text-gold" />
               <span className={apolloStatus.creditsRemaining <= 0 ? "text-crimson" : "text-muted-foreground"}>
-                Apollo credits this month: {apolloStatus.creditsThisMonth.toLocaleString()} / {apolloStatus.monthlyCap.toLocaleString()} ({apolloStatus.creditsRemaining.toLocaleString()} left)
-                {apolloStatus.creditsRemaining <= 0 ? " — cap reached, enrichment paused until next month" : ""}
+                Apollo credits this month: {apolloStatus.creditsThisMonth.toLocaleString()} / {apolloStatus.monthlyCap.toLocaleString()} ({apolloStatus.creditsRemaining.toLocaleString()} left). Search is free; enriching spends ~1 credit per email.
               </span>
             </p>
-          )}
-
-          {importedCount > 0 && (
-            <div className="mt-3 flex flex-col gap-2 rounded-lg border border-crimson/15 bg-crimson/5 p-2.5 sm:flex-row sm:items-center">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Send className="h-3 w-3 text-crimson shrink-0" />
-                <span>Enroll imported leads into a sequence — {enrollableCount} of {importedCount} have an email{enrollableCount < importedCount ? " (Reveal the rest first)" : ""}.</span>
-              </div>
-              <div className="flex items-center gap-2 sm:ml-auto">
-                {unrevealedCount > 0 && (
-                  <Button size="sm" variant="outline" className="text-xs h-8" disabled={revealingAll || revealingId !== null}
-                    onClick={handleRevealAll}>
-                    {revealingAll ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Mail className="h-3 w-3 mr-1" />}
-                    Reveal all {unrevealedCount}
-                  </Button>
-                )}
-                {activeSequences.length === 0 ? (
-                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowNewSequence(true)}>
-                    <ListPlus className="h-3 w-3 mr-1" />Create a sequence
-                  </Button>
-                ) : (
-                  <>
-                    <Select value={selectedSequenceId} onValueChange={setSelectedSequenceId}>
-                      <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Choose sequence" /></SelectTrigger>
-                      <SelectContent>
-                        {activeSequences.map((s: any) => (
-                          <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button size="sm" variant="ghost" className="h-8 text-xs px-2" onClick={() => setShowNewSequence(true)} title="Create a new sequence">
-                      <ListPlus className="h-3 w-3" />
-                    </Button>
-                  </>
-                )}
-                <Button size="sm" className="btn-premium text-white text-xs h-8"
-                  disabled={!selectedSequenceId || enrollableCount === 0 || apolloEnroll.isPending}
-                  onClick={handleEnroll}>
-                  {apolloEnroll.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
-                  Enroll {enrollableCount}
-                </Button>
-              </div>
-            </div>
           )}
         </GlassCard>
       )}
@@ -853,7 +661,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
         </GlassCard>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-1">
             <label className="flex items-center gap-2 cursor-pointer w-fit">
               <input
                 type="checkbox"
@@ -866,62 +674,49 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
               </span>
             </label>
             {selectedLeadIds.size > 0 && (
-              <Button size="sm" variant="outline" className="h-7 text-xs border-crimson/40 text-crimson"
-                onClick={() => setConfirmDeleteIds([...selectedLeadIds])}>
-                <Trash2 className="h-3 w-3 mr-1" />Delete {selectedLeadIds.size}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                <Button size="sm" className="btn-premium text-white h-7 text-xs" disabled={bulkEnriching} onClick={handleBulkEnrich}>
+                  {bulkEnriching ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Zap className="h-3 w-3 mr-1" />}
+                  Enrich {selectedLeadIds.size}
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs border-crimson/30 text-crimson" disabled={bulkMoving} onClick={handleBulkMoveCrm}>
+                  {bulkMoving ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <ArrowRight className="h-3 w-3 mr-1" />}
+                  Move to CRM
+                </Button>
+                {activeSequences.length > 0 ? (
+                  <div className="flex items-center gap-1">
+                    <Select value={selectedSequenceId} onValueChange={setSelectedSequenceId}>
+                      <SelectTrigger className="h-7 w-36 text-xs"><SelectValue placeholder="Sequence…" /></SelectTrigger>
+                      <SelectContent>
+                        {activeSequences.map((s: any) => (<SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" disabled={!selectedSequenceId || apolloEnroll.isPending} onClick={handleBulkEnroll}>
+                      {apolloEnroll.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}Enroll
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowNewSequence(true)} title="Create a sequence to enroll into">
+                    <ListPlus className="h-3 w-3 mr-1" />New sequence
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="h-7 text-xs border-destructive/40 text-destructive"
+                  onClick={() => setConfirmDeleteIds([...selectedLeadIds])}>
+                  <Trash2 className="h-3 w-3 mr-1" />Delete {selectedLeadIds.size}
+                </Button>
+              </div>
             )}
           </div>
           {filtered.map((lead: any) => (
-            <motion.div key={lead.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-              className="glass-card rounded-lg p-4 cursor-pointer hover:glass-card-interactive transition-all"
-              onClick={() => setSelectedLead(lead)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-crimson cursor-pointer shrink-0"
-                    checked={selectedLeadIds.has(lead.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={() => toggleLeadSelect(lead.id)}
-                  />
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-crimson/30 to-crimson/10 flex items-center justify-center text-crimson text-sm font-bold shrink-0">
-                    {getLeadInitials(lead)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium truncate">{getLeadName(lead)}</p>
-                      <Badge variant="outline" className="text-[10px] capitalize shrink-0">{(lead.status ?? "new").replace(/_/g, " ")}</Badge>
-                      {lead.createdByMode && <ModeBadge mode={lead.createdByMode} />}
-                      {isAuto && lead.fitScore && <Badge variant="outline" className="text-[9px] border-crimson/30 text-crimson shrink-0">AI Scored</Badge>}
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                      {getLeadCompany(lead) && <span className="flex items-center gap-1 truncate"><Building2 className="h-3 w-3" />{getLeadCompany(lead)}</span>}
-                      {lead.source && <span className="flex items-center gap-1 truncate capitalize">{lead.source.replace(/_/g, " ")}</span>}
-                    </div>
-                    <ContactChannels data={lead} sources={lead.fieldSources} className="mt-1.5" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  {(lead.confidenceScore ?? lead.fitScore) ? (
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Score</p>
-                      <p className="text-sm font-semibold text-crimson">{lead.confidenceScore ?? lead.fitScore}%</p>
-                    </div>
-                  ) : null}
-                  {isInCrm(lead.status) ? (
-                    <Badge className="bg-success/20 text-success text-[9px] border-success/30 shrink-0">In CRM</Badge>
-                  ) : (
-                    <Button size="sm" variant="outline" className="text-[10px] h-7 px-2 border-crimson/30 text-crimson shrink-0"
-                      onClick={(e) => { e.stopPropagation(); handleMoveToCrm(lead.id); }}>
-                      <ArrowRight className="h-3 w-3 mr-1" />CRM
-                    </Button>
-                  )}
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-            </motion.div>
+            <ProspectCard
+              key={lead.id}
+              lead={lead}
+              selected={selectedLeadIds.has(lead.id)}
+              onToggleSelect={() => toggleLeadSelect(lead.id)}
+              onOpen={() => setSelectedLead(lead)}
+              onMoveToCrm={() => handleMoveToCrm(lead.id)}
+              showAiScored={isAuto}
+            />
           ))}
         </div>
       )}
@@ -975,8 +770,30 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm"><Building2 className="h-4 w-4 text-muted-foreground" /><span>{getLeadCompany(selectedLead) || "No company"}</span></div>
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium">{getLeadCompany(selectedLead) || "No company"}</span>
+                    <VerifiedBadge status={selectedLead.emailStatus} />
+                  </div>
+                  {(selectedLead.contactTitle || humanizeSeniority(selectedLead.seniority) || selectedLead.department) && (
+                    <p className="text-xs text-muted-foreground">
+                      {[selectedLead.contactTitle, humanizeSeniority(selectedLead.seniority), selectedLead.department].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
                   <ContactChannelsDetail data={selectedLead} sources={selectedLead.fieldSources} />
+                  <CompanyFacts lead={selectedLead} />
+                  {selectedLead.technologies && (
+                    <div>
+                      <p className="text-[10px] text-muted-foreground mb-1">Tech stack</p>
+                      <TechChips technologies={selectedLead.technologies} max={12} />
+                    </div>
+                  )}
+                  {selectedLead.keywords && (
+                    <div>
+                      <p className="text-[10px] text-muted-foreground mb-1">Keywords</p>
+                      <KeywordChips keywords={selectedLead.keywords} max={12} />
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className="capitalize">Source: {(selectedLead.source ?? "Unknown").replace(/_/g, " ")}</span></div>
                   {selectedLead.painPoints && (
                     <div className="flex items-start gap-2 text-sm"><AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" /><span className="text-xs text-muted-foreground">{selectedLead.painPoints}</span></div>

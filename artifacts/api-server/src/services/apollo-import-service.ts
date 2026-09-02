@@ -10,9 +10,12 @@ import {
   buildApolloWebhookUrl,
   recordPhonePending,
   resolvePhonePending,
+  normalizeOrganization,
+  humanizeToken,
   APOLLO_ENDPOINTS,
   type ApolloMode,
   type NormalizedPerson,
+  type NormalizedOrg,
 } from "./apollo-service";
 import { getGlobalMode } from "./ai-mode-service";
 import { checkDuplicatesOnCreate } from "./dedup-service";
@@ -52,6 +55,17 @@ const MAX_ENRICH_PER_REQUEST = (() => {
   const n = Number(process.env.APOLLO_MAX_ENRICH_PER_REQUEST);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 100;
 })();
+
+/** Merge new provenance tags onto an existing enrichment_sources map. */
+function mergeSources(
+  existing: Record<string, string> | null | undefined,
+  fields: string[],
+  provider = "apollo",
+): Record<string, string> {
+  const out = { ...(existing ?? {}) };
+  for (const f of fields) out[f] = provider;
+  return out;
+}
 
 function headcountToSize(n: number | null): string | null {
   if (n == null) return null;
@@ -96,34 +110,116 @@ async function currentModeLabel(): Promise<string> {
   return m === "ai_autonomous" ? "ai_auto" : m === "hybrid" ? "hybrid" : "human";
 }
 
-/** Upsert a company by domain (website) then case-insensitive name. */
+/** Company columns read for fill-empty checks. */
+const companyRichCols = {
+  id: companiesTable.id,
+  website: companiesTable.website,
+  phone: companiesTable.phone,
+  linkedinUrl: companiesTable.linkedinUrl,
+  twitterUrl: companiesTable.twitterUrl,
+  facebookUrl: companiesTable.facebookUrl,
+  revenue: companiesTable.revenue,
+  funding: companiesTable.funding,
+  technologies: companiesTable.technologies,
+  keywords: companiesTable.keywords,
+  employeeCount: companiesTable.employeeCount,
+  size: companiesTable.size,
+  enrichmentSources: companiesTable.enrichmentSources,
+};
+
+/** Map a NormalizedOrg (from `api_search` or `bulk_match`) to company columns,
+ *  dropping nulls. Shared by import and enrich so both paths persist the same depth. */
+function orgToCompanyValues(o: NormalizedOrg): Record<string, string | number> {
+  const v: Record<string, string | number> = {};
+  const put = (k: string, val: string | null | undefined) => {
+    if (val != null && String(val).trim()) v[k] = String(val).trim();
+  };
+  put("website", o.domain);
+  put("phone", o.phone);
+  put("linkedinUrl", o.linkedinUrl);
+  put("twitterUrl", o.twitterUrl);
+  put("facebookUrl", o.facebookUrl);
+  put("revenue", o.revenue);
+  put("funding", o.funding);
+  put("technologies", o.technologies);
+  put("keywords", o.keywords);
+  if (o.estimatedNumEmployees != null) {
+    v.employeeCount = o.estimatedNumEmployees;
+    const bucket = headcountToSize(o.estimatedNumEmployees);
+    if (bucket) v.size = bucket;
+  }
+  return v;
+}
+
+/** A NormalizedPerson carries the org fields with an `organization*` prefix. */
+function companyRichValues(p: NormalizedPerson): Record<string, string | number> {
+  return orgToCompanyValues({
+    name: p.organizationName,
+    domain: p.organizationDomain,
+    industry: p.industry,
+    estimatedNumEmployees: p.estimatedNumEmployees,
+    linkedinUrl: p.organizationLinkedinUrl,
+    twitterUrl: p.organizationTwitterUrl,
+    facebookUrl: p.organizationFacebookUrl,
+    phone: p.organizationPhone,
+    revenue: p.revenue,
+    funding: p.funding,
+    technologies: p.technologies,
+    keywords: p.keywords,
+  });
+}
+
+/** Fill-empty-only update of a company by id — never overwrites existing values.
+ *  Returns the field names actually filled (for provenance/telemetry). */
+async function fillEmptyCompanyById(companyId: number, rich: Record<string, string | number>): Promise<string[]> {
+  if (!Number.isFinite(companyId) || Object.keys(rich).length === 0) return [];
+  const [existing] = await db.select(companyRichCols).from(companiesTable).where(eq(companiesTable.id, companyId)).limit(1);
+  if (!existing) return [];
+  const update: Record<string, any> = {};
+  const filled: string[] = [];
+  for (const [k, val] of Object.entries(rich)) {
+    const cur = (existing as Record<string, any>)[k];
+    if ((cur == null || cur === "") && val != null && val !== "") {
+      update[k] = val;
+      filled.push(k);
+    }
+  }
+  if (filled.length > 0) {
+    update.enrichmentSources = mergeSources((existing as Record<string, any>).enrichmentSources, filled);
+    update.lastSyncedAt = new Date();
+    await db.update(companiesTable).set(update).where(eq(companiesTable.id, companyId));
+  }
+  return filled;
+}
+
+/** Upsert a company by domain (website) then case-insensitive name. On an existing
+ *  row, fill-empty-only with any richer Apollo fields (never overwrites). */
 async function upsertCompany(p: NormalizedPerson): Promise<{ id: number; created: boolean }> {
+  const rich = companyRichValues(p);
+
+  let existing: { id: number } | undefined;
   if (p.organizationDomain) {
-    const [byWeb] = await db
-      .select({ id: companiesTable.id })
-      .from(companiesTable)
-      .where(eq(companiesTable.website, p.organizationDomain))
-      .limit(1);
-    if (byWeb) return { id: byWeb.id, created: false };
+    [existing] = await db.select({ id: companiesTable.id }).from(companiesTable).where(eq(companiesTable.website, p.organizationDomain)).limit(1);
   }
-  if (p.organizationName) {
-    const [byName] = await db
-      .select({ id: companiesTable.id })
-      .from(companiesTable)
-      .where(ilike(companiesTable.name, p.organizationName))
-      .limit(1);
-    if (byName) return { id: byName.id, created: false };
+  if (!existing && p.organizationName) {
+    [existing] = await db.select({ id: companiesTable.id }).from(companiesTable).where(ilike(companiesTable.name, p.organizationName)).limit(1);
   }
+
+  if (existing) {
+    await fillEmptyCompanyById(existing.id, rich);
+    return { id: existing.id, created: false };
+  }
+
+  const filledKeys = Object.keys(rich);
   const [created] = await db
     .insert(companiesTable)
     .values({
       name: p.organizationName ?? "Unknown Company",
       industry: p.industry ?? "cybersecurity",
-      website: p.organizationDomain ?? null,
-      size: headcountToSize(p.estimatedNumEmployees),
       location: p.location ?? null,
       status: "prospect",
-      enrichmentSources: p.organizationDomain ? { website: "apollo" } : undefined,
+      ...rich,
+      enrichmentSources: filledKeys.length ? mergeSources(null, filledKeys) : undefined,
     })
     .returning();
   return { id: created.id, created: true };
@@ -176,6 +272,13 @@ export async function importProspects(people: NormalizedPerson[]): Promise<Apoll
     const email = mode === "fixture" ? buildSampleEmail(p.firstName, p.lastName, p.organizationDomain, p.organizationName) : null;
     const contactStatus = mode === "fixture" ? "sample" : "missing_contact";
 
+    const contactSourceFields = [
+      p.linkedinUrl ? "linkedinUrl" : null,
+      p.twitterUrl ? "twitterUrl" : null,
+      p.department ? "department" : null,
+      p.location ? "location" : null,
+    ].filter(Boolean) as string[];
+
     const [contact] = await db
       .insert(contactsTable)
       .values({
@@ -186,12 +289,15 @@ export async function importProspects(people: NormalizedPerson[]): Promise<Apoll
         companyId,
         isDecisionMaker: p.seniority ? DECISION_MAKER_SENIORITIES.has(p.seniority) : false,
         authorityLevel: p.seniority,
+        department: p.department,
+        location: p.location,
         linkedinUrl: p.linkedinUrl,
+        twitterUrl: p.twitterUrl,
         status: "active",
         contactStatus,
         externalCrmId: p.apolloId,
         lastSyncedAt: new Date(),
-        enrichmentSources: p.linkedinUrl ? { linkedinUrl: "apollo" } : undefined,
+        enrichmentSources: contactSourceFields.length ? mergeSources(null, contactSourceFields) : undefined,
       })
       .returning();
 
@@ -268,12 +374,24 @@ interface ApolloPhone {
 interface ApolloMatch {
   id?: string | null;
   email?: string | null;
+  email_status?: string | null;
   first_name?: string | null;
   last_name?: string | null;
   name?: string | null;
   title?: string | null;
+  seniority?: string | null;
+  linkedin_url?: string | null;
+  twitter_url?: string | null;
+  departments?: string[] | null;
+  subdepartments?: string[] | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
   sanitized_phone?: string | null;
   phone_numbers?: Array<ApolloPhone | null> | null;
+  // Full organization object — same shape `api_search` returns; fed to
+  // `normalizeOrganization` to fill company columns on reveal.
+  organization?: Record<string, any> | null;
 }
 
 /** Apollo's `bulk_match` echoes the FULL person (first_name/last_name/name) that
@@ -312,6 +430,19 @@ function pickPhone(m: ApolloMatch | null | undefined): string | null {
   return phoneFromArray(m.phone_numbers) ?? (m.sanitized_phone?.trim() || null);
 }
 
+/** A non-mobile (work/HQ-direct) line from a match — captured as `workPhone`. */
+function pickWorkPhone(m: ApolloMatch | null | undefined): string | null {
+  const arr = (m?.phone_numbers ?? []).filter((p): p is ApolloPhone => !!p && !!(p.sanitized_number || p.raw_number));
+  const work = arr.find((p) => p.type_cd && p.type_cd !== "mobile");
+  return work ? (work.sanitized_number || work.raw_number || "").trim() || null : null;
+}
+
+/** City/state/country from a match, joined for the contact's `location`. */
+function locationFromMatch(m: ApolloMatch | null | undefined): string | null {
+  const parts = [m?.city, m?.state, m?.country].map((s) => (s ?? "").trim()).filter(Boolean);
+  return parts.length ? parts.join(", ") : null;
+}
+
 /** Deterministic, clearly-fictional sample phone (555 = reserved test exchange).
  *  Only used in fixture mode so the pipeline can be demoed for $0. */
 function buildSamplePhone(seed: number): string {
@@ -335,11 +466,19 @@ export async function enrichContacts(
   const rows = await db
     .select({
       id: contactsTable.id,
+      companyId: contactsTable.companyId,
       externalCrmId: contactsTable.externalCrmId,
       firstName: contactsTable.firstName,
       lastName: contactsTable.lastName,
       email: contactsTable.email,
+      emailStatus: contactsTable.emailStatus,
       phone: contactsTable.phone,
+      workPhone: contactsTable.workPhone,
+      authorityLevel: contactsTable.authorityLevel,
+      department: contactsTable.department,
+      location: contactsTable.location,
+      linkedinUrl: contactsTable.linkedinUrl,
+      twitterUrl: contactsTable.twitterUrl,
       enrichmentSources: contactsTable.enrichmentSources,
       companyName: companiesTable.name,
       website: companiesTable.website,
@@ -471,7 +610,7 @@ export async function enrichContacts(
       // an existing number with null.
       const phone = revealPhone ? pickPhone(m) : null;
       const contactStatus = email ? "enriched" : "missing_contact";
-      const update: { contactStatus: string; lastSyncedAt: Date; email?: string; phone?: string; firstName?: string; lastName?: string; enrichmentSources?: Record<string, string> } = {
+      const update: Record<string, any> = {
         contactStatus,
         lastSyncedAt: new Date(),
       };
@@ -479,6 +618,18 @@ export async function enrichContacts(
       if (revealedEmail) { update.email = revealedEmail; filledFields.push("email"); }
       if (phone && !c.phone) { update.phone = phone; filledFields.push("phone"); }
       else if (phone) { update.phone = phone; }
+      // The reveal echoes the full person — fill any still-empty contact columns
+      // (never overwrite what we already have) and tag the provider.
+      if (m?.email_status && !c.emailStatus) { update.emailStatus = m.email_status.trim(); filledFields.push("emailStatus"); }
+      if (m?.seniority?.trim() && !c.authorityLevel) { update.authorityLevel = m.seniority.trim(); filledFields.push("authorityLevel"); }
+      const workPhone = pickWorkPhone(m);
+      if (workPhone && !c.workPhone) { update.workPhone = workPhone; filledFields.push("workPhone"); }
+      const dept = humanizeToken(m?.departments?.[0]) || humanizeToken(m?.subdepartments?.[0]);
+      if (dept && !c.department) { update.department = dept; filledFields.push("department"); }
+      const loc = locationFromMatch(m);
+      if (loc && !c.location) { update.location = loc; filledFields.push("location"); }
+      if (m?.linkedin_url?.trim() && !c.linkedinUrl) { update.linkedinUrl = m.linkedin_url.trim(); filledFields.push("linkedinUrl"); }
+      if (m?.twitter_url?.trim() && !c.twitterUrl) { update.twitterUrl = m.twitter_url.trim(); filledFields.push("twitterUrl"); }
       if (filledFields.length > 0) update.enrichmentSources = apolloSources(c.enrichmentSources, filledFields);
       // Backfill the name the search preview redacted — only when ours is empty,
       // so a manually-entered name is never clobbered. Runs even with no email.
@@ -486,6 +637,14 @@ export async function enrichContacts(
       if (revealedName.firstName && !(c.firstName && c.firstName.trim())) update.firstName = revealedName.firstName;
       if (revealedName.lastName && !(c.lastName && c.lastName.trim())) update.lastName = revealedName.lastName;
       await db.update(contactsTable).set(update).where(eq(contactsTable.id, c.id));
+
+      // Fill the company from the reveal's organization object (fill-empty). This
+      // is where technologies / revenue / funding / keywords / org socials land.
+      if (c.companyId) {
+        const orgVals = orgToCompanyValues(normalizeOrganization(m?.organization as any));
+        if (Object.keys(orgVals).length > 0) await fillEmptyCompanyById(c.companyId, orgVals);
+      }
+
       enriched.push({ contactId: c.id, email, phone: phone ?? c.phone ?? null, contactStatus });
 
       // Register the async mobile reveal so the webhook can map it back later.

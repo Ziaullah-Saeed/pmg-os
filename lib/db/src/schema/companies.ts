@@ -21,7 +21,15 @@ export const companiesTable = pgTable("companies", {
   // Per-field enrichment provenance, e.g. { website: "pdl", instagramUrl: "website" }.
   enrichmentSources: jsonb("enrichment_sources").$type<Record<string, string>>(),
   size: text("size"),
+  // Exact headcount (Apollo "# Employees"); `size` stays the coarse bucket. Nullable.
+  employeeCount: integer("employee_count"),
   revenue: text("revenue"),
+  // Funding summary (Apollo total/latest funding, e.g. "Series D · $31.5M"). Nullable.
+  funding: text("funding"),
+  // Comma-joined technology stack (Apollo "Technologies" / PDL). Rendered as chips. Nullable.
+  technologies: text("technologies"),
+  // Comma-joined industry/intent keywords (Apollo "Keywords"). Nullable.
+  keywords: text("keywords"),
   location: text("location"),
   status: text("status").notNull().default("prospect"),
   fitScore: integer("fit_score"),

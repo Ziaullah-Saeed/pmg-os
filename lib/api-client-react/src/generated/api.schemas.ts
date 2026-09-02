@@ -222,6 +222,34 @@ export interface Lead {
   tiktokUrl?: string | null;
   /** @nullable */
   fieldSources?: LeadFieldSources;
+  /** @nullable */
+  contactTitle?: string | null;
+  /** @nullable */
+  seniority?: string | null;
+  /** @nullable */
+  department?: string | null;
+  /** @nullable */
+  emailStatus?: string | null;
+  /** @nullable */
+  workPhone?: string | null;
+  /** @nullable */
+  contactLocation?: string | null;
+  /** @nullable */
+  industry?: string | null;
+  /** @nullable */
+  subIndustry?: string | null;
+  /** @nullable */
+  companySize?: string | null;
+  /** @nullable */
+  employeeCount?: number | null;
+  /** @nullable */
+  revenue?: string | null;
+  /** @nullable */
+  funding?: string | null;
+  /** @nullable */
+  keywords?: string | null;
+  /** @nullable */
+  technologies?: string | null;
   source: string;
   status: string;
   priority: string;
@@ -241,6 +269,8 @@ export interface Lead {
   notes?: string | null;
   /** @nullable */
   channelSource?: string | null;
+  /** @nullable */
+  externalCrmId?: string | null;
   /** @nullable */
   qualifiedAt?: string | null;
   createdAt: string;
@@ -317,6 +347,34 @@ export interface Opportunity {
   tiktokUrl?: string | null;
   /** @nullable */
   fieldSources?: OpportunityFieldSources;
+  /** @nullable */
+  contactTitle?: string | null;
+  /** @nullable */
+  seniority?: string | null;
+  /** @nullable */
+  department?: string | null;
+  /** @nullable */
+  emailStatus?: string | null;
+  /** @nullable */
+  workPhone?: string | null;
+  /** @nullable */
+  contactLocation?: string | null;
+  /** @nullable */
+  industry?: string | null;
+  /** @nullable */
+  subIndustry?: string | null;
+  /** @nullable */
+  companySize?: string | null;
+  /** @nullable */
+  employeeCount?: number | null;
+  /** @nullable */
+  revenue?: string | null;
+  /** @nullable */
+  funding?: string | null;
+  /** @nullable */
+  keywords?: string | null;
+  /** @nullable */
+  technologies?: string | null;
   /** @nullable */
   leadId?: number | null;
   stage: string;

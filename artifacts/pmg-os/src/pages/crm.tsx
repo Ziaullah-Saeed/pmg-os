@@ -42,7 +42,7 @@ import {
   BarChart3, ArrowUpRight, ArrowDownRight, RefreshCw, ExternalLink,
   MessageSquare, Mic, Upload, BookOpen, Shield, Send, Eye, X, Mail,
   Zap, AlertTriangle, Calendar, Star, Copy, Link2, Bot, Hand,
-  Play, Pause, UserCheck
+  Play, Pause, UserCheck, Trash2
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -392,145 +392,168 @@ function DealDetailPanel({ deal, onClose, onStageChange, isHuman }: {
   const [aiResult, setAiResult] = useState<any>(null);
   const [notes, setNotes] = useState(deal.notes ?? "");
 
+  const { toast } = useToast();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const saveNotes = () => {
-    updateOpp.mutate({ id: deal.id, data: { notes } });
+    updateOpp.mutate({ id: deal.id, data: { notes } }, {
+      onSuccess: () => toast({ title: "Notes saved" }),
+      onError: (err: any) => toast({ title: "Could not save notes", description: err?.message || "Request failed", variant: "destructive" }),
+    });
+  };
+
+  const handleDelete = () => {
+    deleteOpp.mutate(deal.id, {
+      onSuccess: () => { toast({ title: "Deal deleted", description: `${deal.title ?? "Deal"} removed from the pipeline.` }); onClose(); },
+      onError: (err: any) => toast({ title: "Delete failed", description: err?.message || "Request failed", variant: "destructive" }),
+    });
   };
 
   return (
-    <GlassCard className="border border-white/10">
-      <div className="flex items-start justify-between mb-4">
-      {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Deal Intelligence" />}
-        <div>
-          <h3 className="text-base font-semibold">{deal.title}</h3>
-          <div className="flex items-center gap-2 mt-1">
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="glass-panel border-border/50 max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 flex-wrap pr-6">
+            <span className="text-base font-semibold truncate">{deal.title}</span>
             <Badge className={stages[currentStageIdx]?.color ?? "bg-blue-500"}>
               {stages[currentStageIdx]?.label ?? deal.stage}
             </Badge>
             {deal.createdByMode && <ModeBadge mode={deal.createdByMode} />}
             <span className={`text-xs ${health.color}`}>{health.label}</span>
-            <span className="text-xs text-muted-foreground">|</span>
-            <span className="text-sm font-semibold text-crimson">${((deal.value ?? 0) / 1000).toFixed(1)}k</span>
+            <span className="text-sm font-semibold text-crimson ml-auto">${((deal.value ?? 0) / 1000).toFixed(1)}k</span>
+          </DialogTitle>
+          <DialogDescription>
+            {deal.companyName || "No company"}{deal.contactName ? ` — ${deal.contactName}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+
+        {aiResult && <AiResultPanel result={aiResult} onClose={() => setAiResult(null)} title="Deal Intelligence" />}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-1">
+          <div className="p-2.5 rounded-lg glass-surface">
+            <p className="text-[10px] text-muted-foreground">Company</p>
+            <p className="text-xs font-medium truncate">{deal.companyName ?? "—"}</p>
+          </div>
+          <div className="p-2.5 rounded-lg glass-surface">
+            <p className="text-[10px] text-muted-foreground">Contact</p>
+            <p className="text-xs font-medium truncate">{deal.contactName ?? "—"}</p>
+          </div>
+          <div className="p-2.5 rounded-lg glass-surface">
+            <p className="text-[10px] text-muted-foreground">Service</p>
+            <p className="text-xs font-medium capitalize">{(deal.serviceType ?? "—").replace(/_/g, " ")}</p>
+          </div>
+          <div className="p-2.5 rounded-lg glass-surface">
+            <p className="text-[10px] text-muted-foreground">Probability</p>
+            <p className="text-xs font-medium">{deal.probability ?? 0}%</p>
           </div>
         </div>
-        <button onClick={onClose} className="p-1 hover:bg-white/10 rounded">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div className="p-2.5 rounded-lg glass-surface">
-          <p className="text-[10px] text-muted-foreground">Company</p>
-          <p className="text-xs font-medium">{deal.companyName ?? "—"}</p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
+          {deal.contactEmail ? (
+            <span className="flex items-center gap-1.5 text-muted-foreground"><Mail className="h-3.5 w-3.5 shrink-0" />{deal.contactEmail}</span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-muted-foreground/60"><Mail className="h-3.5 w-3.5 shrink-0" />No email yet — reveal in Outreach</span>
+          )}
+          {deal.contactPhone && <span className="flex items-center gap-1.5 text-muted-foreground"><Phone className="h-3.5 w-3.5 shrink-0" />{deal.contactPhone}</span>}
+          {/* Website + office phone + all social handles from the enrichment cascade. */}
+          <ContactChannels
+            data={{
+              companyPhone: deal.companyPhone !== deal.contactPhone ? deal.companyPhone : null,
+              website: deal.website,
+              linkedinUrl: deal.linkedinUrl,
+              twitterUrl: deal.twitterUrl,
+              facebookUrl: deal.facebookUrl,
+              instagramUrl: deal.instagramUrl,
+              youtubeUrl: deal.youtubeUrl,
+              tiktokUrl: deal.tiktokUrl,
+            }}
+            sources={deal.fieldSources}
+          />
         </div>
-        <div className="p-2.5 rounded-lg glass-surface">
-          <p className="text-[10px] text-muted-foreground">Contact</p>
-          <p className="text-xs font-medium">{deal.contactName ?? "—"}</p>
-        </div>
-        <div className="p-2.5 rounded-lg glass-surface">
-          <p className="text-[10px] text-muted-foreground">Service</p>
-          <p className="text-xs font-medium capitalize">{(deal.serviceType ?? "—").replace(/_/g, " ")}</p>
-        </div>
-        <div className="p-2.5 rounded-lg glass-surface">
-          <p className="text-[10px] text-muted-foreground">Probability</p>
-          <p className="text-xs font-medium">{deal.probability ?? 0}%</p>
-        </div>
-      </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-4 text-xs">
-        {deal.contactEmail ? (
-          <span className="flex items-center gap-1.5 text-muted-foreground"><Mail className="h-3.5 w-3.5 shrink-0" />{deal.contactEmail}</span>
-        ) : (
-          <span className="flex items-center gap-1.5 text-muted-foreground/60"><Mail className="h-3.5 w-3.5 shrink-0" />No email yet — reveal in Outreach</span>
-        )}
-        {deal.contactPhone && <span className="flex items-center gap-1.5 text-muted-foreground"><Phone className="h-3.5 w-3.5 shrink-0" />{deal.contactPhone}</span>}
-        {/* Website + office phone + all social handles from the enrichment cascade. */}
-        <ContactChannels
-          data={{
-            companyPhone: deal.companyPhone !== deal.contactPhone ? deal.companyPhone : null,
-            website: deal.website,
-            linkedinUrl: deal.linkedinUrl,
-            twitterUrl: deal.twitterUrl,
-            facebookUrl: deal.facebookUrl,
-            instagramUrl: deal.instagramUrl,
-            youtubeUrl: deal.youtubeUrl,
-            tiktokUrl: deal.tiktokUrl,
-          }}
-          sources={deal.fieldSources}
-        />
-      </div>
-
-      <div className="mb-4">
-        <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider">Stage Progression</p>
-        <div className="flex gap-1">
-          {stages.filter(s => s.id !== "closed_lost").map((stage, idx) => (
-            <button
-              key={stage.id}
-              onClick={() => onStageChange(deal.id, stage.id)}
-              className={`flex-1 py-1.5 text-[10px] rounded transition-colors ${
-                stage.id === deal.stage
-                  ? `${stage.color} text-white font-semibold`
-                  : idx <= currentStageIdx
-                    ? "bg-white/10 text-white/70"
-                    : "bg-white/5 text-muted-foreground hover:bg-white/10"
-              }`}
-            >
-              {stage.label}
-            </button>
-          ))}
+        <div>
+          <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider">Stage Progression</p>
+          <div className="flex gap-1">
+            {stages.filter(s => s.id !== "closed_lost").map((stage, idx) => (
+              <button
+                key={stage.id}
+                onClick={() => onStageChange(deal.id, stage.id)}
+                className={`flex-1 py-1.5 text-[10px] rounded transition-colors ${
+                  stage.id === deal.stage
+                    ? `${stage.color} text-white font-semibold`
+                    : idx <= currentStageIdx
+                      ? "bg-white/10 text-white/70"
+                      : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                }`}
+              >
+                {stage.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="mb-4">
-        <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider">Notes</p>
-        <Textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Add deal notes..."
-          className="bg-white/5 border-white/10 text-xs min-h-[60px]"
-        />
-        <Button size="sm" variant="outline" className="mt-2 text-xs" onClick={saveNotes} disabled={updateOpp.isPending}>
-          Save Notes
-        </Button>
-      </div>
-
-      <div className="flex gap-2 flex-wrap">
-        {!isHuman && (
-          <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
-            disabled={manageDeal.isPending}
-            onClick={() => manageDeal.mutate({ companyName: deal.title || deal.companyName, dealValue: deal.value, interactions: [deal.stage] }, {
-              onSuccess: (data) => setAiResult({ type: "next_action", data }),
-            })}>
-            {manageDeal.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Next Best Action
+        <div>
+          <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider">Notes</p>
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add deal notes..."
+            className="bg-white/5 border-white/10 text-xs min-h-[60px]"
+          />
+          <Button size="sm" variant="outline" className="mt-2 text-xs" onClick={saveNotes} disabled={updateOpp.isPending}>
+            Save Notes
           </Button>
-        )}
-        {deal.stage !== "closed_won" && deal.stage !== "closed_lost" && (
-          <>
-            {currentStageIdx < stages.length - 2 && (
-              <Button size="sm" variant="outline" className="text-xs border-blue-500/30 text-blue-400"
-                onClick={() => onStageChange(deal.id, stages[currentStageIdx + 1].id)}>
-                <ArrowRight className="h-3 w-3 mr-1" />Advance to {stages[currentStageIdx + 1].label}
+        </div>
+
+        <div className="flex gap-2 flex-wrap items-center pt-1">
+          {!isHuman && (
+            <Button size="sm" variant="outline" className="text-xs border-crimson/30 text-crimson"
+              disabled={manageDeal.isPending}
+              onClick={() => manageDeal.mutate({ companyName: deal.title || deal.companyName, dealValue: deal.value, interactions: [deal.stage] }, {
+                onSuccess: (data) => setAiResult({ type: "next_action", data }),
+              })}>
+              {manageDeal.isPending ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}AI Next Best Action
+            </Button>
+          )}
+          {deal.stage !== "closed_won" && deal.stage !== "closed_lost" && (
+            <>
+              {currentStageIdx < stages.length - 2 && (
+                <Button size="sm" variant="outline" className="text-xs border-blue-500/30 text-blue-400"
+                  onClick={() => onStageChange(deal.id, stages[currentStageIdx + 1].id)}>
+                  <ArrowRight className="h-3 w-3 mr-1" />Advance to {stages[currentStageIdx + 1].label}
+                </Button>
+              )}
+              <Button size="sm" variant="outline" className="text-xs border-success/30 text-success" onClick={() => onStageChange(deal.id, "closed_won")}>
+                <CheckCircle2 className="h-3 w-3 mr-1" />Mark Won
               </Button>
-            )}
-            <Button size="sm" variant="outline" className="text-xs border-success/30 text-success" onClick={() => onStageChange(deal.id, "closed_won")}>
-              <CheckCircle2 className="h-3 w-3 mr-1" />Mark Won
+              <Button size="sm" variant="outline" className="text-xs border-red-500/30 text-red-400" onClick={() => onStageChange(deal.id, "closed_lost")}>
+                <X className="h-3 w-3 mr-1" />Mark Lost
+              </Button>
+            </>
+          )}
+          {deal.stage === "closed_won" && (
+            <Button size="sm" className="btn-premium text-white text-xs" onClick={() => {
+              window.location.href = "/production";
+            }}>
+              <Play className="h-3 w-3 mr-1" />Start Onboarding
             </Button>
-            <Button size="sm" variant="outline" className="text-xs border-red-500/30 text-red-400" onClick={() => onStageChange(deal.id, "closed_lost")}>
-              <X className="h-3 w-3 mr-1" />Mark Lost
+          )}
+          {confirmDelete ? (
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">Delete this deal?</span>
+              <Button size="sm" variant="ghost" className="text-xs" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+              <Button size="sm" className="text-xs bg-destructive text-white hover:bg-destructive/90" disabled={deleteOpp.isPending} onClick={handleDelete}>
+                {deleteOpp.isPending ? "Deleting…" : "Delete"}
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" className="text-xs border-red-500/30 text-red-300 ml-auto" onClick={() => setConfirmDelete(true)}>
+              <Trash2 className="h-3 w-3 mr-1" />Delete Deal
             </Button>
-          </>
-        )}
-        {deal.stage === "closed_won" && (
-          <Button size="sm" className="btn-premium text-white text-xs" onClick={() => {
-            window.location.href = "/production";
-          }}>
-            <Play className="h-3 w-3 mr-1" />Start Onboarding
-          </Button>
-        )}
-        <Button size="sm" variant="outline" className="text-xs border-red-500/20 text-red-300 ml-auto" onClick={() => { deleteOpp.mutate(deal.id, { onSuccess: onClose }); }} disabled={deleteOpp.isPending}>
-          {deleteOpp.isPending ? "Deleting..." : "Delete Deal"}
-        </Button>
-      </div>
-    </GlassCard>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

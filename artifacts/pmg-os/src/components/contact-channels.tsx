@@ -28,6 +28,8 @@ export interface ContactChannelsData {
   /** Person's direct/mobile number. */
   phone?: string | null;
   contactPhone?: string | null;
+  /** Person's work-direct / desk line (distinct from mobile). */
+  workPhone?: string | null;
   /** Company / office line. */
   companyPhone?: string | null;
   website?: string | null;
@@ -212,7 +214,12 @@ export function ContactChannelsDetail({ data, sources }: { data: ContactChannels
       <DetailRow Icon={Phone} to={mobile ? `tel:${mobile.replace(/[^\d+]/g, "")}` : undefined} source={sources?.contactPhone}>
         {mobile || <span className="text-muted-foreground text-xs">No direct phone yet — enrich to discover</span>}
       </DetailRow>
-      {data.companyPhone && data.companyPhone !== mobile && (
+      {data.workPhone && data.workPhone !== mobile && (
+        <DetailRow Icon={Phone} to={`tel:${data.workPhone.replace(/[^\d+]/g, "")}`} source={sources?.workPhone}>
+          <span className="text-xs">Direct: {data.workPhone}</span>
+        </DetailRow>
+      )}
+      {data.companyPhone && data.companyPhone !== mobile && data.companyPhone !== data.workPhone && (
         <DetailRow Icon={Building2} to={`tel:${data.companyPhone.replace(/[^\d+]/g, "")}`} source={sources?.companyPhone}>
           <span className="text-xs">Office: {data.companyPhone}</span>
         </DetailRow>
