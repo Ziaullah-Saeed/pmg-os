@@ -144,7 +144,7 @@ router.post("/leads", async (req, res): Promise<void> => {
     if (existing.length) {
       companyId = existing[0].id;
     } else {
-      const [newCo] = await db.insert(companiesTable).values({ name: company, industry: "cybersecurity", status: "lead" }).returning();
+      const [newCo] = await db.insert(companiesTable).values({ name: company, industry: "Unknown", status: "lead" }).returning();
       companyId = newCo.id;
     }
   }

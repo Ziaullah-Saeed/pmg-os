@@ -119,7 +119,9 @@ export function employeesLabel(lead: any): string | null {
 export function CompanyFacts({ lead }: { lead: any }) {
   const facts: Array<{ icon: any; label: string; value: string }> = [];
   const push = (icon: any, label: string, value?: string | null) => {
-    if (value != null && String(value).trim()) facts.push({ icon, label, value: String(value) });
+    const v = value == null ? "" : String(value).trim();
+    // "Unknown" is a not-a-real-value placeholder — never surface it as a fact.
+    if (v && v.toLowerCase() !== "unknown") facts.push({ icon, label, value: v });
   };
   push(Building2, "Industry", lead.industry);
   push(Briefcase, "Sub-industry", lead.subIndustry);
@@ -183,8 +185,9 @@ export function ProspectCard({
     lead.department,
   ].filter(Boolean);
 
-  // company · industry · size · revenue.
-  const companyParts = [company, lead.industry, employeesLabel(lead), lead.revenue].filter(Boolean);
+  // company · industry · size · revenue ("Unknown" is a placeholder — hide it).
+  const industry = lead.industry && String(lead.industry).toLowerCase() !== "unknown" ? lead.industry : null;
+  const companyParts = [company, industry, employeesLabel(lead), lead.revenue].filter(Boolean);
 
   return (
     <motion.div
@@ -209,6 +212,9 @@ export function ProspectCard({
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-medium truncate">{name}</p>
               <VerifiedBadge status={lead.emailStatus} />
+              {lead.contactEmail && !["verified", "valid", "likely"].includes(String(lead.emailStatus ?? "").toLowerCase()) && (
+                <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[9px] shrink-0">Enriched</Badge>
+              )}
               <Badge variant="outline" className="text-[10px] capitalize shrink-0">{(lead.status ?? "new").replace(/_/g, " ")}</Badge>
               {lead.createdByMode && <ModeBadge mode={lead.createdByMode} />}
               {showAiScored && lead.fitScore && <Badge variant="outline" className="text-[9px] border-crimson/30 text-crimson shrink-0">AI Scored</Badge>}

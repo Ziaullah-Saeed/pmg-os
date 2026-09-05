@@ -33,18 +33,14 @@ export type TestSuiteResult = {
 };
 
 const DUMMY_AI_RESPONSES: Record<string, string> = {
+  // Honest sample: AI dummy mode makes no live model call, so we must NOT fabricate
+  // specific company facts (size, revenue, tech, funding) that would masquerade as
+  // real enrichment. Real facts come from Apollo/PDL/website enrichment, not here.
   "ai-enrich-lead": JSON.stringify({
-    companySize: "120 employees",
-    industry: "Cybersecurity — Managed Detection & Response",
-    technologies: ["CrowdStrike Falcon", "Splunk SIEM", "Azure Sentinel", "Palo Alto Networks"],
-    revenue: "$15M-$25M ARR",
-    founded: "2018",
-    headquarters: "Austin, TX",
-    certifications: ["SOC 2 Type II", "ISO 27001", "FedRAMP Moderate"],
-    recentNews: "Closed $18M Series B in Q3. Expanding into federal vertical.",
-    techStack: { website: "WordPress + HubSpot", ads: "Google Ads (limited)", social: "LinkedIn only" },
-    marketingMaturity: "Early stage — no dedicated content team, relying on referrals and one SDR",
-    growthPotential: "High — strong product but under-investing in demand gen. Perfect fit for PMG full-stack marketing.",
+    note: "SAMPLE — generated in AI dummy mode (no live model call). Set AI_DUMMY_MODE=false for real, prospect-specific enrichment.",
+    suggestedAngle:
+      "Lead with a concrete, measurable outcome relevant to this prospect's actual role, industry, and company size (captured from Apollo/PDL).",
+    approach: "Personalize from verified fields only — avoid asserting facts we haven't confirmed.",
   }),
   "ai-score-lead": JSON.stringify({
     fitScore: 82,
@@ -53,14 +49,11 @@ const DUMMY_AI_RESPONSES: Record<string, string> = {
     recommendation: "Priority prospect. Route to outreach queue with a case-study-led approach. Reference their recent Series B and how PMG helped similar MDR companies generate 20+ qualified leads per month.",
     riskFactors: ["May have vendor lock-in with HubSpot agency", "Budget cycle resets in Q1"],
   }),
-  "ai-score-company": JSON.stringify({
-    fitScore: 85,
-    industryMatch: "Cybersecurity — Direct ICP match",
-    sizeMatch: "Mid-market (120 employees) — sweet spot for PMG services",
-    marketingGap: "No inbound engine, weak SEO, no thought leadership content",
-    competitorPresence: "Currently working with a freelance designer only",
-    recommendation: "High-priority target. Their growth trajectory and marketing gaps make them an ideal PMG client at the Growth tier ($5,000/mo).",
-  }),
+  // Honest sample in the exact format scoreLead() parses (SCORE/TIER/REASONING),
+  // so `notes` holds a clearly-labeled sample — not a fabricated JSON profile that
+  // would render as a real fit assessment on the lead/CRM cards.
+  "ai-score-company":
+    "SCORE: 75\nTIER: WARM\nREASONING: SAMPLE score generated in AI dummy mode (no live model call). Enable real AI (AI_DUMMY_MODE=false) for a genuine fit assessment based on this prospect's actual industry, size, and role.",
   "ai-generate-report": "## Monthly Performance Report\n\n### Executive Summary\nThis month showed strong pipeline momentum with 18 qualified leads delivered against the 20-lead target. Three proposals are in negotiation stage totaling $187,500 in potential ARR.\n\n### Key Metrics\n- **Leads Delivered:** 18 of 20 target (90%)\n- **Pipeline Value:** $312,000 across 7 active opportunities\n- **Conversion Rate:** 28% from MQL to SQL\n- **Avg Deal Size:** $44,571\n- **Content Published:** 6 blog posts, 2 whitepapers, 14 LinkedIn posts\n- **Ad Spend:** $3,200 → $48,000 pipeline (15x ROI)\n\n### Channel Breakdown\n| Channel | Leads | Cost/Lead | Quality Score |\n|---------|-------|-----------|---------------|\n| LinkedIn Outreach | 8 | $0 (organic) | 87 |\n| Google Ads | 5 | $640 | 72 |\n| Content/SEO | 3 | $0 (owned) | 91 |\n| Referral | 2 | $0 | 95 |\n\n### Recommendations\n1. Double down on LinkedIn thought leadership — highest quality leads at zero cost\n2. Add SIEM/XDR-specific landing pages to capture long-tail search traffic\n3. Launch a \"CISO Roundtable\" webinar series to accelerate mid-funnel deals\n4. Consider retargeting ads for prospects who downloaded the MDR whitepaper",
   "ai-review-contract": JSON.stringify({
     riskScore: 38,

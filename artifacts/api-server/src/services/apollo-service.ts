@@ -1,5 +1,6 @@
 import { db, integrationsTable, syncLogsTable } from "@workspace/db";
 import { eq, and, gte, sql } from "drizzle-orm";
+import { normalizeProspectQuery } from "./ai-service";
 
 /**
  * Apollo.io data-layer client (lead generation: search + enrichment).
@@ -457,6 +458,21 @@ export interface PeopleSearchResult {
   people: NormalizedPerson[];
   pagination: { page: number; perPage: number; totalEntries: number; totalPages: number };
   fixtureNotice: string | null;
+  /** The filters actually sent to Apollo after correction/normalization. */
+  appliedFilters?: {
+    titles: string[];
+    seniorities: string[];
+    organizationKeywords: string[];
+    locations: string[];
+    employeeRanges: string[];
+    keywords: string | null;
+  };
+  /** Human-readable interpretation of the (possibly corrected) query, e.g.
+   *  "CMOs in Blockchain located in Canada." Null when nothing to say. */
+  queryNotice?: string | null;
+  /** How many Apollo rows were dropped by the strict location guard (results
+   *  whose location did not match the requested region). */
+  droppedForLocation?: number;
 }
 
 function clampPage(page?: number): number {
@@ -473,6 +489,82 @@ function cleanList(arr?: string[]): string[] | undefined {
   if (!Array.isArray(arr)) return undefined;
   const out = arr.map((s) => (typeof s === "string" ? s.trim() : "")).filter(Boolean);
   return out.length ? out : undefined;
+}
+
+function uniq(arr: string[]): string[] {
+  return [...new Set(arr)];
+}
+
+/** Common country abbreviations/aliases Apollo will NOT match on its own. The AI
+ *  normalizer handles the long tail (typos, cities → country); this is the free,
+ *  always-on floor so even a blocked/dummy-mode search corrects the obvious ones. */
+const LOCATION_ALIASES: Record<string, string> = {
+  us: "United States",
+  usa: "United States",
+  "u.s.": "United States",
+  "u.s.a.": "United States",
+  "united states of america": "United States",
+  america: "United States",
+  uk: "United Kingdom",
+  "u.k.": "United Kingdom",
+  britain: "United Kingdom",
+  "great britain": "United Kingdom",
+  england: "United Kingdom",
+  uae: "United Arab Emirates",
+  "u.a.e.": "United Arab Emirates",
+  ksa: "Saudi Arabia",
+};
+
+function canonLocation(s: string): string {
+  const trimmed = s.trim();
+  const key = trimmed.toLowerCase();
+  return LOCATION_ALIASES[key] ?? LOCATION_ALIASES[key.replace(/\./g, "")] ?? trimmed;
+}
+
+/** Deterministic baseline normalization — always applied, no cost, never blocked.
+ *  Trims, dedupes, and expands obvious location aliases. The AI pass refines this. */
+function deterministicNormalize(f: PeopleSearchFilters): {
+  titles: string[];
+  organizationKeywords: string[];
+  locations: string[];
+  keywords: string | null;
+} {
+  return {
+    titles: uniq(cleanList(f.titles) ?? []),
+    organizationKeywords: uniq(cleanList(f.organizationKeywords) ?? []),
+    locations: uniq((cleanList(f.locations) ?? []).map(canonLocation)),
+    keywords: f.keywords && f.keywords.trim() ? f.keywords.trim() : null,
+  };
+}
+
+/** Strict location guard. A search for "United States" must never surface a
+ *  Canada/India row. We drop any prospect whose location does not confidently
+ *  contain a requested place (or one of its comma-parts, e.g. the country).
+ *  Rows with a blank location are dropped too (can't confirm) — UNLESS every
+ *  returned row is blank, which means this Apollo plan redacts person location:
+ *  in that case we can't guard client-side, so we trust Apollo's server-side
+ *  `person_locations` filter and keep the page rather than showing nothing. */
+function filterByRequestedLocations(
+  people: NormalizedPerson[],
+  locations: string[],
+): { kept: NormalizedPerson[]; dropped: number } {
+  const req = locations.map((l) => l.trim().toLowerCase()).filter(Boolean);
+  if (req.length === 0) return { kept: people, dropped: 0 };
+
+  const withLoc = people.filter((p) => p.location && p.location.trim());
+  if (withLoc.length === 0) return { kept: people, dropped: 0 }; // plan redacts location
+
+  const reqParts = req.map((r) => ({
+    full: r,
+    parts: r.split(",").map((s) => s.trim()).filter((s) => s.length >= 2),
+  }));
+  const matches = (loc: string): boolean => {
+    const p = loc.toLowerCase();
+    return reqParts.some(({ full, parts }) => p.includes(full) || parts.some((part) => p.includes(part)));
+  };
+
+  const kept = people.filter((p) => !!p.location && matches(p.location));
+  return { kept, dropped: people.length - kept.length };
 }
 
 /** Build the Apollo `mixed_people/api_search` request body from manual filters. */
@@ -692,6 +784,12 @@ const FIXTURE_SEEDS: FixtureSeed[] = [
   { firstName: "Sofia", lastName: "Marchetti", title: "Senior Marketing Manager", seniority: "senior", department: "Marketing", organizationName: "Helix IR", organizationDomain: "helixir.com", industry: "Information Technology & Services", est: 410, location: "New York, New York, United States", revenue: "$62M", funding: "Series C · $48M", technologies: "Azure, Marketo, Salesforce, Tableau, Okta", keywords: "incident response, forensics, DFIR, managed detection" },
   { firstName: "Jamal", lastName: "Carter", title: "Director of Brand", seniority: "director", department: "Marketing", organizationName: "PhalanxSec", organizationDomain: "phalanxsec.io", industry: "Cyber Security", est: 200, location: "Atlanta, Georgia, United States", revenue: "$33M", funding: "Series B · $30M", technologies: "AWS, HubSpot, Webflow, Amplitude, PagerDuty", keywords: "penetration testing, red team, vulnerability, cyber" },
   { firstName: "Nora", lastName: "Eklund", title: "VP of Revenue Marketing", seniority: "vp", department: "Marketing", organizationName: "Verityware", organizationDomain: "verityware.com", industry: "Computer & Network Security", est: 150, location: "Raleigh, North Carolina, United States", revenue: "$24M", funding: "Series B · $18M", technologies: "GCP, Salesforce, 6sense, Outreach, Looker", keywords: "GRC, compliance automation, audit, cyber" },
+  // Non-cyber samples so disconnected "Sample" mode demonstrates that search is
+  // NOT scoped to one industry or region (mirrors real cross-industry results).
+  { firstName: "Ahmad", lastName: "Wali", title: "Chief Executive Officer", seniority: "c_suite", department: "C-Suite", organizationName: "Azizi Bank", organizationDomain: "azizibank.af", industry: "Banking", est: 2200, location: "Kabul, Afghanistan", revenue: "$180M", funding: null, technologies: "Oracle, Temenos, Microsoft 365, VMware", keywords: "retail banking, payments, corporate banking, finance" },
+  { firstName: "Émile", lastName: "Tremblay", title: "Chief Marketing Officer", seniority: "c_suite", department: "C-Suite", organizationName: "LedgerNorth", organizationDomain: "ledgernorth.io", industry: "Blockchain", est: 140, location: "Toronto, Ontario, Canada", revenue: "$21M", funding: "Series A · $16M", technologies: "AWS, Ethereum, Segment, HubSpot, Mixpanel", keywords: "blockchain, web3, DeFi, crypto payments" },
+  { firstName: "Grace", lastName: "Okafor", title: "VP of Marketing", seniority: "vp", department: "Marketing", organizationName: "Meridian Health Systems", organizationDomain: "meridianhealth.com", industry: "Hospital & Health Care", est: 3400, location: "Chicago, Illinois, United States", revenue: "$420M", funding: null, technologies: "Epic, Salesforce Health Cloud, Azure, Tableau", keywords: "healthcare, patient engagement, telehealth, HIPAA" },
+  { firstName: "Rahul", lastName: "Sharma", title: "Head of Growth", seniority: "head", department: "Marketing", organizationName: "Cloudbridge SaaS", organizationDomain: "cloudbridge.io", industry: "Computer Software", est: 260, location: "Bangalore, Karnataka, India", revenue: "$38M", funding: "Series B · $27M", technologies: "GCP, HubSpot, Segment, Amplitude, Stripe", keywords: "SaaS, product-led growth, subscription, B2B software" },
 ];
 
 const FIXTURE_PEOPLE: NormalizedPerson[] = FIXTURE_SEEDS.map((s, i) => ({
@@ -745,36 +843,96 @@ function filterFixtures(filters: PeopleSearchFilters): NormalizedPerson[] {
 }
 
 /** People search. Connection-gated: live Apollo call when a key is connected,
- *  otherwise labeled fixtures. Never returns emails/phones (those are enrichment). */
-export async function searchPeople(filters: PeopleSearchFilters): Promise<PeopleSearchResult> {
-  const page = clampPage(filters.page);
-  const perPage = clampPerPage(filters.perPage);
+ *  otherwise labeled fixtures. Never returns emails/phones (those are enrichment).
+ *
+ *  The raw filters are corrected before the search (deterministic aliases +
+ *  best-effort AI typo/format correction) so ANY industry/title/location works —
+ *  not just cybersecurity — and results are strictly location-filtered so a
+ *  request for one region never surfaces another. */
+export async function searchPeople(rawFilters: PeopleSearchFilters): Promise<PeopleSearchResult> {
+  const page = clampPage(rawFilters.page);
+  const perPage = clampPerPage(rawFilters.perPage);
+
+  // 1) Deterministic baseline — free, always on.
+  const base = deterministicNormalize(rawFilters);
+
+  // 2) AI correction — best-effort; falls back to `base` when null.
+  let queryNotice: string | null = null;
+  let titles = base.titles;
+  let organizationKeywords = base.organizationKeywords;
+  let locations = base.locations;
+  let keywords = base.keywords;
+  try {
+    const ai = await normalizeProspectQuery({
+      titles: base.titles,
+      seniorities: rawFilters.seniorities,
+      organizationKeywords: base.organizationKeywords,
+      locations: base.locations,
+      keywords: base.keywords,
+    });
+    if (ai) {
+      if (ai.titles.length) titles = ai.titles;
+      if (ai.organizationKeywords.length) organizationKeywords = ai.organizationKeywords;
+      if (ai.locations.length) locations = uniq(ai.locations.map(canonLocation));
+      if (ai.keywords) keywords = ai.keywords;
+      queryNotice = ai.summary || null;
+    }
+  } catch {
+    /* keep the deterministic baseline */
+  }
+
+  const seniorities = cleanList(rawFilters.seniorities) ?? [];
+  const employeeRanges = cleanList(rawFilters.employeeRanges) ?? [];
+  const applied: PeopleSearchFilters = {
+    titles,
+    seniorities,
+    organizationKeywords,
+    locations,
+    employeeRanges,
+    keywords: keywords ?? undefined,
+    page,
+    perPage,
+  };
+  const appliedFilters = {
+    titles,
+    seniorities,
+    organizationKeywords,
+    locations,
+    employeeRanges,
+    keywords,
+  };
+
   const apiKey = await getApolloApiKey();
 
   if (!apiKey) {
-    const matches = filterFixtures(filters);
+    const matches = filterFixtures(applied);
+    const { kept, dropped } = filterByRequestedLocations(matches, locations);
     const start = (page - 1) * perPage;
-    const slice = matches.slice(start, start + perPage);
+    const slice = kept.slice(start, start + perPage);
     return {
       mode: "fixture",
       people: slice,
       pagination: {
         page,
         perPage,
-        totalEntries: matches.length,
-        totalPages: Math.max(1, Math.ceil(matches.length / perPage)),
+        totalEntries: kept.length,
+        totalPages: Math.max(1, Math.ceil(kept.length / perPage)),
       },
       fixtureNotice: FIXTURE_NOTICE,
+      appliedFilters,
+      queryNotice,
+      droppedForLocation: dropped,
     };
   }
 
-  const body = buildSearchBody(filters, page, perPage);
+  const body = buildSearchBody(applied, page, perPage);
   const data = await apolloRequest<{
     people?: ApolloRawPerson[];
     pagination?: { page?: number; per_page?: number; total_entries?: number; total_pages?: number };
   }>({ endpoint: APOLLO_ENDPOINTS.peopleSearch, apiKey, method: "POST", body });
 
-  const people = (data.people ?? []).map(normalizePerson);
+  const allPeople = (data.people ?? []).map(normalizePerson);
+  const { kept: people, dropped } = filterByRequestedLocations(allPeople, locations);
   const pg = data.pagination ?? {};
   return {
     mode: "live",
@@ -782,10 +940,13 @@ export async function searchPeople(filters: PeopleSearchFilters): Promise<People
     pagination: {
       page: pg.page ?? page,
       perPage: pg.per_page ?? perPage,
-      totalEntries: pg.total_entries ?? people.length,
+      totalEntries: people.length,
       totalPages: pg.total_pages ?? 1,
     },
     fixtureNotice: null,
+    appliedFilters,
+    queryNotice,
+    droppedForLocation: dropped,
   };
 }
 

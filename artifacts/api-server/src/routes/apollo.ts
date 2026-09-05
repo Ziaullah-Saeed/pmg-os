@@ -3,11 +3,12 @@ import {
   getApolloStatus,
   testApolloConnection,
   searchPeople,
+  getApolloMode,
   ApolloError,
   type PeopleSearchFilters,
   type NormalizedPerson,
 } from "../services/apollo-service";
-import { importProspects, enrichContacts, enrollLeads } from "../services/apollo-import-service";
+import { importProspects, enrichContacts, enrollLeads, partitionEnriched } from "../services/apollo-import-service";
 import { enrichCompaniesForContacts } from "../services/website-enrichment-service";
 import { enrichContactsWithPDL } from "../services/pdl-service";
 import { getSessionUser } from "../middleware/auth";
@@ -75,6 +76,28 @@ router.post("/apollo/enrich", async (req, res): Promise<void> => {
   }
   const revealPhone = req.body?.revealPhone === true;
   try {
+    // Enrich once: never re-process a contact that already has a revealed email.
+    // Everything below runs only on the still-unenriched subset.
+    const { toEnrich, alreadyEnriched } = await partitionEnriched(contactIds);
+    if (toEnrich.length === 0) {
+      res.json({
+        mode: await getApolloMode(),
+        enriched: [],
+        creditsSpent: 0,
+        emailsRevealed: 0,
+        phonesRevealed: 0,
+        phoneRevealAsync: false,
+        phoneRevealsRequested: 0,
+        companiesScanned: 0,
+        socialsFilled: 0,
+        pdlMatched: 0,
+        pdlEmailLocked: false,
+        pdlPhoneLocked: false,
+        pdlErrors: [],
+        alreadyEnriched: alreadyEnriched.length,
+      });
+      return;
+    }
     // Enrichment cascade — CHEAPEST first, each step only fills columns still
     // empty, so nothing verified is ever overwritten and paid lookups are skipped
     // when free data already completed the record:
@@ -88,7 +111,7 @@ router.post("/apollo/enrich", async (req, res): Promise<void> => {
     let websiteFilled = 0;
     const runWebsiteScan = async (label: string) => {
       try {
-        const web = await enrichCompaniesForContacts(contactIds);
+        const web = await enrichCompaniesForContacts(toEnrich);
         companiesScanned += web.filter((r) => r.scanned).length;
         websiteFilled += web.reduce((n, r) => n + r.filled.length, 0);
       } catch (e: any) {
@@ -97,7 +120,7 @@ router.post("/apollo/enrich", async (req, res): Promise<void> => {
     };
     await runWebsiteScan("pre");
     // Apollo bulk_match → verified email (+ any sync phone). Credit sink.
-    const result = await enrichContacts(contactIds, { revealPhone });
+    const result = await enrichContacts(toEnrich, { revealPhone });
     // 3) People Data Labs (paid, only when connected) → fills any still-missing
     //    email / mobile / person + company socials. Errors are surfaced, NOT
     //    swallowed, so a billed credit is never silently lost.
@@ -107,7 +130,7 @@ router.post("/apollo/enrich", async (req, res): Promise<void> => {
     let pdlPhoneLocked = false;
     const pdlErrors: string[] = [];
     try {
-      const pdl = await enrichContactsWithPDL(contactIds);
+      const pdl = await enrichContactsWithPDL(toEnrich);
       pdlMatched = pdl.matched;
       pdlFieldsFilled = pdl.fieldsFilled;
       pdlEmailLocked = pdl.emailLocked;
@@ -128,6 +151,7 @@ router.post("/apollo/enrich", async (req, res): Promise<void> => {
       pdlEmailLocked,
       pdlPhoneLocked,
       pdlErrors,
+      alreadyEnriched: alreadyEnriched.length,
     });
   } catch (err: any) {
     res.status(apolloErrorStatus(err)).json({ error: err?.message ?? "Apollo enrich failed", code: err?.code ?? "apollo_error" });

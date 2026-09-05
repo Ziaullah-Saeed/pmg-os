@@ -312,6 +312,151 @@ ${lead.enrichmentData ? `Enrichment: ${lead.enrichmentData}` : ""}`,
   };
 }
 
+// ---------------------------------------------------------------------------
+// Prospect-search query understanding (Apollo Prospect Finder)
+// ---------------------------------------------------------------------------
+
+export interface ProspectQueryInput {
+  titles?: string[];
+  seniorities?: string[];
+  organizationKeywords?: string[];
+  locations?: string[];
+  keywords?: string | null;
+}
+
+export interface NormalizedProspectQuery {
+  /** Corrected job titles + common synonyms (→ Apollo person_titles). */
+  titles: string[];
+  /** Corrected industries/keyword tags (→ Apollo q_organization_keyword_tags).
+   *  Stays within the intended industry — never adds an unrelated one. */
+  organizationKeywords: string[];
+  /** Corrected, Apollo-formatted locations ("City, Country" / "Country"). */
+  locations: string[];
+  /** Corrected free-text keyword, or null. */
+  keywords: string | null;
+  /** One-sentence human-readable interpretation for the UI. */
+  summary: string;
+  /** True when the AI actually changed/corrected the raw input. */
+  corrected: boolean;
+}
+
+/** Pull the first JSON object out of a model response (tolerates code fences and
+ *  stray prose). Returns null on anything unparseable or on a dummy-mode string. */
+function extractJsonObject(text: string): any | null {
+  if (!text || text.includes("[DUMMY]")) return null;
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+function toStrArray(v: unknown, cap: number): string[] {
+  if (!Array.isArray(v)) return [];
+  const out = v
+    .map((s) => (typeof s === "string" ? s.trim() : ""))
+    .filter(Boolean);
+  return [...new Set(out)].slice(0, cap);
+}
+
+/**
+ * Correct and structure a raw Prospect Finder query BEFORE it hits Apollo.
+ *
+ * Apollo does not fix typos — a misspelled industry or an abbreviated country
+ * ("US", "Canda", "Cybersecuirty") silently returns nothing or the wrong set.
+ * This normalizes titles/industries/locations, fixes spelling, expands common
+ * abbreviations, and formats locations the way Apollo expects — WITHOUT ever
+ * swapping in a different industry or region than the user intended.
+ *
+ * Best-effort and mode-safe: returns `null` (caller falls back to the
+ * deterministic normalizer) when the outreach section is human-controlled, in
+ * dummy mode, when the wallet blocks, or when the model output can't be parsed.
+ * Nothing here is fatal to a search.
+ */
+export async function normalizeProspectQuery(
+  input: ProspectQueryInput,
+): Promise<NormalizedProspectQuery | null> {
+  const hasAny =
+    (input.titles?.length ?? 0) > 0 ||
+    (input.organizationKeywords?.length ?? 0) > 0 ||
+    (input.locations?.length ?? 0) > 0 ||
+    !!(input.keywords && input.keywords.trim());
+  if (!hasAny) return null;
+
+  // Don't emit a "Human Action Required" notification (or spend) for a search box
+  // in human-controlled mode — just fall back to deterministic normalization.
+  try {
+    const gate = await shouldAiAct("prospect_search", undefined, "lead", undefined);
+    if (!gate.canAct) return null;
+  } catch {
+    /* if the gate check itself fails, still attempt the call below */
+  }
+
+  try {
+    const { result } = await callAI({
+      systemPrompt: `You clean up B2B prospect-search filters before they are sent to Apollo.io. Apollo matches literally and does NOT fix typos.
+
+Given the user's raw filters, return a corrected version as STRICT JSON (no prose, no code fences) with EXACTLY these keys:
+{
+  "titles": string[],        // corrected job titles + widely-used synonyms (e.g. "CMO" -> ["CMO","Chief Marketing Officer"]). [] if none.
+  "industries": string[],    // corrected industry / keyword tags. Fix spelling ("Cybersecuirty"->"Cybersecurity"). Expand an abbreviation to the full industry. You MAY add closely-equivalent terms for the SAME industry (e.g. "Banking" -> ["Banking","Financial Services"]) but NEVER add an unrelated industry. [] if none.
+  "locations": string[],     // corrected, Apollo-formatted locations. Fix spelling ("Canda"->"Canada"). Expand abbreviations ("US"->"United States","UK"->"United Kingdom"). Add the country for a bare city ("Kabul"->"Kabul, Afghanistan"). Keep the SAME place the user meant — never change the country. [] if none.
+  "keywords": string|null,   // corrected free-text keyword, or null.
+  "summary": string,         // ONE short sentence describing the interpreted search, e.g. "CMOs in Blockchain located in Canada".
+  "corrected": boolean       // true if you changed anything, false if the input was already clean.
+}
+
+Rules: preserve the user's intent exactly. Do not broaden across industries or regions. Do not invent titles/industries/locations the user did not imply. Output JSON only.`,
+      userPrompt: `Raw filters:\n${JSON.stringify(
+        {
+          titles: input.titles ?? [],
+          industries: input.organizationKeywords ?? [],
+          locations: input.locations ?? [],
+          keywords: input.keywords ?? null,
+        },
+        null,
+        2,
+      )}`,
+      workflowKey: "prospect_search",
+      tool: "ai-parse-search",
+      domain: "outreach",
+      action: "parse_prospect_search",
+    });
+
+    const parsed = extractJsonObject(result);
+    if (!parsed) return null;
+
+    const titles = toStrArray(parsed.titles, 25);
+    const organizationKeywords = toStrArray(parsed.industries, 15);
+    const locations = toStrArray(parsed.locations, 15);
+    const keywords =
+      typeof parsed.keywords === "string" && parsed.keywords.trim()
+        ? parsed.keywords.trim()
+        : null;
+    const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
+
+    // If the model gave us nothing usable, let the caller keep the raw filters.
+    if (!titles.length && !organizationKeywords.length && !locations.length && !keywords) {
+      return null;
+    }
+
+    return {
+      titles,
+      organizationKeywords,
+      locations,
+      keywords,
+      summary,
+      corrected: parsed.corrected === true,
+    };
+  } catch {
+    // AI_BLOCKED / WALLET_INSUFFICIENT / AI_CALL_FAILED / network — fall back.
+    return null;
+  }
+}
+
 export async function generateOutreachDraft(params: {
   leadName: string;
   company?: string;

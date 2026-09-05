@@ -325,6 +325,19 @@ export interface ApolloSearchResult {
   people: ApolloPerson[];
   pagination: { page: number; perPage: number; totalEntries: number; totalPages: number };
   fixtureNotice: string | null;
+  /** Filters actually sent to Apollo after typo/format correction. */
+  appliedFilters?: {
+    titles: string[];
+    seniorities: string[];
+    organizationKeywords: string[];
+    locations: string[];
+    employeeRanges: string[];
+    keywords: string | null;
+  };
+  /** Human-readable interpretation of the corrected query (for the UI). */
+  queryNotice?: string | null;
+  /** Rows dropped by the strict location guard (off-region matches). */
+  droppedForLocation?: number;
 }
 
 export function useApolloSearch() {

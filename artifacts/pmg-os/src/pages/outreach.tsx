@@ -98,7 +98,9 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
   // → import all → prospects appear in the list below, where the user selects who
   // to enrich / move to CRM. Track the in-flight state + a one-line last-run summary.
   const [searching, setSearching] = useState(false);
-  const [searchSummary, setSearchSummary] = useState<{ imported: number; skipped: number } | null>(null);
+  const [searchSummary, setSearchSummary] = useState<{ imported: number; skipped: number; dropped: number } | null>(null);
+  // How the search interpreted/corrected the query (e.g. "CMOs in Blockchain located in Canada").
+  const [queryNotice, setQueryNotice] = useState<string | null>(null);
   // Bulk actions on the prospects selected in the pipeline.
   const [bulkEnriching, setBulkEnriching] = useState(false);
   const [bulkMoving, setBulkMoving] = useState(false);
@@ -169,6 +171,9 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
 
   const filteredIds = filtered.map((l: any) => l.id as number);
   const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedLeadIds.has(id));
+  // How many of the selected prospects still need enrichment (no revealed email).
+  // Drives the bulk Enrich button so it never offers to re-enrich enriched items.
+  const selectedNeedingEnrich = leadList.filter((l: any) => selectedLeadIds.has(l.id) && !hasEmail(l)).length;
   const toggleLeadSelect = useCallback((id: number) => {
     setSelectedLeadIds((prev) => {
       const next = new Set(prev);
@@ -216,6 +221,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
   const handleFindProspects = useCallback(() => {
     setSearching(true);
     setSearchSummary(null);
+    setQueryNotice(null);
     apolloSearch.mutate(
       {
         titles: splitCsv(filters.titles),
@@ -229,9 +235,18 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
       },
       {
         onSuccess: (data) => {
+          // Show how the query was interpreted/corrected before it hit Apollo.
+          setQueryNotice(data.queryNotice ?? null);
+          const dropped = data.droppedForLocation ?? 0;
           if (data.people.length === 0) {
             setSearching(false);
-            toast({ title: "No prospects found", description: "Try broadening your filters." });
+            setSearchSummary({ imported: 0, skipped: 0, dropped });
+            toast({
+              title: "No matching prospects",
+              description: dropped > 0
+                ? `Apollo returned results, but none matched your location filter (${dropped} off-location dropped). Try a different or broader location.`
+                : "Try broadening your filters — different title, industry, or location.",
+            });
             return;
           }
           apolloImport.mutate(data.people, {
@@ -239,12 +254,13 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
             onSuccess: (imp) => {
               queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
               queryClient.refetchQueries({ queryKey: ["/api/leads"] });
-              setSearchSummary({ imported: imp.imported.length, skipped: imp.skipped.length });
+              setSearchSummary({ imported: imp.imported.length, skipped: imp.skipped.length, dropped });
+              const offLoc = dropped > 0 ? ` (${dropped} off-location filtered out)` : "";
               toast({
                 title: imp.imported.length > 0 ? "Prospects added to pipeline" : "No new prospects",
                 description: imp.imported.length > 0
-                  ? `${imp.imported.length} added${imp.skipped.length ? `, ${imp.skipped.length} already in pipeline` : ""}. Select prospects below to enrich or move to CRM.`
-                  : `All ${imp.skipped.length} matches are already in your pipeline. Broaden filters or raise the result count.`,
+                  ? `${imp.imported.length} added${imp.skipped.length ? `, ${imp.skipped.length} already in pipeline` : ""}${offLoc}. Select prospects below to enrich or move to CRM.`
+                  : `All ${imp.skipped.length} matches are already in your pipeline${offLoc}. Broaden filters or raise the result count.`,
               });
             },
             onError: (err: any) => {
@@ -264,13 +280,21 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
   const clearSelection = useCallback(() => setSelectedLeadIds(new Set()), []);
 
   // Enrich the selected pipeline prospects in one Apollo/PDL/website-scan pass.
+  // "Enrich once": prospects that already have a revealed email are skipped — no
+  // re-enrichment, no re-charge (the server enforces this too).
   const handleBulkEnrich = useCallback(() => {
-    const contactIds = leadList
-      .filter((l: any) => selectedLeadIds.has(l.id))
+    const selected = leadList.filter((l: any) => selectedLeadIds.has(l.id));
+    const alreadyEnriched = selected.filter((l: any) => hasEmail(l)).length;
+    const contactIds = selected
+      .filter((l: any) => !hasEmail(l))
       .map((l: any) => l.contactId)
       .filter((id: any): id is number => Number.isFinite(id));
     if (contactIds.length === 0) {
-      toast({ title: "Nothing to enrich", description: "The selected prospects have no linked contacts.", variant: "destructive" });
+      toast(
+        alreadyEnriched > 0
+          ? { title: "Already enriched", description: `All ${alreadyEnriched} selected prospect${alreadyEnriched === 1 ? " is" : "s are"} already enriched — nothing to do.` }
+          : { title: "Nothing to enrich", description: "The selected prospects have no linked contacts.", variant: "destructive" },
+      );
       return;
     }
     setBulkEnriching(true);
@@ -280,10 +304,11 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
         const phones = data.phonesRevealed ? ` · ${data.phonesRevealed} phone${data.phonesRevealed === 1 ? "" : "s"}` : "";
         const web = data.socialsFilled ? ` · +${data.socialsFilled} web/social` : "";
+        const skipped = alreadyEnriched > 0 ? ` (${alreadyEnriched} already enriched, skipped)` : "";
         toast(
           data.emailsRevealed > 0 || data.socialsFilled
-            ? { title: "Prospects enriched", description: `${data.emailsRevealed} email${data.emailsRevealed === 1 ? "" : "s"}${phones}${web} across ${data.enriched.length} prospect${data.enriched.length === 1 ? "" : "s"}.` }
-            : { title: "No new contact data", description: `Apollo/PDL had no verified email or public socials for these ${data.enriched.length} prospect${data.enriched.length === 1 ? "" : "s"}.`, variant: "destructive" },
+            ? { title: "Prospects enriched", description: `${data.emailsRevealed} email${data.emailsRevealed === 1 ? "" : "s"}${phones}${web} across ${data.enriched.length} prospect${data.enriched.length === 1 ? "" : "s"}${skipped}.` }
+            : { title: "No new contact data", description: `Apollo/PDL had no verified email or public socials for these ${data.enriched.length} prospect${data.enriched.length === 1 ? "" : "s"}${skipped}.`, variant: "destructive" },
         );
         if (data.pdlErrors && data.pdlErrors.length > 0) {
           toast({ title: "People Data Labs error", description: data.pdlErrors[0], variant: "destructive" });
@@ -352,6 +377,11 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
   const handleEnrichLead = useCallback((lead: any) => {
     if (!lead?.contactId) {
       toast({ title: "No contact to enrich", description: "This lead has no linked contact record to enrich.", variant: "destructive" });
+      return;
+    }
+    // Enrich once — don't re-enrich a prospect that already has a revealed email.
+    if (hasEmail(lead)) {
+      toast({ title: "Already enriched", description: "This prospect already has a revealed email — it won't be enriched again." });
       return;
     }
     setEnrichingLead(true);
@@ -557,28 +587,35 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
             <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setShowFinder(false)}><X className="h-3 w-3" /></Button>
           </div>
           <p className="text-[10px] text-muted-foreground mb-3">
-            Matches import straight into your pipeline below — then select who to enrich &amp; move to CRM. Search is free.
+            Search ANY industry, title &amp; location — typos and abbreviations are auto-corrected. Matches import straight into your pipeline below, then select who to enrich &amp; move to CRM. Search is free.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">Job Titles</Label>
-              <Input value={filters.titles} onChange={(e) => setFilters({ ...filters, titles: e.target.value })} placeholder="VP Marketing, CMO, Demand Gen" className="mt-1" />
+              <Input value={filters.titles} onChange={(e) => setFilters({ ...filters, titles: e.target.value })} placeholder="CEO, CMO, VP Sales, Head of Growth" className="mt-1" />
               <p className="text-[9px] text-muted-foreground mt-0.5">Comma-separated. Matches Apollo person titles.</p>
             </div>
             <div>
               <Label className="text-xs">Industry / Keyword Tags</Label>
-              <Input value={filters.organizationKeywords} onChange={(e) => setFilters({ ...filters, organizationKeywords: e.target.value })} placeholder="cybersecurity, MSSP, EDR" className="mt-1" />
-              <p className="text-[9px] text-muted-foreground mt-0.5">Comma-separated organization keywords.</p>
+              <Input value={filters.organizationKeywords} onChange={(e) => setFilters({ ...filters, organizationKeywords: e.target.value })} placeholder="Banking, Blockchain, Healthcare, SaaS…" className="mt-1" />
+              <p className="text-[9px] text-muted-foreground mt-0.5">Comma-separated. Any industry — results are restricted to it.</p>
             </div>
             <div>
               <Label className="text-xs">Locations</Label>
-              <Input value={filters.locations} onChange={(e) => setFilters({ ...filters, locations: e.target.value })} placeholder="United States, California" className="mt-1" />
+              <Input value={filters.locations} onChange={(e) => setFilters({ ...filters, locations: e.target.value })} placeholder="United States · Kabul · Canada" className="mt-1" />
+              <p className="text-[9px] text-muted-foreground mt-0.5">Results outside these locations are filtered out.</p>
             </div>
             <div>
               <Label className="text-xs">Free-text Keyword</Label>
-              <Input value={filters.keywords} onChange={(e) => setFilters({ ...filters, keywords: e.target.value })} placeholder="threat intelligence" className="mt-1" />
+              <Input value={filters.keywords} onChange={(e) => setFilters({ ...filters, keywords: e.target.value })} placeholder="payments, cloud migration, telehealth…" className="mt-1" />
             </div>
           </div>
+          {queryNotice && (
+            <p className="text-[10px] mt-3 flex items-center gap-1 text-muted-foreground">
+              <Search className="h-3 w-3 text-crimson shrink-0" />
+              <span>Interpreted as: <span className="text-foreground">{queryNotice}</span></span>
+            </p>
+          )}
 
           <div className="mt-4">
             <Label className="text-xs">Seniority</Label>
@@ -636,8 +673,10 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
             <p className="text-[10px] mt-3 flex items-center gap-1 text-muted-foreground">
               <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
               {searchSummary.imported > 0
-                ? `${searchSummary.imported} prospect${searchSummary.imported === 1 ? "" : "s"} added to your pipeline${searchSummary.skipped ? `, ${searchSummary.skipped} already there` : ""}.`
-                : `No new prospects — all ${searchSummary.skipped} matches are already in your pipeline.`}
+                ? `${searchSummary.imported} prospect${searchSummary.imported === 1 ? "" : "s"} added to your pipeline${searchSummary.skipped ? `, ${searchSummary.skipped} already there` : ""}${searchSummary.dropped ? `, ${searchSummary.dropped} off-location filtered out` : ""}.`
+                : searchSummary.skipped > 0
+                  ? `No new prospects — all ${searchSummary.skipped} matches are already in your pipeline.`
+                  : `No prospects matched${searchSummary.dropped ? ` (${searchSummary.dropped} off-location filtered out)` : ""}. Try a different title, industry, or location.`}
             </p>
           )}
           {apolloStatus?.mode === "live" && (
@@ -656,7 +695,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
           <Target className="h-12 w-12 mx-auto text-muted-foreground/20 mb-4" />
           <h3 className="text-sm font-semibold mb-2">No Prospects Yet</h3>
           <p className="text-xs text-muted-foreground mb-4 max-w-md mx-auto">
-            Start building your pipeline. Add leads manually, or use <span className="text-foreground">Find Prospects</span> to search cybersecurity companies via Apollo.
+            Start building your pipeline. Add leads manually, or use <span className="text-foreground">Find Prospects</span> to search any industry, title &amp; location via Apollo.
           </p>
         </GlassCard>
       ) : (
@@ -675,9 +714,11 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
             </label>
             {selectedLeadIds.size > 0 && (
               <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-                <Button size="sm" className="btn-premium text-white h-7 text-xs" disabled={bulkEnriching} onClick={handleBulkEnrich}>
-                  {bulkEnriching ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <Zap className="h-3 w-3 mr-1" />}
-                  Enrich {selectedLeadIds.size}
+                <Button size="sm" className="btn-premium text-white h-7 text-xs" disabled={bulkEnriching || selectedNeedingEnrich === 0}
+                  title={selectedNeedingEnrich === 0 ? "All selected prospects are already enriched" : undefined}
+                  onClick={handleBulkEnrich}>
+                  {bulkEnriching ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : selectedNeedingEnrich === 0 ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <Zap className="h-3 w-3 mr-1" />}
+                  {selectedNeedingEnrich === 0 ? "Enriched" : `Enrich ${selectedNeedingEnrich}`}
                 </Button>
                 <Button size="sm" variant="outline" className="h-7 text-xs border-crimson/30 text-crimson" disabled={bulkMoving} onClick={handleBulkMoveCrm}>
                   {bulkMoving ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <ArrowRight className="h-3 w-3 mr-1" />}
@@ -766,7 +807,7 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                   </div>
                   {getLeadName(selectedLead)}
                 </DialogTitle>
-                <DialogDescription>{getLeadCompany(selectedLead) || "No company"} — {selectedLead.title ?? selectedLead.bestAngle ?? "Prospect"}</DialogDescription>
+                <DialogDescription>{getLeadCompany(selectedLead) || "No company"} — {selectedLead.contactTitle || humanizeSeniority(selectedLead.seniority) || "Prospect"}</DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="space-y-3">
@@ -825,10 +866,11 @@ function ProspectFinder({ onTabChange }: { onTabChange: (tab: string) => void })
                 <Button variant="outline" className="text-sm flex-1" onClick={() => { setSelectedLead(null); onTabChange("strategy"); }}>
                   <Target className="h-4 w-4 mr-2" />Plan Approach
                 </Button>
-                <Button variant="outline" className="text-sm" disabled={enrichingLead || !selectedLead.contactId}
-                  title={selectedLead.contactId ? undefined : "No linked contact to enrich"}
+                <Button variant="outline" className="text-sm" disabled={enrichingLead || !selectedLead.contactId || hasEmail(selectedLead)}
+                  title={hasEmail(selectedLead) ? "Already enriched" : (selectedLead.contactId ? undefined : "No linked contact to enrich")}
                   onClick={() => handleEnrichLead(selectedLead)}>
-                  {enrichingLead ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}Enrich
+                  {enrichingLead ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : hasEmail(selectedLead) ? <CheckCircle2 className="h-4 w-4 mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
+                  {hasEmail(selectedLead) ? "Enriched" : "Enrich"}
                 </Button>
                 {["qualified","routing","routed","active","closed_won","closed_lost"].includes(selectedLead.status) ? (
                   <Button variant="outline" className="text-sm opacity-60" disabled>

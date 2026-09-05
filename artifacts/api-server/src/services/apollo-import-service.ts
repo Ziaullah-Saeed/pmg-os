@@ -113,6 +113,7 @@ async function currentModeLabel(): Promise<string> {
 /** Company columns read for fill-empty checks. */
 const companyRichCols = {
   id: companiesTable.id,
+  industry: companiesTable.industry,
   website: companiesTable.website,
   phone: companiesTable.phone,
   linkedinUrl: companiesTable.linkedinUrl,
@@ -134,6 +135,9 @@ function orgToCompanyValues(o: NormalizedOrg): Record<string, string | number> {
   const put = (k: string, val: string | null | undefined) => {
     if (val != null && String(val).trim()) v[k] = String(val).trim();
   };
+  // Real industry comes from enrichment (bulk_match / PDL) — api_search redacts it,
+  // so import leaves a "Unknown" placeholder that this fills once we have live data.
+  put("industry", o.industry);
   put("website", o.domain);
   put("phone", o.phone);
   put("linkedinUrl", o.linkedinUrl);
@@ -179,7 +183,10 @@ async function fillEmptyCompanyById(companyId: number, rich: Record<string, stri
   const filled: string[] = [];
   for (const [k, val] of Object.entries(rich)) {
     const cur = (existing as Record<string, any>)[k];
-    if ((cur == null || cur === "") && val != null && val !== "") {
+    // "Unknown" is our not-a-real-value placeholder (e.g. redacted industry at
+    // import) — treat it as empty so live enrichment can replace it.
+    const isEmpty = cur == null || cur === "" || cur === "Unknown";
+    if (isEmpty && val != null && val !== "") {
       update[k] = val;
       filled.push(k);
     }
@@ -215,7 +222,10 @@ async function upsertCompany(p: NormalizedPerson): Promise<{ id: number; created
     .insert(companiesTable)
     .values({
       name: p.organizationName ?? "Unknown Company",
-      industry: p.industry ?? "cybersecurity",
+      // Never assume an industry. Apollo's api_search redacts the org industry on
+      // this plan, so defaulting to "cybersecurity" mislabeled every imported
+      // company. Leave it neutral until enrichment supplies the real industry.
+      industry: p.industry ?? "Unknown",
       location: p.location ?? null,
       status: "prospect",
       ...rich,
@@ -254,14 +264,18 @@ export async function importProspects(people: NormalizedPerson[]): Promise<Apoll
       continue;
     }
 
-    // Don't re-import the same Apollo person.
+    // Don't re-import a person who is ALREADY IN THE PIPELINE. Dedup on the LEAD,
+    // not the contact: "delete prospect" removes the lead but can leave the contact
+    // behind, so keying dedup on the contact wrongly reported "already in pipeline"
+    // for a pipeline the user had cleared (and blocked re-import). Any lingering
+    // contact is reused below so re-imports never duplicate or re-pay for a reveal.
     if (p.apolloId) {
-      const [existing] = await db
-        .select({ id: contactsTable.id })
-        .from(contactsTable)
-        .where(eq(contactsTable.externalCrmId, p.apolloId))
+      const [existingLead] = await db
+        .select({ id: leadsTable.id })
+        .from(leadsTable)
+        .where(eq(leadsTable.externalCrmId, p.apolloId))
         .limit(1);
-      if (existing) {
+      if (existingLead) {
         skipped.push({ apolloId: p.apolloId, reason: "already_imported" });
         continue;
       }
@@ -279,33 +293,57 @@ export async function importProspects(people: NormalizedPerson[]): Promise<Apoll
       p.location ? "location" : null,
     ].filter(Boolean) as string[];
 
-    const [contact] = await db
-      .insert(contactsTable)
-      .values({
-        firstName: p.firstName || (p.organizationName ?? "Contact").split(" ")[0],
-        lastName: p.lastName || "",
-        email,
-        title: p.title,
-        companyId,
-        isDecisionMaker: p.seniority ? DECISION_MAKER_SENIORITIES.has(p.seniority) : false,
-        authorityLevel: p.seniority,
-        department: p.department,
-        location: p.location,
-        linkedinUrl: p.linkedinUrl,
-        twitterUrl: p.twitterUrl,
-        status: "active",
-        contactStatus,
-        externalCrmId: p.apolloId,
-        lastSyncedAt: new Date(),
-        enrichmentSources: contactSourceFields.length ? mergeSources(null, contactSourceFields) : undefined,
-      })
-      .returning();
+    // Reuse a lingering contact for this Apollo person (its lead was deleted) rather
+    // than inserting a duplicate — preserves any already-revealed email/phone (no re-pay).
+    const [existingContact] = p.apolloId
+      ? await db
+          .select({ id: contactsTable.id, email: contactsTable.email, contactStatus: contactsTable.contactStatus })
+          .from(contactsTable)
+          .where(eq(contactsTable.externalCrmId, p.apolloId))
+          .limit(1)
+      : [];
+
+    let contactId: number;
+    let resultEmail: string | null;
+    let resultStatus: string;
+    if (existingContact) {
+      contactId = existingContact.id;
+      resultEmail = existingContact.email ?? null;
+      resultStatus = existingContact.contactStatus ?? contactStatus;
+      // Re-point at the (re)upserted company; never overwrite revealed contact data.
+      await db.update(contactsTable).set({ companyId, lastSyncedAt: new Date() }).where(eq(contactsTable.id, contactId));
+    } else {
+      const [contact] = await db
+        .insert(contactsTable)
+        .values({
+          firstName: p.firstName || (p.organizationName ?? "Contact").split(" ")[0],
+          lastName: p.lastName || "",
+          email,
+          title: p.title,
+          companyId,
+          isDecisionMaker: p.seniority ? DECISION_MAKER_SENIORITIES.has(p.seniority) : false,
+          authorityLevel: p.seniority,
+          department: p.department,
+          location: p.location,
+          linkedinUrl: p.linkedinUrl,
+          twitterUrl: p.twitterUrl,
+          status: "active",
+          contactStatus,
+          externalCrmId: p.apolloId,
+          lastSyncedAt: new Date(),
+          enrichmentSources: contactSourceFields.length ? mergeSources(null, contactSourceFields) : undefined,
+        })
+        .returning();
+      contactId = contact.id;
+      resultEmail = email;
+      resultStatus = contactStatus;
+    }
 
     const [lead] = await db
       .insert(leadsTable)
       .values({
         companyId,
-        contactId: contact.id,
+        contactId,
         source: "apollo",
         status: "new",
         channelSource: "apollo_search",
@@ -323,8 +361,9 @@ export async function importProspects(people: NormalizedPerson[]): Promise<Apoll
       performedBy: "apollo_import",
     });
 
-    // Surface near-duplicates for review (mode-gated inside executeOrQueue).
-    await checkDuplicatesOnCreate("contact", contact.id);
+    // Surface near-duplicates for review (mode-gated inside executeOrQueue). Only for
+    // a freshly-created contact — a reused one was already checked at first import.
+    if (!existingContact) await checkDuplicatesOnCreate("contact", contactId);
     if (companyCreated) await checkDuplicatesOnCreate("company", companyId);
 
     // Same AI enrich+score pipeline as manual "Add Lead" (fire-and-forget).
@@ -334,7 +373,7 @@ export async function importProspects(people: NormalizedPerson[]): Promise<Apoll
       source: "apollo",
     });
 
-    imported.push({ apolloId: p.apolloId, contactId: contact.id, leadId: lead.id, companyId, email, contactStatus });
+    imported.push({ apolloId: p.apolloId, contactId, leadId: lead.id, companyId, email: resultEmail, contactStatus: resultStatus });
   }
 
   return { mode, imported, skipped };
@@ -450,6 +489,29 @@ function buildSamplePhone(seed: number): string {
   const mid = String(100 + (n % 900));
   const last = String(1000 + (n * 37) % 9000);
   return `+1-555-${mid}-${last}`;
+}
+
+/** Split contactIds into those already enriched (have a revealed email) and those
+ *  still needing it. Enforces "enrich once" server-side: an already-enriched contact
+ *  is never re-processed (no re-charge, no redundant provider lookups). Ids not found
+ *  are treated as needing enrichment (downstream handles the miss). */
+export async function partitionEnriched(
+  contactIds: number[],
+): Promise<{ toEnrich: number[]; alreadyEnriched: number[] }> {
+  const ids = [...new Set(contactIds)].filter((n) => Number.isFinite(n));
+  if (ids.length === 0) return { toEnrich: [], alreadyEnriched: [] };
+  const rows = await db
+    .select({ id: contactsTable.id, email: contactsTable.email })
+    .from(contactsTable)
+    .where(inArray(contactsTable.id, ids));
+  const emailById = new Map(rows.map((r) => [r.id, r.email] as const));
+  const toEnrich: number[] = [];
+  const alreadyEnriched: number[] = [];
+  for (const id of ids) {
+    if (emailById.has(id) && normalizeRevealedEmail(emailById.get(id) ?? null)) alreadyEnriched.push(id);
+    else toEnrich.push(id);
+  }
+  return { toEnrich, alreadyEnriched };
 }
 
 export async function enrichContacts(
