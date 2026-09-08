@@ -50,6 +50,7 @@ import testingRouter from "./testing";
 import channelHealthRouter from "./channel-health";
 import jobQueueRouter from "./job-queue";
 import channelsRouter from "./channels";
+import socialRouter from "./social";
 import guideEndpointsRouter from "./guide-endpoints";
 import apolloRouter from "./apollo";
 import pdlRouter from "./pdl";
@@ -173,6 +174,7 @@ router.use(testingRouter);
 router.use(channelHealthRouter);
 router.use(jobQueueRouter);
 router.use("/channels", channelsRouter);
+router.use(socialRouter);
 router.use(guideEndpointsRouter);
 
 export default router;

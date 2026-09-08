@@ -10,7 +10,9 @@ export type WsEventType =
   | "mode_change"
   | "lead_update"
   | "approval_update"
-  | "system_alert";
+  | "system_alert"
+  | "social_message"
+  | "social_interaction";
 
 interface WsMessage {
   type: WsEventType;

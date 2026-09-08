@@ -60,10 +60,12 @@ RUN sed -i -E '/(>@esbuild\/|>@rollup\/|lightningcss>lightningcss-|@tailwindcss\
 # Install the whole workspace once. --no-frozen-lockfile because we just edited
 # the manifest (platform overrides removed); the catalog still pins every
 # meaningful version so the resolution stays deterministic.
+# NOTE: fetch-retries is set in .npmrc above (line ~44), not on the CLI — newer
+# pnpm removed the `--fetch-retries` flag (arg-parse error). fetch-timeout is
+# still a valid flag and stays for clarity; both values also live in .npmrc.
 RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --no-frozen-lockfile \
-      --fetch-timeout=1200000 \
-      --fetch-retries=10
+      --fetch-timeout=1200000
 
 # ---- build-web: compile the React/Vite bundle → dist/public -----------------
 # vite.config.ts REQUIRES PORT and BASE_PATH at build time (it throws otherwise).

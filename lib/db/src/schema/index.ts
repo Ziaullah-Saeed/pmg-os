@@ -31,3 +31,8 @@ export * from "./brand-kits";
 export * from "./job_queue";
 export * from "./channels";
 export * from "./ai_outputs";
+export * from "./social_accounts";
+export * from "./channel_identities";
+export * from "./conversations";
+export * from "./messages";
+export * from "./social_interactions";
