@@ -10,6 +10,7 @@ const DEFAULT_WORKFLOW_MODES: Record<string, { mode: AiMode; description: string
   "lead_routing": { mode: "ai_autonomous", description: "CRM Lead Routing" },
   "outreach_draft": { mode: "ai_autonomous", description: "Outreach Message Drafting" },
   "outreach_send": { mode: "hybrid", description: "Outreach Send Approval" },
+  "social_intent": { mode: "ai_autonomous", description: "Social Intent Scoring" },
   "proposal_generation": { mode: "hybrid", description: "Proposal Generation" },
   "proposal_approval": { mode: "human_controlled", description: "Proposal Final Approval" },
   "contract_approval": { mode: "human_controlled", description: "Contract Approval" },

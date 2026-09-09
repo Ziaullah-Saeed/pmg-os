@@ -9,6 +9,7 @@ import { initAssignmentRouter } from "./services/assignment-router";
 import { initActivityTimeline } from "./services/activity-timeline";
 import { initPipelineEngine } from "./services/pipeline-engine";
 import { initLeadRouter } from "./services/lead-router";
+import { initSocialIntent } from "./services/social-intent-service";
 import { registerSequenceExecutors } from "./services/sequence-engine";
 import { registerDedupExecutors } from "./services/dedup-service";
 import { registerGHLExecutors } from "./services/ghl-service";
@@ -51,6 +52,7 @@ server.listen(port, () => {
   initActivityTimeline();
   initPipelineEngine();
   initLeadRouter();
+  initSocialIntent();
   registerSequenceExecutors();
   registerDedupExecutors();
   registerGHLExecutors();

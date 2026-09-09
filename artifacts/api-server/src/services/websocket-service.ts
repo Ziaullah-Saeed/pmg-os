@@ -12,7 +12,9 @@ export type WsEventType =
   | "approval_update"
   | "system_alert"
   | "social_message"
-  | "social_interaction";
+  | "social_interaction"
+  | "social_intent_scored"
+  | "social_conversation_converted";
 
 interface WsMessage {
   type: WsEventType;

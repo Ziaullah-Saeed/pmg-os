@@ -97,6 +97,7 @@ router.get("/social/conversations/:id", async (req, res): Promise<void> => {
       convertedLeadId: conversationsTable.convertedLeadId,
       convertedOpportunityId: conversationsTable.convertedOpportunityId,
       clientId: conversationsTable.clientId,
+      metadata: conversationsTable.metadata,
       createdAt: conversationsTable.createdAt,
     })
     .from(conversationsTable)

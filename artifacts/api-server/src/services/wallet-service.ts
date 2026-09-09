@@ -35,6 +35,8 @@ const TOOL_COSTS: Record<string, number> = {
   "ai-generate-asset": 0.20,
   "ai-research-prospect": 0.06,
   "ai-parse-search": 0.02,
+  "ai-score-social-intent": 0.02,
+  "ai-draft-social-reply": 0.05,
   "ai-crm-summary": 0.04,
   "ai-manual-guide": 0.05,
   "orchestrated": 0.05,

@@ -2441,4 +2441,200 @@ export function useDashboardRecentActivities() {
   });
 }
 
+// --- Social Command (unified inbound inbox) — Phase 5 ----------------------
+// Hand-written hooks over the /api/social/* routes (Phase 0). Those endpoints
+// return hand-shaped joins (contactName via SQL, nested messages), so they live
+// here with the other custom hooks rather than in the generated OpenAPI client
+// — same precedent as /apollo/* and /social/providers. Until a provider is
+// connected in a later phase these lists come back empty (honest empty state),
+// never fabricated sample data.
+
+export interface SocialConversation {
+  id: number;
+  contactId: number | null;
+  contactName: string | null;
+  companyId: number | null;
+  companyName: string | null;
+  subject: string | null;
+  primaryChannel: string | null;
+  status: string;
+  priority: string;
+  assignedTo: string | null;
+  unreadCount: number;
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  lastDirection: string | null;
+  firstInboundAt: string | null;
+  firstResponseAt: string | null;
+  intentScore: number | null;
+  sentiment: string | null;
+  convertedLeadId: number | null;
+  convertedOpportunityId: number | null;
+  clientId: number | null;
+  createdAt: string;
+}
+
+export interface SocialMessage {
+  id: number;
+  conversationId: number;
+  contactId: number | null;
+  channel: string;
+  direction: string;
+  externalMessageId: string | null;
+  body: string | null;
+  attachments: any;
+  status: string;
+  sentiment: string | null;
+  intentScore: number | null;
+  sentByMode: string | null;
+  performedBy: string | null;
+  externalTimestamp: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+export interface SocialConversationDetail extends SocialConversation {
+  messages: SocialMessage[];
+  metadata?: { suggestedReply?: string; suggestedReplyAt?: string } | null;
+}
+
+export interface SocialInteraction {
+  id: number;
+  contactId: number | null;
+  contactName: string | null;
+  platform: string;
+  type: string;
+  postId: string | null;
+  postUrl: string | null;
+  content: string | null;
+  intentScore: number | null;
+  sentiment: string | null;
+  status: string;
+  convertedToLeadId: number | null;
+  convertedConversationId: number | null;
+  externalTimestamp: string | null;
+  createdAt: string;
+}
+
+export interface SocialAccount {
+  id: number;
+  platform: string;
+  provider: string;
+  externalAccountId: string | null;
+  displayName: string | null;
+  handle: string | null;
+  status: string;
+  isActive: boolean;
+  webhookSubscribed: boolean;
+  ownerType: string;
+  clientId: number | null;
+  lastSyncAt: string | null;
+  lastSyncStatus: string | null;
+  createdAt: string;
+}
+
+export interface SocialProvidersStatus {
+  websiteForm: { configured: boolean; secretProtected: boolean };
+  metaLeadAds: { inboundConfigured: boolean; canFetchAnswers: boolean };
+  whatsapp: { inboundConfigured: boolean; outboundConfigured: boolean };
+}
+
+export interface SocialStats {
+  conversations: number;
+  messages: number;
+  interactions: number;
+  identitiesByPlatform: any;
+  actor: string;
+}
+
+export function useSocialConversations(filters?: { status?: string; channel?: string }) {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.channel) params.set("channel", filters.channel);
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["/api/social/conversations", "list", filters ?? {}],
+    queryFn: () => apiFetch<SocialConversation[]>(`/social/conversations${qs ? `?${qs}` : ""}`),
+    refetchInterval: 30000,
+  });
+}
+
+export function useSocialConversation(id: number | null) {
+  return useQuery({
+    queryKey: ["/api/social/conversations", "detail", id],
+    queryFn: () => apiFetch<SocialConversationDetail>(`/social/conversations/${id}`),
+    enabled: id != null,
+    refetchInterval: id != null ? 15000 : false,
+  });
+}
+
+export function useSocialInteractions(filters?: { status?: string; platform?: string; type?: string }) {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.platform) params.set("platform", filters.platform);
+  if (filters?.type) params.set("type", filters.type);
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ["/api/social/interactions", filters ?? {}],
+    queryFn: () => apiFetch<SocialInteraction[]>(`/social/interactions${qs ? `?${qs}` : ""}`),
+    refetchInterval: 30000,
+  });
+}
+
+export function useSocialAccounts() {
+  return useQuery({
+    queryKey: ["/api/social/accounts"],
+    queryFn: () => apiFetch<SocialAccount[]>("/social/accounts"),
+  });
+}
+
+export function useSocialProviders() {
+  return useQuery({
+    queryKey: ["/api/social/providers"],
+    queryFn: () => apiFetch<SocialProvidersStatus>("/social/providers"),
+    staleTime: 60000,
+  });
+}
+
+export function useSocialStats() {
+  return useQuery({
+    queryKey: ["/api/social/stats"],
+    queryFn: () => apiFetch<SocialStats>("/social/stats"),
+    refetchInterval: 30000,
+  });
+}
+
+export function usePatchConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: number; status?: string; assignedTo?: string; priority?: string; markRead?: boolean }) =>
+      apiFetch<SocialConversation>(`/social/conversations/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/social/conversations"] }),
+  });
+}
+
+export interface SocialReplyResult {
+  ok: boolean;
+  error?: string;
+  messageId?: number;
+}
+
+export function useReplyConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number; body: string }) =>
+      apiFetch<SocialReplyResult>(`/social/conversations/${id}/reply`, { method: "POST", body: JSON.stringify({ body }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/social/conversations"] }),
+  });
+}
+
+export function usePatchInteraction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      apiFetch<SocialInteraction>(`/social/interactions/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/social/interactions"] }),
+  });
+}
+
 export { apiFetch };

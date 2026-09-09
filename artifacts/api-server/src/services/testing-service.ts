@@ -349,6 +349,11 @@ const DUMMY_AI_RESPONSES: Record<string, string> = {
     recommendation: "Focus on Growth-Stage MDR segment — highest win rate and strong product-market fit with PMG's 20-lead guarantee.",
   }),
   "ai-summarize-record": "## Record Summary\n\nThis record shows consistent engagement over the past 14 days. The prospect has opened 4 emails, clicked through to the case study page twice, and viewed the pricing page once. LinkedIn activity shows they've been engaging with cybersecurity marketing content from competitors as well, indicating active vendor evaluation.\n\n**Key Takeaway:** High buying intent detected. Recommend escalating to a direct phone call within the next 48 hours before they commit to a competitor.\n\n**Risk Factors:** Competitor engagement detected. Timeline pressure — prospect mentioned Q2 budget allocation deadline.",
+  // Social Command intent scoring / reply drafting (Phase 4). The engine gates
+  // these on real-AI (skips callAI in dummy mode → heuristic stands), so these
+  // samples are only a fallback for any other caller. Kept honest/labeled.
+  "ai-score-social-intent": "SCORE: 55\nSENTIMENT: neutral",
+  "ai-draft-social-reply": "SAMPLE reply — generated in AI dummy mode (no live model call). Set AI_DUMMY_MODE=false for a real, context-aware draft. Thanks for reaching out! Happy to help — could we set up a quick call to walk through what you're looking for?",
   default: "Based on the available data and PMG Group's cybersecurity marketing expertise, here is the analysis:\n\nThe request has been processed successfully. The results are based on current market data, ICP alignment scoring, and PMG's proprietary lead qualification framework.\n\nKey findings have been logged to the knowledge base for future reference. If this analysis requires human review, it has been flagged in the notification center.\n\nNext recommended action: Review the output and take the suggested next steps within the recommended timeframe to maintain momentum.",
 };
 

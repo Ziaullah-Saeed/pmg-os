@@ -17,7 +17,10 @@ import { AiResultPanel } from "@/components/ai-result-panel";
 import { ModeBadge } from "@/components/mode-badge";
 import { ContactChannels, ContactChannelsDetail } from "@/components/contact-channels";
 import { ProspectCard, CompanyFacts, TechChips, KeywordChips, VerifiedBadge, humanizeSeniority } from "@/components/prospect-card";
-import { useApolloSearch, useApolloStatus, useApolloImport, useApolloEnrich, useApolloEnroll, useIntegrationStatus } from "@/hooks/use-api";
+import { useApolloSearch, useApolloStatus, useApolloImport, useApolloEnrich, useApolloEnroll,
+  useSocialConversations, useSocialConversation, useSocialInteractions, useSocialProviders, useSocialAccounts, useSocialStats,
+  usePatchConversation, useReplyConversation, usePatchInteraction,
+  type SocialConversation, type SocialInteraction, type SocialMessage } from "@/hooks/use-api";
 
 // Apollo seniority enum (UI labels). Sent verbatim to Apollo `person_seniorities`.
 const APOLLO_SENIORITIES = [
@@ -1005,8 +1008,10 @@ const SOCIAL_CHANNELS: { name: string; icon: ReactNode; color: string; match: Re
 function socialChannelIcon(type: string) {
   const t = (type ?? "").toLowerCase();
   if (t.includes("linkedin")) return <Linkedin className="h-3.5 w-3.5 text-blue-400" />;
+  if (t.includes("whatsapp")) return <MessageSquare className="h-3.5 w-3.5 text-green-500" />;
   if (t.includes("email") || t.includes("mail")) return <Mail className="h-3.5 w-3.5 text-crimson" />;
-  if (t.includes("facebook")) return <Facebook className="h-3.5 w-3.5 text-blue-500" />;
+  if (t.includes("messenger")) return <MessageSquare className="h-3.5 w-3.5 text-blue-500" />;
+  if (t.includes("facebook") || t.includes("lead")) return <Facebook className="h-3.5 w-3.5 text-blue-500" />;
   if (t === "x" || t.includes("twitter")) return <Twitter className="h-3.5 w-3.5" />;
   if (t.includes("instagram")) return <Instagram className="h-3.5 w-3.5 text-pink-400" />;
   if (t.includes("slack")) return <Slack className="h-3.5 w-3.5 text-purple-400" />;
@@ -1031,114 +1036,161 @@ function relTime(value?: string | Date | null): string {
 }
 
 function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) {
-  const { isHuman, isAuto, currentMode } = useAiModeContext();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: comms } = useListCommunications();
-  const { data: integrations } = useIntegrationStatus();
-  const [selectedMsg, setSelectedMsg] = useState<any>(null);
+
+  const [view, setView] = useState<"inbox" | "interactions">("inbox");
+  const [statusFilter, setStatusFilter] = useState("open");
+  const [channelFilter, setChannelFilter] = useState("all");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
-  const [sending, setSending] = useState(false);
-  const [movedIds, setMovedIds] = useState<Set<number>>(new Set());
+  const [movedLeadConvs, setMovedLeadConvs] = useState<Set<number>>(new Set());
+  const [movedInteractions, setMovedInteractions] = useState<Set<number>>(new Set());
 
-  const commList = (comms ?? []) as any[];
-  // The unified inbox is inbound communications (replies, form fills, messages).
-  const inbound = commList.filter((c) => String(c.direction ?? "").toLowerCase() === "inbound");
-  const integrationList: any[] = Array.isArray(integrations) ? integrations : [];
-  const providerActive = (re: RegExp) =>
-    integrationList.some((i: any) => re.test(String(i.provider ?? i.name ?? "")) && i.isActive);
+  const { data: conversations, isLoading: convLoading } = useSocialConversations({
+    status: statusFilter === "all" ? undefined : statusFilter,
+    channel: channelFilter === "all" ? undefined : channelFilter,
+  });
+  const { data: thread } = useSocialConversation(selectedId);
+  const { data: interactions } = useSocialInteractions();
+  const { data: providers } = useSocialProviders();
+  const { data: stats } = useSocialStats();
 
-  const channels = SOCIAL_CHANNELS.map((ch) => ({
-    ...ch,
-    connected: providerActive(ch.match),
-    unread: inbound.filter((c) => ch.types.includes(String(c.type ?? "").toLowerCase())).length,
-  }));
+  const patchConversation = usePatchConversation();
+  const replyConversation = useReplyConversation();
+  const patchInteraction = usePatchInteraction();
 
-  const senderName = (m: any) => m.contactName || m.companyName || m.performedBy || "Unknown sender";
+  const convList = (conversations ?? []) as SocialConversation[];
+  const interactionList = (interactions ?? []) as SocialInteraction[];
 
-  const handleReply = async (msg: any) => {
-    const text = (replyDraft || "").trim();
-    if (!text) {
-      toast({ title: "Empty reply", description: "Write a reply first.", variant: "destructive" });
-      return;
-    }
-    setSending(true);
-    try {
-      const res = await fetch(`${API_BASE}/communications`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          type: msg.type || "email",
-          direction: "outbound",
-          subject: msg.subject ? `Re: ${msg.subject}` : "Reply",
-          summary: text,
-          contactId: msg.contactId ?? undefined,
-          companyId: msg.companyId ?? undefined,
-          opportunityId: msg.opportunityId ?? undefined,
-          performedBy: "user",
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || err?.message || `Request failed (${res.status})`);
-      }
-      await queryClient.invalidateQueries({ queryKey: ["/api/communications"] });
-      toast({ title: "Reply logged", description: "Saved to the contact timeline. Connect the channel in Settings to send directly." });
-      setSelectedMsg(null);
-      setReplyDraft("");
-    } catch (err: any) {
-      toast({ title: "Reply failed", description: err?.message || "Request failed", variant: "destructive" });
-    } finally {
-      setSending(false);
-    }
+  // Honest connection status from real provider config (booleans only — no secrets).
+  const wa = providers?.whatsapp;
+  const channelStrip: { name: string; icon: ReactNode; state: "live" | "off" | "planned"; note?: string }[] = [
+    { name: "Website Forms", icon: <FileText className="h-4 w-4 text-green-400" />, state: providers?.websiteForm?.configured ? "live" : "off" },
+    { name: "Lead Ads", icon: <Facebook className="h-4 w-4 text-blue-500" />, state: providers?.metaLeadAds?.inboundConfigured ? "live" : "off" },
+    { name: "WhatsApp", icon: <MessageSquare className="h-4 w-4 text-green-500" />, state: wa?.inboundConfigured ? "live" : "off", note: wa?.inboundConfigured && !wa?.outboundConfigured ? "Receiving" : undefined },
+    { name: "Messenger", icon: <MessageSquare className="h-4 w-4 text-blue-500" />, state: "planned" },
+    { name: "Instagram", icon: <Instagram className="h-4 w-4 text-pink-400" />, state: "planned" },
+    { name: "LinkedIn", icon: <Linkedin className="h-4 w-4 text-blue-400" />, state: "planned" },
+  ];
+
+  const senderName = (name?: string | null, fallback = "Unknown") => (name && name.trim()) || fallback;
+  const normMode = (m?: string | null) => String(m ?? "").replace("human_controlled", "human").replace("ai_autonomous", "ai_auto");
+
+  const intentBadge = (score?: number | null) => {
+    if (score == null) return null;
+    const tone = score >= 70 ? "bg-crimson/20 text-crimson border-crimson/30" : score >= 40 ? "bg-gold/20 text-gold border-gold/30" : "bg-white/5 text-muted-foreground border-border/40";
+    return <Badge variant="outline" className={`text-[9px] ${tone}`}>Intent {score}</Badge>;
   };
 
-  const handleMoveToCrm = async (msg: any) => {
+  const selectConversation = (c: SocialConversation) => {
+    setSelectedId(c.id);
+    setReplyDraft("");
+    if (c.unreadCount > 0) patchConversation.mutate({ id: c.id, markRead: true });
+  };
+
+  // Only WhatsApp is send-capable this phase, and only when an outbound token is wired.
+  const canSendReply = thread?.primaryChannel === "whatsapp" && !!wa?.outboundConfigured;
+
+  const handleReply = () => {
+    const text = replyDraft.trim();
+    if (!text || selectedId == null) return;
+    replyConversation.mutate({ id: selectedId, body: text }, {
+      onSuccess: (res) => {
+        if (res?.ok) {
+          toast({ title: "Reply sent", description: "Delivered on the thread's channel." });
+          setReplyDraft("");
+          queryClient.invalidateQueries({ queryKey: ["/api/social/conversations", "detail", selectedId] });
+        } else {
+          toast({ title: "Not sent", description: res?.error || "Channel not send-capable yet.", variant: "destructive" });
+        }
+      },
+      onError: (err: any) => toast({ title: "Reply failed", description: err?.message || "Request failed", variant: "destructive" }),
+    });
+  };
+
+  const setConvStatus = (id: number, status: string) => {
+    patchConversation.mutate({ id, status }, {
+      onSuccess: () => toast({ title: `Conversation ${status}` }),
+      onError: (err: any) => toast({ title: "Update failed", description: err?.message, variant: "destructive" }),
+    });
+  };
+
+  const createLead = async (payload: Record<string, unknown>): Promise<boolean> => {
     try {
-      const parts = String(msg.contactName || "").trim().split(/\s+/).filter(Boolean);
       const res = await fetch(`${API_BASE}/leads`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          firstName: parts[0] || (msg.companyName || "Contact"),
-          lastName: parts.slice(1).join(" ") || "",
-          company: msg.companyName || undefined,
-          companyId: msg.companyId ?? undefined,
-          contactId: msg.contactId ?? undefined,
-          source: (msg.type || "inbound").toLowerCase(),
-          status: "qualified",
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: "Failed" }));
+        const err = await res.json().catch(() => ({}));
         toast({ title: "Error", description: err.message || err.error || "Could not create CRM lead", variant: "destructive" });
-        return;
+        return false;
       }
       await queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      setMovedIds((prev) => new Set(prev).add(msg.id));
-      toast({ title: "Moved to CRM", description: `${senderName(msg)} added as a qualified lead` });
-      setSelectedMsg(null);
+      return true;
     } catch {
       toast({ title: "Error", description: "Failed to create CRM lead", variant: "destructive" });
+      return false;
     }
   };
 
+  const moveConvToCrm = async (conv: SocialConversation) => {
+    const parts = String(conv.contactName || "").trim().split(/\s+/).filter(Boolean);
+    const ok = await createLead({
+      firstName: parts[0] || (conv.companyName || "Contact"),
+      lastName: parts.slice(1).join(" ") || "",
+      company: conv.companyName || undefined,
+      companyId: conv.companyId ?? undefined,
+      contactId: conv.contactId ?? undefined,
+      source: (conv.primaryChannel || "social").toLowerCase(),
+      status: "qualified",
+    });
+    if (ok) {
+      setMovedLeadConvs((prev) => new Set(prev).add(conv.id));
+      toast({ title: "Moved to CRM", description: `${senderName(conv.contactName)} added as a qualified lead` });
+    }
+  };
+
+  const moveInteractionToCrm = async (it: SocialInteraction) => {
+    const parts = String(it.contactName || "").trim().split(/\s+/).filter(Boolean);
+    const ok = await createLead({
+      firstName: parts[0] || "Contact",
+      lastName: parts.slice(1).join(" ") || "",
+      contactId: it.contactId ?? undefined,
+      source: (it.platform || "social").toLowerCase(),
+      status: "qualified",
+    });
+    if (ok) {
+      setMovedInteractions((prev) => new Set(prev).add(it.id));
+      patchInteraction.mutate({ id: it.id, status: "converted" });
+      toast({ title: "Moved to CRM", description: `${senderName(it.contactName, "Contact")} added as a qualified lead` });
+    }
+  };
+
+  const totalUnread = convList.reduce((n, c) => n + (c.unreadCount || 0), 0);
+  const newInteractions = interactionList.filter((i) => i.status === "new").length;
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        {channels.map((ch) => (
+      {/* Connection status — honest, driven by real provider config */}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+        {channelStrip.map((ch) => (
           <GlassCard key={ch.name} className="p-3">
             <div className="flex flex-col items-center text-center gap-1">
-              <div className={ch.color}>{ch.icon}</div>
+              {ch.icon}
               <span className="text-[10px] font-medium">{ch.name}</span>
-              <div className="flex items-center gap-1">
-                {ch.unread > 0 && <Badge className="bg-crimson text-white text-[9px] px-1 py-0">{ch.unread}</Badge>}
-                <span className={`text-[9px] ${ch.connected ? "text-success" : "text-muted-foreground"}`}>
-                  {ch.connected ? "Connected" : "Not connected"}
+              {ch.state === "live" ? (
+                <span className="text-[9px] text-success flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success inline-block" />{ch.note || "Live"}
                 </span>
-              </div>
+              ) : ch.state === "planned" ? (
+                <span className="text-[9px] text-muted-foreground">Planned</span>
+              ) : (
+                <span className="text-[9px] text-muted-foreground">Not connected</span>
+              )}
             </div>
           </GlassCard>
         ))}
@@ -1147,101 +1199,232 @@ function SocialCommand({ onTabChange }: { onTabChange: (tab: string) => void }) 
       <div className="flex items-center gap-1.5 px-1">
         <Globe className="h-3 w-3 text-crimson/70" />
         <span className="text-[10px] text-muted-foreground">
-          Inbound messages appear here from connected channels. Connect LinkedIn, email, or a webhook in Settings → Integrations to route replies into this inbox.
+          Inbound DMs, comments and form fills land here from connected channels, threaded per person. Connect WhatsApp / Meta in Settings and point the webhook at a public URL to go live.
         </span>
       </div>
 
-      <GlassCard>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">Unified Inbox</h3>
-          <Badge variant="outline" className="text-xs">{inbound.length} message{inbound.length === 1 ? "" : "s"}</Badge>
-        </div>
-        {inbound.length === 0 ? (
-          <div className="text-center py-10">
-            <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground/20 mb-3" />
-            <p className="text-sm font-semibold">No messages yet</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-              Inbound replies and form submissions land here once a channel is connected. Nothing has come in yet.
-            </p>
+      {/* View toggle */}
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" className={`h-7 text-xs ${view === "inbox" ? "btn-premium text-white border-transparent" : ""}`} onClick={() => setView("inbox")}>
+          <MessageSquare className="h-3.5 w-3.5 mr-1.5" />Inbox{totalUnread > 0 && <Badge className="ml-1.5 bg-crimson text-white text-[9px] px-1 py-0">{totalUnread}</Badge>}
+        </Button>
+        <Button variant="outline" size="sm" className={`h-7 text-xs ${view === "interactions" ? "btn-premium text-white border-transparent" : ""}`} onClick={() => setView("interactions")}>
+          <ThumbsUp className="h-3.5 w-3.5 mr-1.5" />Interactions{newInteractions > 0 && <Badge className="ml-1.5 bg-crimson text-white text-[9px] px-1 py-0">{newInteractions}</Badge>}
+        </Button>
+        <Button variant="outline" size="sm" className="h-7 text-xs ml-auto" onClick={() => onTabChange("compose")}>
+          <Edit className="h-3.5 w-3.5 mr-1.5" />Compose
+        </Button>
+      </div>
+      {stats && (
+        <p className="text-[10px] text-muted-foreground px-1 -mt-3">
+          {stats.conversations} conversation{stats.conversations === 1 ? "" : "s"} · {stats.messages} message{stats.messages === 1 ? "" : "s"} · {stats.interactions} interaction{stats.interactions === 1 ? "" : "s"}
+        </p>
+      )}
+
+      {view === "inbox" ? (
+        <div className="grid lg:grid-cols-3 gap-4">
+          {/* LEFT — conversation list */}
+          <div className="lg:col-span-1 space-y-3">
+            <div className="flex items-center gap-2">
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setSelectedId(null); }}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="snoozed">Snoozed</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={channelFilter} onValueChange={(v) => { setChannelFilter(v); setSelectedId(null); }}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All channels</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="website">Website</SelectItem>
+                  <SelectItem value="lead_ad">Lead Ads</SelectItem>
+                  <SelectItem value="messenger">Messenger</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <GlassCard className="p-2">
+              {convLoading ? (
+                <div className="text-center py-10 text-xs text-muted-foreground"><RefreshCw className="h-5 w-5 mx-auto mb-2 animate-spin opacity-40" />Loading…</div>
+              ) : convList.length === 0 ? (
+                <div className="text-center py-10">
+                  <MessageSquare className="h-9 w-9 mx-auto text-muted-foreground/20 mb-2" />
+                  <p className="text-xs font-semibold">No conversations</p>
+                  <p className="text-[10px] text-muted-foreground mt-1 max-w-[200px] mx-auto">Threads appear once a channel is connected and someone messages in.</p>
+                </div>
+              ) : (
+                <div className="space-y-1 max-h-[560px] overflow-y-auto pr-1">
+                  {convList.map((c) => (
+                    <button key={c.id} onClick={() => selectConversation(c)}
+                      className={`w-full text-left p-2.5 rounded-lg transition-colors ${selectedId === c.id ? "bg-crimson/10 border border-crimson/30" : "glass-surface hover:bg-white/[0.03] border border-transparent"}`}>
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 rounded glass-surface shrink-0">{socialChannelIcon(c.primaryChannel || "")}</div>
+                        <span className="text-xs font-medium truncate flex-1">{senderName(c.contactName)}</span>
+                        {c.unreadCount > 0 && <Badge className="bg-crimson text-white text-[9px] px-1 py-0">{c.unreadCount}</Badge>}
+                      </div>
+                      {c.companyName && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{c.companyName}</p>}
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {c.lastDirection === "outbound" && <span className="text-foreground/60">You: </span>}{c.lastMessagePreview || "(no messages)"}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[9px] text-muted-foreground">{relTime(c.lastMessageAt)}</span>
+                        {intentBadge(c.intentScore)}
+                        {c.convertedLeadId && <Badge variant="outline" className="text-[9px] border-success/30 text-success">In pipeline</Badge>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {inbound.map((msg) => {
-              const moved = movedIds.has(msg.id);
-              return (
-                <motion.div key={msg.id} whileHover={{ scale: 1.002 }}
-                  className="p-3 rounded-lg glass-surface cursor-pointer flex items-center gap-3 hover:bg-white/[0.02] transition-colors"
-                  onClick={() => { setSelectedMsg(msg); setReplyDraft(""); }}
-                >
-                  <div className="p-1.5 rounded-lg glass-surface shrink-0">{socialChannelIcon(msg.type)}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium truncate">{senderName(msg)}</p>
-                      {msg.companyName && msg.contactName && <span className="text-[10px] text-muted-foreground truncate">at {msg.companyName}</span>}
-                      {msg.sentiment && <Badge variant="outline" className="text-[9px] capitalize">{msg.sentiment}</Badge>}
+
+          {/* RIGHT — thread */}
+          <div className="lg:col-span-2">
+            <GlassCard className="h-full">
+              {!thread ? (
+                <div className="text-center py-20">
+                  <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground/20 mb-3" />
+                  <p className="text-sm font-semibold">Select a conversation</p>
+                  <p className="text-xs text-muted-foreground mt-1">Pick a thread on the left to see the full cross-channel history.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col h-full">
+                  {/* header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="p-1.5 rounded-lg glass-surface shrink-0">{socialChannelIcon(thread.primaryChannel || "")}</div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{senderName(thread.contactName)}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {thread.companyName ? `${thread.companyName} · ` : ""}{thread.primaryChannel || "unknown channel"}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{msg.subject || msg.summary || "(no subject)"}</p>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {intentBadge(thread.intentScore)}
+                      {thread.status === "closed" ? (
+                        <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setConvStatus(thread.id, "open")}><RefreshCw className="h-3 w-3 mr-1" />Reopen</Button>
+                      ) : (
+                        <>
+                          <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setConvStatus(thread.id, "snoozed")}><Clock className="h-3 w-3 mr-1" />Snooze</Button>
+                          <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => setConvStatus(thread.id, "closed")}><CheckCircle2 className="h-3 w-3 mr-1" />Close</Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] text-muted-foreground">{relTime(msg.createdAt)}</span>
-                    {moved ? (
-                      <Badge className="bg-success/20 text-success text-[9px] border-success/30">In CRM</Badge>
+
+                  {/* messages */}
+                  <div className="flex-1 py-3 space-y-3 max-h-[420px] overflow-y-auto">
+                    {(thread.messages ?? []).length === 0 ? (
+                      <p className="text-center text-xs text-muted-foreground py-10">No messages recorded on this thread yet.</p>
                     ) : (
-                      <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 border-crimson/30 text-crimson" onClick={(e) => { e.stopPropagation(); handleMoveToCrm(msg); }}>
-                        <ArrowRight className="h-2.5 w-2.5 mr-1" />CRM
-                      </Button>
+                      (thread.messages ?? []).map((m: SocialMessage) => {
+                        const out = m.direction === "outbound";
+                        return (
+                          <div key={m.id} className={`flex ${out ? "justify-end" : "justify-start"}`}>
+                            <div className={`max-w-[78%] rounded-lg p-2.5 ${out ? "bg-crimson/15 border border-crimson/20" : "glass-surface"}`}>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                {socialChannelIcon(m.channel)}
+                                <span className="text-[9px] text-muted-foreground">{out ? "You" : senderName(thread.contactName)}</span>
+                                {out && m.sentByMode && <ModeBadge mode={normMode(m.sentByMode)} />}
+                              </div>
+                              <p className="text-sm whitespace-pre-wrap break-words">{m.body || <span className="italic text-muted-foreground">(no text)</span>}</p>
+                              <p className="text-[9px] text-muted-foreground mt-1">{relTime(m.externalTimestamp || m.createdAt)}{out && m.performedBy ? ` · ${m.performedBy}` : ""}</p>
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </GlassCard>
 
-      {selectedMsg && (
-        <Dialog open={!!selectedMsg} onOpenChange={() => setSelectedMsg(null)}>
-          <DialogContent className="glass-panel border-border/50 max-w-xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                {socialChannelIcon(selectedMsg.type)}
-                {senderName(selectedMsg)}
-              </DialogTitle>
-              <DialogDescription>{selectedMsg.subject || selectedMsg.summary || "Inbound message"}</DialogDescription>
-            </DialogHeader>
-            <div className="mt-3 p-4 rounded-lg glass-surface text-sm leading-relaxed whitespace-pre-wrap">
-              {selectedMsg.transcript || selectedMsg.summary || "No message body recorded."}
-            </div>
-            {!isHuman && (
-              <div className="mt-3">
-                <Label className="text-xs">Reply</Label>
-                <Textarea
-                  value={replyDraft}
-                  placeholder={`Hi ${String(senderName(selectedMsg)).split(" ")[0]}, thank you for reaching out...`}
-                  onChange={(e) => setReplyDraft(e.target.value)}
-                  className="mt-1 min-h-[100px]"
-                />
-              </div>
-            )}
-            <div className="flex gap-2 mt-4">
-              <Button className="btn-premium text-white text-sm flex-1" disabled={sending || !replyDraft.trim()} onClick={() => handleReply(selectedMsg)}>
-                {sending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}Log Reply
-              </Button>
-              {movedIds.has(selectedMsg.id) ? (
-                <Button variant="outline" className="text-sm opacity-60" disabled>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />In CRM
-                </Button>
-              ) : (
-                <Button variant="outline" className="text-sm border-crimson/30 text-crimson" onClick={() => handleMoveToCrm(selectedMsg)}>
-                  <ArrowRight className="h-4 w-4 mr-2" />Move to CRM
-                </Button>
+                  {/* footer: reply + CRM */}
+                  <div className="pt-3 border-t border-border/40 space-y-2">
+                    {thread.metadata?.suggestedReply && (
+                      <div className="p-2 rounded-lg bg-crimson/5 border border-crimson/20 space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles className="h-3 w-3 text-crimson" />
+                          <span className="text-[10px] font-medium text-crimson">AI suggested reply</span>
+                          <Button variant="outline" size="sm" className="h-6 text-[10px] ml-auto" onClick={() => setReplyDraft(thread.metadata!.suggestedReply!)}>Use draft</Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-3">{thread.metadata.suggestedReply}</p>
+                      </div>
+                    )}
+                    <Textarea value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)}
+                      placeholder={canSendReply ? `Reply to ${senderName(thread.contactName).split(" ")[0]}…` : "Replying isn't send-capable on this channel yet."}
+                      className="min-h-[70px] text-sm" disabled={!canSendReply} />
+                    <div className="flex items-center gap-2">
+                      <Button className="btn-premium text-white text-sm flex-1" disabled={!canSendReply || replyConversation.isPending || !replyDraft.trim()} onClick={handleReply}>
+                        {replyConversation.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}Send Reply
+                      </Button>
+                      {thread.convertedLeadId || movedLeadConvs.has(thread.id) ? (
+                        <Button variant="outline" className="text-sm opacity-70" disabled><CheckCircle2 className="h-4 w-4 mr-2" />In CRM</Button>
+                      ) : (
+                        <Button variant="outline" className="text-sm border-crimson/30 text-crimson" onClick={() => moveConvToCrm(thread)}><ArrowRight className="h-4 w-4 mr-2" />Move to CRM</Button>
+                      )}
+                    </div>
+                    {!canSendReply && (
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        {thread.primaryChannel === "whatsapp" ? "Add a WhatsApp access token + phone number in .env to enable sending." : "Only WhatsApp is send-capable in this phase — other channels are receive-only for now."}
+                      </p>
+                    )}
+                  </div>
+                </div>
               )}
-              <Button variant="outline" className="text-sm" onClick={() => { setSelectedMsg(null); onTabChange("compose"); }}>
-                <Edit className="h-4 w-4 mr-2" />Compose
-              </Button>
+            </GlassCard>
+          </div>
+        </div>
+      ) : (
+        /* INTERACTIONS */
+        <GlassCard>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold">Engagement</h3>
+            <Badge variant="outline" className="text-xs">{interactionList.length} interaction{interactionList.length === 1 ? "" : "s"}</Badge>
+          </div>
+          {interactionList.length === 0 ? (
+            <div className="text-center py-10">
+              <ThumbsUp className="h-10 w-10 mx-auto text-muted-foreground/20 mb-3" />
+              <p className="text-sm font-semibold">No interactions yet</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">Likes, comments, reactions and mentions from connected social accounts land here so you can triage warm signals into the pipeline.</p>
             </div>
-          </DialogContent>
-        </Dialog>
+          ) : (
+            <div className="space-y-2">
+              {interactionList.map((it) => {
+                const moved = it.convertedToLeadId != null || movedInteractions.has(it.id);
+                return (
+                  <div key={it.id} className="p-3 rounded-lg glass-surface flex items-center gap-3">
+                    <div className="p-1.5 rounded-lg glass-surface shrink-0">{socialChannelIcon(it.platform)}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium truncate">{senderName(it.contactName, "Someone")}</p>
+                        <Badge variant="outline" className="text-[9px] capitalize">{it.type}</Badge>
+                        {intentBadge(it.intentScore)}
+                      </div>
+                      {it.content && <p className="text-xs text-muted-foreground truncate mt-0.5">{it.content}</p>}
+                      <span className="text-[9px] text-muted-foreground">{relTime(it.externalTimestamp || it.createdAt)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {it.postUrl && <a href={it.postUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground"><ExternalLink className="h-3.5 w-3.5" /></a>}
+                      {it.status !== "reviewed" && it.status !== "converted" && (
+                        <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => patchInteraction.mutate({ id: it.id, status: "reviewed" })}>Reviewed</Button>
+                      )}
+                      {moved ? (
+                        <Badge className="bg-success/20 text-success text-[9px] border-success/30">In CRM</Badge>
+                      ) : (
+                        <Button variant="outline" size="sm" className="h-7 text-[10px] border-crimson/30 text-crimson" onClick={() => moveInteractionToCrm(it)}><ArrowRight className="h-3 w-3 mr-1" />CRM</Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </GlassCard>
       )}
     </div>
   );
