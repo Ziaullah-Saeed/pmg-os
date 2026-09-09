@@ -90,6 +90,23 @@ services:
       # your real host in prod). Apollo cannot reach localhost.
       APOLLO_WEBHOOK_URL: ${APOLLO_WEBHOOK_URL:-}
       APOLLO_WEBHOOK_SECRET: ${APOLLO_WEBHOOK_SECRET:-}
+      # --- Social Command inbound (Phase 1 + WhatsApp) ---------------------
+      # All blank by default → the webhook receivers stay inert until you set
+      # these. Point Meta/WhatsApp webhooks at a PUBLIC URL reaching this API
+      # (ngrok/cloudflared in dev, your host in prod) — Meta cannot reach localhost.
+      #   Meta Graph (Facebook Page / Lead Ads; Messenger+IG later):
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
+      META_PAGE_ACCESS_TOKEN: ${META_PAGE_ACCESS_TOKEN:-}
+      META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v21.0}
+      #   WhatsApp Cloud API (inbound needs verify+app secret; outbound needs token+phone id):
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION:-}
+      #   First-party website form (optional shared secret guarding ?secret=):
+      WEBSITE_FORM_SECRET: ${WEBSITE_FORM_SECRET:-}
     expose:
       - "8080"
     depends_on:

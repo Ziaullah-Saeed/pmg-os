@@ -32,7 +32,12 @@ app.use(
   }),
 );
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+// Stash the raw request bytes so inbound webhook handlers (Meta / WhatsApp) can
+// verify the HMAC signature against the exact payload Meta signed — re-stringifying
+// the parsed body would not byte-match and the signature check would fail.
+app.use(express.json({
+  verify: (req, _res, buf) => { (req as unknown as { rawBody?: Buffer }).rawBody = buf; },
+}));
 app.use(express.urlencoded({ extended: true }));
 
 pool.query(`

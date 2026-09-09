@@ -12,6 +12,7 @@ import {
 } from "@workspace/db";
 import { getSessionUser } from "../middleware/auth";
 import { listIdentitiesForContact, identityStats } from "../services/identity-service";
+import { getSocialProvidersStatus, sendConversationReply } from "../services/social-providers-service";
 
 // Social Command read/verify API (Phase 0). Serves the unified inbox data layer:
 // conversations, their messages, non-DM interactions, connected accounts, and a
@@ -205,6 +206,25 @@ router.get("/social/contacts/:id/identities", async (req, res): Promise<void> =>
   if (Number.isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const rows = await listIdentitiesForContact(id);
   res.json(rows);
+});
+
+// GET /social/providers — which inbound channels are configured (booleans
+// only, never secrets). Powers the honest connected/not-connected UI + lets the
+// user verify their .env wiring reached the running app.
+router.get("/social/providers", (_req, res): void => {
+  res.json(getSocialProvidersStatus());
+});
+
+// POST /social/conversations/:id/reply — send a reply on the thread's channel.
+// Only WhatsApp is send-capable this phase; others return an honest error.
+router.post("/social/conversations/:id/reply", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (Number.isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const body = typeof req.body?.body === "string" ? req.body.body.trim() : "";
+  if (!body) { res.status(400).json({ error: "Reply body is required" }); return; }
+  const result = await sendConversationReply({ conversationId: id, body, performedBy: getSessionUser(req)?.name });
+  if (!result.ok) { res.status(422).json(result); return; }
+  res.json(result);
 });
 
 // GET /social/stats — quick counts for verifying the pipeline / dashboards.

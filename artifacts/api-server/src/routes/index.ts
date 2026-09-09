@@ -61,6 +61,7 @@ import productionRouter from "./production";
 import aiOutputsRouter from "./ai-outputs";
 import adminRouter from "./admin";
 import { processInboundWebhook } from "../services/integration-hub-service";
+import socialWebhooksRouter from "./social-webhooks";
 
 const router: IRouter = Router();
 
@@ -117,6 +118,10 @@ router.post("/apollo/phone-webhook", async (req, res) => {
     res.status(200).json({ ok: false, error: err?.message ?? "webhook error" });
   }
 });
+
+// Social Command inbound webhooks — PUBLIC (Meta/website POST unauthenticated).
+// Guarded per-source by signature / verify-token / shared secret inside the router.
+router.use(socialWebhooksRouter);
 
 router.use(requireAuth);
 router.use(requirePermission);
